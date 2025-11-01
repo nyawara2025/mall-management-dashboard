@@ -1,0 +1,72 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom base styles */
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  body {
+    background-color: #F8F9FA;
+    color: #212529;
+  }
+  
+  /* Remove default focus outline and add custom */
+  *:focus {
+    outline: none;
+  }
+  
+  *:focus-visible {
+    outline: 2px solid theme('colors.primary.500');
+    outline-offset: 2px;
+  }
+}
+
+/* Custom component styles */
+@layer components {
+  /* Button component */
+  .btn-primary {
+    @apply min-touch bg-primary-500 text-white px-6 py-3 rounded-sm font-medium transition-all duration-200 ease-in-out;
+    @apply hover:bg-primary-700 hover:scale-105 active:scale-98;
+  }
+  
+  .btn-secondary {
+    @apply min-touch bg-surface-bg border border-border-default text-text-primary px-6 py-3 rounded-sm font-medium transition-all duration-200 ease-in-out;
+    @apply hover:bg-page-bg hover:border-border-subtle active:scale-98;
+  }
+  
+  /* Input component */
+  .input-field {
+    @apply min-touch bg-surface-bg border border-border-default rounded-sm px-4 py-3 text-text-primary transition-all duration-200;
+    @apply focus:border-primary-500 focus:shadow-[0_0_0_3px_theme('colors.primary.100')];
+  }
+  
+  /* Card component */
+  .card {
+    @apply bg-surface-bg border border-border-subtle rounded-md p-6 shadow-md transition-all duration-250 ease-out;
+  }
+  
+  .card:hover {
+    @apply shadow-lg transform -translate-y-1;
+  }
+  
+  /* Tag component */
+  .tag {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium;
+    @apply bg-primary-100 text-primary-700;
+  }
+  
+  /* Container */
+  .container {
+    @apply max-w-7xl mx-auto px-6 lg:px-12;
+  }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .card:hover {
+    transform: none;
+  }
+}
