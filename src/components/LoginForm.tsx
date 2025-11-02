@@ -120,4 +120,80 @@ export function LoginForm() {
                 </div>
               )}
 
-              
+                        {isLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              'Sign In'
+            )}
+          ```
+
+        </form>
+      </div>
+    </div>
+
+    <div className="hidden lg:block">
+      <div className="space-y-6">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-text-primary mb-2">
+            Real User Credentials
+          </h2>
+          <p className="text-text-secondary">
+            Use these accounts to access different user roles
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          {realCredentials.map((cred, index) => (
+            <div key={index} className="card border-l-4 border-primary-500">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-semibold text-text-primary">
+                      {cred.username}
+                    </h3>
+                    <span className="tag">
+                      {cred.role}
+                    </span>
+                  </div>
+                  <p className="text-sm text-text-secondary mb-2">
+                    {cred.description}
+                  </p>
+                  <p className="text-xs text-text-secondary font-mono">
+                    Password: {cred.password}
+                  </p>
+                </div>
+                
+                        setUsername(cred.username);
+                        setPassword(cred.password);
+                      }}
+                      className="btn-secondary text-xs px-3 py-1"
+                      disabled={isLoading}
+                    >
+                      Use
+                    ```
+
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-surface-bg border border-border-subtle rounded-md p-4">
+              <h4 className="font-medium text-text-primary mb-2">
+                Role-Based Access
+              </h4>
+              <ul className="text-sm text-text-secondary space-y-1">
+                <li>• <strong>Super Admin:</strong> Can see all malls and shops</li>
+                <li>• <strong>Mall Admin:</strong> Can see only their assigned mall</li>
+                <li>• <strong>Shop Admin:</strong> Can see only their shop</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+  
