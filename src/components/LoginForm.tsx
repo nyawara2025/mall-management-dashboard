@@ -28,20 +28,22 @@ export function LoginForm() {
     }
   };
 
-  const demoCredentials = [
-    { username: 'bosco', password: 'demo123', role: 'Super Admin', description: 'Access to all malls' },
+  const realCredentials = [
+    { username: 'bosco', password: 'demo123', role: 'Super Admin', description: 'Access to all malls and shops' },
     { username: 'jane', password: 'demo123', role: 'Mall Admin', description: 'China Square Mall only' },
     { username: 'faith', password: 'demo123', role: 'Mall Admin', description: 'Langata Mall only' },
     { username: 'ngina', password: 'demo123', role: 'Mall Admin', description: 'NHC Mall only' },
-    { username: 'shopkeeper1', password: 'admin123', role: 'Shop Admin', description: 'China Square Mall - Shop 101' },
-    { username: 'shopkeeper2', password: 'admin123', role: 'Shop Admin', description: 'City Center Mall - Shop 102' },
+    { username: 'ben', password: 'demo123', role: 'Shop Admin', description: 'Spatial Barbershop - China Square Mall' },
+    { username: 'sandra', password: 'demo123', role: 'Shop Admin', description: 'Kika Wines - Langata Mall' },
+    { username: 'andrew', password: 'demo123', role: 'Shop Admin', description: 'The Phone Shop - Langata Mall' },
+    { username: 'fred', password: 'demo123', role: 'Shop Admin', description: 'Cleanshelf SupaMarket - Langata Mall' },
+    { username: 'ibrahim', password: 'demo123', role: 'Shop Admin', description: 'Maliet Salon & Spa - NHC Mall' },
   ];
 
   return (
     <div className="min-h-screen bg-page-bg flex items-center justify-center px-4">
       <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
         
-        {/* Left Side - Login Form */}
         <div className="w-full max-w-md mx-auto">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
@@ -98,10 +100,8 @@ export function LoginForm() {
                     required
                     disabled={isLoading}
                   />
-                  <button
-                    type="button"
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    onClick={() => setShowPassword(!showPassword)}
+                  
+``` setShowPassword(!showPassword)}
                     disabled={isLoading}
                   >
                     {showPassword ? (
@@ -109,7 +109,8 @@ export function LoginForm() {
                     ) : (
                       <Eye className="h-5 w-5 text-text-secondary hover:text-text-primary" />
                     )}
-                  </button>
+                  ```
+
                 </div>
               </div>
 
@@ -119,85 +120,4 @@ export function LoginForm() {
                 </div>
               )}
 
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="btn-primary w-full flex items-center justify-center gap-2"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  'Sign In'
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-
-        {/* Right Side - Demo Credentials */}
-        <div className="hidden lg:block">
-          <div className="space-y-6">
-            <div className="text-center">
-              <h2 className="text-xl font-semibold text-text-primary mb-2">
-                Demo Credentials
-              </h2>
-              <p className="text-text-secondary">
-                Use these accounts to test different user roles
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              {demoCredentials.map((cred, index) => (
-                <div key={index} className="card border-l-4 border-primary-500">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-text-primary">
-                          {cred.username}
-                        </h3>
-                        <span className="tag">
-                          {cred.role}
-                        </span>
-                      </div>
-                      <p className="text-sm text-text-secondary mb-2">
-                        {cred.description}
-                      </p>
-                      <p className="text-xs text-text-secondary font-mono">
-                        Password: {cred.password}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUsername(cred.username);
-                        setPassword(cred.password);
-                      }}
-                      className="btn-secondary text-xs px-3 py-1"
-                      disabled={isLoading}
-                    >
-                      Use
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-surface-bg border border-border-subtle rounded-md p-4">
-              <h4 className="font-medium text-text-primary mb-2">
-                Role-Based Access
-              </h4>
-              <ul className="text-sm text-text-secondary space-y-1">
-                <li>• <strong>Super Admin:</strong> Can see all malls and shops</li>
-                <li>• <strong>Mall Admin:</strong> Can see only their assigned mall</li>
-                <li>• <strong>Shop Admin:</strong> Can see only their shop</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+              
