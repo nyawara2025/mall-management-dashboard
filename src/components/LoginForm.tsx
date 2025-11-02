@@ -100,8 +100,10 @@ export function LoginForm() {
                     required
                     disabled={isLoading}
                   />
-                  
-``` setShowPassword(!showPassword)}
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowPassword(!showPassword)}
                     disabled={isLoading}
                   >
                     {showPassword ? (
@@ -109,8 +111,7 @@ export function LoginForm() {
                     ) : (
                       <Eye className="h-5 w-5 text-text-secondary hover:text-text-primary" />
                     )}
-                  ```
-
+                  </button>
                 </div>
               </div>
 
@@ -120,52 +121,58 @@ export function LoginForm() {
                 </div>
               )}
 
-                        {isLoading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              'Sign In'
-            )}
-          ```
-
-        </form>
-      </div>
-    </div>
-
-    <div className="hidden lg:block">
-      <div className="space-y-6">
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-text-primary mb-2">
-            Real User Credentials
-          </h2>
-          <p className="text-text-secondary">
-            Use these accounts to access different user roles
-          </p>
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="btn-primary w-full flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign In'
+                )}
+              </button>
+            </form>
+          </div>
         </div>
 
-        <div className="space-y-4">
-          {realCredentials.map((cred, index) => (
-            <div key={index} className="card border-l-4 border-primary-500">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="font-semibold text-text-primary">
-                      {cred.username}
-                    </h3>
-                    <span className="tag">
-                      {cred.role}
-                    </span>
-                  </div>
-                  <p className="text-sm text-text-secondary mb-2">
-                    {cred.description}
-                  </p>
-                  <p className="text-xs text-text-secondary font-mono">
-                    Password: {cred.password}
-                  </p>
-                </div>
-                
+        <div className="hidden lg:block">
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-text-primary mb-2">
+                Real User Credentials
+              </h2>
+              <p className="text-text-secondary">
+                Use these accounts to access different user roles
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {realCredentials.map((cred, index) => (
+                <div key={index} className="card border-l-4 border-primary-500">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-text-primary">
+                          {cred.username}
+                        </h3>
+                        <span className="tag">
+                          {cred.role}
+                        </span>
+                      </div>
+                      <p className="text-sm text-text-secondary mb-2">
+                        {cred.description}
+                      </p>
+                      <p className="text-xs text-text-secondary font-mono">
+                        Password: {cred.password}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
                         setUsername(cred.username);
                         setPassword(cred.password);
                       }}
@@ -173,8 +180,7 @@ export function LoginForm() {
                       disabled={isLoading}
                     >
                       Use
-                    ```
-
+                    </button>
                   </div>
                 </div>
               ))}
@@ -196,4 +202,3 @@ export function LoginForm() {
     </div>
   );
 }
-  
