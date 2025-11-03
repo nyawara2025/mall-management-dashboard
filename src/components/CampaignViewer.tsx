@@ -50,7 +50,7 @@ export default function CampaignViewer({ campaignId }: CampaignViewerProps) {
       
       if (data.success && data.campaigns) {
         // Find the specific campaign by ID
-        const campaign = data.campaigns.find(c => c.id === campaignId);
+        const campaign = data.campaigns.find((c: any) => c.id === campaignId);
         if (campaign) {
           setCampaign({
             id: campaign.id,
