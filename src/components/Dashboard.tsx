@@ -18,7 +18,11 @@ import {
 import { MallCard } from './MallCard';
 import { Sidebar } from './Sidebar';
 
-export function Dashboard() {
+interface DashboardProps {
+  onViewChange?: (view: string) => void;
+}
+
+export function Dashboard({ onViewChange }: DashboardProps) {
   const { user, logout } = useAuth();
   const [malls, setMalls] = useState<Mall[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,8 +33,13 @@ export function Dashboard() {
     setError(null);
 
     try {
-      const malls = await MallApiService.fetchMalls(localStorage.getItem('auth_token') || '');
-      setMalls(malls);
+      const response = await MallApiService.fetchMalls(localStorage.getItem('auth_token') || '');
+      if (response.success && response.data) {
+        setMalls(response.data);
+      } else {
+        setMalls([]);
+        setError(response.error || 'Failed to fetch malls');
+      }
     } catch (err) {
       setError('Network error occurred');
     } finally {
@@ -79,7 +88,7 @@ export function Dashboard() {
   return (
     <div className="min-h-screen bg-page-bg flex">
       {/* Sidebar */}
-      <Sidebar onLogout={logout} />
+      <Sidebar onLogout={logout} onViewChange={onViewChange} />
       
       {/* Main Content */}
       <div className="flex-1 lg:ml-64">
@@ -156,6 +165,40 @@ export function Dashboard() {
               </div>
             </div>
           </div>
+
+          {/* Campaign Management for Shop Admins */}
+          {user.role === 'shop_admin' && (
+            <div className="mb-8">
+              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-blue-100 p-3 rounded-lg">
+                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        Campaign Management
+                      </h3>
+                      <p className="text-gray-600 text-sm">
+                        Create promotional campaigns, generate QR codes, and track customer engagement
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => onViewChange?.('campaigns')}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Manage Campaigns
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Malls Grid */}
           <div>

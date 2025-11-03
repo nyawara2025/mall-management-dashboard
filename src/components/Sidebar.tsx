@@ -11,35 +11,55 @@ import {
   Home,
   Store,
   MapPin,
-  UserCheck
+  UserCheck,
+  Megaphone
 } from 'lucide-react';
 
 interface SidebarProps {
   onLogout: () => void;
+  onViewChange?: (view: string) => void;
 }
 
-export function Sidebar({ onLogout }: SidebarProps) {
+export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
   const { user } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [currentView, setCurrentView] = useState('dashboard');
 
   const navigationItems = [
     {
       name: 'Dashboard',
       href: '#',
       icon: Home,
-      current: true,
+      current: currentView === 'dashboard',
+      action: () => {
+        setCurrentView('dashboard');
+        onViewChange?.('dashboard');
+      }
+    },
+    {
+      name: 'Campaign Management',
+      href: '#',
+      icon: Megaphone,
+      current: currentView === 'campaigns',
+      action: () => {
+        setCurrentView('campaigns');
+        onViewChange?.('campaigns');
+      },
+      role: 'shop_admin'
     },
     {
       name: 'Malls',
       href: '#',
       icon: Building2,
       current: false,
+      role: 'super_admin'
     },
     {
       name: 'Shops',
       href: '#',
       icon: Store,
       current: false,
+      role: 'super_admin'
     },
     {
       name: 'Analytics',
@@ -52,25 +72,33 @@ export function Sidebar({ onLogout }: SidebarProps) {
       href: '#',
       icon: Users,
       current: false,
+      role: 'super_admin'
     },
     {
       name: 'Settings',
       href: '#',
       icon: Settings,
       current: false,
+      role: 'super_admin'
     },
   ];
 
   // Filter navigation based on user role
   const filteredNavigation = navigationItems.filter(item => {
-    if (user?.role === 'super_admin') return true;
+    // If item has specific role requirement
+    if (item.role && item.role !== user?.role) return false;
+    
+    if (user?.role === 'super_admin') {
+      // Super admin sees all items except those with specific role restrictions
+      return !item.role || item.role === 'super_admin';
+    }
     if (user?.role === 'mall_admin') {
-      // Mall admins don't see Users section
-      return item.name !== 'Users';
+      // Mall admins see Dashboard, Campaign Management (if added), and Analytics
+      return ['Dashboard', 'Analytics'].includes(item.name);
     }
     if (user?.role === 'shop_admin') {
-      // Shop admins see limited items
-      return ['Dashboard', 'Analytics'].includes(item.name);
+      // Shop admins see Dashboard, Campaign Management, and Analytics
+      return ['Dashboard', 'Campaign Management', 'Analytics'].includes(item.name);
     }
     return false;
   });
@@ -123,10 +151,11 @@ export function Sidebar({ onLogout }: SidebarProps) {
             return (
               <li key={item.name}>
                 <button
+                  onClick={item.action}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium rounded-md transition-colors ${
                     item.current
-                      ? 'bg-primary-100 text-primary-700'
-                      : 'text-text-secondary hover:text-text-primary hover:bg-page-bg'
+                      ? 'bg-blue-100 text-blue-700'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
                   <Icon className="w-5 h-5" />

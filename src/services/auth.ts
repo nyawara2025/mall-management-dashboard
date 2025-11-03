@@ -1,294 +1,563 @@
-// ✅ UPDATED auth.ts with REAL Database IDs (from n8n/SQL results)
-// Replace the placeholder IDs with actual IDs from your database query
+import { User, AuthToken, Mall, Shop } from '../types/auth';
 
-import { User, AuthToken } from '../types/auth';
-
-export interface LoginResponse {
-  success: boolean;
-  token?: string;
-  user?: User;
-  error?: string;
+// Browser-compatible token generation
+function generateSimpleToken(user: User): string {
+  const timestamp = Date.now();
+  const tokenData = `${user.id}-${user.username}-${user.role}-${user.mall_id || ''}-${user.shop_id || ''}-${timestamp}`;
+  return btoa(tokenData); // Browser built-in Base64 encoding
 }
 
-// Types for auth services
-export interface AuthService {
-  login(username: string, password: string): Promise<LoginResponse>;
-  verifyToken(token: string): Promise<AuthToken | null>;
-  logout(): void;
-}
+// Real database users - PLACEHOLDER DATA, UPDATE WITH ACTUAL DATABASE IDs
+// Run the SQL query to get actual user data:
+// SELECT id, username, full_name, role, mall_id, shop_id, active FROM users ORDER BY id;
+const REAL_USERS = new Map<string, { password_hash: string; user: User }>();
 
-export interface MallApiService {
-  fetchMalls(token: string): Promise<any[]>;
-  fetchShops(authToken?: AuthToken): Promise<any[]>;
-}
+// Super Admin
+REAL_USERS.set('bosco', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 1, // UPDATE WITH ACTUAL ID FROM DATABASE
+    username: 'bosco', 
+    full_name: 'Bosco Neo',
+    role: 'super_admin', 
+    mall_id: null, 
+    shop_id: null, 
+    active: true 
+  } 
+});
 
-export interface UserData {
-  password: string;
-  user: User;
-}
+// Mall Admins
+REAL_USERS.set('jane', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 2, // UPDATE WITH ACTUAL ID FROM DATABASE
+    username: 'jane', 
+    full_name: 'Jane Wangui',
+    role: 'mall_admin', 
+    mall_id: 1, // China Square - UPDATE WITH ACTUAL ID
+    shop_id: null, 
+    active: true 
+  } 
+});
 
-// Real users from user's database (UPDATED with actual IDs)
-export const REAL_USERS = new Map<string, UserData>([
-  // Super Admin - Overall System Admin
-  ['bosco', {
-    password: 'demo123',
-    user: { 
-      id: 100, 
-      username: 'bosco', 
-      full_name: 'Bosco Developer', 
-      role: 'super_admin', 
-      mall_id: null, 
-      shop_id: null, 
-      active: true 
-    }
-  }],
+REAL_USERS.set('faith', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 3, // UPDATE WITH ACTUAL ID FROM DATABASE
+    username: 'faith', 
+    full_name: 'Faith Njeri',
+    role: 'mall_admin', 
+    mall_id: 2, // Langata Mall - UPDATE WITH ACTUAL ID
+    shop_id: null, 
+    active: true 
+  } 
+});
 
-  // Mall Admins
-  ['jane', {
-    password: 'demo123',
-    user: { 
-      id: 5, 
-      username: 'jane', 
-      full_name: 'Jane Smith - Mall Admin', 
-      role: 'mall_admin', 
-      mall_id: 3, 
-      shop_id: null, 
-      active: true 
-    }
-  }],
-  ['faith', {
-    password: 'demo123',
-    user: { 
-      id: 10, 
-      username: 'faith', 
-      full_name: 'Faith Admin', 
-      role: 'mall_admin', 
-      mall_id: 6, 
-      shop_id: null, 
-      active: true 
-    }
-  }],
-  ['ngina', {
-    password: 'demo123',
-    user: { 
-      id: 11, 
-      username: 'ngina', 
-      full_name: 'Ngina Admin', 
-      role: 'mall_admin', 
-      mall_id: 7, 
-      shop_id: null, 
-      active: true 
-    }
-  }],
+REAL_USERS.set('ngina', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 4, // UPDATE WITH ACTUAL ID FROM DATABASE
+    username: 'ngina', 
+    full_name: 'Ngina Wanjiku',
+    role: 'mall_admin', 
+    mall_id: 3, // NHC Mall - UPDATE WITH ACTUAL ID
+    shop_id: null, 
+    active: true 
+  } 
+});
 
-  // Shop Admins (UPDATED with real database IDs)
-  ['ben', {
-    password: 'demo123',
-    user: { 
-      id: 6, 
-      username: 'ben', 
-      full_name: 'Ben Johnson - Shop Admin', 
-      role: 'shop_admin', 
-      mall_id: null, 
-      shop_id: 3, 
-      active: true 
-    }
-  }],
-  // NEW USERS - Replace these placeholder IDs with actual IDs from your query:
-  ['sandra', {
-    password: 'demo123',
-    user: { 
-      id: 12,
-      username: 'sandra', 
-      full_name: 'Sandra - Kika Wines & Spirits', 
-      role: 'shop_admin', 
-      mall_id: 6, 
-      shop_id: 6, 
-      active: true 
-    }
-  }],
-  ['andrew', {
-    password: 'demo123',
-    user: { 
-      id: 13,
-      username: 'andrew', 
-      full_name: 'Andrew - The Phone Shop', 
-      role: 'shop_admin', 
-      mall_id: 6, 
-      shop_id: 7, 
-      active: true 
-    }
-  }],
-  ['fred', {
-    password: 'demo123',
-    user: { 
-      id: 14,
-      username: 'fred', 
-      full_name: 'Fred - Cleanshelf SupaMarket', 
-      role: 'shop_admin', 
-      mall_id: 6, 
-      shop_id: 8, 
-      active: true 
-    }
-  }],
-  ['ibrahim', {
-    password: 'demo123',
-    user: { 
-      id: 15,
-      username: 'ibrahim', 
-      full_name: 'Ibrahim - Maliet Salon & Spa', 
-      role: 'shop_admin', 
-      mall_id: 7, 
-      shop_id: 9, 
-      active: true 
-    }
-  }]
-]);
+// Shop Admins - Current
+REAL_USERS.set('ben', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 5, // UPDATE WITH ACTUAL ID FROM DATABASE
+    username: 'ben', 
+    full_name: 'Ben - Spatial Barbershop',
+    role: 'shop_admin', 
+    mall_id: 1, // China Square - UPDATE WITH ACTUAL ID
+    shop_id: 1, // Spatial Barbershop - UPDATE WITH ACTUAL ID
+    active: true 
+  } 
+});
 
-// Real malls from user's database
-export const REAL_MALLS = [
-  { id: 3, name: 'China Square', latitude: -1.32429000, longitude: 36.80310000, radius_meters: 75.00, address: 'China Square, Langata', active: true },
-  { id: 6, name: 'Langata Mall', latitude: -1.32361000, longitude: 36.78304000, radius_meters: 50.00, address: 'Langata Mall, Langata', active: true },
-  { id: 7, name: 'NHC Mall', latitude: -1.31729000, longitude: 36.78841000, radius_meters: 50.00, address: 'NHC Mall, Langata', active: true }
+// Shop Admins - Missing Users (need to be added to database)
+REAL_USERS.set('sandra', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 6, // TEMPORARY ID - will be assigned when added to database
+    username: 'sandra', 
+    full_name: 'Sandra - Kika Wines',
+    role: 'shop_admin', 
+    mall_id: 6, // Langata Mall - UPDATE WITH ACTUAL ID
+    shop_id: 6, // Kika Wines - UPDATE WITH ACTUAL ID (needs to be added to database first)
+    active: true 
+  } 
+});
+
+REAL_USERS.set('andrew', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 7, // TEMPORARY ID - will be assigned when added to database
+    username: 'andrew', 
+    full_name: 'Andrew - The Phone Shop',
+    role: 'shop_admin', 
+    mall_id: 2, // Langata Mall - UPDATE WITH ACTUAL ID
+    shop_id: 3, // The Phone Shop - UPDATE WITH ACTUAL ID (needs to be added to database first)
+    active: true 
+  } 
+});
+
+REAL_USERS.set('fred', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 8, // TEMPORARY ID - will be assigned when added to database
+    username: 'fred', 
+    full_name: 'Fred - Cleanshelf SupaMarket',
+    role: 'shop_admin', 
+    mall_id: 2, // Langata Mall - UPDATE WITH ACTUAL ID
+    shop_id: 4, // Cleanshelf Supamarket - UPDATE WITH ACTUAL ID (needs to be added to database first)
+    active: true 
+  } 
+});
+
+REAL_USERS.set('ibrahim', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 9, // TEMPORARY ID - will be assigned when added to database
+    username: 'ibrahim', 
+    full_name: 'Ibrahim - Maliet Salon & Spa',
+    role: 'shop_admin', 
+    mall_id: 3, // NHC Mall - UPDATE WITH ACTUAL ID
+    shop_id: 5, // Maliet Salon & Spa - UPDATE WITH ACTUAL ID (needs to be added to database first)
+    active: true 
+  } 
+});
+
+// Real mall data - PLACEHOLDER COORDINATES, UPDATE WITH ACTUAL DATABASE DATA
+// Run the SQL query to get actual mall data:
+// SELECT id, name, latitude, longitude, address, radius_meters, active FROM malls ORDER BY id;
+const REAL_MALLS: Mall[] = [
+  {
+    id: 1, // UPDATE WITH ACTUAL ID FROM DATABASE
+    name: 'China Square',
+    latitude: -1.2921, // UPDATE WITH ACTUAL COORDINATES FROM DATABASE
+    longitude: 36.8219,
+    address: 'Langata, Nairobi', // UPDATE WITH ACTUAL ADDRESS FROM DATABASE
+    radius_meters: 150.00, // UPDATE WITH ACTUAL RADIUS FROM DATABASE
+    active: true,
+    created_at: '2024-01-15T10:00:00Z', // UPDATE WITH ACTUAL TIMESTAMPS
+    updated_at: '2024-01-15T10:00:00Z',
+    shops: [
+      { 
+        id: 1, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'Spatial Barbershop', 
+        created_at: '2024-01-15T10:00:00Z', 
+        updated_at: '2024-01-15T10:00:00Z' 
+      },
+      { 
+        id: 2, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'Mall Cafe', 
+        created_at: '2024-01-15T11:00:00Z', 
+        updated_at: '2024-01-15T11:00:00Z' 
+      }
+    ]
+  },
+  {
+    id: 2, // UPDATE WITH ACTUAL ID FROM DATABASE
+    name: 'Langata Mall',
+    latitude: -1.323957, // UPDATE WITH ACTUAL COORDINATES FROM DATABASE
+    longitude: 36.782825,
+    address: 'Langata, Nairobi', // UPDATE WITH ACTUAL ADDRESS FROM DATABASE
+    radius_meters: 150.00, // UPDATE WITH ACTUAL RADIUS FROM DATABASE
+    active: true,
+    created_at: '2024-01-16T11:00:00Z',
+    updated_at: '2024-01-16T11:00:00Z',
+    shops: [
+      { 
+        id: 3, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'Kika Wines', 
+        created_at: '2024-01-16T11:00:00Z', 
+        updated_at: '2024-01-16T11:00:00Z' 
+      },
+      { 
+        id: 4, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'The Phone Shop', 
+        created_at: '2024-01-16T12:00:00Z', 
+        updated_at: '2024-01-16T12:00:00Z' 
+      },
+      { 
+        id: 5, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'Cleanshelf Supamarket', 
+        created_at: '2024-01-16T13:00:00Z', 
+        updated_at: '2024-01-16T13:00:00Z' 
+      }
+    ]
+  },
+  {
+    id: 3, // UPDATE WITH ACTUAL ID FROM DATABASE
+    name: 'NHC Mall',
+    latitude: -1.317435, // UPDATE WITH ACTUAL COORDINATES FROM DATABASE
+    longitude: 36.7882,
+    address: 'Langata, Nairobi', // UPDATE WITH ACTUAL ADDRESS FROM DATABASE
+    radius_meters: 150.00, // UPDATE WITH ACTUAL RADIUS FROM DATABASE
+    active: true,
+    created_at: '2024-01-17T12:00:00Z',
+    updated_at: '2024-01-17T12:00:00Z',
+    shops: [
+      { 
+        id: 6, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'Maliet Salon & Spa', 
+        created_at: '2024-01-17T12:00:00Z', 
+        updated_at: '2024-01-17T13:00:00Z' 
+      },
+      { 
+        id: 7, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'CBC Resource Centre', 
+        created_at: '2024-01-17T13:00:00Z', 
+        updated_at: '2024-01-17T13:00:00Z' 
+      },
+      { 
+        id: 8, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'Hydramist Drinking Water Services', 
+        created_at: '2024-01-17T14:00:00Z', 
+        updated_at: '2024-01-17T14:00:00Z' 
+      }
+    ]
+  }
 ];
 
-// Real shops from user's database
-export const REAL_SHOPS = [
-  // China Square (mall_id=3)
-  { id: 3, name: 'Spatial Barber Shop', mall_id: 3, latitude: -1.32429000, longitude: 36.80310000, radius_meters: 75.00, description: 'Professional barber shop services', active: true },
-  { id: 4, name: 'Mall Cafe', mall_id: 3, latitude: -1.32415000, longitude: 36.80325000, radius_meters: 50.00, description: 'Coffee and light meals', active: true },
-  
-  // Langata Mall (mall_id=6)
-  { id: 6, name: 'Kika Wines & Spirits', mall_id: 6, latitude: -1.32361000, longitude: 36.78304000, radius_meters: 50.00, description: 'Wine and spirits store', active: true },
-  { id: 7, name: 'The Phone Shop', mall_id: 6, latitude: -1.32361000, longitude: 36.78304000, radius_meters: 50.00, description: 'Mobile phones and accessories', active: true },
-  { id: 8, name: 'Cleanshelf SupaMarket', mall_id: 6, latitude: -1.32361000, longitude: 36.78304000, radius_meters: 50.00, description: 'Supermarket and grocery store', active: true },
-  
-  // NHC Mall (mall_id=7)
-  { id: 9, name: 'Maliet Salon & Spa', mall_id: 7, latitude: -1.31729000, longitude: 36.78841000, radius_meters: 50.00, description: 'Beauty salon and spa services', active: true },
-  { id: 10, name: 'Gravity CBC Resource Center', mall_id: 7, latitude: -1.31729000, longitude: 36.78841000, radius_meters: 50.00, description: 'Educational resource center', active: true },
-  { id: 11, name: 'Hydramist Drinking Water Services', mall_id: 7, latitude: -1.31729000, longitude: 36.78841000, radius_meters: 50.00, description: 'Water services and products', active: true }
-];
-
-// Generate a simple auth token (Base64 encoded)
-function generateToken(user: User): string {
-  const payload = {
-    userId: user.id,
-    username: user.username,
-    role: user.role,
-    mallId: user.mall_id,
-    shopId: user.shop_id,
-    exp: Date.now() + 24 * 60 * 60 * 1000 // 24 hours from now
-  };
-  return btoa(JSON.stringify(payload));
-}
-
-// Decode and validate auth token
-export function parseAuthToken(token: string): AuthToken | null {
-  try {
-    const decoded = JSON.parse(atob(token));
+// Authentication Service
+export class AuthService {
+  static async login(username: string, password: string): Promise<{ success: boolean; token?: string; user?: User; error?: string }> {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const realUser = REAL_USERS.get(username.toLowerCase());
+    
+    if (!realUser) {
+      return { success: false, error: 'User not found' };
+    }
+    
+    // For demo purposes, compare against the hashed password
+    // In production, you'd use bcrypt.compare(password, realUser.password_hash)
+    const isValidPassword = password === 'demo123'; // Simple demo validation
+    
+    if (!isValidPassword) {
+      return { success: false, error: 'Invalid username or password' };
+    }
+    
+    if (!realUser.user.active) {
+      return { success: false, error: 'Account is inactive' };
+    }
+    
+    // Create simple token (browser-compatible)
+    const token = generateSimpleToken(realUser.user);
+    
     return {
-      userId: decoded.userId,
-      username: decoded.username,
-      role: decoded.role,
-      mall_id: decoded.mallId,
-      shop_id: decoded.shopId,
-      exp: decoded.exp || Date.now() + 24 * 60 * 60 * 1000 // Default to 24 hours
+      success: true,
+      token,
+      user: realUser.user
     };
-  } catch (error) {
-    return null;
+  }
+  
+  static logout(): void {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+  }
+  
+  static verifyToken(token: string): AuthToken | null {
+    try {
+      // Decode the token format: userId-username-role-mallId-shopId-timestamp
+      const decodedString = atob(token);
+      const [userId, username, role, mallId, shopId, timestamp] = decodedString.split('-');
+      
+      // Basic validation
+      if (!userId || !username || !role || !timestamp) return null;
+      
+      // Check if token is expired
+      const tokenTime = parseInt(timestamp);
+      const expirationTime = tokenTime + (24 * 60 * 60) * 1000; // 24 hours in milliseconds
+      
+      if (Date.now() > expirationTime) {
+        return null; // Token expired
+      }
+      
+      // Create AuthToken object
+      return {
+        username,
+        role: role as 'super_admin' | 'mall_admin' | 'shop_admin',
+        userId: parseInt(userId),
+        mall_id: mallId ? parseInt(mallId) : null,
+        shop_id: shopId ? parseInt(shopId) : null,
+        exp: expirationTime
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+  
+  static isTokenValid(token: string): boolean {
+    return this.verifyToken(token) !== null;
+  }
+  
+  static decodeToken(token: string): AuthToken | null {
+    try {
+      const decodedString = atob(token);
+      const [userId, username, role, mallId, shopId, timestamp] = decodedString.split('-');
+      
+      if (!userId || !username || !role || !timestamp) return null;
+      
+      return {
+        username,
+        role: role as 'super_admin' | 'mall_admin' | 'shop_admin',
+        userId: parseInt(userId),
+        mall_id: mallId ? parseInt(mallId) : null,
+        shop_id: shopId ? parseInt(shopId) : null,
+        exp: parseInt(timestamp) + (24 * 60 * 60) * 1000
+      };
+    } catch {
+      return null;
+    }
+  }
+  
+  static getCurrentUser(): User | null {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const userData = localStorage.getItem('user_data');
+      
+      if (!token || !userData) return null;
+      
+      // Verify token is still valid
+      if (!this.isTokenValid(token)) {
+        this.logout();
+        return null;
+      }
+      
+      // Parse user data
+      const user = JSON.parse(userData) as User;
+      
+      // Update user data with any changes from the REAL_USERS map
+      const realUser = REAL_USERS.get(user.username);
+      if (realUser) {
+        return realUser.user;
+      }
+      
+      return user;
+    } catch {
+      return null;
+    }
   }
 }
 
-export function login(username: string, password: string): Promise<LoginResponse> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const userData = REAL_USERS.get(username.toLowerCase());
-      
-      if (!userData || userData.password !== password || !userData.user.active) {
-        resolve({ success: false, error: 'Invalid username or password' });
-        return;
-      }
-
-      const token = generateToken(userData.user);
-      resolve({ 
-        success: true, 
-        token,
-        user: userData.user
-      });
-    }, 500);
-  });
-}
-
-export function verifyToken(token: string): Promise<AuthToken | null> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const authToken = parseAuthToken(token);
-      resolve(authToken);
-    }, 300);
-  });
-}
-
-export function fetchMalls(token: string): Promise<any[]> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(REAL_MALLS);
-    }, 300);
-  });
-}
-
-export function fetchShops(authToken?: AuthToken): Promise<any[]> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      let shops = [...REAL_SHOPS];
-      
+// API Service for Mall Management
+export class MallApiService {
+  private static readonly API_BASE_URL = 'https://n8n.tenear.com/webhook/management/malls';
+  
+  static async fetchMalls(token: string): Promise<{ success: boolean; data?: Mall[]; error?: string }> {
+    try {
+      // Decode token to get user role and mall_id for filtering
+      const authToken = AuthService.decodeToken(token);
       if (!authToken) {
-        // If no auth token, return all shops
-        resolve(shops);
-        return;
+        return { success: false, error: 'Invalid token' };
       }
 
-      // Role-based filtering
-      switch (authToken.role) {
-        case 'super_admin':
-          // Super admin sees all shops across all malls
-          resolve(shops);
-          break;
-          
-        case 'mall_admin':
-          // Mall admin sees shops only in their mall
-          if (authToken.mall_id) {
-            shops = shops.filter(shop => shop.mall_id === authToken.mall_id);
-          }
-          resolve(shops);
-          break;
-          
-        case 'shop_admin':
-          // CRITICAL FIX: Shop admin sees ONLY their assigned shop
-          if (authToken.shop_id) {
-            shops = shops.filter(shop => shop.id === authToken.shop_id);
-          }
-          resolve(shops);
-          break;
-          
-        default:
-          // Default: return all shops
-          resolve(shops);
+      // Use real data with proper role-based filtering
+      let filteredMalls = REAL_MALLS;
+      
+      if (authToken.role === 'mall_admin' && authToken.mall_id) {
+        // Mall admins can only see their assigned mall
+        filteredMalls = REAL_MALLS.filter(mall => mall.id === authToken.mall_id);
+      } else if (authToken.role === 'shop_admin' && authToken.mall_id) {
+        // Shop admins can only see malls for their assigned shop
+        filteredMalls = REAL_MALLS.filter(mall => mall.id === authToken.mall_id);
       }
-    }, 300);
-  });
+      // Super admins see all malls (no filtering needed)
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return { 
+        success: true, 
+        data: filteredMalls
+      };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
+  }
+  
+  static async fetchMallDetails(mallId: number, token: string): Promise<{ success: boolean; data?: Mall; error?: string }> {
+    try {
+      const mallsResponse = await this.fetchMalls(token);
+      if (!mallsResponse.success || !mallsResponse.data) {
+        return { success: false, error: 'Failed to fetch malls' };
+      }
+      
+      const mall = mallsResponse.data.find(m => m.id === mallId);
+      if (!mall) {
+        return { success: false, error: 'Mall not found or access denied' };
+      }
+      
+      return { success: true, data: mall };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
+  }
+  
+  // CRITICAL FIX: This method now properly filters shops for shop admins
+  static async fetchShops(mallId: number, token: string): Promise<{ success: boolean; data?: Shop[]; error?: string }> {
+    try {
+      const mallsResponse = await this.fetchMalls(token);
+      if (!mallsResponse.success || !mallsResponse.data) {
+        return { success: false, error: 'Failed to fetch malls' };
+      }
+      
+      const mall = mallsResponse.data.find(m => m.id === mallId);
+      if (!mall) {
+        return { success: false, error: 'Mall not found or access denied' };
+      }
+      
+      // Get all shops for this mall
+      let shops = mall.shops || [];
+      
+      // CRITICAL FIX: For shop admins, only return their specific assigned shop
+      const authToken = AuthService.decodeToken(token);
+      if (authToken?.role === 'shop_admin' && authToken.shop_id) {
+        // Shop admins can only see their own assigned shop
+        shops = shops.filter(shop => shop.id === authToken.shop_id);
+      }
+      // Mall admins and super admins see all shops in the mall
+      
+      return { success: true, data: shops };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
+  }
+  
+  static async createMall(mallData: Partial<Mall>, token: string): Promise<{ success: boolean; data?: Mall; error?: string }> {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const newMall: Mall = {
+        id: Math.max(...REAL_MALLS.map(m => m.id)) + 1,
+        name: mallData.name || 'New Mall',
+        latitude: mallData.latitude || -1.2921,
+        longitude: mallData.longitude || 36.8219,
+        address: mallData.address || 'Unknown Location',
+        radius_meters: mallData.radius_meters || 500,
+        active: mallData.active !== undefined ? mallData.active : true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        shops: []
+      };
+      
+      return { success: true, data: newMall };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
+  }
+  
+  static async updateMall(mallId: number, mallData: Partial<Mall>, token: string): Promise<{ success: boolean; data?: Mall; error?: string }> {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const existingMall = REAL_MALLS.find(m => m.id === mallId);
+      if (!existingMall) {
+        return { success: false, error: 'Mall not found' };
+      }
+      
+      const updatedMall: Mall = {
+        ...existingMall,
+        ...mallData,
+        updated_at: new Date().toISOString()
+      };
+      
+      return { success: true, data: updatedMall };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
+  }
+  
+  static async deleteMall(mallId: number, token: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const existingMall = REAL_MALLS.find(m => m.id === mallId);
+      if (!existingMall) {
+        return { success: false, error: 'Mall not found' };
+      }
+      
+      return { success: true };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
+  }
+  
+  static createAuthHeaders(token: string): HeadersInit {
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+  }
 }
 
-// Service implementations
-export const AuthService: AuthService = {
-  login,
-  verifyToken,
-  logout: () => {
-    // Clear any stored tokens if needed
-    localStorage.removeItem('authToken');
-  }
+// Export service objects for easy importing
+export const AuthServiceExports = {
+  login: AuthService.login.bind(AuthService),
+  logout: AuthService.logout.bind(AuthService),
+  decodeToken: AuthService.decodeToken.bind(AuthService),
+  verifyToken: AuthService.verifyToken.bind(AuthService),
+  isTokenValid: AuthService.isTokenValid.bind(AuthService),
+  getCurrentUser: AuthService.getCurrentUser.bind(AuthService)
 };
 
-export const MallApiService: MallApiService = {
-  fetchMalls,
-  fetchShops
+export const MallApiServiceExports = {
+  fetchMalls: MallApiService.fetchMalls.bind(MallApiService),
+  fetchMallDetails: MallApiService.fetchMallDetails.bind(MallApiService),
+  createMall: MallApiService.createMall.bind(MallApiService),
+  updateMall: MallApiService.updateMall.bind(MallApiService),
+  deleteMall: MallApiService.deleteMall.bind(MallApiService),
+  fetchShops: MallApiService.fetchShops.bind(MallApiService),
+  createAuthHeaders: MallApiService.createAuthHeaders.bind(MallApiService)
 };
+
+// Individual exports for easier importing
+export const login = AuthService.login;
+export const logout = AuthService.logout;
+export const decodeToken = AuthService.decodeToken;
+export const verifyToken = AuthService.verifyToken;
+export const isTokenValid = AuthService.isTokenValid;
+export const getCurrentUser = AuthService.getCurrentUser;
+
+// Utility function for creating auth headers
+export function createAuthHeaders(token: string): HeadersInit {
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  };
+}
+
+export const fetchMalls = MallApiService.fetchMalls;
+export const fetchMallDetails = MallApiService.fetchMallDetails;
+export const createMall = MallApiService.createMall;
+export const updateMall = MallApiService.updateMall;
+export const deleteMall = MallApiService.deleteMall;
+export const fetchShops = MallApiService.fetchShops;
+export const createAuthHeadersFromService = MallApiService.createAuthHeaders;

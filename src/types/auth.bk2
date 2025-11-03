@@ -1,0 +1,48 @@
+// User types for authentication
+export interface User {
+  id: number;
+  username: string;
+  role: 'super_admin' | 'mall_admin';
+  full_name: string;
+  mall_id: number | null;
+  shop_id: number | null;
+  active: boolean;
+}
+
+// JWT Token payload structure
+export interface AuthToken {
+  username: string;
+  role: string;
+  userId: number;
+  mall_id: number | null;
+  shop_id: number | null;
+  exp: number;
+}
+
+// Mall data structure
+export interface Mall {
+  id: number;
+  name: string;
+  location: string;
+  totalShops: number;
+  occupancyRate: number;
+  monthlyRevenue: number;
+  image: string;
+  shops?: Array<{
+    id: number;
+    name: string;
+    type: string;
+    tenant: string;
+    status: string;
+  }>;
+}
+
+// Auth context type
+export interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => void;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+}
