@@ -3,7 +3,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Dashboard } from './components/Dashboard';
 import CampaignManagement from './components/CampaignManagement';
-import { CampaignViewer } from './components/CampaignViewer';
+import CampaignViewer from './components/CampaignViewer';
 import { useAuth } from './contexts/AuthContext';
 import './index.css';
 
