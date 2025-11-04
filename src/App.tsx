@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Dashboard } from './components/Dashboard';
 import CampaignManagement from './components/CampaignManagement';
 import CampaignViewer from './components/CampaignViewer';
+import Analytics from './components/Analytics';
 import { useAuth } from './contexts/AuthContext';
 import './index.css';
 
@@ -44,6 +45,14 @@ function AppContent() {
               <Header onBack={() => setCurrentView('dashboard')} title="Campaign Management" />
               <div className="pt-16">
                 <CampaignManagement />
+              </div>
+            </div>
+          )}
+          {currentView === 'analytics' && (
+            <div className="min-h-screen">
+              <Header onBack={() => setCurrentView('dashboard')} title="Analytics & Insights" />
+              <div className="pt-16">
+                <Analytics />
               </div>
             </div>
           )}

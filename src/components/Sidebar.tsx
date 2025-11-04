@@ -65,7 +65,11 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
       name: 'Analytics',
       href: '#',
       icon: BarChart3,
-      current: false,
+      current: currentView === 'analytics',
+      action: () => {
+        setCurrentView('analytics');
+        onViewChange?.('analytics');
+      },
     },
     {
       name: 'Users',
