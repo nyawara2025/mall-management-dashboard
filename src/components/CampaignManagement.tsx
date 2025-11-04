@@ -38,11 +38,20 @@ export default function CampaignManagement() {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [createForm, setCreateForm] = useState({
     name: '',
     message: '',
     zone: '',
     shop_id: user?.shop_id || ''
+  });
+  const [editForm, setEditForm] = useState({
+    name: '',
+    message: '',
+    zone: '',
+    is_active: true
   });
   const [analytics, setAnalytics] = useState({
     totalCampaigns: 0,
@@ -212,6 +221,154 @@ export default function CampaignManagement() {
     document.body.appendChild(modal);
   };
 
+  // Handle View Campaign
+  const handleViewCampaign = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    setShowViewModal(true);
+  };
+
+  // Handle Edit Campaign
+  const handleEditCampaign = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    setEditForm({
+      name: campaign.name,
+      message: campaign.message,
+      zone: campaign.zone,
+      is_active: campaign.is_active
+    });
+    setShowEditForm(true);
+  };
+
+  // Handle Update Campaign
+  const handleUpdateCampaign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCampaign) return;
+
+    try {
+      const token = localStorage.getItem('auth_token') || '';
+      const headers = createAuthHeaders(token);
+      
+      const campaignData = {
+        id: selectedCampaign.id,
+        name: editForm.name,
+        message: editForm.message,
+        zone: editForm.zone,
+        is_active: editForm.is_active,
+        updated_by: user?.username
+      };
+
+      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(campaignData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowEditForm(false);
+        setSelectedCampaign(null);
+        setTimeout(() => {
+          fetchCampaigns(); // Refresh campaigns list
+        }, 500);
+        
+        // Show success message
+        const successAlert = document.createElement('div');
+        successAlert.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50';
+        successAlert.innerHTML = `
+          <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            Campaign "${editForm.name}" updated successfully!
+          </div>
+        `;
+        document.body.appendChild(successAlert);
+        setTimeout(() => successAlert.remove(), 5000);
+      } else {
+        throw new Error(data.error || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Error updating campaign:', error);
+      // Show error message
+      const errorAlert = document.createElement('div');
+      errorAlert.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50';
+      errorAlert.innerHTML = `
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+          </svg>
+          Error updating campaign. Please try again.
+        </div>
+      `;
+      document.body.appendChild(errorAlert);
+      setTimeout(() => errorAlert.remove(), 5000);
+    }
+  };
+
+  // Handle Delete Campaign
+  const handleDeleteCampaign = async (campaign: Campaign) => {
+    if (!window.confirm(`Are you sure you want to delete "${campaign.name}"?`)) {
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('auth_token') || '';
+      const headers = createAuthHeaders(token);
+      
+      const deleteData = {
+        id: campaign.id,
+        action: 'delete',
+        deleted_by: user?.username
+      };
+
+      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(deleteData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setTimeout(() => {
+          fetchCampaigns(); // Refresh campaigns list
+        }, 500);
+        
+        // Show success message
+        const successAlert = document.createElement('div');
+        successAlert.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50';
+        successAlert.innerHTML = `
+          <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            Campaign "${campaign.name}" deleted successfully!
+          </div>
+        `;
+        document.body.appendChild(successAlert);
+        setTimeout(() => successAlert.remove(), 5000);
+      } else {
+        throw new Error(data.error || 'Unknown error');
+      }
+    } catch (error) {
+      console.error('Error deleting campaign:', error);
+      // Show error message
+      const errorAlert = document.createElement('div');
+      errorAlert.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50';
+      errorAlert.innerHTML = `
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+          </svg>
+          Error deleting campaign. Please try again.
+        </div>
+      `;
+      document.body.appendChild(errorAlert);
+      setTimeout(() => errorAlert.remove(), 5000);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -363,6 +520,213 @@ export default function CampaignManagement() {
         </div>
       )}
 
+      {/* Edit Campaign Modal */}
+      {showEditForm && selectedCampaign && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="max-w-md w-full mx-4">
+            <CardHeader>
+              <CardTitle>Edit Campaign</CardTitle>
+              <CardDescription>
+                Update campaign details for "{selectedCampaign.name}"
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleUpdateCampaign} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Campaign Name
+                  </label>
+                  <Input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                    placeholder="e.g., Wine Tasting Event"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Campaign Message
+                  </label>
+                  <Textarea
+                    value={editForm.message}
+                    onChange={(e) => setEditForm({...editForm, message: e.target.value})}
+                    placeholder="Describe your campaign, promotion, or event..."
+                    rows={3}
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Target Zone
+                  </label>
+                  <Input
+                    type="text"
+                    value={editForm.zone}
+                    onChange={(e) => setEditForm({...editForm, zone: e.target.value})}
+                    placeholder="e.g., langata, china-square, nhc"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Specify the mall/area where this campaign should appear
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="is_active"
+                    checked={editForm.is_active}
+                    onChange={(e) => setEditForm({...editForm, is_active: e.target.checked})}
+                    className="rounded border-gray-300"
+                  />
+                  <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
+                    Campaign is Active
+                  </label>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button type="submit" className="flex-1">
+                    Update Campaign
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setShowEditForm(false)}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* View Campaign Modal */}
+      {showViewModal && selectedCampaign && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <Card className="max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Campaign Details</span>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => window.open(`https://mall-management-dashboard.pages.dev/campaign/${selectedCampaign.id}`, '_blank')}
+                >
+                  <Eye size={16} className="mr-1" />
+                  View Live
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Campaign ID
+                  </label>
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+                    {selectedCampaign.id}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status
+                  </label>
+                  <Badge variant={selectedCampaign.is_active ? 'default' : 'secondary'}>
+                    {selectedCampaign.is_active ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Campaign Name
+                </label>
+                <p className="text-sm text-gray-900">{selectedCampaign.name}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Campaign Message
+                </label>
+                <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded">
+                  {selectedCampaign.message}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Target Zone
+                  </label>
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+                    {selectedCampaign.zone}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Shop ID
+                  </label>
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+                    {selectedCampaign.shop_id || 'N/A'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Created Date
+                  </label>
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+                    {selectedCampaign.created_at ? new Date(selectedCampaign.created_at).toLocaleDateString() : 'Unknown'}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Total Scans
+                  </label>
+                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+                    {selectedCampaign.scan_count || 0}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowEditForm(true)}
+                  className="flex-1"
+                >
+                  <Edit size={16} className="mr-1" />
+                  Edit
+                </Button>
+                <Button 
+                  variant="destructive"
+                  onClick={() => handleDeleteCampaign(selectedCampaign)}
+                  className="flex-1"
+                >
+                  <Trash2 size={16} className="mr-1" />
+                  Delete
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowViewModal(false)}
+                  className="flex-1"
+                >
+                  Close
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Campaigns List */}
       <div className="grid gap-4">
         {campaigns.length === 0 ? (
@@ -410,13 +774,29 @@ export default function CampaignManagement() {
                       <QrCode size={16} className="mr-1" />
                       QR Code
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleViewCampaign(campaign)}
+                    >
                       <Eye size={16} className="mr-1" />
                       View
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleEditCampaign(campaign)}
+                    >
                       <Edit size={16} className="mr-1" />
                       Edit
+                    </Button>
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => handleDeleteCampaign(campaign)}
+                    >
+                      <Trash2 size={16} className="mr-1" />
+                      Delete
                     </Button>
                   </div>
                 </div>
