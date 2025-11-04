@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Dashboard } from './components/Dashboard';
 import CampaignManagement from './components/CampaignManagement';
+import { CampaignViewer } from './components/CampaignViewer';
 import { useAuth } from './contexts/AuthContext';
 import './index.css';
 
@@ -23,7 +24,6 @@ function AppContent() {
 
   // Show campaign viewer if we're on a campaign page
   if (currentView === 'campaign-view' && campaignId) {
-    const { CampaignViewer } = require('./components/CampaignViewer');
     return (
       <div>
         <CampaignViewer campaignId={campaignId} />
