@@ -40,17 +40,33 @@ export default function CampaignViewer({ campaignId }: CampaignViewerProps) {
   const [liked, setLiked] = useState(false);
 
   useEffect(() => {
+    console.log('CampaignViewer: Component mounted with campaignId:', campaignId);
     fetchCampaign();
   }, [campaignId]);
 
   const fetchCampaign = async () => {
+    console.log('CampaignViewer: Fetching campaign for ID:', campaignId);
     try {
+      console.log('CampaignViewer: Making API request...');
       const response = await fetch(`https://n8n.tenear.com/webhook/manage-campaigns-get`);
+      console.log('CampaignViewer: Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const data = await response.json();
+      console.log('CampaignViewer: API Response data:', data);
       
       if (data.success && data.campaigns) {
+        console.log('CampaignViewer: Found campaigns array, length:', data.campaigns.length);
+        console.log('CampaignViewer: Looking for campaign ID:', campaignId);
+        console.log('CampaignViewer: Available campaign IDs:', data.campaigns.map((c: any) => c.id));
+        
         // Find the specific campaign by ID
         const campaign = data.campaigns.find((c: any) => c.id === campaignId);
+        console.log('CampaignViewer: Found campaign:', campaign);
+        
         if (campaign) {
           setCampaign({
             id: campaign.id,
@@ -67,15 +83,20 @@ export default function CampaignViewer({ campaignId }: CampaignViewerProps) {
               location: campaign.locationName || campaign.location
             }
           });
+          console.log('CampaignViewer: Campaign set successfully');
         } else {
-          setError('Campaign not found');
+          console.log('CampaignViewer: Campaign not found in array');
+          setError(`Campaign "${campaignId}" not found`);
         }
       } else {
+        console.log('CampaignViewer: API returned success: false or no campaigns');
         setError('Failed to load campaign');
       }
     } catch (err) {
+      console.error('CampaignViewer: Error fetching campaign:', err);
       setError('Failed to load campaign');
     } finally {
+      console.log('CampaignViewer: Setting loading to false');
       setLoading(false);
     }
   };
@@ -110,14 +131,24 @@ export default function CampaignViewer({ campaignId }: CampaignViewerProps) {
   };
 
   if (loading) {
+    console.log('CampaignViewer: Rendering loading state');
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading campaign...</p>
+          <p className="text-xs text-gray-400 mt-2">Debug: Looking for campaign ID = {campaignId}</p>
+        </div>
       </div>
     );
   }
 
   if (error || !campaign) {
+    console.log('CampaignViewer: Rendering error state');
+    console.log('CampaignViewer: Error:', error);
+    console.log('CampaignViewer: Campaign:', campaign);
+    console.log('CampaignViewer: Campaign ID:', campaignId);
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
         <Card className="max-w-md w-full text-center">
@@ -128,9 +159,39 @@ export default function CampaignViewer({ campaignId }: CampaignViewerProps) {
               </svg>
             </div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">Campaign Not Found</h2>
-            <p className="text-gray-600 mb-4">{error || 'The campaign you are looking for does not exist or has expired.'}</p>
-            <Button onClick={() => window.history.back()}>
-              <ArrowLeft size={16} className="mr-2" />
+            <p className="text-gray-600 mb-4">
+              {error || `The campaign "${campaignId}" does not exist or has expired.`}
+            </p>
+            <div className="space-y-2">
+              <Button onClick={() => window.history.back()}>
+                <ArrowLeft size={16} className="mr-2" />
+                Go Back
+              </Button>
+              <div className="text-xs text-gray-400 mt-4">
+                Debug: Campaign ID = {campaignId}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Safety fallback - always render something
+  console.log('CampaignViewer: Final render with campaign:', campaign);
+  
+  if (!campaign) {
+    console.log('CampaignViewer: Campaign is null, showing fallback');
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 to-pink-100 flex items-center justify-center p-4">
+        <Card className="max-w-md w-full text-center">
+          <CardContent className="p-8">
+            <h2 className="text-xl font-semibold text-red-900 mb-2">Debug Info</h2>
+            <p className="text-gray-600 mb-4">Campaign object is null</p>
+            <p className="text-xs text-gray-400">Campaign ID: {campaignId}</p>
+            <p className="text-xs text-gray-400">Loading: {loading.toString()}</p>
+            <p className="text-xs text-gray-400">Error: {error || 'None'}</p>
+            <Button onClick={() => window.history.back()} className="mt-4">
               Go Back
             </Button>
           </CardContent>
