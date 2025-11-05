@@ -257,7 +257,7 @@ export default function CampaignManagement() {
         updated_by: user?.username
       };
 
-      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns', {
+      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns-post', {
         method: 'POST',
         headers,
         body: JSON.stringify(campaignData)
@@ -322,7 +322,7 @@ export default function CampaignManagement() {
         deleted_by: user?.username
       };
 
-      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns', {
+      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns-post', {
         method: 'POST',
         headers,
         body: JSON.stringify(deleteData)
