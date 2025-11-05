@@ -12,6 +12,7 @@ import {
   Phone,
   Navigation
 } from 'lucide-react';
+import { trackEvent } from '../utils/analytics';
 
 interface Campaign {
   id: string;
@@ -84,6 +85,16 @@ export default function CampaignViewer({ campaignId }: CampaignViewerProps) {
             }
           });
           console.log('CampaignViewer: Campaign set successfully');
+
+          // Track page view (scan) when campaign loads
+          if (campaign.shopId && campaign.id) {
+            trackEvent({ 
+              shop_id: campaign.shopId, 
+              campaign_id: campaign.id, 
+              action: 'scan' 
+            });
+            console.log('✅ Tracked: page view (scan) for campaign', campaign.id);
+          }
         } else {
           console.log('CampaignViewer: Campaign not found in array');
           setError(`Campaign "${campaignId}" not found`);
@@ -102,6 +113,16 @@ export default function CampaignViewer({ campaignId }: CampaignViewerProps) {
   };
 
   const handleShare = async () => {
+    // Track share action
+    if (campaign?.shop_id && campaign?.id) {
+      trackEvent({ 
+        shop_id: campaign.shop_id, 
+        campaign_id: campaign.id, 
+        action: 'share' 
+      });
+      console.log('✅ Tracked: share for campaign', campaign.id);
+    }
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -125,8 +146,18 @@ export default function CampaignViewer({ campaignId }: CampaignViewerProps) {
   };
 
   const handleClaimOffer = async () => {
+    // Track claim action with tracking pixel
+    if (campaign?.shop_id && campaign?.id) {
+      trackEvent({ 
+        shop_id: campaign.shop_id, 
+        campaign_id: campaign.id, 
+        action: 'claim' 
+      });
+      console.log('✅ Tracked: claim for campaign', campaign.id);
+    }
+
     try {
-      // Track engagement
+      // Track engagement (additional API call if needed)
       await fetch('https://n8n.tenear.com/webhook/track-engagement', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -188,12 +219,32 @@ export default function CampaignViewer({ campaignId }: CampaignViewerProps) {
   };
 
   const handleCallShop = () => {
+    // Track call action
+    if (campaign?.shop_id && campaign?.id) {
+      trackEvent({ 
+        shop_id: campaign.shop_id, 
+        campaign_id: campaign.id, 
+        action: 'call' 
+      });
+      console.log('✅ Tracked: call for campaign', campaign.id);
+    }
+
     if (campaign?.shop?.phone) {
       window.location.href = `tel:${campaign.shop.phone}`;
     }
   };
 
   const handleGetDirections = () => {
+    // Track directions action
+    if (campaign?.shop_id && campaign?.id) {
+      trackEvent({ 
+        shop_id: campaign.shop_id, 
+        campaign_id: campaign.id, 
+        action: 'directions' 
+      });
+      console.log('✅ Tracked: directions for campaign', campaign.id);
+    }
+
     if (campaign?.shop?.location) {
       // Use Google Maps for directions
       const location = encodeURIComponent(campaign.shop.location);
