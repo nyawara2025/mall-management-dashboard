@@ -22,15 +22,21 @@ import { createAuthHeaders } from '../services/auth';
 
 interface Campaign {
   id: string;
-  name: string;
-  message: string;
-  zone: string;
-  shop_id?: string;
-  mall_id?: string;
-  created_at: string;
-  is_active: boolean;
+  title: string;
+  description: string;
+  location: string;
+  shopId?: number;
+  mallId?: number;
+  createdDate: string;
+  isActive: boolean;
   scan_count?: number;
   engagement_rate?: number;
+  // Legacy fields for compatibility
+  name?: string;
+  message?: string;
+  zone?: string;
+  created_at?: string;
+  is_active?: boolean;
 }
 
 export default function CampaignManagement() {
@@ -94,7 +100,7 @@ export default function CampaignManagement() {
         
         // Calculate analytics
         const total = data.campaigns?.length || 0;
-        const active = data.campaigns?.filter((c: Campaign) => c.is_active).length || 0;
+        const active = data.campaigns?.filter((c: Campaign) => c.isActive).length || 0;
         const totalScans = data.campaigns?.reduce((sum: number, c: Campaign) => sum + (c.scan_count || 0), 0) || 0;
         const avgEngagement = total > 0 ? (totalScans / total).toFixed(1) : 0;
 
@@ -120,9 +126,9 @@ export default function CampaignManagement() {
       const headers = createAuthHeaders(token);
       
       const campaignData = {
-        name: createForm.name,
-        message: createForm.message,
-        zone: createForm.zone,
+        name: createForm.name,           // POST webhook expects 'name'
+        message: createForm.message,     // POST webhook expects 'message' 
+        zone: createForm.zone,           // POST webhook expects 'zone'
         shop_id: user?.shop_id,
         mall_id: user?.mall_id,
         created_by: user?.username
@@ -250,10 +256,10 @@ export default function CampaignManagement() {
       
       const campaignData = {
         id: selectedCampaign.id,
-        name: editForm.name,
-        message: editForm.message,
-        zone: editForm.zone,
-        is_active: editForm.is_active,
+        name: editForm.name,           // POST webhook expects 'name'
+        message: editForm.message,     // POST webhook expects 'message'
+        zone: editForm.zone,           // POST webhook expects 'zone'
+        is_active: editForm.is_active, // POST webhook expects 'is_active'
         updated_by: user?.username
       };
 
@@ -349,7 +355,20 @@ export default function CampaignManagement() {
         document.body.appendChild(successAlert);
         setTimeout(() => successAlert.remove(), 5000);
       } else {
-        throw new Error(data.error || 'Unknown error');
+        // More specific error handling for delete operations
+        const errorMessage = data.error || 'Unknown error';
+        let displayMessage = errorMessage;
+        
+        // Provide helpful error messages based on common issues
+        if (errorMessage.includes('webhook') || errorMessage.includes('connection')) {
+          displayMessage = 'Delete functionality not available. Please contact system administrator to configure the delete endpoint.';
+        } else if (errorMessage.includes('permission') || errorMessage.includes('unauthorized')) {
+          displayMessage = 'You do not have permission to delete this campaign.';
+        } else if (errorMessage.includes('not found')) {
+          displayMessage = 'Campaign not found or already deleted.';
+        }
+        
+        throw new Error(displayMessage);
       }
     } catch (error) {
       console.error('Error deleting campaign:', error);
@@ -673,7 +692,7 @@ export default function CampaignManagement() {
                     Shop ID
                   </label>
                   <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                    {selectedCampaign.shop_id || 'N/A'}
+                    {selectedCampaign.shopId || 'N/A'}
                   </p>
                 </div>
               </div>
@@ -684,7 +703,7 @@ export default function CampaignManagement() {
                     Created Date
                   </label>
                   <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                    {selectedCampaign.created_at ? new Date(selectedCampaign.created_at).toLocaleDateString() : 'Unknown'}
+                    {selectedCampaign.createdDate}
                   </p>
                 </div>
                 <div>
@@ -747,20 +766,20 @@ export default function CampaignManagement() {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold">{campaign.name || 'Unnamed Campaign'}</h3>
-                      <Badge variant={campaign.is_active ? 'default' : 'secondary'}>
-                        {campaign.is_active ? 'Active' : 'Inactive'}
+                      <h3 className="text-lg font-semibold">{campaign.title || 'Unnamed Campaign'}</h3>
+                      <Badge variant={campaign.isActive ? 'default' : 'secondary'}>
+                        {campaign.isActive ? 'Active' : 'Inactive'}
                       </Badge>
                     </div>
-                    <p className="text-gray-600 mb-3">{campaign.message || 'No message provided'}</p>
+                    <p className="text-gray-600 mb-3">{campaign.description || 'No message provided'}</p>
                     <div className="flex items-center gap-4 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
                         <Calendar size={14} />
-                        {campaign.created_at ? new Date(campaign.created_at).toLocaleDateString() : 'Unknown date'}
+                        {campaign.createdDate || 'Unknown date'}
                       </span>
                       <span className="flex items-center gap-1">
                         <MapPin size={14} />
-                        {campaign.zone || 'Unknown zone'}
+                        {campaign.location || 'Unknown zone'}
                       </span>
                     </div>
                   </div>
