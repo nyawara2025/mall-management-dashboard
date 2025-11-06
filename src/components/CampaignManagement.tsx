@@ -237,10 +237,10 @@ export default function CampaignManagement() {
   const handleEditCampaign = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
     setEditForm({
-      name: campaign.name,
-      message: campaign.message,
-      zone: campaign.zone,
-      is_active: campaign.is_active
+      name: campaign.title || campaign.name || '',
+      message: campaign.description || campaign.message || '',
+      zone: campaign.location || campaign.zone || '',
+      is_active: campaign.isActive !== undefined ? campaign.isActive : (campaign.is_active !== undefined ? campaign.is_active : true)
     });
     setShowEditForm(true);
   };
