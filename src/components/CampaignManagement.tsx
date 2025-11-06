@@ -283,7 +283,7 @@ export default function CampaignManagement() {
       console.log('🗑️ Attempting to delete campaign:', campaign.id);
       console.log('🗑️ Delete data:', deleteData);
 
-      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns-post', {
+      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns-delete', {
         method: 'POST',
         headers,
         body: JSON.stringify(deleteData)
