@@ -39,20 +39,9 @@ interface Campaign {
   is_active?: boolean;
 }
 
-interface AnalyticsData {
-  overview: {
-    totalCampaigns: number;
-    activeCampaigns: number;
-    totalScans: number;
-    totalClaims: number;
-    avgEngagement: number;
-  };
-}
-
 export default function CampaignManagement() {
   const { user } = useAuth();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
@@ -70,12 +59,17 @@ export default function CampaignManagement() {
     zone: '',
     is_active: true
   });
+  const [analytics, setAnalytics] = useState({
+    totalCampaigns: 0,
+    activeCampaigns: 0,
+    totalScans: 0,
+    avgEngagement: 0
+  });
 
   // Fetch campaigns for the user's shop
   useEffect(() => {
     if (user?.shop_id) {
       fetchCampaigns();
-      fetchAnalytics();
     }
   }, [user]);
 
@@ -84,7 +78,7 @@ export default function CampaignManagement() {
       const token = localStorage.getItem('auth_token') || '';
       const headers = createAuthHeaders(token);
       
-      console.log('Fetching campaigns for shop_id:', user?.shop_id);
+      console.log('Fetching campaigns for shop_id:', user?.shop_id); // Debug shop_id
       
       const response = await fetch(`https://n8n.tenear.com/webhook/manage-campaigns-get?shop_id=${user?.shop_id}`, {
         headers
@@ -95,37 +89,46 @@ export default function CampaignManagement() {
       }
       
       const data = await response.json();
-      console.log('Campaigns fetched:', data.campaigns?.length || 0, 'campaigns');
-      
+      console.log('Fetch campaigns response:', data); // Debug logging
+      console.log('Full API response structure:', JSON.stringify(data, null, 2)); // Show full response
+      console.log('Is success:', data.success); // Debug success flag
       if (data.success) {
-        setCampaigns(data.campaigns || []);
+        console.log('Campaigns data:', data.campaigns); // Debug the campaigns array
+        console.log('Campaigns array length:', data.campaigns?.length || 0);
+        console.log('All campaign details:', JSON.stringify(data.campaigns, null, 2)); // Full campaign details
+        
+        // Client-side filtering: Only show campaigns for user's shop
+        const allCampaigns = data.campaigns || [];
+        const filteredCampaigns = allCampaigns.filter((campaign: Campaign) => {
+          // Filter by shop_id first, then by mall_id as backup
+          const matchesShop = campaign.shopId === user?.shop_id || campaign.shop_id === user?.shop_id;
+          const matchesMall = campaign.mallId === user?.mall_id || campaign.mall_id === user?.mall_id;
+          return matchesShop || matchesMall;
+        });
+        
+        console.log(`🔍 Total campaigns fetched: ${allCampaigns.length}`);
+        console.log(`✅ Filtered campaigns (Ben's Spatial Barbers only): ${filteredCampaigns.length}`);
+        console.log('🗂️ Sample campaign titles:', filteredCampaigns.slice(0, 3).map((c: Campaign) => c.title || c.name || 'No title'));
+        
+        setCampaigns(filteredCampaigns);
+        
+        // Calculate analytics from filtered data
+        const total = filteredCampaigns.length;
+        const active = filteredCampaigns.filter((c: Campaign) => c.isActive).length;
+        const totalScans = filteredCampaigns.reduce((sum: number, c: Campaign) => sum + (c.scan_count || 0), 0);
+        const avgEngagement = total > 0 ? (totalScans / total).toFixed(1) : 0;
+
+        setAnalytics({
+          totalCampaigns: total,
+          activeCampaigns: active,
+          totalScans,
+          avgEngagement: parseFloat(avgEngagement as string)
+        });
       }
     } catch (error) {
       console.error('Error fetching campaigns:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchAnalytics = async () => {
-    try {
-      const token = localStorage.getItem('auth_token') || '';
-      const headers = createAuthHeaders(token);
-      
-      const response = await fetch(`https://n8n.tenear.com/webhook/get-analytics?shop_id=${user?.shop_id}&time_range=7d`, {
-        headers
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Analytics fetched:', data);
-        
-        if (data.overview) {
-          setAnalytics(data);
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching analytics:', error);
     }
   };
 
@@ -137,9 +140,9 @@ export default function CampaignManagement() {
       const headers = createAuthHeaders(token);
       
       const campaignData = {
-        name: createForm.name,
-        message: createForm.message,
-        zone: createForm.zone,
+        name: createForm.name,           // POST webhook expects 'name'
+        message: createForm.message,     // POST webhook expects 'message' 
+        zone: createForm.zone,           // POST webhook expects 'zone'
         shop_id: user?.shop_id,
         mall_id: user?.mall_id,
         created_by: user?.username
@@ -151,25 +154,64 @@ export default function CampaignManagement() {
         body: JSON.stringify(campaignData)
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
+      
+      console.log('Campaign creation response:', data); // Debug logging
+      console.log('Full creation response:', JSON.stringify(data, null, 2)); // Show full response
+      console.log('User shop_id:', user?.shop_id); // Debug shop_id
+      console.log('Campaign data sent:', JSON.stringify(campaignData, null, 2)); // Debug what was sent
+      console.log('Is creation success:', data.success); // Debug success flag
+      if (data.campaign) {
+        console.log('Created campaign details:', JSON.stringify(data.campaign, null, 2)); // Show created campaign
+      }
       
       if (data.success) {
         setShowCreateForm(false);
         setCreateForm({ name: '', message: '', zone: '', shop_id: user?.shop_id || '' });
         
-        // Enhanced refresh with verification
+        // Add a small delay to ensure database is updated
         setTimeout(() => {
-          fetchCampaigns();
-          fetchAnalytics(); // Refresh analytics too
-        }, 1000);
+          fetchCampaigns(); // Refresh campaigns list
+        }, 500);
         
-        showSuccessMessage(`Campaign "${data.campaign?.name || createForm.name}" created successfully!`);
+        // Show success message with defensive checking
+        const campaignName = data.campaign?.name || createForm.name || 'New Campaign';
+        const successAlert = document.createElement('div');
+        successAlert.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50';
+        successAlert.innerHTML = `
+          <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            Campaign "${campaignName}" created successfully! QR code generated.
+          </div>
+        `;
+        document.body.appendChild(successAlert);
+        setTimeout(() => successAlert.remove(), 5000);
       } else {
         throw new Error(data.error || 'Unknown error');
       }
     } catch (error) {
       console.error('Error creating campaign:', error);
-      showErrorMessage(`Error creating campaign: ${error instanceof Error ? error.message : 'Please try again'}`);
+      // Show error message with more details
+      const errorMsg = error instanceof Error ? error.message : 'Please try again';
+      const errorDetail = `Error creating campaign: ${errorMsg}`;
+      const errorAlert = document.createElement('div');
+      errorAlert.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50';
+      errorAlert.innerHTML = `
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+          </svg>
+          ${errorDetail}
+        </div>
+      `;
+      document.body.appendChild(errorAlert);
+      setTimeout(() => errorAlert.remove(), 5000);
     }
   };
 
@@ -228,10 +270,10 @@ export default function CampaignManagement() {
       
       const campaignData = {
         id: selectedCampaign.id,
-        name: editForm.name,
-        message: editForm.message,
-        zone: editForm.zone,
-        is_active: editForm.is_active,
+        name: editForm.name,           // POST webhook expects 'name'
+        message: editForm.message,     // POST webhook expects 'message'
+        zone: editForm.zone,           // POST webhook expects 'zone'
+        is_active: editForm.is_active, // POST webhook expects 'is_active'
         updated_by: user?.username
       };
 
@@ -246,27 +288,47 @@ export default function CampaignManagement() {
       if (data.success) {
         setShowEditForm(false);
         setSelectedCampaign(null);
-        
-        // Enhanced refresh with verification
         setTimeout(() => {
-          fetchCampaigns();
-          fetchAnalytics();
-        }, 1000);
+          fetchCampaigns(); // Refresh campaigns list
+        }, 500);
         
-        showSuccessMessage(`Campaign "${editForm.name}" updated successfully!`);
+        // Show success message
+        const successAlert = document.createElement('div');
+        successAlert.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50';
+        successAlert.innerHTML = `
+          <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            Campaign "${editForm.name}" updated successfully!
+          </div>
+        `;
+        document.body.appendChild(successAlert);
+        setTimeout(() => successAlert.remove(), 5000);
       } else {
         throw new Error(data.error || 'Unknown error');
       }
     } catch (error) {
       console.error('Error updating campaign:', error);
-      showErrorMessage('Error updating campaign. Please try again.');
+      // Show error message
+      const errorAlert = document.createElement('div');
+      errorAlert.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50';
+      errorAlert.innerHTML = `
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+          </svg>
+          Error updating campaign. Please try again.
+        </div>
+      `;
+      document.body.appendChild(errorAlert);
+      setTimeout(() => errorAlert.remove(), 5000);
     }
   };
 
-  // Enhanced Delete Campaign with verification
+  // Handle Delete Campaign
   const handleDeleteCampaign = async (campaign: Campaign) => {
-    const campaignName = campaign.title || campaign.name || 'Unknown Campaign';
-    if (!window.confirm(`Are you sure you want to delete "${campaignName}"?`)) {
+    if (!window.confirm(`Are you sure you want to delete "${campaign.name}"?`)) {
       return;
     }
 
@@ -280,9 +342,6 @@ export default function CampaignManagement() {
         deleted_by: user?.username
       };
 
-      console.log('🗑️ Attempting to delete campaign:', campaign.id);
-      console.log('🗑️ Delete data:', deleteData);
-
       const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns-delete', {
         method: 'POST',
         headers,
@@ -290,97 +349,57 @@ export default function CampaignManagement() {
       });
 
       const data = await response.json();
-      console.log('🗑️ Delete response:', data);
 
       if (data.success) {
-        console.log('✅ Delete operation reported success, verifying...');
+        setTimeout(() => {
+          fetchCampaigns(); // Refresh campaigns list
+        }, 500);
         
-        // Enhanced verification: Wait and check if campaign was actually removed
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Fetch fresh data to verify deletion
-        const currentCampaigns = await fetchCampaignsWithVerification();
-        const campaignStillExists = currentCampaigns.some(c => c.id === campaign.id);
-        
-        if (campaignStillExists) {
-          console.warn('⚠️ Campaign still exists after deletion - webhook may not be working properly');
-          showErrorMessage('Delete operation may have failed. Please check your n8n webhook configuration.');
-        } else {
-          console.log('✅ Deletion verified - campaign removed from database');
-          showSuccessMessage(`Campaign "${campaignName}" deleted successfully!`);
-        }
+        // Show success message
+        const successAlert = document.createElement('div');
+        successAlert.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50';
+        successAlert.innerHTML = `
+          <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            Campaign "${campaign.name}" deleted successfully!
+          </div>
+        `;
+        document.body.appendChild(successAlert);
+        setTimeout(() => successAlert.remove(), 5000);
       } else {
+        // More specific error handling for delete operations
         const errorMessage = data.error || 'Unknown error';
-        console.error('❌ Delete failed:', errorMessage);
+        let displayMessage = errorMessage;
         
-        // Provide specific error messages
+        // Provide helpful error messages based on common issues
         if (errorMessage.includes('webhook') || errorMessage.includes('connection')) {
-          showErrorMessage('Delete functionality not available. Please contact system administrator.');
+          displayMessage = 'Delete functionality not available. Please contact system administrator to configure the delete endpoint.';
         } else if (errorMessage.includes('permission') || errorMessage.includes('unauthorized')) {
-          showErrorMessage('You do not have permission to delete this campaign.');
-        } else {
-          showErrorMessage(`Delete failed: ${errorMessage}`);
+          displayMessage = 'You do not have permission to delete this campaign.';
+        } else if (errorMessage.includes('not found')) {
+          displayMessage = 'Campaign not found or already deleted.';
         }
+        
+        throw new Error(displayMessage);
       }
     } catch (error) {
-      console.error('❌ Error during delete operation:', error);
-      showErrorMessage('Error deleting campaign. Please check your connection and try again.');
+      console.error('Error deleting campaign:', error);
+      // Show error message
+      const errorAlert = document.createElement('div');
+      errorAlert.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50';
+      errorAlert.innerHTML = `
+        <div class="flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+          </svg>
+          Error deleting campaign. Please try again.
+        </div>
+      `;
+      document.body.appendChild(errorAlert);
+      setTimeout(() => errorAlert.remove(), 5000);
     }
-  };
-
-  // Helper function to fetch campaigns and return them (for verification)
-  const fetchCampaignsWithVerification = async (): Promise<Campaign[]> => {
-    try {
-      const token = localStorage.getItem('auth_token') || '';
-      const headers = createAuthHeaders(token);
-      
-      const response = await fetch(`https://n8n.tenear.com/webhook/manage-campaigns-get?shop_id=${user?.shop_id}`, {
-        headers
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success && data.campaigns) {
-          setCampaigns(data.campaigns);
-          return data.campaigns;
-        }
-      }
-      return campaigns; // Return current state as fallback
-    } catch (error) {
-      console.error('Error during verification fetch:', error);
-      return campaigns;
-    }
-  };
-
-  // Success/Error message helpers
-  const showSuccessMessage = (message: string) => {
-    const alert = document.createElement('div');
-    alert.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50';
-    alert.innerHTML = `
-      <div class="flex items-center">
-        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-        </svg>
-        ${message}
-      </div>
-    `;
-    document.body.appendChild(alert);
-    setTimeout(() => alert.remove(), 5000);
-  };
-
-  const showErrorMessage = (message: string) => {
-    const alert = document.createElement('div');
-    alert.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50';
-    alert.innerHTML = `
-      <div class="flex items-center">
-        <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-        </svg>
-        ${message}
-      </div>
-    `;
-    document.body.appendChild(alert);
-    setTimeout(() => alert.remove(), 5000);
   };
 
   if (loading) {
@@ -390,12 +409,6 @@ export default function CampaignManagement() {
       </div>
     );
   }
-
-  // Use analytics data for metrics if available, fallback to campaign data
-  const totalCampaigns = analytics?.overview?.totalCampaigns || campaigns.length;
-  const activeCampaigns = analytics?.overview?.activeCampaigns || campaigns.filter(c => c.isActive).length;
-  const totalScans = analytics?.overview?.totalScans || 0;
-  const avgEngagement = analytics?.overview?.avgEngagement || 0;
 
   return (
     <div className="space-y-6">
@@ -416,17 +429,14 @@ export default function CampaignManagement() {
         </Button>
       </div>
 
-      {/* Analytics Cards - Enhanced with real data */}
+      {/* Analytics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Campaigns</p>
-                <p className="text-2xl font-bold">{totalCampaigns}</p>
-                {analytics?.overview && (
-                  <p className="text-xs text-blue-600">Real data from analytics</p>
-                )}
+                <p className="text-2xl font-bold">{analytics.totalCampaigns}</p>
               </div>
               <BarChart3 className="h-8 w-8 text-blue-500" />
             </div>
@@ -438,10 +448,7 @@ export default function CampaignManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Campaigns</p>
-                <p className="text-2xl font-bold">{activeCampaigns}</p>
-                {analytics?.overview && (
-                  <p className="text-xs text-green-600">Synced with analytics</p>
-                )}
+                <p className="text-2xl font-bold">{analytics.activeCampaigns}</p>
               </div>
               <TrendingUp className="h-8 w-8 text-green-500" />
             </div>
@@ -453,12 +460,7 @@ export default function CampaignManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Scans</p>
-                <p className="text-2xl font-bold">{totalScans}</p>
-                {analytics?.overview ? (
-                  <p className="text-xs text-purple-600">Real scan data</p>
-                ) : (
-                  <p className="text-xs text-gray-400">Connect analytics webhook</p>
-                )}
+                <p className="text-2xl font-bold">{analytics.totalScans}</p>
               </div>
               <QrCode className="h-8 w-8 text-purple-500" />
             </div>
@@ -470,12 +472,7 @@ export default function CampaignManagement() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Avg. Engagement</p>
-                <p className="text-2xl font-bold">{avgEngagement}%</p>
-                {analytics?.overview ? (
-                  <p className="text-xs text-orange-600">Real engagement rate</p>
-                ) : (
-                  <p className="text-xs text-gray-400">No analytics data</p>
-                )}
+                <p className="text-2xl font-bold">{analytics.avgEngagement}</p>
               </div>
               <MessageSquare className="h-8 w-8 text-orange-500" />
             </div>
