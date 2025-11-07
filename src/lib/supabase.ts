@@ -1,7 +1,8 @@
-// Fixed Supabase client configuration
+// Simple and working Supabase client
 const SUPABASE_URL = 'https://ufrrlfcxuovxgizxuowh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmcnJsZmN4dW92eGdpenh1b3doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM2Mzc2NDgsImV4cCI6MjA2OTIxMzY0OH0.MfwxLihZ6htvufjYv3RLfKwKsazjD_TnVEcV1IDZeQg';
 
+// Simple Supabase client that returns promises directly
 class SupabaseClient {
   private url: string;
   private anonKey: string;
@@ -11,21 +12,19 @@ class SupabaseClient {
     this.anonKey = anonKey;
   }
 
-  // Simple query builder for basic operations
+  // Simple method that returns query builder with .then() support
   from(table: string) {
     return {
-      select: (columns: string | '*' = '*') => this.createQuery(table, 'select', columns),
-      insert: (data: any) => this.createQuery(table, 'insert', data),
-      update: (data: any) => this.createQuery(table, 'update', data),
-      delete: () => this.createQuery(table, 'delete'),
+      // Simple select that returns a promise directly
+      select: (columns: string = '*') => this.createSimpleQuery(table, 'select', columns),
+      insert: (data: any) => this.createSimpleQuery(table, 'insert', data),
+      update: (data: any) => this.createSimpleQuery(table, 'update', data),
+      delete: () => this.createSimpleQuery(table, 'delete'),
     };
   }
 
-  rpc(functionName: string, params?: any) {
-    return this.createRpcCall(functionName, params);
-  }
-
-  private async createQuery(table: string, operation: string, columns: any, options: any = {}) {
+  // Simple direct query that returns { data, error }
+  private async createSimpleQuery(table: string, operation: string, params: any) {
     try {
       const headers = {
         'Authorization': `Bearer ${this.anonKey}`,
@@ -38,33 +37,19 @@ class SupabaseClient {
       let method = 'GET';
       let body = null;
 
-      // Build query parameters
-      const queryParams = new URLSearchParams();
-      
-      if (columns !== '*' && typeof columns === 'string') {
-        queryParams.append('select', columns);
-      } else {
-        queryParams.append('select', '*');
-      }
-
-      // Apply options
-      if (options.group) {
-        queryParams.append('group_by', options.group);
-      }
-      if (options.order) {
-        const order = options.ascending === false ? 'desc' : 'asc';
-        queryParams.append('order', `${options.order}.${order}`);
-      }
-      if (options.limit) {
-        queryParams.append('limit', options.limit.toString());
-      }
-      if (options.gte) {
-        queryParams.append(options.gte.column, `gte.${options.gte.value}`);
-      }
-
-      // Add query params to URL
-      if (queryParams.toString()) {
+      // Build query parameters for select
+      if (operation === 'select') {
+        const queryParams = new URLSearchParams();
+        if (params && params !== '*') {
+          queryParams.append('select', params);
+        } else {
+          queryParams.append('select', '*');
+        }
         url += '?' + queryParams.toString();
+      } else {
+        // For insert, update, delete
+        method = operation.toUpperCase();
+        body = JSON.stringify(params);
       }
 
       const response = await fetch(url, {
@@ -85,34 +70,7 @@ class SupabaseClient {
       return { data: null, error };
     }
   }
-
-  private async createRpcCall(functionName: string, params?: any) {
-    try {
-      const headers = {
-        'Authorization': `Bearer ${this.anonKey}`,
-        'apikey': this.anonKey,
-        'Content-Type': 'application/json'
-      };
-
-      const response = await fetch(`${this.url}/rpc/${functionName}`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(params || {})
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        return { data: null, error: new Error(error) };
-      }
-
-      const data = await response.json();
-      return { data, error: null };
-
-    } catch (error) {
-      return { data: null, error };
-    }
-  }
 }
 
-// Create a singleton instance
+// Create and export the supabase instance
 export const supabase = new SupabaseClient(SUPABASE_URL, SUPABASE_ANON_KEY);

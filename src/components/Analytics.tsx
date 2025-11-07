@@ -103,7 +103,7 @@ const CampaignAnalytics = () => {
           },
           body: JSON.stringify({
             userId: user.id,
-            userType: user.role, // FIXED: Use user.role directly instead of user.user_metadata?.role
+            userType: user.role, // FIXED: Use user.role directly
           }),
         });
 
@@ -315,21 +315,20 @@ const QRAnalytics = ({ formatTime }: { formatTime: (timestamp: string) => string
     try {
       setError(null);
       
-      // Fetch all QR check-ins - using the simplified supabase client
-      const { data: allCheckins, error: allError } = await supabase.from('qr_checkins');
-      if (allError) throw allError;
+      // Using async/await with the simple supabase client
+      const allCheckinsResult = await supabase.from('qr_checkins');
+      if (allCheckinsResult.error) {
+        throw allCheckinsResult.error;
+      }
+      const allCheckins = allCheckinsResult.data;
 
-      // Fetch today's check-ins using the simplified supabase client
-      const { data: todayCheckins, error: todayError } = await supabase.from('qr_checkins');
-      if (todayError) throw todayError;
-
-      const todayData = (todayCheckins as any[])?.filter((checkin: any) => {
-        const today = new Date().toISOString().split('T')[0];
-        return checkin.checkin_timestamp?.startsWith(today);
-      }) || [];
+      // Filter today's check-ins
+      const today = new Date().toISOString().split('T')[0];
+      const todayData = Array.isArray(allCheckins) ? 
+        allCheckins.filter((checkin: any) => checkin.checkin_timestamp?.startsWith(today)) : [];
 
       // Process analytics data
-      const totalData = (allCheckins as any[]) || [];
+      const totalData = Array.isArray(allCheckins) ? allCheckins : [];
       const totalCheckins = totalData.length;
       const todayCount = todayData.length;
 
