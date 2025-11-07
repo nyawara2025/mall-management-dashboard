@@ -315,11 +315,9 @@ const QRAnalytics = ({ formatTime }: { formatTime: (timestamp: string) => string
     try {
       setError(null);
       
-      // Using async/await with the simple supabase client
-      const allCheckinsResult = await supabase.from('qr_checkins');
-      if (allCheckinsResult.error) {
-        throw allCheckinsResult.error;
-      }
+      // Using the direct fetch-based Supabase client
+      const allCheckinsResult = await supabase.select('qr_checkins', '*');
+      if (allCheckinsResult.error) throw allCheckinsResult.error;
       const allCheckins = allCheckinsResult.data;
 
       // Filter today's check-ins
