@@ -219,8 +219,7 @@ export default function CampaignManagement() {
 
         const { data: newCampaign, error: createError } = await supabase
           .from('adcampaigns')
-          .insert([campaignPayload])
-          .select();
+          .insert([campaignPayload]);
 
         if (createError) {
           throw createError;

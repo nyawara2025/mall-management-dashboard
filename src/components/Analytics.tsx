@@ -237,18 +237,23 @@ const CampaignAnalytics = () => {
         
         // Try to fetch real campaigns from adcampaigns table
         try {
-          const campaignResult = await supabase.select('adcampaigns', '*', {
-            filters: user?.shop_id ? {
-              shop_id: user.shop_id
-            } : user?.mall_id ? {
-              mall_id: user.mall_id
-            } : {}
-          });
+          let campaignQuery = supabase
+            .from('adcampaigns')
+            .select('*')
+            .eq('active', true);
+
+          if (user?.shop_id) {
+            campaignQuery = campaignQuery.eq('shop_id', user.shop_id);
+          } else if (user?.mall_id) {
+            campaignQuery = campaignQuery.eq('mall_id', user.mall_id);
+          }
+
+          const campaignResult = await campaignQuery;
           
           if (campaignResult.data && campaignResult.data.length > 0) {
             console.log(`✅ Found ${campaignResult.data.length} real campaigns for user`);
             // Convert real campaigns to metrics format
-            const campaignMetrics = campaignResult.data.map(campaign => ({
+            const campaignMetrics = campaignResult.data.map((campaign: any) => ({
               id: campaign.id.toString(),
               name: campaign.name || 'Untitled Campaign',
               scans: Math.floor(Math.random() * 50) + 10, // Mock data since campaigns don't track actual scans
