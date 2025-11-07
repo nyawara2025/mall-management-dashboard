@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { supabase } from '../lib/supabase';
 import { 
   TrendingUp, 
   Users, 
@@ -14,9 +16,13 @@ import {
   QrCode,
   Heart,
   Share2,
-  Phone
+  Phone,
+  Activity,
+  PieChart,
+  Sun,
+  Moon,
+  RefreshCw
 } from 'lucide-react';
-import { createAuthHeaders } from '../services/auth';
 
 interface CampaignMetrics {
   id: string;
@@ -43,119 +49,223 @@ interface CampaignMetrics {
   }>;
 }
 
-interface VisitorAnalytics {
-  visitorCategories: {
-    firstTime: number;
-    welcomeBack: number;
-    frequent: number;
-    vip: number;
-  };
-  insights: {
-    totalUniqueVisitors: number;
-    totalEvents: number;
-    averageVisitsPerUser: string;
-    period: string;
-    peakHours: string[];
-    mostActiveZone: string;
-  };
-  trends: {
-    firstTimeGrowth: string;
-    frequentGrowth: string;
-    vipGrowth: string;
-    overallGrowth: string;
-  };
-  timeBasedData: Array<{
+interface QRAnalytics {
+  totalCheckins: number;
+  peakZone: string;
+  dailyCheckins: number;
+  zonePerformance: Array<{
+    zone: string;
+    checkins: number;
+    percentage: number;
+  }>;
+  hourlyData: Array<{
     hour: string;
-    visitors: number;
-    events: number;
+    checkins: number;
   }>;
-}
-
-interface AnalyticsData {
-  overview: {
-    totalCampaigns: number;
-    activeCampaigns: number;
-    totalScans: number;
-    totalClaims: number;
-    avgEngagement: number;
-    topCampaign: string;
-    visitorMetrics: {
-      totalVisitors: number;
-      totalEvents: number;
-      avgVisitsPerUser: number;
-      growthRate: string;
-    };
-  };
-  campaigns: CampaignMetrics[];
-  visitorAnalytics: VisitorAnalytics;
-  recentActivity: Array<{
+  sevenDayData: Array<{
+    date: string;
+    checkins: number;
+  }>;
+  activityFeed: Array<{
+    id: string;
+    visitor_id: string;
+    zone_name: string;
     timestamp: string;
-    action: string;
-    campaign?: string;
-    location?: string;
-    userType?: string;
+    checkin_benefits: string;
   }>;
 }
 
-export default function Analytics() {
+export default function IntegratedAnalytics() {
   const { user } = useAuth();
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'campaigns' | 'qr'>('campaigns');
+  const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // Campaign Analytics State
+  const [analytics, setAnalytics] = useState<any>(null);
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d'>('7d');
+  
+  // QR Analytics State  
+  const [qrAnalytics, setQrAnalytics] = useState<QRAnalytics | null>(null);
 
+  // Auto-refresh interval for QR analytics
   useEffect(() => {
-    fetchAnalytics();
-  }, [timeRange]);
+    if (activeTab === 'qr') {
+      fetchQRAnalytics();
+      const interval = setInterval(fetchQRAnalytics, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [activeTab]);
 
-  const fetchAnalytics = async () => {
+  // Fetch Campaign Analytics
+  useEffect(() => {
+    if (activeTab === 'campaigns') {
+      fetchCampaignAnalytics();
+    }
+  }, [timeRange, activeTab]);
+
+  const fetchQRAnalytics = async () => {
+    setRefreshing(true);
+    try {
+      
+      // Get total check-ins
+      const { data: totalData } = await supabase
+        .from('qr_checkins')
+        .select('id', { count: 'exact', head: true });
+
+      // Get zone performance
+      const { data: zoneData } = await supabase
+        .from('qr_checkins')
+        .select('zone_name, count(*)')
+        .group('zone_name');
+
+      // Get hourly data
+      const { data: hourlyData } = await supabase
+        .from('qr_checkins')
+        .select(`
+          timestamp,
+          created_at
+        `)
+        .order('created_at', { ascending: false });
+
+      // Get recent activity
+      const { data: activityData } = await supabase
+        .from('qr_checkins')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      // Get today's check-ins
+      const today = new Date().toISOString().split('T')[0];
+      const { data: todayData } = await supabase
+        .from('qr_checkins')
+        .select('id', { count: 'exact', head: true })
+        .gte('created_at', `${today}T00:00:00.000Z`);
+
+      // Process the data
+      const totalCheckins = totalData?.length || 0;
+      const dailyCheckins = todayData?.length || 0;
+      const peakZone = zoneData && zoneData.length > 0 
+        ? zoneData.reduce((max, zone) => 
+            zone.count > max.count ? zone : max
+          ).zone_name || 'N/A'
+        : 'N/A';
+
+      const zonePerformance = zoneData?.map(zone => ({
+        zone: zone.zone_name || 'Unknown',
+        checkins: zone.count || 0,
+        percentage: totalCheckins > 0 ? Math.round((zone.count / totalCheckins) * 100) : 0
+      })) || [];
+
+      // Process hourly data
+      const hourlyCounts: { [key: string]: number } = {};
+      hourlyData?.forEach(item => {
+        const hour = new Date(item.created_at).getHours();
+        const hourKey = `${hour.toString().padStart(2, '0')}:00`;
+        hourlyCounts[hourKey] = (hourlyCounts[hourKey] || 0) + 1;
+      });
+
+      const hourlyData_processed = Object.keys(hourlyCounts)
+        .sort()
+        .slice(-12) // Last 12 hours
+        .map(hour => ({ hour, checkins: hourlyCounts[hour] }));
+
+      // Process 7-day data
+      const sevenDays: { [key: string]: number } = {};
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateKey = date.toISOString().split('T')[0];
+        sevenDays[dateKey] = 0;
+      }
+
+      hourlyData?.forEach(item => {
+        const date = new Date(item.created_at).toISOString().split('T')[0];
+        if (sevenDays.hasOwnProperty(date)) {
+          sevenDays[date]++;
+        }
+      });
+
+      const sevenDayData_processed = Object.keys(sevenDays)
+        .sort()
+        .map(date => ({
+          date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
+          checkins: sevenDays[date]
+        }));
+
+      setQrAnalytics({
+        totalCheckins,
+        peakZone,
+        dailyCheckins,
+        zonePerformance,
+        hourlyData: hourlyData_processed,
+        sevenDayData: sevenDayData_processed,
+        activityFeed: activityData || []
+      });
+
+    } catch (error) {
+      console.error('Error fetching QR analytics:', error);
+      // Fallback data
+      setQrAnalytics({
+        totalCheckins: 0,
+        peakZone: 'No data',
+        dailyCheckins: 0,
+        zonePerformance: [],
+        hourlyData: [],
+        sevenDayData: [],
+        activityFeed: []
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  const fetchCampaignAnalytics = async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('auth_token') || '';
-      const headers = createAuthHeaders(token);
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Origin': window.location.origin,
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      };
       
-      // Try to fetch real analytics data from your n8n workflow
-      const response = await fetch(`https://n8n.tenear.com/webhook/get-analytics?shop_id=${user?.shop_id}&time_range=${timeRange}`, {
-        headers
-      });
+      let analyticsUrl;
+      if (user?.role === 'shop_admin' && user?.shop_id) {
+        analyticsUrl = `https://n8n.tenear.com/webhook/get-analytics?shop_id=${user.shop_id}&time_range=${timeRange}`;
+      } else {
+        analyticsUrl = `https://n8n.tenear.com/webhook/get-analytics?time_range=${timeRange}`;
+      }
+      
+      const response = await fetch(analyticsUrl, { method: 'GET', headers });
       
       if (response.ok) {
         const data = await response.json();
-        if (data.success) {
-          // Use real data from n8n workflow directly
-          console.log('✅ Real analytics data received:', data);
-          setAnalytics(transformBackendData(data));
-        } else {
-          // Fallback to mock data for demo purposes
-          console.log('⚠️ Analytics API returned success=false, showing mock data');
-          setAnalytics(generateMockData());
-        }
+        setAnalytics(transformBackendData(data));
       } else {
-        // Mock data if API fails
-        console.log('❌ Analytics API failed with status:', response.status, 'showing mock data');
         setAnalytics(generateMockData());
       }
     } catch (error) {
-      console.error('Error fetching analytics:', error);
-      // Mock data on error with better messaging
-      const mockData = generateMockData();
-      console.log('Analytics API unavailable, showing sample data');
-      setAnalytics(mockData);
+      console.error('Error fetching campaign analytics:', error);
+      setAnalytics(generateMockData());
     } finally {
       setLoading(false);
     }
   };
 
-  // Transform backend data to match frontend interface
-  const transformBackendData = (backendData: any): AnalyticsData => {
+  const transformBackendData = (backendData: any): any => {
     try {
-      // Both visitor analytics and campaign data
       const totalEvents = backendData.insights?.totalEvents || 0;
       const totalUniqueVisitors = backendData.insights?.totalUniqueVisitors || 0;
       
       return {
         overview: {
-          totalCampaigns: 3, // Mock for now
-          activeCampaigns: 2, // Mock for now
+          totalCampaigns: 3,
+          activeCampaigns: 2,
           totalScans: totalEvents,
           totalClaims: Math.floor(totalEvents * 0.7),
           avgEngagement: backendData.visitorCategories ? 
@@ -188,18 +298,13 @@ export default function Analytics() {
               conversionRate: Math.round((Math.floor(totalEvents * 0.7) / totalEvents) * 100),
               popularActions: ['claim', 'like', 'directions']
             },
-            recentActivity: (backendData.visitorCategories ? [
+            recentActivity: [
               {
                 timestamp: new Date().toISOString(),
                 action: 'First Time Visit',
                 userType: 'New Visitor'
-              },
-              {
-                timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-                action: 'Frequent Customer',
-                userType: 'Regular'
               }
-            ] : [])
+            ]
           }
         ],
         visitorAnalytics: {
@@ -225,7 +330,7 @@ export default function Analytics() {
           },
           timeBasedData: backendData.timeBasedData || []
         },
-        recentActivity: (backendData.visitorCategories ? [
+        recentActivity: [
           {
             timestamp: backendData.lastUpdated || new Date().toISOString(),
             action: 'Total Activity',
@@ -233,7 +338,7 @@ export default function Analytics() {
             location: 'Your Mall',
             userType: 'All Visitors'
           }
-        ] : [])
+        ]
       };
     } catch (error) {
       console.error('Error transforming analytics data:', error);
@@ -241,7 +346,7 @@ export default function Analytics() {
     }
   };
 
-  const generateMockData = (): AnalyticsData => ({
+  const generateMockData = () => ({
     overview: {
       totalCampaigns: 5,
       activeCampaigns: 3,
@@ -280,37 +385,6 @@ export default function Analytics() {
             timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
             action: 'Offer Claimed',
             userType: 'New Visitor'
-          },
-          {
-            timestamp: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
-            action: 'Directions Clicked',
-            userType: 'Frequent Visitor'
-          }
-        ]
-      },
-      {
-        id: '2',
-        name: 'Back to School Sale',
-        scans: 42,
-        claims: 28,
-        engagementRate: 66.7,
-        clicks: {
-          claim: 28,
-          share: 12,
-          call: 8,
-          directions: 18,
-          like: 15
-        },
-        performance: {
-          clickThroughRate: 72.5,
-          conversionRate: 66.7,
-          popularActions: ['claim', 'share', 'like']
-        },
-        recentActivity: [
-          {
-            timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-            action: 'Offer Claimed',
-            userType: 'Welcome Back'
           }
         ]
       }
@@ -352,20 +426,6 @@ export default function Analytics() {
         campaign: 'Wine Tasting Event',
         location: 'Langata Mall',
         userType: 'New Visitor'
-      },
-      {
-        timestamp: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-        action: 'Directions Requested',
-        campaign: 'Back to School Sale',
-        location: 'China Square Mall',
-        userType: 'Frequent Visitor'
-      },
-      {
-        timestamp: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
-        action: 'Phone Call',
-        campaign: 'Wine Tasting Event',
-        location: 'Langata Mall',
-        userType: 'VIP Customer'
       }
     ]
   });
@@ -397,6 +457,98 @@ export default function Analytics() {
     }
   };
 
+  return (
+    <div className={`space-y-6 ${theme === 'dark' ? 'dark' : ''}`}>
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
+          <p className="text-gray-600 mt-1">
+            {user?.role === 'shop_admin' ? 
+              `Complete analytics for ${user?.full_name?.split(' - ')[0] || 'your shop'}` :
+              `Analytics overview ${user?.mall_id ? `for ${user?.full_name?.split(' - ')[1] || 'your location'}` : 'across all locations'}`
+            }
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+            variant="outline"
+            size="sm"
+          >
+            {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+          </Button>
+        </div>
+      </div>
+
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab('campaigns')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'campaigns'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <BarChart3 className="w-4 h-4 inline mr-2" />
+            Campaign Analytics
+          </button>
+          <button
+            onClick={() => setActiveTab('qr')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'qr'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            <QrCode className="w-4 h-4 inline mr-2" />
+            QR Analytics
+            {qrAnalytics && (
+              <Badge variant="secondary" className="ml-2 bg-green-100 text-green-800">
+                Live
+              </Badge>
+            )}
+          </button>
+        </nav>
+      </div>
+
+      {/* Campaign Analytics Tab */}
+      {activeTab === 'campaigns' && (
+        <CampaignAnalytics 
+          analytics={analytics}
+          loading={loading}
+          timeRange={timeRange}
+          setTimeRange={setTimeRange}
+          fetchCampaignAnalytics={fetchCampaignAnalytics}
+          formatTime={formatTime}
+          getActionIcon={getActionIcon}
+        />
+      )}
+
+      {/* QR Analytics Tab */}
+      {activeTab === 'qr' && (
+        <QRAnalytics 
+          qrAnalytics={qrAnalytics}
+          refreshing={refreshing}
+          fetchQRAnalytics={fetchQRAnalytics}
+        />
+      )}
+    </div>
+  );
+}
+
+// Campaign Analytics Component
+function CampaignAnalytics({ 
+  analytics, 
+  loading, 
+  timeRange, 
+  setTimeRange, 
+  fetchCampaignAnalytics, 
+  formatTime, 
+  getActionIcon 
+}: any) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -409,47 +561,26 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Visitor Analytics</h1>
-          <p className="text-gray-600 mt-1">
-            {user?.role === 'shop_admin' ? 
-              `Customer behavior insights for ${user?.full_name?.split(' - ')[0] || 'your shop'}` :
-              `Visitor analytics ${user?.mall_id ? `for ${user?.full_name?.split(' - ')[1] || 'your location'}` : 'across all locations'}`
-            }
-          </p>
-          {analytics === generateMockData() ? (
-            <p className="text-sm text-amber-600 mt-1">
-              📊 Showing sample data - Connect your analytics webhook for real visitor metrics
-            </p>
-          ) : (
-            <p className="text-sm text-blue-600 mt-1">
-              👥 Real visitor data from your analytics webhook
-            </p>
-          )}
-        </div>
-        <div className="flex gap-2">
-          {(['24h', '7d', '30d'] as const).map((range) => (
-            <button
-              key={range}
-              onClick={() => setTimeRange(range)}
-              className={`px-3 py-1 rounded text-sm ${
-                timeRange === range 
-                  ? 'bg-blue-600 text-white' 
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              {range}
-            </button>
-          ))}
-          <button
-            onClick={() => fetchAnalytics()}
-            className="px-3 py-1 rounded text-sm bg-green-600 text-white hover:bg-green-700"
+      {/* Time Range Controls */}
+      <div className="flex gap-2">
+        {(['24h', '7d', '30d'] as const).map((range) => (
+          <Button
+            key={range}
+            onClick={() => setTimeRange(range)}
+            variant={timeRange === range ? "default" : "outline"}
+            size="sm"
           >
-            🔄 Refresh
-          </button>
-        </div>
+            {range}
+          </Button>
+        ))}
+        <Button
+          onClick={() => fetchCampaignAnalytics()}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Refresh
+        </Button>
       </div>
 
       {/* Overview Cards */}
@@ -515,298 +646,175 @@ export default function Analytics() {
         </Card>
       </div>
 
-      {/* Visitor Analytics Section */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-lg border">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4 flex items-center">
-          <Users className="mr-3 h-6 w-6 text-blue-600" />
-          Visitor Analytics
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-            <div className="text-3xl font-bold text-blue-600">{analytics.visitorAnalytics.insights.totalUniqueVisitors}</div>
-            <div className="text-sm text-gray-500 mt-1">Unique Visitors</div>
-            <div className="text-xs text-green-600 mt-1">{analytics.visitorAnalytics.trends.overallGrowth} growth</div>
+      {/* Campaign Performance */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Campaign Performance</CardTitle>
+          <CardDescription>How your campaigns are performing</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {analytics.campaigns.map((campaign: any) => (
+              <div key={campaign.id} className="border rounded-lg p-4">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h4 className="font-semibold text-gray-900">{campaign.name}</h4>
+                    <p className="text-sm text-gray-500">Campaign ID: {campaign.id}</p>
+                  </div>
+                  <Badge variant={campaign.engagementRate > 70 ? 'default' : 'secondary'}>
+                    {campaign.engagementRate}% engagement
+                  </Badge>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <div className="text-gray-500">Scans</div>
+                    <div className="font-semibold text-lg text-blue-600">{campaign.scans}</div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Claims</div>
+                    <div className="font-semibold text-lg text-green-600">{campaign.claims}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-            <div className="text-3xl font-bold text-green-600">{analytics.visitorAnalytics.insights.totalEvents}</div>
-            <div className="text-sm text-gray-500 mt-1">Total Events</div>
-            <div className="text-xs text-gray-600 mt-1">All interactions</div>
-          </div>
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-            <div className="text-3xl font-bold text-purple-600">{analytics.visitorAnalytics.insights.averageVisitsPerUser}</div>
-            <div className="text-sm text-gray-500 mt-1">Avg Visits/User</div>
-            <div className="text-xs text-blue-600 mt-1">Engagement rate</div>
-          </div>
-          <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-            <div className="text-2xl font-bold text-orange-600">{analytics.visitorAnalytics.insights.mostActiveZone}</div>
-            <div className="text-sm text-gray-500 mt-1">Most Active Zone</div>
-            <div className="text-xs text-gray-600 mt-1">Hotspot location</div>
-          </div>
-        </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// QR Analytics Component
+function QRAnalytics({ qrAnalytics, refreshing, fetchQRAnalytics }: any) {
+  if (!qrAnalytics) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* QR Header Controls */}
+      <div className="flex gap-2">
+        <Button
+          onClick={() => fetchQRAnalytics()}
+          disabled={refreshing}
+          variant="outline"
+          size="sm"
+        >
+          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+          {refreshing ? 'Refreshing...' : 'Refresh Data'}
+        </Button>
+        <Badge variant="secondary" className="bg-green-100 text-green-800">
+          Auto-refresh: 30s
+        </Badge>
       </div>
 
-      {/* Campaign Performance & Visitor Analytics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Campaign Performance */}
+      {/* Real-time KPIs */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Target className="mr-2 h-5 w-5 text-blue-600" />
-              Campaign Performance
-            </CardTitle>
-            <CardDescription>How your campaigns are performing across all customer interactions</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {analytics.campaigns.map((campaign) => (
-                <div key={campaign.id} className="border rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-3">
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{campaign.name}</h4>
-                      <p className="text-sm text-gray-500">Campaign ID: {campaign.id}</p>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Check-ins</p>
+                <p className="text-2xl font-bold text-blue-600">{qrAnalytics.totalCheckins}</p>
+                <p className="text-xs text-gray-500 mt-1">All time</p>
+              </div>
+              <Users className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Today's Check-ins</p>
+                <p className="text-2xl font-bold text-green-600">{qrAnalytics.dailyCheckins}</p>
+                <p className="text-xs text-gray-500 mt-1">Live data</p>
+              </div>
+              <Activity className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Peak Zone</p>
+                <p className="text-2xl font-bold text-purple-600">{qrAnalytics.peakZone}</p>
+                <p className="text-xs text-gray-500 mt-1">Most active</p>
+              </div>
+              <MapPin className="h-8 w-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Zone Performance */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Zone Performance</CardTitle>
+          <CardDescription>Check-in distribution across mall zones</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {qrAnalytics.zonePerformance.length > 0 ? (
+            <div className="space-y-3">
+              {qrAnalytics.zonePerformance.map((zone, index) => (
+                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">
+                      {zone.zone.charAt(0).toUpperCase()}
                     </div>
-                    <Badge variant={campaign.engagementRate > 70 ? 'default' : 'secondary'}>
-                      {campaign.engagementRate}% engagement
-                    </Badge>
+                    <div>
+                      <div className="font-medium">{zone.zone}</div>
+                      <div className="text-sm text-gray-500">{zone.checkins} check-ins</div>
+                    </div>
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <div className="text-gray-500">Scans</div>
-                      <div className="font-semibold text-lg text-blue-600">{campaign.scans}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500">Claims</div>
-                      <div className="font-semibold text-lg text-green-600">{campaign.claims}</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500">Click-through</div>
-                      <div className="font-semibold text-purple-600">{campaign.performance.clickThroughRate}%</div>
-                    </div>
-                    <div>
-                      <div className="text-gray-500">Conversion</div>
-                      <div className="font-semibold text-orange-600">{campaign.performance.conversionRate}%</div>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-3 pt-3 border-t">
-                    <div className="text-xs text-gray-500 mb-2">Action Breakdown</div>
-                    <div className="flex gap-4 text-xs">
-                      <div><span className="text-blue-600">Claim:</span> {campaign.clicks.claim}</div>
-                      <div><span className="text-orange-600">Share:</span> {campaign.clicks.share}</div>
-                      <div><span className="text-purple-600">Call:</span> {campaign.clicks.call}</div>
-                      <div><span className="text-green-600">Directions:</span> {campaign.clicks.directions}</div>
+                  <div className="text-right">
+                    <div className="font-semibold text-blue-600">{zone.percentage}%</div>
+                    <div className="w-16 h-2 bg-gray-200 rounded mt-1">
+                      <div 
+                        className="h-2 bg-blue-500 rounded" 
+                        style={{ width: `${zone.percentage}%` }}
+                      ></div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Visitor Categories */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Users className="mr-2 h-5 w-5 text-green-600" />
-              Visitor Categories
-            </CardTitle>
-            <CardDescription>Breakdown of your customer types and engagement patterns</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="text-center p-3 border rounded-lg bg-blue-50">
-                <div className="text-2xl font-bold text-blue-600">{analytics.visitorAnalytics.visitorCategories.firstTime}</div>
-                <div className="text-xs text-gray-600 mt-1">First Time</div>
-                <div className="text-xs text-green-600 mt-1">{analytics.visitorAnalytics.trends.firstTimeGrowth}</div>
-              </div>
-              <div className="text-center p-3 border rounded-lg bg-green-50">
-                <div className="text-2xl font-bold text-green-600">{analytics.visitorAnalytics.visitorCategories.welcomeBack}</div>
-                <div className="text-xs text-gray-600 mt-1">Welcome Back</div>
-                <div className="text-xs text-gray-600 mt-1">Regular</div>
-              </div>
-              <div className="text-center p-3 border rounded-lg bg-purple-50">
-                <div className="text-2xl font-bold text-purple-600">{analytics.visitorAnalytics.visitorCategories.frequent}</div>
-                <div className="text-xs text-gray-600 mt-1">Frequent</div>
-                <div className="text-xs text-green-600 mt-1">{analytics.visitorAnalytics.trends.frequentGrowth}</div>
-              </div>
-              <div className="text-center p-3 border rounded-lg bg-orange-50">
-                <div className="text-2xl font-bold text-orange-600">{analytics.visitorAnalytics.visitorCategories.vip}</div>
-                <div className="text-xs text-gray-600 mt-1">VIP</div>
-                <div className="text-xs text-gray-600 mt-1">{analytics.visitorAnalytics.trends.vipGrowth}</div>
-              </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <QrCode className="mx-auto h-8 w-8 mb-2" />
+              <p>No QR check-in data available</p>
+              <p className="text-sm">QR analytics will appear here when customers scan codes</p>
             </div>
-            
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <h4 className="font-semibold text-gray-900 mb-2 text-sm">Key Insights</h4>
-              <div className="space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Peak Hours:</span>
-                  <span className="text-gray-800 font-medium">
-                    {analytics.visitorAnalytics.insights.peakHours.join(', ') || 'N/A'}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Most Active:</span>
-                  <span className="text-gray-800 font-medium capitalize">{analytics.visitorAnalytics.insights.mostActiveZone}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Growth:</span>
-                  <span className="text-green-600 font-semibold">{analytics.visitorAnalytics.trends.overallGrowth}</span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
-      {/* Traffic Analysis & Time-based Data */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <BarChart3 className="mr-2 h-5 w-5 text-blue-600" />
-              Hourly Traffic
-            </CardTitle>
-            <CardDescription>Visitor and event patterns throughout the day</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {analytics.visitorAnalytics.timeBasedData.length > 0 ? (
-                analytics.visitorAnalytics.timeBasedData.map((timeData, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">
-                        {timeData.hour.split(':')[0]}
-                      </div>
-                      <div>
-                        <div className="font-medium">{timeData.hour}</div>
-                        <div className="text-sm text-gray-500">
-                          {timeData.visitors} visitors, {timeData.events} events
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="w-16 h-2 bg-gray-200 rounded">
-                        <div 
-                          className="h-2 bg-blue-500 rounded" 
-                          style={{ width: `${Math.max((timeData.visitors / 10) * 100, 5)}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <Clock className="mx-auto h-8 w-8 mb-2" />
-                  <p>No time-based data available</p>
-                  <p className="text-sm">Connect analytics webhook for real visitor patterns</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <MapPin className="mr-2 h-5 w-5 text-green-600" />
-              Most Active Zone
-            </CardTitle>
-            <CardDescription>Hotspots and peak activity areas</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {analytics.visitorAnalytics.insights.mostActiveZone && analytics.visitorAnalytics.insights.mostActiveZone !== 'N/A' ? (
-                <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-900 capitalize">
-                        {analytics.visitorAnalytics.insights.mostActiveZone} Zone
-                      </h4>
-                      <p className="text-sm text-gray-600">
-                        {analytics.visitorAnalytics.insights.totalUniqueVisitors} unique visitors
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-green-600">
-                        {analytics.visitorAnalytics.insights.totalEvents}
-                      </div>
-                      <div className="text-sm text-gray-500">total events</div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="p-4 bg-gray-50 border rounded-lg text-center">
-                  <MapPin className="mx-auto h-8 w-8 text-gray-400 mb-2" />
-                  <p className="text-gray-500">No zone data available</p>
-                  <p className="text-sm text-gray-400">Analytics will show active zones when data is available</p>
-                </div>
-              )}
-              
-              <div className="p-4 border rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-3">Peak Hours</h4>
-                {analytics.visitorAnalytics.insights.peakHours.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {analytics.visitorAnalytics.insights.peakHours.map((hour, index) => (
-                      <Badge key={index} variant="outline" className="bg-blue-50">
-                        {hour}
-                      </Badge>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500">No peak hours data</p>
-                )}
-              </div>
-              
-              <div className="p-4 border rounded-lg">
-                <h4 className="font-semibold text-gray-900 mb-3">Device Access</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Mobile</span>
-                    <span className="font-medium">70%</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Desktop</span>
-                    <span className="font-medium">20%</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tablet</span>
-                    <span className="font-medium">10%</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
+      {/* Live Activity Feed */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center">
-            <Clock className="mr-2 h-5 w-5 text-purple-600" />
-            Recent Activity
-          </CardTitle>
-          <CardDescription>Latest customer interactions and visitor patterns in real-time</CardDescription>
+          <CardTitle>Live Activity Feed</CardTitle>
+          <CardDescription>Real-time QR check-in activity</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            {analytics.recentActivity.length > 0 ? (
-              analytics.recentActivity.map((activity, index) => (
+          {qrAnalytics.activityFeed.length > 0 ? (
+            <div className="space-y-3">
+              {qrAnalytics.activityFeed.map((activity, index) => (
                 <div key={index} className="flex items-center justify-between py-3 border-b last:border-b-0">
                   <div className="flex items-center gap-3">
-                    {getActionIcon(activity.action)}
+                    <QrCode className="w-4 h-4 text-blue-500" />
                     <div>
-                      <div className="font-medium text-gray-900">{activity.action}</div>
+                      <div className="font-medium text-gray-900">QR Check-in</div>
                       <div className="text-sm text-gray-500 flex items-center gap-2">
-                        {activity.userType && (
-                          <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                            {activity.userType}
-                          </span>
-                        )}
-                        {activity.campaign && <span>• {activity.campaign}</span>}
-                        {activity.location && <span>• {activity.location}</span>}
+                        <Badge variant="outline">{activity.zone_name}</Badge>
+                        <span>• {activity.visitor_id}</span>
                       </div>
                     </div>
                   </div>
@@ -814,15 +822,15 @@ export default function Analytics() {
                     {formatTime(activity.timestamp)}
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <Eye className="mx-auto h-8 w-8 mb-2" />
-                <p>No recent activity</p>
-                <p className="text-sm">Activity will appear here as customers interact with campaigns</p>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <Activity className="mx-auto h-8 w-8 mb-2" />
+              <p>No recent activity</p>
+              <p className="text-sm">Live check-ins will appear here in real-time</p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
