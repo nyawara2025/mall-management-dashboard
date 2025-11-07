@@ -237,18 +237,18 @@ const CampaignAnalytics = () => {
         
         // Try to fetch real campaigns from adcampaigns table
         try {
-          let campaignQuery = supabase
-            .from('adcampaigns')
-            .select('*')
-            .eq('active', true);
-
+          // Use a simple approach - build the query with the right filters
+          let campaignOptions: any = { eq: { column: 'active', value: 'true' } };
+          
+          // Add user-specific filter
           if (user?.shop_id) {
-            campaignQuery = campaignQuery.eq('shop_id', user.shop_id);
+            campaignOptions = { eq: { column: 'shop_id', value: user.shop_id.toString() } };
           } else if (user?.mall_id) {
-            campaignQuery = campaignQuery.eq('mall_id', user.mall_id);
+            campaignOptions = { eq: { column: 'mall_id', value: user.mall_id.toString() } };
           }
 
-          const campaignResult = await campaignQuery;
+          // Execute query using the supabase client directly
+          const campaignResult = await (supabase as any).createQuery('adcampaigns', 'select', '*', campaignOptions);
           
           if (campaignResult.data && campaignResult.data.length > 0) {
             console.log(`✅ Found ${campaignResult.data.length} real campaigns for user`);
@@ -285,7 +285,7 @@ const CampaignAnalytics = () => {
         }
         
         // Final fallback: Generate campaign data from QR check-ins (filtered by mall)
-        const qrResult = await supabase.select('qr_checkins', '*');
+        const qrResult = await supabase.from('qr_checkins').select('*');
         if (qrResult.data && qrResult.data.length > 0) {
           // Filter for mall-specific data based on user's mall_id using location_id patterns
           // Shop admins see their mall's visitor data for targeting insights
@@ -556,7 +556,7 @@ const QRAnalytics = ({ formatTime, user }: { formatTime: (timestamp: string) => 
       setError(null);
       
       // Using the direct fetch-based Supabase client
-      const allCheckinsResult = await supabase.select('qr_checkins', '*');
+      const allCheckinsResult = await supabase.from('qr_checkins').select('*');
       if (allCheckinsResult.error) throw allCheckinsResult.error;
       
       // Filter to show mall-specific visitors (shop admin needs their mall context for targeting)

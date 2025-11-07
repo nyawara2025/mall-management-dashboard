@@ -25,7 +25,7 @@ class SupabaseClient {
       }),
       insert: (data: any) => this.createQuery(table, 'insert', data),
       update: (data: any) => this.createQuery(table, 'update', data),
-      delete: () => this.createQuery(table, 'delete'),
+      delete: () => this.createQuery(table, 'delete', null),
     };
   }
 
