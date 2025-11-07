@@ -5,6 +5,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
+import { supabase } from '../lib/supabase';
 import { 
   PlusCircle, 
   TrendingUp, 
@@ -196,12 +197,64 @@ export default function CampaignManagement() {
         throw new Error(data.error || 'Unknown error');
       }
     } catch (error) {
-      console.error('Error creating campaign:', error);
-      // Show error message with more details
-      const errorMsg = error instanceof Error ? error.message : 'Please try again';
-      const errorDetail = `Error creating campaign: ${errorMsg}`;
-      const errorAlert = document.createElement('div');
-      errorAlert.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50';
+      console.error('Error creating campaign via n8n webhook, trying direct database creation...', error);
+      
+      // Fallback: Create campaign directly in Supabase database
+      try {
+        const campaignId = `campaign_${Date.now()}`;
+        const campaignPayload = {
+          campaign_id: campaignId,
+          name: createForm.name,
+          geofence_id: createForm.zone || createForm.name.toLowerCase().replace(/\s+/g, '_'),
+          message: createForm.message,
+          channels: ['push', 'sms'],
+          active: true,
+          mall_id: user?.mall_id,
+          shop_id: user?.shop_id,
+          campaign_scope: user?.shop_id ? 'shop_specific' : 'mall_specific',
+          campaign_type: 'broad',
+          trigger_source: 'manual',
+          created_at: new Date().toISOString()
+        };
+
+        const { data: newCampaign, error: createError } = await supabase
+          .from('adcampaigns')
+          .insert([campaignPayload])
+          .select();
+
+        if (createError) {
+          throw createError;
+        }
+
+        console.log('✅ Campaign created successfully in Supabase:', newCampaign);
+        
+        // Refresh campaigns list and show success
+        fetchCampaigns();
+        setShowCreateForm(false);
+        setCreateForm({ name: '', message: '', zone: '', shop_id: user?.shop_id || '' });
+        
+        const successAlert = document.createElement('div');
+        successAlert.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50';
+        successAlert.innerHTML = `
+          <div class="flex items-center">
+            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+            Campaign created successfully! (Created via direct database)
+          </div>
+        `;
+        document.body.appendChild(successAlert);
+        setTimeout(() => successAlert.remove(), 5000);
+        return;
+        
+      } catch (dbError) {
+        console.error('Database fallback creation also failed:', dbError);
+        
+        // Show error message with more details
+        const errorMsg = error instanceof Error ? error.message : 'Please try again';
+        const errorDetail = `Error creating campaign: ${errorMsg}`;
+        const errorAlert = document.createElement('div');
+        errorAlert.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50';
       errorAlert.innerHTML = `
         <div class="flex items-center">
           <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -417,7 +470,12 @@ export default function CampaignManagement() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Campaign Management</h1>
           <p className="text-gray-600 mt-1">
-            Create and manage promotional campaigns for {user?.full_name?.split(' - ')[1] || 'your shop'}
+            Create and manage promotional campaigns for {
+              user?.mall_id === 3 ? 'Spatial Barbershop at China Square Langata Mall' :
+              user?.mall_id === 6 ? 'Kika Wines & Spirits at Langata Mall' :
+              user?.mall_id === 7 ? 'Maliet Salon & Spa at NHC Mall' :
+              user?.full_name?.split(' - ')[1] || 'your shop'
+            }
           </p>
         </div>
         <Button 
