@@ -265,6 +265,7 @@ export default function CampaignManagement() {
       `;
       document.body.appendChild(errorAlert);
       setTimeout(() => errorAlert.remove(), 5000);
+      }
     }
   };
 
