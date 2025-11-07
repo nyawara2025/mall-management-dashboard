@@ -1,3 +1,4 @@
+// Improved error handling version with better CORS fallback
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -21,7 +22,8 @@ import {
   PieChart,
   Sun,
   Moon,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
 
 interface CampaignMetrics {
@@ -80,12 +82,44 @@ const formatTime = (timestamp: string) => {
   });
 };
 
+// Mock data for fallback
+const getMockCampaignMetrics = (): CampaignMetrics[] => [
+  {
+    id: '1',
+    name: 'Welcome Campaign',
+    scans: 1250,
+    claims: 450,
+    engagementRate: 36.0,
+    clicks: { claim: 300, share: 150, call: 80, directions: 120, like: 200 },
+    performance: { clickThroughRate: 72.0, conversionRate: 36.0, popularActions: ['Claim', 'Like', 'Share'] },
+    recentActivity: [
+      { timestamp: new Date().toISOString(), action: 'Claimed优惠', userType: 'Shopper' },
+      { timestamp: new Date(Date.now() - 3600000).toISOString(), action: 'Shared', userType: 'Shopper' },
+      { timestamp: new Date(Date.now() - 7200000).toISOString(), action: 'Called Store', userType: 'Shopper' }
+    ]
+  },
+  {
+    id: '2',
+    name: 'Weekend Deals',
+    scans: 890,
+    claims: 320,
+    engagementRate: 35.9,
+    clicks: { claim: 200, share: 100, call: 60, directions: 80, like: 150 },
+    performance: { clickThroughRate: 68.5, conversionRate: 35.9, popularActions: ['Claim', 'Like', 'Share'] },
+    recentActivity: [
+      { timestamp: new Date(Date.now() - 1800000).toISOString(), action: 'Liked Store', userType: 'Shopper' },
+      { timestamp: new Date(Date.now() - 3600000).toISOString(), action: 'Directions', userType: 'Shopper' }
+    ]
+  }
+];
+
 // Campaign Analytics Component
 const CampaignAnalytics = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [metrics, setMetrics] = useState<CampaignMetrics[]>([]);
+  const [isUsingMockData, setIsUsingMockData] = useState(false);
 
   useEffect(() => {
     const fetchCampaignMetrics = async () => {
@@ -94,8 +128,9 @@ const CampaignAnalytics = () => {
       try {
         setLoading(true);
         setError(null);
+        setIsUsingMockData(false);
         
-        // Call the webhook endpoint for campaign analytics
+        // Try to fetch from n8n webhook
         const response = await fetch('https://n8n.tenear.com/webhook/campaign-analytics', {
           method: 'POST',
           headers: {
@@ -118,27 +153,17 @@ const CampaignAnalytics = () => {
         }
 
         setMetrics(data.metrics || []);
+        console.log('✅ Campaign analytics loaded successfully from API');
       } catch (err) {
-        console.error('Error fetching campaign metrics:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load campaign metrics');
+        console.warn('⚠️ Campaign analytics API failed, using mock data:', err);
         
-        // Set mock data as fallback
-        setMetrics([
-          {
-            id: '1',
-            name: 'Welcome Campaign',
-            scans: 1250,
-            claims: 450,
-            engagementRate: 36.0,
-            clicks: { claim: 300, share: 150, call: 80, directions: 120, like: 200 },
-            performance: { clickThroughRate: 72.0, conversionRate: 36.0, popularActions: ['Claim', 'Like', 'Share'] },
-            recentActivity: [
-              { timestamp: new Date().toISOString(), action: 'Claimed优惠', userType: 'Shopper' },
-              { timestamp: new Date(Date.now() - 3600000).toISOString(), action: 'Shared', userType: 'Shopper' },
-              { timestamp: new Date(Date.now() - 7200000).toISOString(), action: 'Called Store', userType: 'Shopper' }
-            ]
-          }
-        ]);
+        // Use mock data as fallback
+        const mockData = getMockCampaignMetrics();
+        setMetrics(mockData);
+        setIsUsingMockData(true);
+        setError(null); // Don't show error, just use mock data
+        
+        console.log('📊 Using mock campaign data as fallback');
       } finally {
         setLoading(false);
       }
@@ -166,23 +191,24 @@ const CampaignAnalytics = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <p className="text-red-600 mb-2">Error loading campaign metrics</p>
-          <p className="text-sm text-gray-500">{error}</p>
-        </div>
-      </div>
-    );
-  }
-
   const totalScans = metrics.reduce((sum, campaign) => sum + campaign.scans, 0);
   const totalClaims = metrics.reduce((sum, campaign) => sum + campaign.claims, 0);
   const avgEngagement = metrics.length > 0 ? metrics.reduce((sum, campaign) => sum + campaign.engagementRate, 0) / metrics.length : 0;
 
   return (
     <div className="space-y-6">
+      {/* Mock Data Notice */}
+      {isUsingMockData && (
+        <Card className="backdrop-blur-sm bg-amber-500/10 border-amber-500/20">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 text-amber-300">
+              <AlertCircle className="h-4 w-4" />
+              <span className="text-sm">Showing demo data - Live data from n8n webhook is currently unavailable (CORS issue)</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="backdrop-blur-sm bg-white/10 border-white/20">
@@ -315,11 +341,9 @@ const QRAnalytics = ({ formatTime }: { formatTime: (timestamp: string) => string
     try {
       setError(null);
       
-      // Using async/await with the simple supabase client
-      const allCheckinsResult = await supabase.from('qr_checkins');
-      if (allCheckinsResult.error) {
-        throw allCheckinsResult.error;
-      }
+      // Using the direct fetch-based Supabase client
+      const allCheckinsResult = await supabase.select('qr_checkins', '*');
+      if (allCheckinsResult.error) throw allCheckinsResult.error;
       const allCheckins = allCheckinsResult.data;
 
       // Filter today's check-ins
@@ -393,6 +417,7 @@ const QRAnalytics = ({ formatTime }: { formatTime: (timestamp: string) => string
 
       setQrAnalytics(analytics);
       setLastRefresh(new Date());
+      console.log('✅ QR Analytics loaded successfully - Live data from Supabase');
     } catch (err) {
       console.error('Error fetching QR analytics:', err);
       setError(err instanceof Error ? err.message : 'Failed to load QR analytics');
