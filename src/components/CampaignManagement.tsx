@@ -100,9 +100,9 @@ export default function CampaignManagement() {
         // Client-side filtering: Only show campaigns for user's shop
         const allCampaigns = data.campaigns || [];
         const filteredCampaigns = allCampaigns.filter((campaign: Campaign) => {
-          // Filter by shop_id first, then by mall_id as backup
-          const matchesShop = campaign.shopId === user?.shop_id || campaign.shop_id === user?.shop_id;
-          const matchesMall = campaign.mallId === user?.mall_id || campaign.mall_id === user?.mall_id;
+          // Filter by shopId first, then by mallId as backup
+          const matchesShop = campaign.shopId === user?.shop_id;
+          const matchesMall = campaign.mallId === user?.mall_id;
           return matchesShop || matchesMall;
         });
         
