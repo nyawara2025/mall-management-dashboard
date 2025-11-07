@@ -27,6 +27,57 @@ import {
   CheckCircle
 } from 'lucide-react';
 
+// Mall and Shop data for dynamic titles
+const MALL_DATA = {
+  3: { name: "China Square Langata Mall" },
+  6: { name: "Langata Mall" },
+  7: { name: "NHC Mall" }
+};
+
+const SHOP_DATA = {
+  3: { name: "Spatial Barber Shop", mall_id: 3 },
+  4: { name: "Mall Cafe", mall_id: 3 },
+  6: { name: "Kika Wines & Spirits", mall_id: 6 },
+  7: { name: "The Phone Shop", mall_id: 6 },
+  8: { name: "Cleanshelf SupaMarket", mall_id: 6 },
+  9: { name: "Maliet Salon & Spa", mall_id: 7 },
+  10: { name: "Gravity CBC Resource Center", mall_id: 7 },
+  11: { name: "Hydramist Drinking Water Services", mall_id: 7 }
+};
+
+// Helper function to get dynamic titles
+const getAnalyticsTitle = (user: any) => {
+  if (user?.shop_id && user?.mall_id) {
+    const shop = SHOP_DATA[user.shop_id as keyof typeof SHOP_DATA];
+    const mall = MALL_DATA[user.mall_id as keyof typeof MALL_DATA];
+    if (shop && mall) {
+      return `Analytics for ${shop.name} at ${mall.name}`;
+    }
+  } else if (user?.mall_id) {
+    const mall = MALL_DATA[user.mall_id as keyof typeof MALL_DATA];
+    if (mall) {
+      return `Analytics for ${mall.name}`;
+    }
+  }
+  return "Analytics Dashboard";
+};
+
+const getAnalyticsSubtitle = (user: any) => {
+  if (user?.shop_id && user?.mall_id) {
+    const shop = SHOP_DATA[user.shop_id as keyof typeof SHOP_DATA];
+    const mall = MALL_DATA[user.mall_id as keyof typeof MALL_DATA];
+    if (shop && mall) {
+      return `📊 Campaign Analytics: ${shop.name} only | QR Analytics: All ${mall.name} visitors (for targeting insights)`;
+    }
+  } else if (user?.mall_id) {
+    const mall = MALL_DATA[user.mall_id as keyof typeof MALL_DATA];
+    if (mall) {
+      return `📊 Campaign Analytics: All ${mall.name} campaigns | QR Analytics: All ${mall.name} visitors (for targeting insights)`;
+    }
+  }
+  return '📊 Campaign Analytics: All campaigns | QR Analytics: All visitors (for targeting insights)';
+};
+
 interface CampaignMetrics {
   id: string;
   name: string;
@@ -216,7 +267,8 @@ const CampaignAnalytics = () => {
           const campaignData = generateCampaignDataFromQR(filteredData);
           setMetrics(campaignData);
           setDataSource('supabase');
-          console.log(`✅ Campaign analytics generated from China Square Mall data (${filteredData.length} check-ins for targeting insights)`);
+          const mallName = MALL_DATA[user?.mall_id as keyof typeof MALL_DATA]?.name || 'Unknown Mall';
+          console.log(`✅ Campaign analytics generated from ${mallName} data (${filteredData.length} check-ins for targeting insights)`);
           return;
         }
         
@@ -551,7 +603,8 @@ const QRAnalytics = ({ formatTime, user }: { formatTime: (timestamp: string) => 
 
       setQrAnalytics(analytics);
       setLastRefresh(new Date());
-      console.log(`✅ QR Analytics loaded - ${allCheckins.length} check-ins across China Square Mall (for campaign targeting)`);
+      const mallNameQR = MALL_DATA[user?.mall_id as keyof typeof MALL_DATA]?.name || 'Unknown Mall';
+      console.log(`✅ QR Analytics loaded - ${allCheckins.length} check-ins across ${mallNameQR} (for campaign targeting)`);
     } catch (err) {
       console.error('Error fetching QR analytics:', err);
       setError(err instanceof Error ? err.message : 'Failed to load QR analytics');
@@ -793,13 +846,10 @@ const Analytics = () => {
           <div>
             <h1 className="text-3xl font-bold text-white">Analytics Dashboard</h1>
             <p className="text-gray-300">
-              {user?.shop_id ? 
-                `Analytics for Spatial Barbershop at China Square Mall` : 
-                'Comprehensive insights for your shop'
-              }
+              {getAnalyticsTitle(user)}
             </p>
             <p className="text-xs text-blue-200 mt-1">
-              📊 Campaign Analytics: Spatial Barbershop only | QR Analytics: All China Square visitors (for targeting insights)
+              {getAnalyticsSubtitle(user)}
             </p>
           </div>
           <div className="flex items-center gap-4">
