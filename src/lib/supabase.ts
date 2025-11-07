@@ -14,10 +14,10 @@ class SupabaseClient {
   // Simple query builder for basic operations
   from(table: string) {
     return {
-      select: (columns: string | '*' = '*') => ({
+      select: (columns: string | '*' = '*', options?: { count?: string }) => ({
         group: (column: string) => this.createQuery(table, 'select', columns, { group: column }),
-        order: (column: string, options?: { ascending?: boolean }) => 
-          this.createQuery(table, 'select', columns, { order: column, ...options }),
+        order: (column: string, orderOptions?: { ascending?: boolean }) => 
+          this.createQuery(table, 'select', columns, { order: column, ...orderOptions }),
         limit: (count: number) => this.createQuery(table, 'select', columns, { limit: count }),
         gte: (column: string, value: string) => this.createQuery(table, 'select', columns, { gte: { column, value } }),
       }),
@@ -107,6 +107,12 @@ class SupabaseClient {
       }
 
       const data = await response.json();
+      
+      // Handle count responses
+      if (Array.isArray(data) && data.length > 0 && data[0].count !== undefined) {
+        return { data, error: null, count: data[0].count };
+      }
+
       return { data, error: null };
 
     } catch (error) {

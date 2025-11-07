@@ -112,21 +112,18 @@ export default function IntegratedAnalytics() {
       // Get total check-ins
       const { data: totalData } = await supabase
         .from('qr_checkins')
-        .select('id', { count: 'exact', head: true });
+        .select('id', { count: 'exact' });
 
       // Get zone performance
       const { data: zoneData } = await supabase
         .from('qr_checkins')
-        .select('zone_name, count(*)')
+        .select('zone_name')
         .group('zone_name');
 
       // Get hourly data
       const { data: hourlyData } = await supabase
         .from('qr_checkins')
-        .select(`
-          timestamp,
-          created_at
-        `)
+        .select('timestamp,created_at')
         .order('created_at', { ascending: false });
 
       // Get recent activity
@@ -140,19 +137,19 @@ export default function IntegratedAnalytics() {
       const today = new Date().toISOString().split('T')[0];
       const { data: todayData } = await supabase
         .from('qr_checkins')
-        .select('id', { count: 'exact', head: true })
+        .select('id')
         .gte('created_at', `${today}T00:00:00.000Z`);
 
       // Process the data
-      const totalCheckins = totalData?.length || 0;
-      const dailyCheckins = todayData?.length || 0;
+      const totalCheckins = Array.isArray(totalData) ? totalData.length : (totalData?.count || 0);
+      const dailyCheckins = Array.isArray(todayData) ? todayData.length : 0;
       const peakZone = zoneData && zoneData.length > 0 
-        ? zoneData.reduce((max, zone) => 
+        ? zoneData.reduce((max: any, zone: any) => 
             zone.count > max.count ? zone : max
           ).zone_name || 'N/A'
         : 'N/A';
 
-      const zonePerformance = zoneData?.map(zone => ({
+      const zonePerformance = zoneData?.map((zone: any) => ({
         zone: zone.zone_name || 'Unknown',
         checkins: zone.count || 0,
         percentage: totalCheckins > 0 ? Math.round((zone.count / totalCheckins) * 100) : 0
@@ -160,7 +157,7 @@ export default function IntegratedAnalytics() {
 
       // Process hourly data
       const hourlyCounts: { [key: string]: number } = {};
-      hourlyData?.forEach(item => {
+      hourlyData?.forEach((item: any) => {
         const hour = new Date(item.created_at).getHours();
         const hourKey = `${hour.toString().padStart(2, '0')}:00`;
         hourlyCounts[hourKey] = (hourlyCounts[hourKey] || 0) + 1;
@@ -169,7 +166,7 @@ export default function IntegratedAnalytics() {
       const hourlyData_processed = Object.keys(hourlyCounts)
         .sort()
         .slice(-12) // Last 12 hours
-        .map(hour => ({ hour, checkins: hourlyCounts[hour] }));
+        .map((hour: string) => ({ hour, checkins: hourlyCounts[hour] }));
 
       // Process 7-day data
       const sevenDays: { [key: string]: number } = {};
@@ -180,7 +177,7 @@ export default function IntegratedAnalytics() {
         sevenDays[dateKey] = 0;
       }
 
-      hourlyData?.forEach(item => {
+      hourlyData?.forEach((item: any) => {
         const date = new Date(item.created_at).toISOString().split('T')[0];
         if (sevenDays.hasOwnProperty(date)) {
           sevenDays[date]++;
@@ -189,7 +186,7 @@ export default function IntegratedAnalytics() {
 
       const sevenDayData_processed = Object.keys(sevenDays)
         .sort()
-        .map(date => ({
+        .map((date: string) => ({
           date: new Date(date).toLocaleDateString('en-US', { weekday: 'short' }),
           checkins: sevenDays[date]
         }));
@@ -533,6 +530,7 @@ export default function IntegratedAnalytics() {
           qrAnalytics={qrAnalytics}
           refreshing={refreshing}
           fetchQRAnalytics={fetchQRAnalytics}
+          formatTime={formatTime}
         />
       )}
     </div>
@@ -686,7 +684,7 @@ function CampaignAnalytics({
 }
 
 // QR Analytics Component
-function QRAnalytics({ qrAnalytics, refreshing, fetchQRAnalytics }: any) {
+function QRAnalytics({ qrAnalytics, refreshing, fetchQRAnalytics, formatTime }: any) {
   if (!qrAnalytics) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -764,7 +762,7 @@ function QRAnalytics({ qrAnalytics, refreshing, fetchQRAnalytics }: any) {
         <CardContent>
           {qrAnalytics.zonePerformance.length > 0 ? (
             <div className="space-y-3">
-              {qrAnalytics.zonePerformance.map((zone, index) => (
+              {qrAnalytics.zonePerformance.map((zone: any, index: number) => (
                 <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">
@@ -806,7 +804,7 @@ function QRAnalytics({ qrAnalytics, refreshing, fetchQRAnalytics }: any) {
         <CardContent>
           {qrAnalytics.activityFeed.length > 0 ? (
             <div className="space-y-3">
-              {qrAnalytics.activityFeed.map((activity, index) => (
+              {qrAnalytics.activityFeed.map((activity: any, index: number) => (
                 <div key={index} className="flex items-center justify-between py-3 border-b last:border-b-0">
                   <div className="flex items-center gap-3">
                     <QrCode className="w-4 h-4 text-blue-500" />
