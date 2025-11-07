@@ -187,18 +187,30 @@ const CampaignAnalytics = () => {
         // Fallback: Generate campaign data from QR check-ins (filtered by mall)
         const qrResult = await supabase.select('qr_checkins', '*');
         if (qrResult.data && qrResult.data.length > 0) {
-          // Filter for China Square Mall data (Ben can see all mall data for targeting insights)
-          // Include all China Square zones, exclude only other malls
-          // Filter for China Square Mall data (exclude only Langata Mall)
-          // Use exclusion approach: include all data except Langata Mall zones
+          // Filter for mall-specific data based on user's mall_id using location_id patterns
+          // Shop admins see their mall's visitor data for targeting insights
           const filteredData = qrResult.data.filter((checkin: any) => {
-            const zone = checkin.zone_name?.toLowerCase() || '';
-            const isLangataMall = zone.includes('langata') || zone.includes('kika') || zone.includes('wines');
-            return !isLangataMall; // Include everything except Langata Mall
+            const locationId = checkin.location_id?.toLowerCase() || '';
+            const mallId = user?.mall_id;
+            
+            // China Square Mall (mall_id: 3) - show only China Square location_id patterns
+            if (mallId === 3) {
+              return locationId.startsWith('china_square_');
+            }
+            // Langata Mall (mall_id: 6) - show only Langata location_id patterns 
+            else if (mallId === 6) {
+              return locationId.startsWith('langata_');
+            }
+            // NHC Mall (mall_id: 7) - show only NHC location_id patterns
+            else if (mallId === 7) {
+              return locationId.startsWith('nhc_');
+            }
+            // Default: include all data
+            return true;
           });
           
           console.log(`🔍 Total QR check-ins fetched: ${qrResult.data.length}`);
-          console.log(`✅ Filtered check-ins (China Square Mall only): ${filteredData.length}`);
+          console.log(`✅ Filtered check-ins (Mall ID ${user?.mall_id}): ${filteredData.length}`);
           console.log('📍 Sample zone names:', filteredData.slice(0, 5).map((c: any) => c.zone_name || 'No zone'));
           
           const campaignData = generateCampaignDataFromQR(filteredData);
@@ -446,13 +458,26 @@ const QRAnalytics = ({ formatTime, user }: { formatTime: (timestamp: string) => 
       const allCheckinsResult = await supabase.select('qr_checkins', '*');
       if (allCheckinsResult.error) throw allCheckinsResult.error;
       
-      // Filter to show all China Square Mall visitors (shop admin needs mall context for targeting)
-      // Ben can see the full mall visitor patterns to inform his Spatial Barbershop campaigns
-      // Use exclusion approach: include all data except Langata Mall zones
+      // Filter to show mall-specific visitors (shop admin needs their mall context for targeting)
+      // Mall-specific filtering based on user's mall_id using location_id patterns
       const allCheckins = (allCheckinsResult.data || []).filter((checkin: any) => {
-        const zone = checkin.zone_name?.toLowerCase() || '';
-        const isLangataMall = zone.includes('langata') || zone.includes('kika') || zone.includes('wines');
-        return !isLangataMall; // Include everything except Langata Mall
+        const locationId = checkin.location_id?.toLowerCase() || '';
+        const mallId = user?.mall_id;
+        
+        // China Square Mall (mall_id: 3) - show only China Square location_id patterns
+        if (mallId === 3) {
+          return locationId.startsWith('china_square_');
+        }
+        // Langata Mall (mall_id: 6) - show only Langata location_id patterns 
+        else if (mallId === 6) {
+          return locationId.startsWith('langata_');
+        }
+        // NHC Mall (mall_id: 7) - show only NHC location_id patterns
+        else if (mallId === 7) {
+          return locationId.startsWith('nhc_');
+        }
+        // Default: include all data
+        return true;
       });
 
       // Filter today's check-ins
