@@ -2,8 +2,19 @@
 const SUPABASE_URL = 'https://ufrrlfcxuovxgizxuowh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmcnJsZmN4dW92eGdpenh1b3doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM2Mzc2NDgsImV4cCI6MjA2OTIxMzY0OH0.MfwxLihZ6htvufjYv3RLfKwKsazjD_TnVEcV1IDZeQg';
 
+interface SupabaseError {
+  message: string;
+  details?: string;
+  hint?: string;
+  code?: string;
+}
+
+interface SupabaseResponse<T = any> {
+  data: T | null;
+  error: SupabaseError | null;
+}
+
 class QueryBuilder {
-  private supabase: SupabaseClient;
   private table: string;
   private operation: 'select' | 'insert' | 'update' | 'delete';
   private columns: string = '*';
@@ -11,34 +22,15 @@ class QueryBuilder {
   private filters: any[] = [];
   private orderOptions: any = null;
   private limitCount: number | null = null;
-  private groupOptions: any = null;
 
-  constructor(supabase: SupabaseClient, table: string, operation: 'select' | 'insert' | 'update' | 'delete', data?: any) {
-    this.supabase = supabase;
+  constructor(table: string, operation: 'select' | 'insert' | 'update' | 'delete', data?: any) {
     this.table = table;
     this.operation = operation;
     this.data = data;
   }
 
-  select(columns: string = '*', options?: { count?: string }): QueryBuilder {
+  select(columns: string = '*'): QueryBuilder {
     this.columns = columns;
-    if (options?.count) {
-      this.groupOptions = { count: options.count };
-    }
-    return this;
-  }
-
-  insert(data: any): QueryBuilder {
-    this.data = data;
-    return this;
-  }
-
-  update(data: any): QueryBuilder {
-    this.data = data;
-    return this;
-  }
-
-  delete(): QueryBuilder {
     return this;
   }
 
@@ -47,13 +39,13 @@ class QueryBuilder {
     return this;
   }
 
-  neq(column: string, value: any): QueryBuilder {
-    this.filters.push({ type: 'neq', column, value });
+  or(filters: string): QueryBuilder {
+    this.filters.push({ type: 'or', expression: filters });
     return this;
   }
 
-  gt(column: string, value: any): QueryBuilder {
-    this.filters.push({ type: 'gt', column, value });
+  neq(column: string, value: any): QueryBuilder {
+    this.filters.push({ type: 'neq', column, value });
     return this;
   }
 
@@ -62,33 +54,13 @@ class QueryBuilder {
     return this;
   }
 
-  lt(column: string, value: any): QueryBuilder {
-    this.filters.push({ type: 'lt', column, value });
-    return this;
-  }
-
   lte(column: string, value: any): QueryBuilder {
     this.filters.push({ type: 'lte', column, value });
     return this;
   }
 
-  or(expression: string): QueryBuilder {
-    this.filters.push({ type: 'or', expression });
-    return this;
-  }
-
-  like(column: string, pattern: string): QueryBuilder {
-    this.filters.push({ type: 'like', column, pattern });
-    return this;
-  }
-
-  ilike(column: string, pattern: string): QueryBuilder {
-    this.filters.push({ type: 'ilike', column, pattern });
-    return this;
-  }
-
-  order(column: string, options?: { ascending?: boolean; nullsFirst?: boolean }): QueryBuilder {
-    this.orderOptions = { column, ...options };
+  order(column: string, options?: { ascending?: boolean }): QueryBuilder {
+    this.orderOptions = { column, ascending: options?.ascending !== false };
     return this;
   }
 
@@ -102,27 +74,26 @@ class QueryBuilder {
     return this;
   }
 
-  // Make it thenable and awaitable
-  then(resolve: any, reject?: any) {
-    return this.execute().then(resolve, reject);
+  insert(data: any): QueryBuilder {
+    this.data = data;
+    return this;
   }
 
-  // Make it awaitable by making it behave like a promise
-  get [Symbol.toStringTag]() {
-    return 'Promise';
+  update(data: any): QueryBuilder {
+    this.data = data;
+    return this;
   }
 
-  // Execute the query
-  async execute() {
+  async execute(): Promise<SupabaseResponse> {
     try {
       const headers = {
-        'Authorization': `Bearer ${this.supabase.getAnonKey()}`,
-        'apikey': this.supabase.getAnonKey(),
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+        'apikey': SUPABASE_ANON_KEY,
         'Content-Type': 'application/json',
         'Prefer': 'return=representation'
       };
 
-      let url = `${this.supabase.getUrl()}/rest/v1/${this.table}`;
+      let url = `${SUPABASE_URL}/rest/v1/${this.table}`;
       let method = 'GET';
       let body = null;
 
@@ -142,26 +113,14 @@ class QueryBuilder {
           case 'neq':
             queryParams.append(filter.column, `neq.${filter.value}`);
             break;
-          case 'gt':
-            queryParams.append(filter.column, `gt.${filter.value}`);
-            break;
           case 'gte':
             queryParams.append(filter.column, `gte.${filter.value}`);
-            break;
-          case 'lt':
-            queryParams.append(filter.column, `lt.${filter.value}`);
             break;
           case 'lte':
             queryParams.append(filter.column, `lte.${filter.value}`);
             break;
           case 'or':
             queryParams.append('or', filter.expression);
-            break;
-          case 'like':
-            queryParams.append(filter.column, `like.${filter.pattern}`);
-            break;
-          case 'ilike':
-            queryParams.append(filter.column, `ilike.${filter.pattern}`);
             break;
           case 'range':
             queryParams.append('offset', filter.from.toString());
@@ -200,10 +159,8 @@ class QueryBuilder {
             // Add filter conditions to URL for updates
             const filterParams = new URLSearchParams();
             this.filters.forEach(filter => {
-              switch (filter.type) {
-                case 'eq':
-                  filterParams.append(filter.column, `eq.${filter.value}`);
-                  break;
+              if (filter.type === 'eq') {
+                filterParams.append(filter.column, `eq.${filter.value}`);
               }
             });
             if (filterParams.toString()) {
@@ -218,13 +175,10 @@ class QueryBuilder {
             // Add filter conditions to URL for deletes
             const filterParams = new URLSearchParams();
             this.filters.forEach(filter => {
-              switch (filter.type) {
-                case 'eq':
-                  filterParams.append(filter.column, `eq.${filter.value}`);
-                  break;
-                case 'or':
-                  filterParams.append('or', filter.expression);
-                  break;
+              if (filter.type === 'eq') {
+                filterParams.append(filter.column, `eq.${filter.value}`);
+              } else if (filter.type === 'or') {
+                filterParams.append('or', filter.expression);
               }
             });
             if (filterParams.toString()) {
@@ -242,17 +196,35 @@ class QueryBuilder {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`Supabase error: ${response.status} - ${errorText}`);
+        return {
+          data: null,
+          error: {
+            message: `HTTP ${response.status}: ${errorText}`,
+            code: response.status.toString()
+          }
+        };
       }
 
       const data = await response.json();
-      
       return { data, error: null };
 
     } catch (error) {
-      console.error('Supabase query error:', error);
-      return { data: null, error };
+      return {
+        data: null,
+        error: {
+          message: error instanceof Error ? error.message : 'Unknown error',
+          code: 'FETCH_ERROR'
+        }
+      };
     }
+  }
+
+  then(onfulfilled: (value: SupabaseResponse) => any, onrejected?: (reason: any) => any): Promise<any> {
+    return this.execute().then(onfulfilled, onrejected);
+  }
+
+  catch(onrejected: (reason: any) => any): Promise<any> {
+    return this.execute().catch(onrejected);
   }
 }
 
@@ -260,18 +232,16 @@ class QueryBuilder {
 const supabase = {
   from(table: string) {
     return {
-      select: (columns: string = '*') => new QueryBuilder({} as any, table, 'select').select(columns),
-      insert: (data: any) => new QueryBuilder({} as any, table, 'insert').insert(data),
-      update: (data: any) => new QueryBuilder({} as any, table, 'update').update(data),
-      delete: () => new QueryBuilder({} as any, table, 'delete')
+      select: (columns: string = '*') => new QueryBuilder(table, 'select').select(columns),
+      insert: (data: any) => new QueryBuilder(table, 'insert').insert(data),
+      update: (data: any) => new QueryBuilder(table, 'update').update(data),
+      delete: () => new QueryBuilder(table, 'delete')
     };
   }
 };
 
-// Export the simplified client
+// Export the client
 export { supabase };
-
-// Export the classes for testing or custom usage
 export { QueryBuilder };
 
 // Make supabase available globally for debugging
