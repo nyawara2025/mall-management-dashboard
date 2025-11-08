@@ -36,11 +36,11 @@ const MALL_DATA = {
 
 const SHOP_DATA = {
   3: { name: "Spatial Barbershop", mall_id: 3 },
-  4: { name: "Mall Cafe", mall_id: 3 },
+  4: { name: "Cleanshelf SuperMarket", mall_id: 3 },
   5: { name: "Cleanshelf", mall_id: 6 },
   6: { name: "Kika Wines & Spirits", mall_id: 6 },
   7: { name: "The Phone Shop", mall_id: 6 },
-  8: { name: "Ibrahim's NHC Shop", mall_id: 7 }
+  8: { name: "Maliet Salon", mall_id: 7 }
 };
 
 // Helper function to get dynamic titles

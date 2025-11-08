@@ -175,7 +175,8 @@ export default function CampaignManagement() {
         
         console.log(`🔍 Campaign ${campaign.id || campaign.title}: shopId=${campaignShopId} vs userShopId=${user?.shop_id}, mallId=${campaignMallId} vs userMallId=${user?.mall_id}`);
         
-        return matchesShop || matchesMall;
+        // SECURITY FIX: Only return campaigns from user's own shop
+        return matchesShop;
       });
       
       console.log(`🔢 Total campaigns fetched: ${allCampaigns.length}`);
@@ -304,7 +305,9 @@ export default function CampaignManagement() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      // SAFE JSON PARSING: Handle empty or non-JSON responses
+      const responseText = await response.text();
+      const data = responseText ? JSON.parse(responseText) : { success: true };
       
       console.log('📥 Campaign creation response:', data);
       console.log('🏷️ User shop_id:', user?.shop_id);
@@ -346,6 +349,9 @@ export default function CampaignManagement() {
           created_by: user?.username
         };
         await createCampaignInDatabase(campaignData);
+        // Force refresh after database creation fallback
+        await fetchCampaigns();
+        setShowCreateForm(false);
       } catch (fallbackError) {
         console.error('❌ Database fallback also failed:', fallbackError);
         alert('Failed to create campaign. Please try again.');
@@ -491,7 +497,9 @@ export default function CampaignManagement() {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      // SAFE JSON PARSING: Handle empty or non-JSON responses
+      const responseText = await response.text();
+      const data = responseText ? JSON.parse(responseText) : { success: true };
       
       if (data.success || response.ok) {
         // Force refresh campaigns list after successful update
@@ -502,6 +510,8 @@ export default function CampaignManagement() {
       } else {
         // Database fallback
         await updateCampaignInDatabase();
+        // Force refresh after database update fallback
+        await fetchCampaigns();
       }
     } catch (error) {
       console.error('❌ Campaign update error:', error);
@@ -509,6 +519,8 @@ export default function CampaignManagement() {
       // Try database fallback
       try {
         await updateCampaignInDatabase();
+        // Force refresh after database update fallback
+        await fetchCampaigns();
       } catch (fallbackError) {
         console.error('❌ Database fallback update failed:', fallbackError);
         alert('Failed to update campaign. Please try again.');
