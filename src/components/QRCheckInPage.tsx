@@ -29,15 +29,15 @@ export default function QRCheckInPage({ campaignId, location, shopId }: QRCheckI
         .from('adcampaigns')
         .select('*')
         .eq('id', campaignId)
-        .single();
+        .limit(1);
 
-      if (campaignError || !campaignData) {
+      if (campaignError || !campaignData || campaignData.length === 0) {
         console.error('Campaign not found:', campaignError);
         setCampaign(null);
         return;
       }
 
-      setCampaign(campaignData);
+      setCampaign(campaignData[0]);
 
       // Create visitor check-in record
       const visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -48,26 +48,25 @@ export default function QRCheckInPage({ campaignId, location, shopId }: QRCheckI
           campaign_id: campaignId,
           visitor_id: visitorId,
           location: location,
-          shop_id: shopId || campaignData.shop_id,
-          mall_id: campaignData.mall_id,
+          shop_id: shopId || campaignData[0].shop_id,
+          mall_id: campaignData[0].mall_id,
           timestamp: new Date().toISOString(),
           user_agent: navigator.userAgent,
           referrer: document.referrer || null
         }])
-        .select()
-        .single();
+        .limit(1);
 
       if (checkInError) {
         console.error('Check-in error:', checkInError);
       } else {
-        setTrackingId(checkInData.id);
+        setTrackingId(checkInData?.[0]?.id?.toString() || 'temp');
         setCheckedIn(true);
         
         // Update campaign scan count
         await supabase
           .from('adcampaigns')
           .update({ 
-            scan_count: (campaignData.scan_count || 0) + 1 
+            scan_count: (campaignData[0].scan_count || 0) + 1 
           })
           .eq('id', campaignId);
       }
