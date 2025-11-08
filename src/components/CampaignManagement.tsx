@@ -51,7 +51,7 @@ export default function CampaignManagement() {
   const [createForm, setCreateForm] = useState({
     name: '',
     message: '',
-    zone: '',
+    zone: user?.mall_id === 3 ? 'china-square' : user?.mall_id === 6 ? 'langata' : user?.mall_id === 7 ? 'nhc' : 'china-square',
     shop_id: user?.shop_id || ''
   });
   const [editForm, setEditForm] = useState({
@@ -66,6 +66,26 @@ export default function CampaignManagement() {
     totalScans: 0,
     avgEngagement: 0
   });
+
+  // Zone to mall_id mapping
+  const getMallIdFromZone = (zone: string): number => {
+    const zoneMap: { [key: string]: number } = {
+      'china-square': 3,
+      'china square': 3,
+      'langata': 6,
+      'nhc': 7,
+      'china_square': 3,
+      'china_square_mall': 3,
+      'langata_mall': 6,
+      'nhc_mall': 7
+    };
+    
+    const normalizedZone = zone.toLowerCase().trim();
+    const mappedId = zoneMap[normalizedZone] || user?.mall_id || 3; // Default to China Square (3) if not found
+    
+    console.log(`🗺️ Zone mapping debug: "${zone}" -> mall_id: ${mappedId}`);
+    return mappedId;
+  };
 
   // Fetch campaigns for the user's shop
   useEffect(() => {
@@ -140,14 +160,25 @@ export default function CampaignManagement() {
       const token = localStorage.getItem('auth_token') || '';
       const headers = createAuthHeaders(token);
       
+      const mappedMallId = getMallIdFromZone(createForm.zone);
+      console.log('🎯 Campaign creation debug:', {
+        zone: createForm.zone,
+        mappedMallId: mappedMallId,
+        userMallId: user?.mall_id,
+        userShopId: user?.shop_id,
+        userName: user?.username
+      });
+      
       const campaignData = {
         name: createForm.name,           // POST webhook expects 'name'
         message: createForm.message,     // POST webhook expects 'message' 
         zone: createForm.zone,           // POST webhook expects 'zone'
         shop_id: user?.shop_id,
-        mall_id: user?.mall_id,
+        mall_id: mappedMallId,           // Map zone to correct mall_id
         created_by: user?.username
       };
+
+      console.log('📤 Sending campaign data:', campaignData);
 
       const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns-post', {
         method: 'POST',
@@ -580,15 +611,19 @@ export default function CampaignManagement() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Target Zone
                   </label>
-                  <Input
-                    type="text"
+                  <select
                     value={createForm.zone}
                     onChange={(e) => setCreateForm({...createForm, zone: e.target.value})}
-                    placeholder="e.g., langata, china-square, nhc"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
-                  />
+                  >
+                    <option value="">Select a mall/zone...</option>
+                    <option value="china-square">China Square Mall (mall_id: 3)</option>
+                    <option value="langata">Langata Mall (mall_id: 6)</option>
+                    <option value="nhc">NHC Mall (mall_id: 7)</option>
+                  </select>
                   <p className="text-xs text-gray-500 mt-1">
-                    Specify the mall/area where this campaign should appear
+                    Select the mall/zone where this campaign should appear
                   </p>
                 </div>
 
