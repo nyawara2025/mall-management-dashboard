@@ -35,14 +35,12 @@ const MALL_DATA = {
 };
 
 const SHOP_DATA = {
-  3: { name: "Spatial Barber Shop", mall_id: 3 },
+  3: { name: "Spatial Barbershop", mall_id: 3 },
   4: { name: "Mall Cafe", mall_id: 3 },
+  5: { name: "Cleanshelf", mall_id: 6 },
   6: { name: "Kika Wines & Spirits", mall_id: 6 },
   7: { name: "The Phone Shop", mall_id: 6 },
-  8: { name: "Cleanshelf SupaMarket", mall_id: 6 },
-  9: { name: "Maliet Salon & Spa", mall_id: 7 },
-  10: { name: "Gravity CBC Resource Center", mall_id: 7 },
-  11: { name: "Hydramist Drinking Water Services", mall_id: 7 }
+  8: { name: "Ibrahim's NHC Shop", mall_id: 7 }
 };
 
 // Helper function to get dynamic titles

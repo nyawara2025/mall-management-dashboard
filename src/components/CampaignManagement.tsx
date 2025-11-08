@@ -327,6 +327,10 @@ export default function CampaignManagement() {
         // Database fallback
         console.log('🔄 n8n webhook failed, trying database creation...');
         await createCampaignInDatabase(campaignData);
+        // Force refresh after database creation
+        await fetchCampaigns();
+        setShowCreateForm(false);
+        alert('Campaign created successfully!');
       }
     } catch (error) {
       console.error('❌ Campaign creation error:', error);
@@ -388,6 +392,17 @@ export default function CampaignManagement() {
   const handleDeleteCampaign = async (campaignId: string) => {
     if (!confirm('Are you sure you want to delete this campaign?')) return;
     
+    // SECURITY CHECK: Ensure user can only delete their own campaigns
+    const campaignToDelete = campaigns.find(c => c.id === campaignId);
+    if (campaignToDelete) {
+      const campaignShopId = campaignToDelete.shopId || campaignToDelete.shop_id;
+      if (campaignShopId !== user?.shop_id) {
+        alert('❌ Security Error: You can only delete campaigns from your own shop!');
+        console.log(`🔒 Blocked deletion: User shop_id ${user?.shop_id} tried to delete shop_id ${campaignShopId}'s campaign`);
+        return;
+      }
+    }
+    
     try {
       const token = localStorage.getItem('auth_token') || '';
       const headers = createAuthHeaders(token);
@@ -412,6 +427,9 @@ export default function CampaignManagement() {
       } else {
         // Database fallback
         await deleteCampaignFromDatabase(campaignId);
+        // Force refresh after database deletion
+        await fetchCampaigns();
+        alert('Campaign deleted successfully!');
       }
     } catch (error) {
       console.error('❌ Campaign deletion error:', error);
@@ -419,6 +437,9 @@ export default function CampaignManagement() {
       // Try database fallback
       try {
         await deleteCampaignFromDatabase(campaignId);
+        // Force refresh after database deletion
+        await fetchCampaigns();
+        alert('Campaign deleted successfully (database)!');
       } catch (fallbackError) {
         console.error('❌ Database fallback delete failed:', fallbackError);
         alert('Failed to delete campaign. Please try again.');
@@ -472,8 +493,8 @@ export default function CampaignManagement() {
 
       const data = await response.json();
       
-      if (data.success) {
-        // Refresh campaigns list
+      if (data.success || response.ok) {
+        // Force refresh campaigns list after successful update
         await fetchCampaigns();
         setShowEditForm(false);
         setSelectedCampaign(null);
@@ -524,6 +545,14 @@ export default function CampaignManagement() {
   };
 
   const openEditForm = (campaign: Campaign) => {
+    // SECURITY CHECK: Ensure user can only edit their own campaigns
+    const campaignShopId = campaign.shopId || campaign.shop_id;
+    if (campaignShopId !== user?.shop_id) {
+      alert('❌ Security Error: You can only edit campaigns from your own shop!');
+      console.log(`🔒 Blocked edit: User shop_id ${user?.shop_id} tried to edit shop_id ${campaignShopId}'s campaign`);
+      return;
+    }
+    
     setSelectedCampaign(campaign);
     setEditForm({
       name: campaign.name || campaign.title || '',
