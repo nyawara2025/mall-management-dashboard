@@ -1,944 +1,330 @@
-// Campaign Analytics with Supabase data source (no n8n webhook needed)
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-import { Button } from '../components/ui/button';
-import { supabase } from '../lib/supabase';
 import { 
-  TrendingUp, 
-  Users, 
-  MapPin, 
-  Clock,
+  PlusCircle, 
+  QrCode, 
+  Calendar,
   Eye,
-  Smartphone,
-  BarChart3,
-  Target,
-  QrCode,
-  Heart,
-  Share2,
-  Phone,
-  Activity,
-  PieChart,
-  Sun,
-  Moon,
-  RefreshCw,
-  AlertCircle,
-  CheckCircle
+  Edit,
+  Trash2,
+  MapPin
 } from 'lucide-react';
+import { Button } from './ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { supabase } from '../lib/supabase';
 
-// Mall and Shop data for dynamic titles
-const MALL_DATA = {
-  3: { name: "China Square Langata Mall" },
-  6: { name: "Langata Mall" },
-  7: { name: "NHC Mall" }
-};
-
-const SHOP_DATA = {
-  3: { name: "Spatial Barbershop", mall_id: 3 },
-  4: { name: "Cleanshelf SuperMarket", mall_id: 3 },
-  5: { name: "Cleanshelf", mall_id: 6 },
-  6: { name: "Kika Wines & Spirits", mall_id: 6 },
-  7: { name: "The Phone Shop", mall_id: 6 },
-  8: { name: "Maliet Salon", mall_id: 7 }
-};
-
-// Helper function to get dynamic titles
-const getAnalyticsTitle = (user: any) => {
-  if (user?.shop_id && user?.mall_id) {
-    const shop = SHOP_DATA[user.shop_id as keyof typeof SHOP_DATA];
-    const mall = MALL_DATA[user.mall_id as keyof typeof MALL_DATA];
-    if (shop && mall) {
-      return `Analytics for ${shop.name} at ${mall.name}`;
-    }
-  } else if (user?.mall_id) {
-    const mall = MALL_DATA[user.mall_id as keyof typeof MALL_DATA];
-    if (mall) {
-      return `Analytics for ${mall.name}`;
-    }
-  }
-  return "Analytics Dashboard";
-};
-
-const getAnalyticsSubtitle = (user: any) => {
-  if (user?.shop_id && user?.mall_id) {
-    const shop = SHOP_DATA[user.shop_id as keyof typeof SHOP_DATA];
-    const mall = MALL_DATA[user.mall_id as keyof typeof MALL_DATA];
-    if (shop && mall) {
-      return `📊 Campaign Analytics: ${shop.name} only | QR Analytics: All ${mall.name} visitors (for targeting insights)`;
-    }
-  } else if (user?.mall_id) {
-    const mall = MALL_DATA[user.mall_id as keyof typeof MALL_DATA];
-    if (mall) {
-      return `📊 Campaign Analytics: All ${mall.name} campaigns | QR Analytics: All ${mall.name} visitors (for targeting insights)`;
-    }
-  }
-  return '📊 Campaign Analytics: All campaigns | QR Analytics: All visitors (for targeting insights)';
-};
-
-interface CampaignMetrics {
+interface Campaign {
   id: string;
-  name: string;
-  scans: number;
-  claims: number;
-  engagementRate: number;
-  clicks: {
-    claim: number;
-    share: number;
-    call: number;
-    directions: number;
-    like: number;
-  };
-  performance: {
-    clickThroughRate: number;
-    conversionRate: number;
-    popularActions: string[];
-  };
-  recentActivity: Array<{
-    timestamp: string;
-    action: string;
-    userType: string;
-  }>;
+  title: string;
+  description: string;
+  location: string;
+  shopId?: number;
+  mallId?: number;
+  shop_id?: number;
+  mall_id?: number;
+  createdDate: string;
+  isActive: boolean;
+  scan_count?: number;
+  engagement_rate?: number;
+  name?: string;
+  message?: string;
+  zone?: string;
+  created_at?: string;
+  is_active?: boolean;
 }
 
-interface QRMetrics {
-  totalCheckins: number;
-  todayCheckins: number;
-  peakZone: string;
-  zonePerformance: Array<{
-    zone: string;
-    checkins: number;
-    percentage: number;
-  }>;
-  hourlyData: Array<{
-    hour: string;
-    checkins: number;
-  }>;
-  recentActivity: Array<{
-    timestamp: string;
-    zone: string;
-    visitorId: string;
-  }>;
-}
-
-// Utility function to format time
-const formatTime = (timestamp: string) => {
-  const date = new Date(timestamp);
-  return date.toLocaleString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-};
-
-// Generate campaign data from QR check-ins
-const generateCampaignDataFromQR = (qrData: any[]): CampaignMetrics[] => {
-  const campaigns: { [key: string]: any } = {};
-  
-  qrData.forEach(checkin => {
-    // Extract campaign info from zone or visitor behavior
-    const zone = checkin.zone_name || 'General';
-    const timestamp = new Date(checkin.checkin_timestamp);
-    const hour = timestamp.getHours();
-    
-    // Group by time periods to create campaigns
-    let campaignName = 'Daily Visitors';
-    if (hour >= 9 && hour <= 12) campaignName = 'Morning Campaign';
-    else if (hour >= 12 && hour <= 17) campaignName = 'Afternoon Campaign';
-    else if (hour >= 17 && hour <= 22) campaignName = 'Evening Campaign';
-    
-    if (!campaigns[campaignName]) {
-      campaigns[campaignName] = {
-        id: campaignName.toLowerCase().replace(/\s+/g, '-'),
-        name: campaignName,
-        scans: 0,
-        claims: 0,
-        clicks: { claim: 0, share: 0, call: 0, directions: 0, like: 0 },
-        recentActivity: []
-      };
-    }
-    
-    campaigns[campaignName].scans += 1;
-    
-    // Simulate different types of interactions
-    if (Math.random() > 0.3) campaigns[campaignName].claims += 1; // 70% claim rate
-    if (Math.random() > 0.5) campaigns[campaignName].clicks.like += 1; // 50% like
-    if (Math.random() > 0.6) campaigns[campaignName].clicks.share += 1; // 40% share
-    if (Math.random() > 0.7) campaigns[campaignName].clicks.call += 1; // 30% call
-    if (Math.random() > 0.8) campaigns[campaignName].clicks.directions += 1; // 20% directions
-    
-    // Add recent activity
-    if (campaigns[campaignName].recentActivity.length < 3) {
-      campaigns[campaignName].recentActivity.push({
-        timestamp: checkin.checkin_timestamp,
-        action: Math.random() > 0.5 ? 'Visited' : 'Engaged',
-        userType: 'Visitor'
-      });
-    }
-  });
-  
-  // Calculate engagement rates
-  return Object.values(campaigns).map((campaign: any) => ({
-    ...campaign,
-    engagementRate: campaign.scans > 0 ? (campaign.claims / campaign.scans) * 100 : 0,
-    performance: {
-      clickThroughRate: campaign.scans > 0 ? ((campaign.clicks.like + campaign.clicks.share) / campaign.scans) * 100 : 0,
-      conversionRate: campaign.scans > 0 ? (campaign.claims / campaign.scans) * 100 : 0,
-      popularActions: ['Visit', 'Engage', 'Share'].slice(0, Math.min(3, campaign.scans))
-    }
-  }));
-};
-
-// Campaign Analytics Component
-const CampaignAnalytics = () => {
+export default function CampaignManagement() {
   const { user } = useAuth();
+  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [metrics, setMetrics] = useState<CampaignMetrics[]>([]);
-  const [dataSource, setDataSource] = useState<'n8n' | 'supabase' | 'mock'>('mock');
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const [qrData, setQrData] = useState<any>(null);
 
   useEffect(() => {
-    const fetchCampaignMetrics = async () => {
-      if (!user) return;
-      
-      try {
-        setLoading(true);
-        setError(null);
-        setDataSource('mock');
-        
-        // Try n8n webhook first
-        try {
-          const response = await fetch('https://n8n.tenear.com/webhook/campaign-analytics', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userId: user.id,
-              userType: user.role,
-            }),
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            if (data.metrics && data.metrics.length > 0) {
-              setMetrics(data.metrics);
-              setDataSource('n8n');
-              console.log('✅ Campaign analytics loaded from n8n webhook');
-              return;
-            }
-          }
-        } catch (n8nErr) {
-          console.log('⚠️ n8n webhook failed, trying real campaigns from database...', n8nErr);
-        }
-        
-        // Try to fetch real campaigns from adcampaigns table
-        try {
-          // Use simple direct query since we have a simplified query builder
-          const campaignResult = await supabase.from('adcampaigns').select('*');
-          
-          if (campaignResult.data && campaignResult.data.length > 0) {
-            // Filter campaigns based on user context
-            const filteredCampaigns = campaignResult.data.filter((campaign: any) => {
-              if (user?.shop_id && campaign.shop_id === user.shop_id) return true;
-              if (user?.mall_id && campaign.mall_id === user.mall_id) return true;
-              if (!user?.shop_id && !user?.mall_id) return true; // Global admin sees all
-              return false;
-            });
-            
-            if (filteredCampaigns.length > 0) {
-              console.log(`✅ Found ${filteredCampaigns.length} real campaigns for user`);
-              // Convert real campaigns to metrics format
-              const campaignMetrics = filteredCampaigns.map((campaign: any) => ({
-                id: campaign.id.toString(),
-                name: campaign.name || 'Untitled Campaign',
-                scans: Math.floor(Math.random() * 50) + 10, // Mock data since campaigns don't track actual scans
-                claims: Math.floor(Math.random() * 30) + 5,
-                engagementRate: Math.round((Math.random() * 30 + 40) * 100) / 100,
-                clicks: {
-                  claim: Math.floor(Math.random() * 20) + 5,
-                  share: Math.floor(Math.random() * 15) + 3,
-                  call: Math.floor(Math.random() * 10) + 2,
-                  directions: Math.floor(Math.random() * 8) + 1,
-                  like: Math.floor(Math.random() * 25) + 10
-                },
-                performance: {
-                  clickThroughRate: Math.round((Math.random() * 20 + 50) * 100) / 100,
-                  conversionRate: Math.round((Math.random() * 20 + 20) * 100) / 100,
-                  popularActions: ['Visit', 'Engage', 'Call']
-                },
-                recentActivity: [
-                  { timestamp: new Date().toISOString(), action: 'Visited', userType: 'Visitor' },
-                  { timestamp: new Date(Date.now() - 3600000).toISOString(), action: 'Engaged', userType: 'Visitor' }
-                ]
-              }));
-              setMetrics(campaignMetrics);
-              setDataSource('supabase');
-              return;
-            }
-          }
-        } catch (campaignErr) {
-          console.log('⚠️ Could not fetch campaigns from database, using QR-based analytics...', campaignErr);
-        }
-        
-        // Final fallback: Generate campaign data from QR check-ins (filtered by mall)
-        const qrResult = await supabase.from('qr_checkins').select('*');
-        if (qrResult.data && qrResult.data.length > 0) {
-          // Filter for mall-specific data based on user's mall_id using location_id patterns
-          // Shop admins see their mall's visitor data for targeting insights
-          const filteredData = qrResult.data.filter((checkin: any) => {
-            const locationId = checkin.location_id?.toLowerCase() || '';
-            const mallId = user?.mall_id;
-            
-            // China Square Mall (mall_id: 3) - show only China Square location_id patterns
-            if (mallId === 3) {
-              return locationId.startsWith('china_square_');
-            }
-            // Langata Mall (mall_id: 6) - show only Langata location_id patterns 
-            else if (mallId === 6) {
-              return locationId.startsWith('langata_');
-            }
-            // NHC Mall (mall_id: 7) - show only NHC location_id patterns
-            else if (mallId === 7) {
-              return locationId.startsWith('nhc_');
-            }
-            // Default: include all data
-            return true;
-          });
-          
-          console.log(`🔍 Total QR check-ins fetched: ${qrResult.data.length}`);
-          console.log(`✅ Filtered check-ins (Mall ID ${user?.mall_id}): ${filteredData.length}`);
-          console.log('📍 Sample zone names:', filteredData.slice(0, 5).map((c: any) => c.zone_name || 'No zone'));
-          
-          const campaignData = generateCampaignDataFromQR(filteredData);
-          setMetrics(campaignData);
-          setDataSource('supabase');
-          const mallName = MALL_DATA[user?.mall_id as keyof typeof MALL_DATA]?.name || 'Unknown Mall';
-          console.log(`✅ Campaign analytics generated from ${mallName} data (${filteredData.length} check-ins for targeting insights)`);
-          return;
-        }
-        
-        // Final fallback: Mock data
-        const mockData = [
-          {
-            id: '1',
-            name: 'Daily Visitors',
-            scans: 150,
-            claims: 54,
-            engagementRate: 36.0,
-            clicks: { claim: 54, share: 30, call: 20, directions: 15, like: 45 },
-            performance: { clickThroughRate: 60.0, conversionRate: 36.0, popularActions: ['Visit', 'Engage'] },
-            recentActivity: [
-              { timestamp: new Date().toISOString(), action: 'Visited', userType: 'Visitor' },
-              { timestamp: new Date(Date.now() - 3600000).toISOString(), action: 'Engaged', userType: 'Visitor' }
-            ]
-          }
-        ];
-        setMetrics(mockData);
-        setDataSource('mock');
-        console.log('📊 Using mock campaign data');
-        
-      } catch (err) {
-        console.error('Error fetching campaign metrics:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load campaign metrics');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCampaignMetrics();
+    if (user?.shop_id) {
+      fetchCampaigns();
+    }
   }, [user]);
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="pb-2">
-                <div className="h-4 bg-gray-200 rounded animate-pulse" />
-              </CardHeader>
-              <CardContent>
-                <div className="h-8 bg-gray-200 rounded animate-pulse" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const totalScans = metrics.reduce((sum, campaign) => sum + campaign.scans, 0);
-  const totalClaims = metrics.reduce((sum, campaign) => sum + campaign.claims, 0);
-  const avgEngagement = metrics.length > 0 ? metrics.reduce((sum, campaign) => sum + campaign.engagementRate, 0) / metrics.length : 0;
-
-  const getDataSourceNotice = () => {
-    switch (dataSource) {
-      case 'n8n':
-        return {
-          type: 'success',
-          icon: CheckCircle,
-          text: 'Live data from n8n webhook',
-          color: 'text-green-300'
-        };
-      case 'supabase':
-        return {
-          type: 'info',
-          icon: Activity,
-          text: 'Campaign data generated from QR check-ins',
-          color: 'text-blue-300'
-        };
-      case 'mock':
-        return {
-          type: 'warning',
-          icon: AlertCircle,
-          text: 'Demo data - Configure n8n webhook for live campaign data',
-          color: 'text-amber-300'
-        };
-      default:
-        return null;
-    }
-  };
-
-  const notice = getDataSourceNotice();
-
-  return (
-    <div className="space-y-6">
-      {/* Data Source Notice */}
-      {notice && (
-        <Card className={`backdrop-blur-sm border-white/20 ${
-          notice.type === 'success' ? 'bg-green-500/10 border-green-500/20' :
-          notice.type === 'info' ? 'bg-blue-500/10 border-blue-500/20' :
-          'bg-amber-500/10 border-amber-500/20'
-        }`}>
-          <CardContent className="p-4">
-            <div className={`flex items-center gap-2 ${notice.color}`}>
-              <notice.icon className="h-4 w-4" />
-              <span className="text-sm">{notice.text}</span>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Key Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="backdrop-blur-sm bg-white/10 border-white/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-white">Total Scans</CardTitle>
-            <QrCode className="h-4 w-4 text-blue-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">{totalScans.toLocaleString()}</div>
-            <p className="text-xs text-blue-200">
-              Across all campaigns
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="backdrop-blur-sm bg-white/10 border-white/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-white">Total Claims</CardTitle>
-            <Target className="h-4 w-4 text-green-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">{totalClaims.toLocaleString()}</div>
-            <p className="text-xs text-green-200">
-              {totalScans > 0 ? ((totalClaims / totalScans) * 100).toFixed(1) : 0}% conversion rate
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="backdrop-blur-sm bg-white/10 border-white/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-white">Active Campaigns</CardTitle>
-            <Activity className="h-4 w-4 text-purple-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">{metrics.length}</div>
-            <p className="text-xs text-purple-200">
-              Currently running
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="backdrop-blur-sm bg-white/10 border-white/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-white">Avg. Engagement</CardTitle>
-            <TrendingUp className="h-4 w-4 text-orange-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">{avgEngagement.toFixed(1)}%</div>
-            <p className="text-xs text-orange-200">
-              Engagement rate
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Campaign Performance Table */}
-      <Card className="backdrop-blur-sm bg-white/10 border-white/20">
-        <CardHeader>
-          <CardTitle className="text-white">Campaign Performance</CardTitle>
-          <CardDescription className="text-gray-300">
-            Detailed metrics for all your active campaigns
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {metrics.map((campaign) => (
-              <div key={campaign.id} className="p-4 rounded-lg bg-white/5 border border-white/10">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold text-white">{campaign.name}</h3>
-                  <Badge variant="secondary" className="bg-blue-500/20 text-blue-200">
-                    {campaign.engagementRate.toFixed(1)}% Engagement
-                  </Badge>
-                </div>
-                
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-3">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-white">{campaign.scans}</div>
-                    <div className="text-xs text-gray-300">Scans</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-white">{campaign.claims}</div>
-                    <div className="text-xs text-gray-300">Claims</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-white">{campaign.performance.clickThroughRate.toFixed(1)}%</div>
-                    <div className="text-xs text-gray-300">CTR</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-white">{campaign.performance.conversionRate.toFixed(1)}%</div>
-                    <div className="text-xs text-gray-300">Conversion</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-sm font-bold text-white">{campaign.clicks.claim}</div>
-                    <div className="text-xs text-gray-300">Top Action</div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <div className="flex items-center gap-1">
-                    <Heart className="h-3 w-3 text-red-400" />
-                    <span className="text-xs text-gray-300">{campaign.clicks.like}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Share2 className="h-3 w-3 text-blue-400" />
-                    <span className="text-xs text-gray-300">{campaign.clicks.share}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Phone className="h-3 w-3 text-green-400" />
-                    <span className="text-xs text-gray-300">{campaign.clicks.call}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-// QR Analytics Component (updated with mall filtering)
-const QRAnalytics = ({ formatTime, user }: { formatTime: (timestamp: string) => string, user: any }) => {
-  const [qrAnalytics, setQrAnalytics] = useState<QRMetrics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-
-  const fetchQRAnalytics = async () => {
+  const fetchCampaigns = async () => {
     try {
-      setError(null);
+      setLoading(true);
       
-      // Using the direct fetch-based Supabase client
-      const allCheckinsResult = await supabase.from('qr_checkins').select('*');
-      if (allCheckinsResult.error) throw allCheckinsResult.error;
-      
-      // Filter to show mall-specific visitors (shop admin needs their mall context for targeting)
-      // Mall-specific filtering based on user's mall_id using location_id patterns
-      const allCheckins = (allCheckinsResult.data || []).filter((checkin: any) => {
-        const locationId = checkin.location_id?.toLowerCase() || '';
-        const mallId = user?.mall_id;
-        
-        // China Square Mall (mall_id: 3) - show only China Square location_id patterns
-        if (mallId === 3) {
-          return locationId.startsWith('china_square_');
-        }
-        // Langata Mall (mall_id: 6) - show only Langata location_id patterns 
-        else if (mallId === 6) {
-          return locationId.startsWith('langata_');
-        }
-        // NHC Mall (mall_id: 7) - show only NHC location_id patterns
-        else if (mallId === 7) {
-          return locationId.startsWith('nhc_');
-        }
-        // Default: include all data
-        return true;
-      });
+      // Simple fetch from Supabase
+      const { data, error } = await supabase
+        .from('adcampaigns')
+        .select('*')
+        .eq('shop_id', user?.shop_id)
+        .order('created_at', { ascending: false });
 
-      // Filter today's check-ins
-      const today = new Date().toISOString().split('T')[0];
-      const todayData = Array.isArray(allCheckins) ? 
-        allCheckins.filter((checkin: any) => checkin.checkin_timestamp?.startsWith(today)) : [];
+      if (error) {
+        console.error('Supabase error:', error);
+        setCampaigns([]);
+        return;
+      }
 
-      // Process analytics data
-      const totalData = Array.isArray(allCheckins) ? allCheckins : [];
-      const totalCheckins = totalData.length;
-      const todayCount = todayData.length;
-
-      // Zone performance
-      const zoneCounts: { [key: string]: number } = {};
-      totalData.forEach((checkin: any) => {
-        const zone = checkin.zone_name || 'Unknown';
-        zoneCounts[zone] = (zoneCounts[zone] || 0) + 1;
-      });
-
-      const zonePerformance = Object.entries(zoneCounts).map(([zone, count]) => ({
-        zone,
-        count,
-        percentage: totalCheckins > 0 ? Math.round((count / totalCheckins) * 100) : 0
-      }));
-
-      // Peak zone
-      const peakZone = zonePerformance.length > 0 ? 
-        zonePerformance.reduce((max, current) => current.count > max.count ? current : max).zone : 
-        'No Data';
-
-      // Hourly distribution
-      const hourlyCounts: { [key: string]: number } = {};
-      totalData.forEach((checkin: any) => {
-        if (checkin.checkin_timestamp) {
-          const hour = new Date(checkin.checkin_timestamp).getHours();
-          const hourKey = `${hour}:00`;
-          hourlyCounts[hourKey] = (hourlyCounts[hourKey] || 0) + 1;
-        }
-      });
-
-      const hourlyData = Array.from({ length: 24 }, (_, i) => ({
-        hour: `${i}:00`,
-        count: hourlyCounts[`${i}:00`] || 0
-      }));
-
-      // Recent activity (last 10 check-ins)
-      const recentActivity = totalData
-        .sort((a: any, b: any) => new Date(b.checkin_timestamp).getTime() - new Date(a.checkin_timestamp).getTime())
-        .slice(0, 10)
-        .map((checkin: any) => ({
-          timestamp: checkin.checkin_timestamp,
-          zone: checkin.zone_name || 'Unknown',
-          visitorId: checkin.visitor_id || 'Anonymous'
+      if (data) {
+        const mappedCampaigns: Campaign[] = data.map((campaign: any) => ({
+          id: campaign.id.toString(),
+          title: campaign.name,
+          description: campaign.message,
+          location: campaign.zone || 'Unknown',
+          shopId: campaign.shop_id,
+          mallId: campaign.mall_id,
+          createdDate: campaign.created_at,
+          isActive: campaign.is_active !== false,
+          name: campaign.name,
+          message: campaign.message,
+          zone: campaign.zone,
+          created_at: campaign.created_at,
+          is_active: campaign.is_active,
+          scan_count: campaign.scan_count || 0,
+          engagement_rate: campaign.engagement_rate || 0
         }));
 
-      const analytics: QRMetrics = {
-        totalCheckins,
-        todayCheckins: todayCount,
-        peakZone,
-        zonePerformance: zonePerformance.map(zp => ({
-          zone: zp.zone,
-          checkins: zp.count,
-          percentage: zp.percentage
-        })),
-        hourlyData: hourlyData.map(hd => ({
-          hour: hd.hour,
-          checkins: hd.count
-        })),
-        recentActivity
-      };
-
-      setQrAnalytics(analytics);
-      setLastRefresh(new Date());
-      const mallNameQR = MALL_DATA[user?.mall_id as keyof typeof MALL_DATA]?.name || 'Unknown Mall';
-      console.log(`✅ QR Analytics loaded - ${allCheckins.length} check-ins across ${mallNameQR} (for campaign targeting)`);
-    } catch (err) {
-      console.error('Error fetching QR analytics:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load QR analytics');
-      
-      // Set mock data as fallback
-      setQrAnalytics({
-        totalCheckins: 14,
-        todayCheckins: 3,
-        peakZone: 'Entrance',
-        zonePerformance: [
-          { zone: 'Entrance', checkins: 5, percentage: 36 },
-          { zone: 'Food Court', checkins: 4, percentage: 29 },
-          { zone: 'Electronics', checkins: 3, percentage: 21 },
-          { zone: 'Fashion', checkins: 1, percentage: 7 },
-          { zone: 'General', checkins: 1, percentage: 7 }
-        ],
-        hourlyData: Array.from({ length: 12 }, (_, i) => ({
-          hour: `${i + 9}:00`,
-          checkins: Math.floor(Math.random() * 5)
-        })),
-        recentActivity: [
-          { timestamp: new Date().toISOString(), zone: 'Entrance', visitorId: 'V001' },
-          { timestamp: new Date(Date.now() - 1800000).toISOString(), zone: 'Food Court', visitorId: 'V002' },
-          { timestamp: new Date(Date.now() - 3600000).toISOString(), zone: 'Electronics', visitorId: 'V003' }
-        ]
-      });
+        setCampaigns(mappedCampaigns);
+      }
+    } catch (error) {
+      console.error('Error fetching campaigns:', error);
+      setCampaigns([]);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
-  useEffect(() => {
-    fetchQRAnalytics();
-    
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(() => {
-      setRefreshing(true);
-      fetchQRAnalytics();
-    }, 30000);
+  const generateQRCodes = async (campaign: Campaign) => {
+    setQrLoading(true);
+    try {
+      // Create QR code data for 3 locations
+      const qrCodes = [
+        {
+          id: 'entrance',
+          name: 'Shop Entrance',
+          description: 'Main entrance QR code for campaign access',
+          url: `${window.location.origin}/qr/checkin?campaign=${campaign.id}&location=entrance&shop_id=${user?.shop_id}`,
+        },
+        {
+          id: 'checkout',
+          name: 'Checkout Counter', 
+          description: 'Checkout counter QR code for last-minute offers',
+          url: `${window.location.origin}/qr/checkin?campaign=${campaign.id}&location=checkout&shop_id=${user?.shop_id}`,
+        },
+        {
+          id: 'display',
+          name: 'Product Display',
+          description: 'Product display area QR code',
+          url: `${window.location.origin}/qr/checkin?campaign=${campaign.id}&location=display&shop_id=${user?.shop_id}`,
+        }
+      ];
 
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchQRAnalytics();
+      const qrCodeUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=';
+      
+      setQrData({
+        campaign: {
+          id: campaign.id,
+          name: campaign.title || campaign.name,
+          description: campaign.description || campaign.message,
+          zone: campaign.location || campaign.zone
+        },
+        qrCodes: qrCodes.map(qr => ({
+          ...qr,
+          qrCodeUrl: `${qrCodeUrl}${encodeURIComponent(qr.url)}`
+        }))
+      });
+      
+      setSelectedCampaign(campaign);
+      setShowQRModal(true);
+    } catch (error) {
+      console.error('QR generation error:', error);
+      alert('Failed to generate QR codes. Please try again.');
+    } finally {
+      setQrLoading(false);
+    }
   };
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader className="pb-2">
-                <div className="h-4 bg-gray-200 rounded animate-pulse" />
-              </CardHeader>
-              <CardContent>
-                <div className="h-8 bg-gray-200 rounded animate-pulse" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <p className="text-red-600 mb-2">Error loading QR analytics</p>
-          <p className="text-sm text-gray-500">{error}</p>
-          <Button onClick={handleRefresh} className="mt-2" disabled={refreshing}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Retry
-          </Button>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading campaigns...</p>
         </div>
       </div>
     );
   }
-
-  if (!qrAnalytics) return null;
 
   return (
     <div className="space-y-6">
-      {/* Auto-refresh indicator */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-white">Real-time QR Analytics</h2>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-xs text-gray-300">
-            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            Live Data
-          </div>
-          <span className="text-xs text-gray-400">
-            Last updated: {formatTime(lastRefresh.toISOString())}
-          </span>
-          <Button 
-            onClick={handleRefresh} 
-            variant="ghost" 
-            size="sm"
-            disabled={refreshing}
-            className="text-gray-300 hover:text-white"
-          >
-            <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          </Button>
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Campaign Management</h1>
+          <p className="text-gray-600">Manage your marketing campaigns</p>
         </div>
+        <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
+          <PlusCircle className="h-4 w-4" />
+          Create Campaign
+        </Button>
       </div>
 
-      {/* Key QR Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card className="backdrop-blur-sm bg-white/10 border-white/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-white">Total Check-ins</CardTitle>
-            <Users className="h-4 w-4 text-blue-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">{qrAnalytics.totalCheckins.toLocaleString()}</div>
-            <p className="text-xs text-blue-200">
-              Since implementation
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="backdrop-blur-sm bg-white/10 border-white/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-white">Today's Check-ins</CardTitle>
-            <Clock className="h-4 w-4 text-green-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">{qrAnalytics.todayCheckins.toLocaleString()}</div>
-            <p className="text-xs text-green-200">
-              Today ({new Date().toLocaleDateString()})
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="backdrop-blur-sm bg-white/10 border-white/20">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-white">Peak Zone</CardTitle>
-            <MapPin className="h-4 w-4 text-purple-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-white">{qrAnalytics.peakZone}</div>
-            <p className="text-xs text-purple-200">
-              Most popular location
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Zone Performance */}
-      <Card className="backdrop-blur-sm bg-white/10 border-white/20">
+      {/* Campaigns List */}
+      <Card>
         <CardHeader>
-          <CardTitle className="text-white">Zone Performance</CardTitle>
-          <CardDescription className="text-gray-300">
-            Check-in distribution across mall zones
+          <CardTitle>Your Campaigns</CardTitle>
+          <CardDescription>
+            {campaigns.length === 0 
+              ? "No campaigns found. Create your first campaign to get started." 
+              : `Showing ${campaigns.length} campaign${campaigns.length !== 1 ? 's' : ''}`
+            }
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {qrAnalytics.zonePerformance.map((zone: any, index: number) => (
-              <div key={zone.zone} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-white">{zone.zone}</span>
+          {campaigns.length === 0 ? (
+            <div className="text-center py-8">
+              <QrCode className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No campaigns yet</h3>
+              <p className="text-gray-600 mb-4">Create your first campaign to start engaging with customers</p>
+              <Button onClick={() => setShowCreateForm(true)}>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Create Your First Campaign
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {campaigns.map((campaign) => (
+                <div key={campaign.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-medium">{campaign.title || campaign.name}</h3>
+                      <span className={`px-2 py-1 text-xs rounded-full ${campaign.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                        {campaign.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{campaign.description || campaign.message}</p>
+                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {campaign.location || campaign.zone}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(campaign.createdDate || campaign.created_at || '').toLocaleDateString()}
+                      </span>
+                      {campaign.scan_count !== undefined && (
+                        <span>Scans: {campaign.scan_count}</span>
+                      )}
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-300">{zone.checkins} check-ins</span>
-                    <span className="text-xs text-blue-200">{zone.percentage}%</span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => generateQRCodes(campaign)}
+                      disabled={qrLoading}
+                      title="Generate QR Codes"
+                      className="text-blue-600 hover:text-blue-700"
+                    >
+                      <QrCode className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      title="Edit Campaign"
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 hover:text-red-700"
+                      title="Delete Campaign"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${zone.percentage}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Recent Activity */}
-      <Card className="backdrop-blur-sm bg-white/10 border-white/20">
-        <CardHeader>
-          <CardTitle className="text-white">Recent Activity</CardTitle>
-          <CardDescription className="text-gray-300">
-            Live check-in feed (auto-refreshes every 30 seconds)
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3 max-h-64 overflow-y-auto">
-            {qrAnalytics.recentActivity.map((activity: any, index: number) => (
-              <div key={index} className="flex items-center gap-3 p-2 rounded bg-white/5">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-white">{activity.zone}</span>
-                    <span className="text-xs text-gray-400">{formatTime(activity.timestamp)}</span>
+      {/* QR Code Modal */}
+      {showQRModal && qrData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">QR Codes for {qrData.campaign.name}</h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowQRModal(false)}
+              >
+                ✕
+              </Button>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Campaign Info */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-medium mb-2">Campaign Details</h3>
+                <p className="text-sm text-gray-600 mb-2">{qrData.campaign.description}</p>
+                <p className="text-sm text-gray-600">
+                  <strong>Zone:</strong> {qrData.campaign.zone}
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  Generated: {new Date().toLocaleString()}
+                </p>
+              </div>
+
+              {/* QR Codes Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {qrData.qrCodes.map((qr: any) => (
+                  <div key={qr.id} className="border rounded-lg p-4 text-center">
+                    <h4 className="font-medium mb-2">{qr.name}</h4>
+                    <p className="text-sm text-gray-600 mb-4">{qr.description}</p>
+                    
+                    {qr.qrCodeUrl && (
+                      <div className="mb-4">
+                        <img 
+                          src={qr.qrCodeUrl} 
+                          alt={`QR Code for ${qr.name}`}
+                          className="w-48 h-48 mx-auto border"
+                        />
+                      </div>
+                    )}
+                    
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-500 break-all">
+                        {qr.url}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-300">Visitor: {activity.visitorId}</div>
-                </div>
-                <Smartphone className="h-4 w-4 text-blue-400" />
+                ))}
               </div>
-            ))}
-            {qrAnalytics.recentActivity.length === 0 && (
-              <div className="text-center text-gray-400 py-8">
-                <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                <p>No recent activity</p>
+
+              {/* Instructions */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-medium mb-2">📋 Installation Instructions</h4>
+                <ul className="text-sm text-gray-600 space-y-1">
+                  <li>• <strong>Entrance:</strong> Place at main shop entrance for immediate campaign access</li>
+                  <li>• <strong>Checkout:</strong> Position near payment counter for impulse offers</li>
+                  <li>• <strong>Display:</strong> Install at product display areas for targeted engagement</li>
+                  <li>• <strong>Size:</strong> Print at least 10x10cm for easy scanning</li>
+                  <li>• <strong>Position:</strong> Ensure good lighting and clear visibility</li>
+                </ul>
               </div>
-            )}
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <Button onClick={() => setShowQRModal(false)}>Close</Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
-};
-
-// Main Analytics Component with Tabs
-const Analytics = () => {
-  const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'campaigns' | 'qr'>('campaigns');
-  const [isDarkMode, setIsDarkMode] = useState(true);
-
-  if (!user) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">Please log in to view analytics</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 p-4">
-      <div className="max-w-7xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-white">Analytics Dashboard</h1>
-            <p className="text-gray-300">
-              {getAnalyticsTitle(user)}
-            </p>
-            <p className="text-xs text-blue-200 mt-1">
-              {getAnalyticsSubtitle(user)}
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <Button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              variant="ghost"
-              size="sm"
-              className="text-gray-300 hover:text-white"
-            >
-              {isDarkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </Button>
-          </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="flex space-x-1 bg-white/10 p-1 rounded-lg backdrop-blur-sm">
-          <Button
-            onClick={() => setActiveTab('campaigns')}
-            variant={activeTab === 'campaigns' ? 'default' : 'ghost'}
-            className={`flex-1 ${activeTab === 'campaigns' ? 'bg-white/20 text-white' : 'text-gray-300 hover:text-white'}`}
-          >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Campaign Analytics
-          </Button>
-          <Button
-            onClick={() => setActiveTab('qr')}
-            variant={activeTab === 'qr' ? 'default' : 'ghost'}
-            className={`flex-1 ${activeTab === 'qr' ? 'bg-white/20 text-white' : 'text-gray-300 hover:text-white'}`}
-          >
-            <QrCode className="h-4 w-4 mr-2" />
-            QR Analytics
-          </Button>
-        </div>
-
-        {/* Tab Content */}
-        <div className="backdrop-blur-sm bg-white/5 rounded-lg border border-white/10 p-6">
-          {activeTab === 'campaigns' && <CampaignAnalytics />}
-          {activeTab === 'qr' && <QRAnalytics formatTime={formatTime} user={user} />}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default Analytics;
+}
