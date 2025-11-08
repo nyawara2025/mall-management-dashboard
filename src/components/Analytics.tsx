@@ -237,23 +237,22 @@ const CampaignAnalytics = () => {
         
         // Try to fetch real campaigns from adcampaigns table
         try {
-          // Use a simple approach - build the query with the right filters
-          let campaignOptions: any = { eq: { column: 'active', value: 'true' } };
-          
-          // Add user-specific filter
-          if (user?.shop_id) {
-            campaignOptions = { eq: { column: 'shop_id', value: user.shop_id.toString() } };
-          } else if (user?.mall_id) {
-            campaignOptions = { eq: { column: 'mall_id', value: user.mall_id.toString() } };
-          }
-
-          // Execute query using the supabase client directly
-          const campaignResult = await (supabase as any).createQuery('adcampaigns', 'select', '*', campaignOptions);
+          // Use simple direct query since we have a simplified query builder
+          const campaignResult = await supabase.from('adcampaigns').select('*');
           
           if (campaignResult.data && campaignResult.data.length > 0) {
-            console.log(`✅ Found ${campaignResult.data.length} real campaigns for user`);
-            // Convert real campaigns to metrics format
-            const campaignMetrics = campaignResult.data.map((campaign: any) => ({
+            // Filter campaigns based on user context
+            const filteredCampaigns = campaignResult.data.filter((campaign: any) => {
+              if (user?.shop_id && campaign.shop_id === user.shop_id) return true;
+              if (user?.mall_id && campaign.mall_id === user.mall_id) return true;
+              if (!user?.shop_id && !user?.mall_id) return true; // Global admin sees all
+              return false;
+            });
+            
+            if (filteredCampaigns.length > 0) {
+              console.log(`✅ Found ${filteredCampaigns.length} real campaigns for user`);
+              // Convert real campaigns to metrics format
+              const campaignMetrics = filteredCampaigns.map((campaign: any) => ({
               id: campaign.id.toString(),
               name: campaign.name || 'Untitled Campaign',
               scans: Math.floor(Math.random() * 50) + 10, // Mock data since campaigns don't track actual scans

@@ -14,15 +14,8 @@ class SupabaseClient {
   // Simple query builder for basic operations
   from(table: string) {
     return {
-      select: (columns: string | '*' = '*', options?: { count?: string }) => ({
-        group: (column: string) => this.createQuery(table, 'select', columns, { group: column }),
-        order: (column: string, orderOptions?: { ascending?: boolean }) => 
-          this.createQuery(table, 'select', columns, { order: column, ...orderOptions }),
-        limit: (count: number) => this.createQuery(table, 'select', columns, { limit: count }),
-        gte: (column: string, value: string) => this.createQuery(table, 'select', columns, { gte: { column, value } }),
-        eq: (column: string, value: string) => this.createQuery(table, 'select', columns, { eq: { column, value } }),
-        neq: (column: string, value: string) => this.createQuery(table, 'select', columns, { neq: { column, value } }),
-      }),
+      select: (columns: string | '*' = '*', options?: { count?: string }) => 
+        this.createQuery(table, 'select', columns, options),
       insert: (data: any) => this.createQuery(table, 'insert', data),
       update: (data: any) => this.createQuery(table, 'update', data),
       delete: () => this.createQuery(table, 'delete', null),
