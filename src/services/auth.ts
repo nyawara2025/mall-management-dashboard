@@ -18,7 +18,7 @@ REAL_USERS.set('bosco', {
   user: { 
     id: 1, // UPDATE WITH ACTUAL ID FROM DATABASE
     username: 'bosco', 
-    full_name: 'Bosco Neo',
+    full_name: 'Bosco Mukira',
     role: 'super_admin', 
     mall_id: null, 
     shop_id: null, 
@@ -34,7 +34,7 @@ REAL_USERS.set('jane', {
     username: 'jane', 
     full_name: 'Jane Wangui',
     role: 'mall_admin', 
-    mall_id: 1, // China Square - UPDATE WITH ACTUAL ID
+    mall_id: 3, // China Square Mall
     shop_id: null, 
     active: true 
   } 
@@ -47,7 +47,7 @@ REAL_USERS.set('faith', {
     username: 'faith', 
     full_name: 'Faith Njeri',
     role: 'mall_admin', 
-    mall_id: 2, // Langata Mall - UPDATE WITH ACTUAL ID
+    mall_id: 6, // Langata Mall
     shop_id: null, 
     active: true 
   } 
@@ -60,7 +60,7 @@ REAL_USERS.set('ngina', {
     username: 'ngina', 
     full_name: 'Ngina Wanjiku',
     role: 'mall_admin', 
-    mall_id: 3, // NHC Mall - UPDATE WITH ACTUAL ID
+    mall_id: 7, // NHC Mall
     shop_id: null, 
     active: true 
   } 
@@ -74,8 +74,8 @@ REAL_USERS.set('ben', {
     username: 'ben', 
     full_name: 'Ben - Spatial Barbershop',
     role: 'shop_admin', 
-    mall_id: 1, // China Square - UPDATE WITH ACTUAL ID
-    shop_id: 1, // Spatial Barbershop - UPDATE WITH ACTUAL ID
+    mall_id: 3, // China Square Mall
+    shop_id: 3, // Spatial Barbershop
     active: true 
   } 
 });
@@ -88,8 +88,8 @@ REAL_USERS.set('sandra', {
     username: 'sandra', 
     full_name: 'Sandra - Kika Wines',
     role: 'shop_admin', 
-    mall_id: 6, // Langata Mall - UPDATE WITH ACTUAL ID
-    shop_id: 6, // Kika Wines - UPDATE WITH ACTUAL ID (needs to be added to database first)
+    mall_id: 6, // Langata Mall - UPDATE WITH ACTUAL ID (matching database)
+    shop_id: 6, // Sandra's actual shop_id in database
     active: true 
   } 
 });
@@ -101,7 +101,7 @@ REAL_USERS.set('andrew', {
     username: 'andrew', 
     full_name: 'Andrew - The Phone Shop',
     role: 'shop_admin', 
-    mall_id: 2, // Langata Mall - UPDATE WITH ACTUAL ID
+    mall_id: 6, // Langata Mall
     shop_id: 3, // The Phone Shop - UPDATE WITH ACTUAL ID (needs to be added to database first)
     active: true 
   } 
@@ -114,7 +114,7 @@ REAL_USERS.set('fred', {
     username: 'fred', 
     full_name: 'Fred - Cleanshelf SupaMarket',
     role: 'shop_admin', 
-    mall_id: 2, // Langata Mall - UPDATE WITH ACTUAL ID
+    mall_id: 6, // Langata Mall
     shop_id: 4, // Cleanshelf Supamarket - UPDATE WITH ACTUAL ID (needs to be added to database first)
     active: true 
   } 
@@ -127,7 +127,7 @@ REAL_USERS.set('ibrahim', {
     username: 'ibrahim', 
     full_name: 'Ibrahim - Maliet Salon & Spa',
     role: 'shop_admin', 
-    mall_id: 3, // NHC Mall - UPDATE WITH ACTUAL ID
+    mall_id: 7, // NHC Mall
     shop_id: 5, // Maliet Salon & Spa - UPDATE WITH ACTUAL ID (needs to be added to database first)
     active: true 
   } 

@@ -240,7 +240,7 @@ export default function CampaignManagement() {
           message: createForm.message,
           channels: ['push', 'sms'],
           active: true,
-          mall_id: user?.mall_id,
+          mall_id: getMallIdFromZone(createForm.zone),
           shop_id: user?.shop_id,
           campaign_scope: user?.shop_id ? 'shop_specific' : 'mall_specific',
           campaign_type: 'broad',
