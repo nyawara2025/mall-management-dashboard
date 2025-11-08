@@ -253,31 +253,32 @@ const CampaignAnalytics = () => {
               console.log(`✅ Found ${filteredCampaigns.length} real campaigns for user`);
               // Convert real campaigns to metrics format
               const campaignMetrics = filteredCampaigns.map((campaign: any) => ({
-              id: campaign.id.toString(),
-              name: campaign.name || 'Untitled Campaign',
-              scans: Math.floor(Math.random() * 50) + 10, // Mock data since campaigns don't track actual scans
-              claims: Math.floor(Math.random() * 30) + 5,
-              engagementRate: Math.round((Math.random() * 30 + 40) * 100) / 100,
-              clicks: {
-                claim: Math.floor(Math.random() * 20) + 5,
-                share: Math.floor(Math.random() * 15) + 3,
-                call: Math.floor(Math.random() * 10) + 2,
-                directions: Math.floor(Math.random() * 8) + 1,
-                like: Math.floor(Math.random() * 25) + 10
-              },
-              performance: {
-                clickThroughRate: Math.round((Math.random() * 20 + 50) * 100) / 100,
-                conversionRate: Math.round((Math.random() * 20 + 20) * 100) / 100,
-                popularActions: ['Visit', 'Engage', 'Call']
-              },
-              recentActivity: [
-                { timestamp: new Date().toISOString(), action: 'Visited', userType: 'Visitor' },
-                { timestamp: new Date(Date.now() - 3600000).toISOString(), action: 'Engaged', userType: 'Visitor' }
-              ]
-            }));
-            setMetrics(campaignMetrics);
-            setDataSource('supabase');
-            return;
+                id: campaign.id.toString(),
+                name: campaign.name || 'Untitled Campaign',
+                scans: Math.floor(Math.random() * 50) + 10, // Mock data since campaigns don't track actual scans
+                claims: Math.floor(Math.random() * 30) + 5,
+                engagementRate: Math.round((Math.random() * 30 + 40) * 100) / 100,
+                clicks: {
+                  claim: Math.floor(Math.random() * 20) + 5,
+                  share: Math.floor(Math.random() * 15) + 3,
+                  call: Math.floor(Math.random() * 10) + 2,
+                  directions: Math.floor(Math.random() * 8) + 1,
+                  like: Math.floor(Math.random() * 25) + 10
+                },
+                performance: {
+                  clickThroughRate: Math.round((Math.random() * 20 + 50) * 100) / 100,
+                  conversionRate: Math.round((Math.random() * 20 + 20) * 100) / 100,
+                  popularActions: ['Visit', 'Engage', 'Call']
+                },
+                recentActivity: [
+                  { timestamp: new Date().toISOString(), action: 'Visited', userType: 'Visitor' },
+                  { timestamp: new Date(Date.now() - 3600000).toISOString(), action: 'Engaged', userType: 'Visitor' }
+                ]
+              }));
+              setMetrics(campaignMetrics);
+              setDataSource('supabase');
+              return;
+            }
           }
         } catch (campaignErr) {
           console.log('⚠️ Could not fetch campaigns from database, using QR-based analytics...', campaignErr);
