@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Dashboard } from './components/Dashboard';
 import CampaignManagement from './components/CampaignManagement';
 import CampaignViewer from './components/CampaignViewer';
+import QRCheckInPage from './components/QRCheckInPage';
 import Analytics from './components/Analytics';
 import { useAuth } from './contexts/AuthContext';
 import './index.css';
@@ -13,10 +14,17 @@ function AppContent() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [campaignId, setCampaignId] = useState<string | null>(null);
 
-  // Handle campaign viewer (for QR code scanning)
+  // Handle QR check-in for visitors
   React.useEffect(() => {
     const path = window.location.pathname;
-    if (path.startsWith('/campaign/')) {
+    const searchParams = new URLSearchParams(window.location.search);
+    
+    if (path.startsWith('/qr/checkin')) {
+      const campaignId = searchParams.get('campaign');
+      const location = searchParams.get('location') || 'unknown';
+      setCampaignId(campaignId);
+      setCurrentView('qr-checkin');
+    } else if (path.startsWith('/campaign/')) {
       const id = path.split('/campaign/')[1];
       setCampaignId(id);
       setCurrentView('campaign-view');
@@ -28,6 +36,19 @@ function AppContent() {
     return (
       <div>
         <CampaignViewer campaignId={campaignId} />
+      </div>
+    );
+  }
+
+  // Show QR check-in page for visitors
+  if (currentView === 'qr-checkin' && campaignId) {
+    return (
+      <div>
+        <QRCheckInPage 
+          campaignId={campaignId}
+          location={new URLSearchParams(window.location.search).get('location') || 'unknown'}
+          shopId={new URLSearchParams(window.location.search).get('shop_id')}
+        />
       </div>
     );
   }
