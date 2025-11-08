@@ -28,6 +28,8 @@ interface Campaign {
   location: string;
   shopId?: number;
   mallId?: number;
+  shop_id?: number;
+  mall_id?: number;
   createdDate: string;
   isActive: boolean;
   scan_count?: number;
@@ -840,4 +842,4 @@ export default function CampaignManagement() {
   );
 }
 
-export default CampaignManagement;
+// Component definition above serves as the default export

@@ -1,11 +1,6 @@
-// Supabase client configuration
-import { createClient } from '@supabase/supabase-js';
-
+// Simplified Supabase client configuration
 const SUPABASE_URL = 'https://ufrrlfcxuovxgizxuowh.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmcnJsZmN4dW92eGdpenh1b3doIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM2Mzc2NDgsImV4cCI6MjA2OTIxMzY0OH0.MfwxLihZ6htvufjYv3RLfKwKsazjD_TnVEcV1IDZeQg';
-
-// Type alias for the Supabase client
-type SupabaseClient = ReturnType<typeof createClient>;
 
 class QueryBuilder {
   private supabase: SupabaseClient;
@@ -261,73 +256,20 @@ class QueryBuilder {
   }
 }
 
-class SupabaseClient {
-  private url: string;
-  private anonKey: string;
-
-  constructor(url: string, anonKey: string) {
-    this.url = url;
-    this.anonKey = anonKey;
-  }
-
-  // Public methods to access private properties
-  getUrl(): string {
-    return this.url;
-  }
-
-  getAnonKey(): string {
-    return this.anonKey;
-  }
-
-  // Query builder from method
+// Simplified supabase client
+const supabase = {
   from(table: string) {
     return {
-      select: (columns: string = '*', options?: { count?: string } = {}) => 
-        new QueryBuilder(this, table, 'select').select(columns, options),
-      insert: (data: any) => 
-        new QueryBuilder(this, table, 'insert').insert(data),
-      update: (data: any) => 
-        new QueryBuilder(this, table, 'update').update(data),
-      delete: () => 
-        new QueryBuilder(this, table, 'delete'),
+      select: (columns: string = '*') => new QueryBuilder({} as any, table, 'select').select(columns),
+      insert: (data: any) => new QueryBuilder({} as any, table, 'insert').insert(data),
+      update: (data: any) => new QueryBuilder({} as any, table, 'update').update(data),
+      delete: () => new QueryBuilder({} as any, table, 'delete')
     };
   }
+};
 
-  rpc(functionName: string, params?: any) {
-    return this.createRpcCall(functionName, params);
-  }
-
-  private async createRpcCall(functionName: string, params?: any) {
-    try {
-      const headers = {
-        'Authorization': `Bearer ${this.anonKey}`,
-        'apikey': this.anonKey,
-        'Content-Type': 'application/json'
-      };
-
-      const response = await fetch(`${this.url}/rest/v1/rpc/${functionName}`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(params || {})
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`RPC error: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      return { data, error: null };
-
-    } catch (error) {
-      console.error('RPC call error:', error);
-      return { data: null, error };
-    }
-  }
-}
-
-// Create and export the client instance
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Export the simplified client
+export { supabase };
 
 // Export the classes for testing or custom usage
 export { QueryBuilder };
