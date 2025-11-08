@@ -133,12 +133,12 @@ REAL_USERS.set('ibrahim', {
   } 
 });
 
-// Real mall data - PLACEHOLDER COORDINATES, UPDATE WITH ACTUAL DATABASE DATA
+// FIXED: Real mall data with CORRECT mall_ids matching the database
 // Run the SQL query to get actual mall data:
 // SELECT id, name, latitude, longitude, address, radius_meters, active FROM malls ORDER BY id;
 const REAL_MALLS: Mall[] = [
   {
-    id: 1, // UPDATE WITH ACTUAL ID FROM DATABASE
+    id: 3, // FIXED: China Square Mall - was 1, now 3
     name: 'China Square',
     latitude: -1.2921, // UPDATE WITH ACTUAL COORDINATES FROM DATABASE
     longitude: 36.8219,
@@ -163,7 +163,7 @@ const REAL_MALLS: Mall[] = [
     ]
   },
   {
-    id: 2, // UPDATE WITH ACTUAL ID FROM DATABASE
+    id: 6, // FIXED: Langata Mall - was 2, now 6
     name: 'Langata Mall',
     latitude: -1.323957, // UPDATE WITH ACTUAL COORDINATES FROM DATABASE
     longitude: 36.782825,
@@ -177,24 +177,24 @@ const REAL_MALLS: Mall[] = [
         id: 3, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
         name: 'Kika Wines', 
         created_at: '2024-01-16T11:00:00Z', 
-        updated_at: '2024-01-16T11:00:00Z' 
+        updated_at: '2024-01-16T12:00:00Z' 
       },
       { 
         id: 4, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
         name: 'The Phone Shop', 
         created_at: '2024-01-16T12:00:00Z', 
-        updated_at: '2024-01-16T12:00:00Z' 
+        updated_at: '2024-01-16T13:00:00Z' 
       },
       { 
         id: 5, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
         name: 'Cleanshelf Supamarket', 
         created_at: '2024-01-16T13:00:00Z', 
-        updated_at: '2024-01-16T13:00:00Z' 
+        updated_at: '2024-01-16T14:00:00Z' 
       }
     ]
   },
   {
-    id: 3, // UPDATE WITH ACTUAL ID FROM DATABASE
+    id: 7, // FIXED: NHC Mall - was 3, now 7
     name: 'NHC Mall',
     latitude: -1.317435, // UPDATE WITH ACTUAL COORDINATES FROM DATABASE
     longitude: 36.7882,

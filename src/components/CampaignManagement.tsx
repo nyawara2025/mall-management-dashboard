@@ -99,44 +99,156 @@ export default function CampaignManagement() {
       const token = localStorage.getItem('auth_token') || '';
       const headers = createAuthHeaders(token);
       
-      console.log('Fetching campaigns for shop_id:', user?.shop_id); // Debug shop_id
+      console.log('🔍 Fetching campaigns for shop_id:', user?.shop_id); // Debug shop_id
       
-      const response = await fetch(`https://n8n.tenear.com/webhook/manage-campaigns-get?shop_id=${user?.shop_id}`, {
-        headers
-      });
+      // Try both API endpoints and response structures
+      const endpoints = [
+        `https://n8n.tenear.com/webhook/manage-campaigns-get?shop_id=${user?.shop_id}`,
+        `https://n8n.tenear.com/webhook/manage-campaigns-get?user_id=${user?.shop_id}`,
+        `https://n8n.tenear.com/webhook/manage-campaigns-get?mall_id=${user?.mall_id}`
+      ];
+
+      let data: any = null;
+      let lastError: any = null;
+
+      // Try each endpoint until one works
+      for (const endpoint of endpoints) {
+        try {
+          console.log(`🚀 Trying endpoint: ${endpoint}`);
+          const response = await fetch(endpoint, { headers });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const responseData = await response.json();
+          console.log(`✅ Response from ${endpoint}:`, responseData);
+          
+          // Store the response to analyze structure
+          data = responseData;
+          break;
+        } catch (error) {
+          console.log(`❌ Failed endpoint ${endpoint}:`, error);
+          lastError = error;
+          continue;
+        }
+      }
+
+      if (!data) {
+        console.error('All endpoints failed, using fallback to Supabase');
+        return await fetchFromSupabase();
+      }
+
+      console.log('📋 Full API response structure:', JSON.stringify(data, null, 2));
+      console.log('🔍 Response type:', typeof data, 'Keys:', Object.keys(data || {}));
+
+      // Try multiple response structure patterns
+      let campaignsArray: Campaign[] = [];
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (data.success && data.campaigns) {
+        campaignsArray = data.campaigns;
+      } else if (Array.isArray(data)) {
+        campaignsArray = data;
+      } else if (data.data && Array.isArray(data.data)) {
+        campaignsArray = data.data;
+      } else if (data.campaigns && Array.isArray(data.campaigns)) {
+        campaignsArray = data.campaigns;
+      } else {
+        console.warn('⚠️ Unexpected API response structure:', data);
+        return await fetchFromSupabase();
       }
       
-      const data = await response.json();
-      console.log('Fetch campaigns response:', data); // Debug logging
-      console.log('Full API response structure:', JSON.stringify(data, null, 2)); // Show full response
-      console.log('Is success:', data.success); // Debug success flag
-      if (data.success) {
-        console.log('Campaigns data:', data.campaigns); // Debug the campaigns array
-        console.log('Campaigns array length:', data.campaigns?.length || 0);
-        console.log('All campaign details:', JSON.stringify(data.campaigns, null, 2)); // Full campaign details
+      console.log('📊 Campaigns array found:', campaignsArray.length, 'items');
+      console.log('📄 Sample campaigns:', JSON.stringify(campaignsArray.slice(0, 2), null, 2));
+      
+      // Enhanced client-side filtering: Only show campaigns for user's shop
+      const allCampaigns = campaignsArray || [];
+      const filteredCampaigns = allCampaigns.filter((campaign: Campaign) => {
+        // Check multiple possible field names
+        const campaignShopId = campaign.shopId || campaign.shop_id || null;
+        const campaignMallId = campaign.mallId || campaign.mall_id || null;
         
-        // Client-side filtering: Only show campaigns for user's shop
-        const allCampaigns = data.campaigns || [];
-        const filteredCampaigns = allCampaigns.filter((campaign: Campaign) => {
-          // Filter by shopId first, then by mallId as backup
-          const matchesShop = campaign.shopId === user?.shop_id;
-          const matchesMall = campaign.mallId === user?.mall_id;
-          return matchesShop || matchesMall;
-        });
+        const matchesShop = campaignShopId === user?.shop_id;
+        const matchesMall = campaignMallId === user?.mall_id;
         
-        console.log(`🔍 Total campaigns fetched: ${allCampaigns.length}`);
-        console.log(`✅ Filtered campaigns (Ben's Spatial Barbers only): ${filteredCampaigns.length}`);
-        console.log('🗂️ Sample campaign titles:', filteredCampaigns.slice(0, 3).map((c: Campaign) => c.title || c.name || 'No title'));
+        console.log(`🔍 Campaign ${campaign.id || campaign.title}: shopId=${campaignShopId} vs userShopId=${user?.shop_id}, mallId=${campaignMallId} vs userMallId=${user?.mall_id}`);
         
-        setCampaigns(filteredCampaigns);
+        return matchesShop || matchesMall;
+      });
+      
+      console.log(`🔢 Total campaigns fetched: ${allCampaigns.length}`);
+      console.log(`✅ Filtered campaigns (${user?.username} only): ${filteredCampaigns.length}`);
+      console.log('🏷️ Campaign titles:', filteredCampaigns.map((c: Campaign) => c.title || c.name || 'No title'));
+      
+      setCampaigns(filteredCampaigns);
+      
+      // Calculate analytics from filtered data
+      const total = filteredCampaigns.length;
+      const active = filteredCampaigns.filter((c: Campaign) => 
+        c.isActive !== undefined ? c.isActive : c.is_active !== undefined ? c.is_active : true
+      ).length;
+      const totalScans = filteredCampaigns.reduce((sum: number, c: Campaign) => sum + (c.scan_count || 0), 0);
+      const avgEngagement = total > 0 ? (totalScans / total).toFixed(1) : 0;
+
+      setAnalytics({
+        totalCampaigns: total,
+        activeCampaigns: active,
+        totalScans,
+        avgEngagement: parseFloat(avgEngagement as string)
+      });
+      
+    } catch (error) {
+      console.error('❌ Error fetching campaigns:', error);
+      // Fallback to Supabase query
+      await fetchFromSupabase();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fallback method using Supabase direct query
+  const fetchFromSupabase = async () => {
+    try {
+      console.log('🔄 Fallback: Fetching from Supabase directly...');
+      
+      const { data, error } = await supabase
+        .from('adcampaigns')
+        .select('*')
+        .or(`shop_id.eq.${user?.shop_id},mall_id.eq.${user?.mall_id}`)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Supabase error:', error);
+        return;
+      }
+
+      console.log('📊 Supabase response:', data);
+      
+      if (data) {
+        const mappedCampaigns: Campaign[] = data.map((campaign: any) => ({
+          id: campaign.id.toString(),
+          title: campaign.name,
+          description: campaign.message,
+          location: campaign.zone || 'Unknown',
+          shopId: campaign.shop_id,
+          mallId: campaign.mall_id,
+          createdDate: campaign.created_at,
+          isActive: campaign.is_active !== false,
+          name: campaign.name,
+          message: campaign.message,
+          zone: campaign.zone,
+          created_at: campaign.created_at,
+          is_active: campaign.is_active,
+          scan_count: campaign.scan_count || 0,
+          engagement_rate: campaign.engagement_rate || 0
+        }));
+
+        setCampaigns(mappedCampaigns);
         
-        // Calculate analytics from filtered data
-        const total = filteredCampaigns.length;
-        const active = filteredCampaigns.filter((c: Campaign) => c.isActive).length;
-        const totalScans = filteredCampaigns.reduce((sum: number, c: Campaign) => sum + (c.scan_count || 0), 0);
+        // Calculate analytics
+        const total = mappedCampaigns.length;
+        const active = mappedCampaigns.filter(c => c.isActive).length;
+        const totalScans = mappedCampaigns.reduce((sum, c) => sum + (c.scan_count || 0), 0);
         const avgEngagement = total > 0 ? (totalScans / total).toFixed(1) : 0;
 
         setAnalytics({
@@ -147,7 +259,7 @@ export default function CampaignManagement() {
         });
       }
     } catch (error) {
-      console.error('Error fetching campaigns:', error);
+      console.error('❌ Fallback fetch error:', error);
     } finally {
       setLoading(false);
     }
@@ -192,304 +304,246 @@ export default function CampaignManagement() {
 
       const data = await response.json();
       
-      console.log('Campaign creation response:', data); // Debug logging
-      console.log('Full creation response:', JSON.stringify(data, null, 2)); // Show full response
-      console.log('User shop_id:', user?.shop_id); // Debug shop_id
-      console.log('Campaign data sent:', JSON.stringify(campaignData, null, 2)); // Debug what was sent
-      console.log('Is creation success:', data.success); // Debug success flag
-      if (data.campaign) {
-        console.log('Created campaign details:', JSON.stringify(data.campaign, null, 2)); // Show created campaign
-      }
+      console.log('📥 Campaign creation response:', data);
+      console.log('🏷️ User shop_id:', user?.shop_id);
+      console.log('📊 Campaign data sent:', JSON.stringify(campaignData, null, 2));
+      console.log('✅ Creation success:', data.success);
       
       if (data.success) {
+        // Refresh campaigns list
+        await fetchCampaigns();
+        // Reset form
+        setCreateForm({
+          name: '',
+          message: '',
+          zone: user?.mall_id === 3 ? 'china-square' : user?.mall_id === 6 ? 'langata' : user?.mall_id === 7 ? 'nhc' : 'china-square',
+          shop_id: user?.shop_id || ''
+        });
         setShowCreateForm(false);
-        setCreateForm({ name: '', message: '', zone: '', shop_id: user?.shop_id || '' });
-        
-        // Add a small delay to ensure database is updated
-        setTimeout(() => {
-          fetchCampaigns(); // Refresh campaigns list
-        }, 500);
-        
-        // Show success message with defensive checking
-        const campaignName = data.campaign?.name || createForm.name || 'New Campaign';
-        const successAlert = document.createElement('div');
-        successAlert.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50';
-        successAlert.innerHTML = `
-          <div class="flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-            </svg>
-            Campaign "${campaignName}" created successfully! QR code generated.
-          </div>
-        `;
-        document.body.appendChild(successAlert);
-        setTimeout(() => successAlert.remove(), 5000);
+        alert('Campaign created successfully!');
       } else {
-        throw new Error(data.error || 'Unknown error');
+        // Database fallback
+        console.log('🔄 n8n webhook failed, trying database creation...');
+        await createCampaignInDatabase(campaignData);
       }
     } catch (error) {
-      console.error('Error creating campaign via n8n webhook, trying direct database creation...', error);
+      console.error('❌ Campaign creation error:', error);
       
-      // Fallback: Create campaign directly in Supabase database
+      // Try database fallback
       try {
-        const campaignId = `campaign_${Date.now()}`;
-        const campaignPayload = {
-          campaign_id: campaignId,
+        const campaignData = {
           name: createForm.name,
-          geofence_id: createForm.zone || createForm.name.toLowerCase().replace(/\s+/g, '_'),
           message: createForm.message,
-          channels: ['push', 'sms'],
-          active: true,
-          mall_id: getMallIdFromZone(createForm.zone),
+          zone: createForm.zone,
           shop_id: user?.shop_id,
-          campaign_scope: user?.shop_id ? 'shop_specific' : 'mall_specific',
-          campaign_type: 'broad',
-          trigger_source: 'manual',
-          created_at: new Date().toISOString()
+          mall_id: getMallIdFromZone(createForm.zone), // Use mapped mall_id
+          created_by: user?.username
         };
-
-        const { data: newCampaign, error: createError } = await supabase
-          .from('adcampaigns')
-          .insert([campaignPayload]);
-
-        if (createError) {
-          throw createError;
-        }
-
-        console.log('✅ Campaign created successfully in Supabase:', newCampaign);
-        
-        // Refresh campaigns list and show success
-        fetchCampaigns();
-        setShowCreateForm(false);
-        setCreateForm({ name: '', message: '', zone: '', shop_id: user?.shop_id || '' });
-        
-        const successAlert = document.createElement('div');
-        successAlert.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50';
-        successAlert.innerHTML = `
-          <div class="flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-            </svg>
-            Campaign created successfully! (Created via direct database)
-          </div>
-        `;
-        document.body.appendChild(successAlert);
-        setTimeout(() => successAlert.remove(), 5000);
-        return;
-        
-      } catch (dbError) {
-        console.error('Database fallback creation also failed:', dbError);
-        
-        // Show error message with more details
-        const errorMsg = error instanceof Error ? error.message : 'Please try again';
-        const errorDetail = `Error creating campaign: ${errorMsg}`;
-        const errorAlert = document.createElement('div');
-        errorAlert.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50';
-      errorAlert.innerHTML = `
-        <div class="flex items-center">
-          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-          </svg>
-          ${errorDetail}
-        </div>
-      `;
-      document.body.appendChild(errorAlert);
-      setTimeout(() => errorAlert.remove(), 5000);
+        await createCampaignInDatabase(campaignData);
+      } catch (fallbackError) {
+        console.error('❌ Database fallback also failed:', fallbackError);
+        alert('Failed to create campaign. Please try again.');
       }
     }
   };
 
-  const generateQRCode = (campaignId: string) => {
-    const qrUrl = `https://mall-management-dashboard.pages.dev/campaign/${campaignId}`;
-    const qrData = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUrl)}`;
+  // Database fallback campaign creation
+  const createCampaignInDatabase = async (campaignData: any) => {
+    console.log('🗄️ Creating campaign in database with data:', campaignData);
     
-    const modal = document.createElement('div');
-    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
-    modal.innerHTML = `
-      <div class="bg-white p-6 rounded-lg max-w-sm w-full mx-4">
-        <h3 class="text-lg font-semibold mb-4">Scan QR Code</h3>
-        <div class="text-center mb-4">
-          <img src="${qrData}" alt="QR Code" class="mx-auto mb-2" />
-          <p class="text-sm text-gray-600">${qrUrl}</p>
-        </div>
-        <div class="flex gap-2">
-          <a href="${qrData}" download="campaign-${campaignId}.png" class="flex-1 bg-blue-500 text-white text-center py-2 rounded hover:bg-blue-600">
-            Download QR
-          </a>
-          <button onclick="this.closest('.fixed').remove()" class="flex-1 bg-gray-500 text-white py-2 rounded hover:bg-gray-600">
-            Close
-          </button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
+    const { data, error } = await supabase
+      .from('adcampaigns')
+      .insert([{
+        name: campaignData.name,
+        message: campaignData.message,
+        zone: campaignData.zone,
+        shop_id: campaignData.shop_id,
+        mall_id: campaignData.mall_id,
+        created_by: campaignData.created_by,
+        is_active: true
+      }])
+      .select();
+
+    if (error) {
+      console.error('❌ Database insert error:', error);
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    console.log('✅ Database campaign created:', data);
+    
+    // Refresh campaigns list
+    await fetchCampaigns();
+    setCreateForm({
+      name: '',
+      message: '',
+      zone: user?.mall_id === 3 ? 'china-square' : user?.mall_id === 6 ? 'langata' : user?.mall_id === 7 ? 'nhc' : 'china-square',
+      shop_id: user?.shop_id || ''
+    });
+    setShowCreateForm(false);
+    alert('Campaign created successfully (database fallback)!');
   };
 
-  // Handle View Campaign
-  const handleViewCampaign = (campaign: Campaign) => {
-    setSelectedCampaign(campaign);
-    setShowViewModal(true);
+  const handleDeleteCampaign = async (campaignId: string) => {
+    if (!confirm('Are you sure you want to delete this campaign?')) return;
+    
+    try {
+      const token = localStorage.getItem('auth_token') || '';
+      const headers = createAuthHeaders(token);
+      
+      // Try n8n webhook first
+      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns-delete', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ campaign_id: campaignId })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Refresh campaigns list
+        await fetchCampaigns();
+        alert('Campaign deleted successfully!');
+      } else {
+        // Database fallback
+        await deleteCampaignFromDatabase(campaignId);
+      }
+    } catch (error) {
+      console.error('❌ Campaign deletion error:', error);
+      
+      // Try database fallback
+      try {
+        await deleteCampaignFromDatabase(campaignId);
+      } catch (fallbackError) {
+        console.error('❌ Database fallback delete failed:', fallbackError);
+        alert('Failed to delete campaign. Please try again.');
+      }
+    }
   };
 
-  // Handle Edit Campaign
-  const handleEditCampaign = (campaign: Campaign) => {
+  // Database fallback campaign deletion
+  const deleteCampaignFromDatabase = async (campaignId: string) => {
+    console.log('🗄️ Deleting campaign from database:', campaignId);
+    
+    const { error } = await supabase
+      .from('adcampaigns')
+      .delete()
+      .eq('id', campaignId);
+
+    if (error) {
+      console.error('❌ Database delete error:', error);
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    console.log('✅ Database campaign deleted');
+    
+    // Refresh campaigns list
+    await fetchCampaigns();
+    alert('Campaign deleted successfully (database fallback)!');
+  };
+
+  const handleEditCampaign = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const token = localStorage.getItem('auth_token') || '';
+      const headers = createAuthHeaders(token);
+      
+      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns-update', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          campaign_id: selectedCampaign?.id,
+          name: editForm.name,
+          message: editForm.message,
+          zone: editForm.zone,
+          is_active: editForm.is_active
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Refresh campaigns list
+        await fetchCampaigns();
+        setShowEditForm(false);
+        setSelectedCampaign(null);
+        alert('Campaign updated successfully!');
+      } else {
+        // Database fallback
+        await updateCampaignInDatabase();
+      }
+    } catch (error) {
+      console.error('❌ Campaign update error:', error);
+      
+      // Try database fallback
+      try {
+        await updateCampaignInDatabase();
+      } catch (fallbackError) {
+        console.error('❌ Database fallback update failed:', fallbackError);
+        alert('Failed to update campaign. Please try again.');
+      }
+    }
+  };
+
+  // Database fallback campaign update
+  const updateCampaignInDatabase = async () => {
+    console.log('🗄️ Updating campaign in database:', selectedCampaign?.id);
+    
+    const { error } = await supabase
+      .from('adcampaigns')
+      .update({
+        name: editForm.name,
+        message: editForm.message,
+        zone: editForm.zone,
+        is_active: editForm.is_active
+      })
+      .eq('id', selectedCampaign?.id);
+
+    if (error) {
+      console.error('❌ Database update error:', error);
+      throw new Error(`Database error: ${error.message}`);
+    }
+
+    console.log('✅ Database campaign updated');
+    
+    // Refresh campaigns list
+    await fetchCampaigns();
+    setShowEditForm(false);
+    setSelectedCampaign(null);
+    alert('Campaign updated successfully (database fallback)!');
+  };
+
+  const openEditForm = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
     setEditForm({
-      name: campaign.title || campaign.name || '',
-      message: campaign.description || campaign.message || '',
-      zone: campaign.location || campaign.zone || '',
+      name: campaign.name || campaign.title || '',
+      message: campaign.message || campaign.description || '',
+      zone: campaign.zone || campaign.location || '',
       is_active: campaign.isActive !== undefined ? campaign.isActive : (campaign.is_active !== undefined ? campaign.is_active : true)
     });
     setShowEditForm(true);
   };
 
-  // Handle Update Campaign
-  const handleUpdateCampaign = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedCampaign) return;
-
-    try {
-      const token = localStorage.getItem('auth_token') || '';
-      const headers = createAuthHeaders(token);
-      
-      const campaignData = {
-        id: selectedCampaign.id,
-        name: editForm.name,           // POST webhook expects 'name'
-        message: editForm.message,     // POST webhook expects 'message'
-        zone: editForm.zone,           // POST webhook expects 'zone'
-        is_active: editForm.is_active, // POST webhook expects 'is_active'
-        updated_by: user?.username
-      };
-
-      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns-post', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(campaignData)
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setShowEditForm(false);
-        setSelectedCampaign(null);
-        setTimeout(() => {
-          fetchCampaigns(); // Refresh campaigns list
-        }, 500);
-        
-        // Show success message
-        const successAlert = document.createElement('div');
-        successAlert.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50';
-        successAlert.innerHTML = `
-          <div class="flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-            </svg>
-            Campaign "${editForm.name}" updated successfully!
-          </div>
-        `;
-        document.body.appendChild(successAlert);
-        setTimeout(() => successAlert.remove(), 5000);
-      } else {
-        throw new Error(data.error || 'Unknown error');
-      }
-    } catch (error) {
-      console.error('Error updating campaign:', error);
-      // Show error message
-      const errorAlert = document.createElement('div');
-      errorAlert.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50';
-      errorAlert.innerHTML = `
-        <div class="flex items-center">
-          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-          </svg>
-          Error updating campaign. Please try again.
-        </div>
-      `;
-      document.body.appendChild(errorAlert);
-      setTimeout(() => errorAlert.remove(), 5000);
-    }
-  };
-
-  // Handle Delete Campaign
-  const handleDeleteCampaign = async (campaign: Campaign) => {
-    if (!window.confirm(`Are you sure you want to delete "${campaign.name}"?`)) {
-      return;
-    }
-
-    try {
-      const token = localStorage.getItem('auth_token') || '';
-      const headers = createAuthHeaders(token);
-      
-      const deleteData = {
-        id: campaign.id,
-        action: 'delete',
-        deleted_by: user?.username
-      };
-
-      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns-delete', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(deleteData)
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setTimeout(() => {
-          fetchCampaigns(); // Refresh campaigns list
-        }, 500);
-        
-        // Show success message
-        const successAlert = document.createElement('div');
-        successAlert.className = 'fixed top-4 right-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded z-50';
-        successAlert.innerHTML = `
-          <div class="flex items-center">
-            <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-            </svg>
-            Campaign "${campaign.name}" deleted successfully!
-          </div>
-        `;
-        document.body.appendChild(successAlert);
-        setTimeout(() => successAlert.remove(), 5000);
-      } else {
-        // More specific error handling for delete operations
-        const errorMessage = data.error || 'Unknown error';
-        let displayMessage = errorMessage;
-        
-        // Provide helpful error messages based on common issues
-        if (errorMessage.includes('webhook') || errorMessage.includes('connection')) {
-          displayMessage = 'Delete functionality not available. Please contact system administrator to configure the delete endpoint.';
-        } else if (errorMessage.includes('permission') || errorMessage.includes('unauthorized')) {
-          displayMessage = 'You do not have permission to delete this campaign.';
-        } else if (errorMessage.includes('not found')) {
-          displayMessage = 'Campaign not found or already deleted.';
-        }
-        
-        throw new Error(displayMessage);
-      }
-    } catch (error) {
-      console.error('Error deleting campaign:', error);
-      // Show error message
-      const errorAlert = document.createElement('div');
-      errorAlert.className = 'fixed top-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded z-50';
-      errorAlert.innerHTML = `
-        <div class="flex items-center">
-          <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-          </svg>
-          Error deleting campaign. Please try again.
-        </div>
-      `;
-      document.body.appendChild(errorAlert);
-      setTimeout(() => errorAlert.remove(), 5000);
-    }
+  const openViewModal = (campaign: Campaign) => {
+    setSelectedCampaign(campaign);
+    setShowViewModal(true);
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading campaigns...</p>
+        </div>
       </div>
     );
   }
@@ -499,438 +553,289 @@ export default function CampaignManagement() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Campaign Management</h1>
-          <p className="text-gray-600 mt-1">
-            Create and manage promotional campaigns for {
-              user?.mall_id === 3 ? 'Spatial Barbershop at China Square Langata Mall' :
-              user?.mall_id === 6 ? 'Kika Wines & Spirits at Langata Mall' :
-              user?.mall_id === 7 ? 'Maliet Salon & Spa at NHC Mall' :
-              user?.full_name?.split(' - ')[1] || 'your shop'
-            }
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">Campaign Management</h1>
+          <p className="text-gray-600">Manage your marketing campaigns</p>
         </div>
-        <Button 
-          onClick={() => setShowCreateForm(true)}
-          className="flex items-center gap-2"
-        >
-          <PlusCircle size={20} />
+        <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
+          <PlusCircle className="h-4 w-4" />
           Create Campaign
         </Button>
       </div>
 
       {/* Analytics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Campaigns</p>
-                <p className="text-2xl font-bold">{analytics.totalCampaigns}</p>
-              </div>
-              <BarChart3 className="h-8 w-8 text-blue-500" />
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Campaigns</CardTitle>
+            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analytics.totalCampaigns}</div>
           </CardContent>
         </Card>
-        
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Campaigns</p>
-                <p className="text-2xl font-bold">{analytics.activeCampaigns}</p>
-              </div>
-              <TrendingUp className="h-8 w-8 text-green-500" />
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Campaigns</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analytics.activeCampaigns}</div>
           </CardContent>
         </Card>
-        
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Scans</p>
-                <p className="text-2xl font-bold">{analytics.totalScans}</p>
-              </div>
-              <QrCode className="h-8 w-8 text-purple-500" />
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Scans</CardTitle>
+            <QrCode className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analytics.totalScans}</div>
           </CardContent>
         </Card>
-        
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Avg. Engagement</p>
-                <p className="text-2xl font-bold">{analytics.avgEngagement}</p>
-              </div>
-              <MessageSquare className="h-8 w-8 text-orange-500" />
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Avg. Engagement</CardTitle>
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{analytics.avgEngagement}</div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Campaigns List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Your Campaigns</CardTitle>
+          <CardDescription>
+            {campaigns.length === 0 
+              ? "No campaigns found. Create your first campaign to get started." 
+              : `Showing ${campaigns.length} campaign${campaigns.length !== 1 ? 's' : ''}`
+            }
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {campaigns.length === 0 ? (
+            <div className="text-center py-8">
+              <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No campaigns yet</h3>
+              <p className="text-gray-600 mb-4">Create your first campaign to start engaging with customers</p>
+              <Button onClick={() => setShowCreateForm(true)}>
+                <PlusCircle className="h-4 w-4 mr-2" />
+                Create Your First Campaign
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {campaigns.map((campaign) => (
+                <div key={campaign.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-medium">{campaign.title || campaign.name}</h3>
+                      <Badge variant={campaign.isActive ? "default" : "secondary"}>
+                        {campaign.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{campaign.description || campaign.message}</p>
+                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <MapPin className="h-3 w-3" />
+                        {campaign.location || campaign.zone}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Calendar className="h-3 w-3" />
+                        {new Date(campaign.createdDate || campaign.created_at || '').toLocaleDateString()}
+                      </span>
+                      {campaign.scan_count !== undefined && (
+                        <span>Scans: {campaign.scan_count}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openViewModal(campaign)}
+                    >
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditForm(campaign)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDeleteCampaign(campaign.id)}
+                      className="text-red-600 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Create Campaign Modal */}
       {showCreateForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="max-w-md w-full mx-4">
-            <CardHeader>
-              <CardTitle>Create New Campaign</CardTitle>
-              <CardDescription>
-                Create a promotional campaign that customers can view by scanning QR codes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleCreateCampaign} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Campaign Name
-                  </label>
-                  <Input
-                    type="text"
-                    value={createForm.name}
-                    onChange={(e) => setCreateForm({...createForm, name: e.target.value})}
-                    placeholder="e.g., Wine Tasting Event"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Campaign Message
-                  </label>
-                  <Textarea
-                    value={createForm.message}
-                    onChange={(e) => setCreateForm({...createForm, message: e.target.value})}
-                    placeholder="Describe your campaign, promotion, or event..."
-                    rows={3}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Target Zone
-                  </label>
-                  <select
-                    value={createForm.zone}
-                    onChange={(e) => setCreateForm({...createForm, zone: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Select a mall/zone...</option>
-                    <option value="china-square">China Square Mall (mall_id: 3)</option>
-                    <option value="langata">Langata Mall (mall_id: 6)</option>
-                    <option value="nhc">NHC Mall (mall_id: 7)</option>
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Select the mall/zone where this campaign should appear
-                  </p>
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit" className="flex-1">
-                    Create Campaign
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowCreateForm(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-lg font-semibold mb-4">Create New Campaign</h2>
+            <form onSubmit={handleCreateCampaign} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Campaign Name</label>
+                <Input
+                  type="text"
+                  value={createForm.name}
+                  onChange={(e) => setCreateForm({...createForm, name: e.target.value})}
+                  placeholder="Enter campaign name"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Message</label>
+                <Textarea
+                  value={createForm.message}
+                  onChange={(e) => setCreateForm({...createForm, message: e.target.value})}
+                  placeholder="Enter campaign message"
+                  rows={3}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Target Zone</label>
+                <select
+                  value={createForm.zone}
+                  onChange={(e) => setCreateForm({...createForm, zone: e.target.value})}
+                  className="w-full p-2 border rounded-md"
+                  required
+                >
+                  <option value="china-square">China Square Mall</option>
+                  <option value="langata">Langata Mall</option>
+                  <option value="nhc">NHC Mall</option>
+                </select>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCreateForm(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Create Campaign</Button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
       {/* Edit Campaign Modal */}
       {showEditForm && selectedCampaign && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="max-w-md w-full mx-4">
-            <CardHeader>
-              <CardTitle>Edit Campaign</CardTitle>
-              <CardDescription>
-                Update campaign details for "{selectedCampaign.name}"
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleUpdateCampaign} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Campaign Name
-                  </label>
-                  <Input
-                    type="text"
-                    value={editForm.name}
-                    onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                    placeholder="e.g., Wine Tasting Event"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Campaign Message
-                  </label>
-                  <Textarea
-                    value={editForm.message}
-                    onChange={(e) => setEditForm({...editForm, message: e.target.value})}
-                    placeholder="Describe your campaign, promotion, or event..."
-                    rows={3}
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Target Zone
-                  </label>
-                  <Input
-                    type="text"
-                    value={editForm.zone}
-                    onChange={(e) => setEditForm({...editForm, zone: e.target.value})}
-                    placeholder="e.g., langata, china-square, nhc"
-                    required
-                  />
-                  <p className="text-xs text-gray-500 mt-1">
-                    Specify the mall/area where this campaign should appear
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="is_active"
-                    checked={editForm.is_active}
-                    onChange={(e) => setEditForm({...editForm, is_active: e.target.checked})}
-                    className="rounded border-gray-300"
-                  />
-                  <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
-                    Campaign is Active
-                  </label>
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <Button type="submit" className="flex-1">
-                    Update Campaign
-                  </Button>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={() => setShowEditForm(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-lg font-semibold mb-4">Edit Campaign</h2>
+            <form onSubmit={handleEditCampaign} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Campaign Name</label>
+                <Input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Message</label>
+                <Textarea
+                  value={editForm.message}
+                  onChange={(e) => setEditForm({...editForm, message: e.target.value})}
+                  rows={3}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Target Zone</label>
+                <Input
+                  type="text"
+                  value={editForm.zone}
+                  onChange={(e) => setEditForm({...editForm, zone: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="is_active"
+                  checked={editForm.is_active}
+                  onChange={(e) => setEditForm({...editForm, is_active: e.target.checked})}
+                  className="mr-2"
+                />
+                <label htmlFor="is_active" className="text-sm">Active</label>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowEditForm(false)}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit">Update Campaign</Button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
 
       {/* View Campaign Modal */}
       {showViewModal && selectedCampaign && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>Campaign Details</span>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => window.open(`https://mall-management-dashboard.pages.dev/campaign/${selectedCampaign.id}`, '_blank')}
-                >
-                  <Eye size={16} className="mr-1" />
-                  View Live
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Campaign ID
-                  </label>
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                    {selectedCampaign.id}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Status
-                  </label>
-                  <Badge variant={selectedCampaign.is_active ? 'default' : 'secondary'}>
-                    {selectedCampaign.is_active ? 'Active' : 'Inactive'}
-                  </Badge>
-                </div>
-              </div>
-
+          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
+            <h2 className="text-lg font-semibold mb-4">Campaign Details</h2>
+            <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Campaign Name
-                </label>
-                <p className="text-sm text-gray-900">{selectedCampaign.name}</p>
+                <label className="block text-sm font-medium text-gray-700">Name</label>
+                <p className="text-sm text-gray-900">{selectedCampaign.title || selectedCampaign.name}</p>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Campaign Message
-                </label>
-                <p className="text-sm text-gray-900 bg-gray-50 p-3 rounded">
-                  {selectedCampaign.message}
+                <label className="block text-sm font-medium text-gray-700">Message</label>
+                <p className="text-sm text-gray-900">{selectedCampaign.description || selectedCampaign.message}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Zone</label>
+                <p className="text-sm text-gray-900">{selectedCampaign.location || selectedCampaign.zone}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Status</label>
+                <Badge variant={selectedCampaign.isActive ? "default" : "secondary"}>
+                  {selectedCampaign.isActive ? "Active" : "Inactive"}
+                </Badge>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Created</label>
+                <p className="text-sm text-gray-900">
+                  {new Date(selectedCampaign.createdDate || selectedCampaign.created_at || '').toLocaleDateString()}
                 </p>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              {selectedCampaign.scan_count !== undefined && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Target Zone
-                  </label>
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                    {selectedCampaign.zone}
-                  </p>
+                  <label className="block text-sm font-medium text-gray-700">Total Scans</label>
+                  <p className="text-sm text-gray-900">{selectedCampaign.scan_count}</p>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Shop ID
-                  </label>
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                    {selectedCampaign.shopId || 'N/A'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Created Date
-                  </label>
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                    {selectedCampaign.createdDate}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Total Scans
-                  </label>
-                  <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
-                    {selectedCampaign.scan_count || 0}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-2 pt-4 border-t">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowEditForm(true)}
-                  className="flex-1"
-                >
-                  <Edit size={16} className="mr-1" />
-                  Edit
-                </Button>
-                <Button 
-                  variant="destructive"
-                  onClick={() => handleDeleteCampaign(selectedCampaign)}
-                  className="flex-1"
-                >
-                  <Trash2 size={16} className="mr-1" />
-                  Delete
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setShowViewModal(false)}
-                  className="flex-1"
-                >
-                  Close
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              )}
+            </div>
+            <div className="flex justify-end mt-6">
+              <Button onClick={() => setShowViewModal(false)}>Close</Button>
+            </div>
+          </div>
         </div>
       )}
-
-      {/* Campaigns List */}
-      <div className="grid gap-4">
-        {campaigns.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <QrCode className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No campaigns yet</h3>
-              <p className="text-gray-600 mb-4">Create your first campaign to start engaging customers</p>
-              <Button onClick={() => setShowCreateForm(true)}>
-                Create Your First Campaign
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          (campaigns || []).map((campaign) => (
-            <Card key={campaign.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold">{campaign.title || 'Unnamed Campaign'}</h3>
-                      <Badge variant={campaign.isActive ? 'default' : 'secondary'}>
-                        {campaign.isActive ? 'Active' : 'Inactive'}
-                      </Badge>
-                    </div>
-                    <p className="text-gray-600 mb-3">{campaign.description || 'No message provided'}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <Calendar size={14} />
-                        {campaign.createdDate || 'Unknown date'}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <MapPin size={14} />
-                        {campaign.location || 'Unknown zone'}
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 ml-4">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => generateQRCode(campaign.id)}
-                    >
-                      <QrCode size={16} className="mr-1" />
-                      QR Code
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleViewCampaign(campaign)}
-                    >
-                      <Eye size={16} className="mr-1" />
-                      View
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleEditCampaign(campaign)}
-                    >
-                      <Edit size={16} className="mr-1" />
-                      Edit
-                    </Button>
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={() => handleDeleteCampaign(campaign)}
-                    >
-                      <Trash2 size={16} className="mr-1" />
-                      Delete
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
     </div>
   );
 }
