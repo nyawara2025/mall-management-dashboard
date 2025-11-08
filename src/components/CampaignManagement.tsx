@@ -1,841 +1,563 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Textarea } from '../components/ui/textarea';
-import { Badge } from '../components/ui/badge';
-import { supabase } from '../lib/supabase';
-import { 
-  PlusCircle, 
-  TrendingUp, 
-  QrCode, 
-  Calendar,
-  Eye,
-  Edit,
-  Trash2,
-  BarChart3,
-  MessageSquare,
-  MapPin
-} from 'lucide-react';
-import { Alert, AlertDescription } from '../components/ui/alert';
-import { createAuthHeaders } from '../services/auth';
+import { User, AuthToken, Mall, Shop } from '../types/auth';
 
-interface Campaign {
-  id: string;
-  title: string;
-  description: string;
-  location: string;
-  shopId?: number;
-  mallId?: number;
-  createdDate: string;
-  isActive: boolean;
-  scan_count?: number;
-  engagement_rate?: number;
-  // Legacy fields for compatibility
-  name?: string;
-  message?: string;
-  zone?: string;
-  created_at?: string;
-  is_active?: boolean;
+// Browser-compatible token generation
+function generateSimpleToken(user: User): string {
+  const timestamp = Date.now();
+  const tokenData = `${user.id}-${user.username}-${user.role}-${user.mall_id || ''}-${user.shop_id || ''}-${timestamp}`;
+  return btoa(tokenData); // Browser built-in Base64 encoding
 }
 
-export default function CampaignManagement() {
-  const { user } = useAuth();
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [showEditForm, setShowEditForm] = useState(false);
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
-  const [createForm, setCreateForm] = useState({
-    name: '',
-    message: '',
-    zone: user?.mall_id === 3 ? 'china-square' : user?.mall_id === 6 ? 'langata' : user?.mall_id === 7 ? 'nhc' : 'china-square',
-    shop_id: user?.shop_id || ''
-  });
-  const [editForm, setEditForm] = useState({
-    name: '',
-    message: '',
-    zone: '',
-    is_active: true
-  });
-  const [analytics, setAnalytics] = useState({
-    totalCampaigns: 0,
-    activeCampaigns: 0,
-    totalScans: 0,
-    avgEngagement: 0
-  });
+// Real database users - PLACEHOLDER DATA, UPDATE WITH ACTUAL DATABASE IDs
+// Run the SQL query to get actual user data:
+// SELECT id, username, full_name, role, mall_id, shop_id, active FROM users ORDER BY id;
+const REAL_USERS = new Map<string, { password_hash: string; user: User }>();
 
-  // Zone to mall_id mapping
-  const getMallIdFromZone = (zone: string): number => {
-    const zoneMap: { [key: string]: number } = {
-      'china-square': 3,
-      'china square': 3,
-      'langata': 6,
-      'nhc': 7,
-      'china_square': 3,
-      'china_square_mall': 3,
-      'langata_mall': 6,
-      'nhc_mall': 7
-    };
-    
-    const normalizedZone = zone.toLowerCase().trim();
-    const mappedId = zoneMap[normalizedZone] || user?.mall_id || 3; // Default to China Square (3) if not found
-    
-    console.log(`🗺️ Zone mapping debug: "${zone}" -> mall_id: ${mappedId}`);
-    return mappedId;
-  };
+// Super Admin
+REAL_USERS.set('bosco', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 1, // UPDATE WITH ACTUAL ID FROM DATABASE
+    username: 'bosco', 
+    full_name: 'Bosco Mukira',
+    role: 'super_admin', 
+    mall_id: null, 
+    shop_id: null, 
+    active: true 
+  } 
+});
 
-  // Fetch campaigns for the user's shop
-  useEffect(() => {
-    if (user?.shop_id) {
-      fetchCampaigns();
-    }
-  }, [user]);
+// Mall Admins
+REAL_USERS.set('jane', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 2, // UPDATE WITH ACTUAL ID FROM DATABASE
+    username: 'jane', 
+    full_name: 'Jane Wangui',
+    role: 'mall_admin', 
+    mall_id: 3, // China Square Mall
+    shop_id: null, 
+    active: true 
+  } 
+});
 
-  const fetchCampaigns = async () => {
-    try {
-      const token = localStorage.getItem('auth_token') || '';
-      const headers = createAuthHeaders(token);
-      
-      console.log('🔍 Fetching campaigns for shop_id:', user?.shop_id); // Debug shop_id
-      
-      // Try both API endpoints and response structures
-      const endpoints = [
-        `https://n8n.tenear.com/webhook/manage-campaigns-get?shop_id=${user?.shop_id}`,
-        `https://n8n.tenear.com/webhook/manage-campaigns-get?user_id=${user?.shop_id}`,
-        `https://n8n.tenear.com/webhook/manage-campaigns-get?mall_id=${user?.mall_id}`
-      ];
+REAL_USERS.set('faith', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 3, // UPDATE WITH ACTUAL ID FROM DATABASE
+    username: 'faith', 
+    full_name: 'Faith Njeri',
+    role: 'mall_admin', 
+    mall_id: 6, // Langata Mall
+    shop_id: null, 
+    active: true 
+  } 
+});
 
-      let data: any = null;
-      let lastError: any = null;
+REAL_USERS.set('ngina', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 4, // UPDATE WITH ACTUAL ID FROM DATABASE
+    username: 'ngina', 
+    full_name: 'Ngina Wanjiku',
+    role: 'mall_admin', 
+    mall_id: 7, // NHC Mall
+    shop_id: null, 
+    active: true 
+  } 
+});
 
-      // Try each endpoint until one works
-      for (const endpoint of endpoints) {
-        try {
-          console.log(`🚀 Trying endpoint: ${endpoint}`);
-          const response = await fetch(endpoint, { headers });
-          
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          
-          const responseData = await response.json();
-          console.log(`✅ Response from ${endpoint}:`, responseData);
-          
-          // Store the response to analyze structure
-          data = responseData;
-          break;
-        } catch (error) {
-          console.log(`❌ Failed endpoint ${endpoint}:`, error);
-          lastError = error;
-          continue;
-        }
+// Shop Admins - Current
+REAL_USERS.set('ben', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 5, // UPDATE WITH ACTUAL ID FROM DATABASE
+    username: 'ben', 
+    full_name: 'Ben - Spatial Barbershop',
+    role: 'shop_admin', 
+    mall_id: 3, // China Square Mall
+    shop_id: 3, // Spatial Barbershop
+    active: true 
+  } 
+});
+
+// Shop Admins - Missing Users (need to be added to database)
+REAL_USERS.set('sandra', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 6, // TEMPORARY ID - will be assigned when added to database
+    username: 'sandra', 
+    full_name: 'Sandra - Kika Wines',
+    role: 'shop_admin', 
+    mall_id: 6, // Langata Mall - UPDATE WITH ACTUAL ID (matching database)
+    shop_id: 6, // Sandra's actual shop_id in database
+    active: true 
+  } 
+});
+
+REAL_USERS.set('andrew', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 7, // TEMPORARY ID - will be assigned when added to database
+    username: 'andrew', 
+    full_name: 'Andrew - The Phone Shop',
+    role: 'shop_admin', 
+    mall_id: 6, // Langata Mall
+    shop_id: 3, // The Phone Shop - UPDATE WITH ACTUAL ID (needs to be added to database first)
+    active: true 
+  } 
+});
+
+REAL_USERS.set('fred', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 8, // TEMPORARY ID - will be assigned when added to database
+    username: 'fred', 
+    full_name: 'Fred - Cleanshelf SupaMarket',
+    role: 'shop_admin', 
+    mall_id: 6, // Langata Mall
+    shop_id: 4, // Cleanshelf Supamarket - UPDATE WITH ACTUAL ID (needs to be added to database first)
+    active: true 
+  } 
+});
+
+REAL_USERS.set('ibrahim', { 
+  password_hash: '$2b$10$demo123hashedpassword', 
+  user: { 
+    id: 9, // TEMPORARY ID - will be assigned when added to database
+    username: 'ibrahim', 
+    full_name: 'Ibrahim - Maliet Salon & Spa',
+    role: 'shop_admin', 
+    mall_id: 7, // NHC Mall
+    shop_id: 5, // Maliet Salon & Spa - UPDATE WITH ACTUAL ID (needs to be added to database first)
+    active: true 
+  } 
+});
+
+// Real mall data - PLACEHOLDER COORDINATES, UPDATE WITH ACTUAL DATABASE DATA
+// Run the SQL query to get actual mall data:
+// SELECT id, name, latitude, longitude, address, radius_meters, active FROM malls ORDER BY id;
+const REAL_MALLS: Mall[] = [
+  {
+    id: 1, // UPDATE WITH ACTUAL ID FROM DATABASE
+    name: 'China Square',
+    latitude: -1.2921, // UPDATE WITH ACTUAL COORDINATES FROM DATABASE
+    longitude: 36.8219,
+    address: 'Langata, Nairobi', // UPDATE WITH ACTUAL ADDRESS FROM DATABASE
+    radius_meters: 150.00, // UPDATE WITH ACTUAL RADIUS FROM DATABASE
+    active: true,
+    created_at: '2024-01-15T10:00:00Z', // UPDATE WITH ACTUAL TIMESTAMPS
+    updated_at: '2024-01-15T10:00:00Z',
+    shops: [
+      { 
+        id: 1, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'Spatial Barbershop', 
+        created_at: '2024-01-15T10:00:00Z', 
+        updated_at: '2024-01-15T10:00:00Z' 
+      },
+      { 
+        id: 2, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'Mall Cafe', 
+        created_at: '2024-01-15T11:00:00Z', 
+        updated_at: '2024-01-15T11:00:00Z' 
       }
-
-      if (!data) {
-        console.error('All endpoints failed, using fallback to Supabase');
-        return await fetchFromSupabase();
+    ]
+  },
+  {
+    id: 2, // UPDATE WITH ACTUAL ID FROM DATABASE
+    name: 'Langata Mall',
+    latitude: -1.323957, // UPDATE WITH ACTUAL COORDINATES FROM DATABASE
+    longitude: 36.782825,
+    address: 'Langata, Nairobi', // UPDATE WITH ACTUAL ADDRESS FROM DATABASE
+    radius_meters: 150.00, // UPDATE WITH ACTUAL RADIUS FROM DATABASE
+    active: true,
+    created_at: '2024-01-16T11:00:00Z',
+    updated_at: '2024-01-16T11:00:00Z',
+    shops: [
+      { 
+        id: 3, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'Kika Wines', 
+        created_at: '2024-01-16T11:00:00Z', 
+        updated_at: '2024-01-16T11:00:00Z' 
+      },
+      { 
+        id: 4, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'The Phone Shop', 
+        created_at: '2024-01-16T12:00:00Z', 
+        updated_at: '2024-01-16T12:00:00Z' 
+      },
+      { 
+        id: 5, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'Cleanshelf Supamarket', 
+        created_at: '2024-01-16T13:00:00Z', 
+        updated_at: '2024-01-16T13:00:00Z' 
       }
-
-      console.log('📋 Full API response structure:', JSON.stringify(data, null, 2));
-      console.log('🔍 Response type:', typeof data, 'Keys:', Object.keys(data || {}));
-
-      // Try multiple response structure patterns
-      let campaignsArray: Campaign[] = [];
-      
-      if (data.success && data.campaigns) {
-        campaignsArray = data.campaigns;
-      } else if (Array.isArray(data)) {
-        campaignsArray = data;
-      } else if (data.data && Array.isArray(data.data)) {
-        campaignsArray = data.data;
-      } else if (data.campaigns && Array.isArray(data.campaigns)) {
-        campaignsArray = data.campaigns;
-      } else {
-        console.warn('⚠️ Unexpected API response structure:', data);
-        return await fetchFromSupabase();
+    ]
+  },
+  {
+    id: 3, // UPDATE WITH ACTUAL ID FROM DATABASE
+    name: 'NHC Mall',
+    latitude: -1.317435, // UPDATE WITH ACTUAL COORDINATES FROM DATABASE
+    longitude: 36.7882,
+    address: 'Langata, Nairobi', // UPDATE WITH ACTUAL ADDRESS FROM DATABASE
+    radius_meters: 150.00, // UPDATE WITH ACTUAL RADIUS FROM DATABASE
+    active: true,
+    created_at: '2024-01-17T12:00:00Z',
+    updated_at: '2024-01-17T12:00:00Z',
+    shops: [
+      { 
+        id: 6, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'Maliet Salon & Spa', 
+        created_at: '2024-01-17T12:00:00Z', 
+        updated_at: '2024-01-17T13:00:00Z' 
+      },
+      { 
+        id: 7, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'CBC Resource Centre', 
+        created_at: '2024-01-17T13:00:00Z', 
+        updated_at: '2024-01-17T13:00:00Z' 
+      },
+      { 
+        id: 8, // UPDATE WITH ACTUAL SHOP ID FROM DATABASE
+        name: 'Hydramist Drinking Water Services', 
+        created_at: '2024-01-17T14:00:00Z', 
+        updated_at: '2024-01-17T14:00:00Z' 
       }
-      
-      console.log('📊 Campaigns array found:', campaignsArray.length, 'items');
-      console.log('📄 Sample campaigns:', JSON.stringify(campaignsArray.slice(0, 2), null, 2));
-      
-      // Enhanced client-side filtering: Only show campaigns for user's shop
-      const allCampaigns = campaignsArray || [];
-      const filteredCampaigns = allCampaigns.filter((campaign: Campaign) => {
-        // Check multiple possible field names
-        const campaignShopId = campaign.shopId || campaign.shop_id || null;
-        const campaignMallId = campaign.mallId || campaign.mall_id || null;
-        
-        const matchesShop = campaignShopId === user?.shop_id;
-        const matchesMall = campaignMallId === user?.mall_id;
-        
-        console.log(`🔍 Campaign ${campaign.id || campaign.title}: shopId=${campaignShopId} vs userShopId=${user?.shop_id}, mallId=${campaignMallId} vs userMallId=${user?.mall_id}`);
-        
-        return matchesShop || matchesMall;
-      });
-      
-      console.log(`🔢 Total campaigns fetched: ${allCampaigns.length}`);
-      console.log(`✅ Filtered campaigns (${user?.username} only): ${filteredCampaigns.length}`);
-      console.log('🏷️ Campaign titles:', filteredCampaigns.map((c: Campaign) => c.title || c.name || 'No title'));
-      
-      setCampaigns(filteredCampaigns);
-      
-      // Calculate analytics from filtered data
-      const total = filteredCampaigns.length;
-      const active = filteredCampaigns.filter((c: Campaign) => 
-        c.isActive !== undefined ? c.isActive : c.is_active !== undefined ? c.is_active : true
-      ).length;
-      const totalScans = filteredCampaigns.reduce((sum: number, c: Campaign) => sum + (c.scan_count || 0), 0);
-      const avgEngagement = total > 0 ? (totalScans / total).toFixed(1) : 0;
-
-      setAnalytics({
-        totalCampaigns: total,
-        activeCampaigns: active,
-        totalScans,
-        avgEngagement: parseFloat(avgEngagement as string)
-      });
-      
-    } catch (error) {
-      console.error('❌ Error fetching campaigns:', error);
-      // Fallback to Supabase query
-      await fetchFromSupabase();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fallback method using Supabase direct query
-  const fetchFromSupabase = async () => {
-    try {
-      console.log('🔄 Fallback: Fetching from Supabase directly...');
-      
-      const { data, error } = await supabase
-        .from('adcampaigns')
-        .select('*')
-        .or(`shop_id.eq.${user?.shop_id},mall_id.eq.${user?.mall_id}`)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Supabase error:', error);
-        return;
-      }
-
-      console.log('📊 Supabase response:', data);
-      
-      if (data) {
-        const mappedCampaigns: Campaign[] = data.map((campaign: any) => ({
-          id: campaign.id.toString(),
-          title: campaign.name,
-          description: campaign.message,
-          location: campaign.zone || 'Unknown',
-          shopId: campaign.shop_id,
-          mallId: campaign.mall_id,
-          createdDate: campaign.created_at,
-          isActive: campaign.is_active !== false,
-          name: campaign.name,
-          message: campaign.message,
-          zone: campaign.zone,
-          created_at: campaign.created_at,
-          is_active: campaign.is_active,
-          scan_count: campaign.scan_count || 0,
-          engagement_rate: campaign.engagement_rate || 0
-        }));
-
-        setCampaigns(mappedCampaigns);
-        
-        // Calculate analytics
-        const total = mappedCampaigns.length;
-        const active = mappedCampaigns.filter(c => c.isActive).length;
-        const totalScans = mappedCampaigns.reduce((sum, c) => sum + (c.scan_count || 0), 0);
-        const avgEngagement = total > 0 ? (totalScans / total).toFixed(1) : 0;
-
-        setAnalytics({
-          totalCampaigns: total,
-          activeCampaigns: active,
-          totalScans,
-          avgEngagement: parseFloat(avgEngagement as string)
-        });
-      }
-    } catch (error) {
-      console.error('❌ Fallback fetch error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateCampaign = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      const token = localStorage.getItem('auth_token') || '';
-      const headers = createAuthHeaders(token);
-      
-      const mappedMallId = getMallIdFromZone(createForm.zone);
-      console.log('🎯 Campaign creation debug:', {
-        zone: createForm.zone,
-        mappedMallId: mappedMallId,
-        userMallId: user?.mall_id,
-        userShopId: user?.shop_id,
-        userName: user?.username
-      });
-      
-      const campaignData = {
-        name: createForm.name,           // POST webhook expects 'name'
-        message: createForm.message,     // POST webhook expects 'message' 
-        zone: createForm.zone,           // POST webhook expects 'zone'
-        shop_id: user?.shop_id,
-        mall_id: mappedMallId,           // Map zone to correct mall_id
-        created_by: user?.username
-      };
-
-      console.log('📤 Sending campaign data:', campaignData);
-
-      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns-post', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(campaignData)
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      console.log('📥 Campaign creation response:', data);
-      console.log('🏷️ User shop_id:', user?.shop_id);
-      console.log('📊 Campaign data sent:', JSON.stringify(campaignData, null, 2));
-      console.log('✅ Creation success:', data.success);
-      
-      if (data.success) {
-        // Refresh campaigns list
-        await fetchCampaigns();
-        // Reset form
-        setCreateForm({
-          name: '',
-          message: '',
-          zone: user?.mall_id === 3 ? 'china-square' : user?.mall_id === 6 ? 'langata' : user?.mall_id === 7 ? 'nhc' : 'china-square',
-          shop_id: user?.shop_id || ''
-        });
-        setShowCreateForm(false);
-        alert('Campaign created successfully!');
-      } else {
-        // Database fallback
-        console.log('🔄 n8n webhook failed, trying database creation...');
-        await createCampaignInDatabase(campaignData);
-      }
-    } catch (error) {
-      console.error('❌ Campaign creation error:', error);
-      
-      // Try database fallback
-      try {
-        const campaignData = {
-          name: createForm.name,
-          message: createForm.message,
-          zone: createForm.zone,
-          shop_id: user?.shop_id,
-          mall_id: getMallIdFromZone(createForm.zone), // Use mapped mall_id
-          created_by: user?.username
-        };
-        await createCampaignInDatabase(campaignData);
-      } catch (fallbackError) {
-        console.error('❌ Database fallback also failed:', fallbackError);
-        alert('Failed to create campaign. Please try again.');
-      }
-    }
-  };
-
-  // Database fallback campaign creation
-  const createCampaignInDatabase = async (campaignData: any) => {
-    console.log('🗄️ Creating campaign in database with data:', campaignData);
-    
-    const { data, error } = await supabase
-      .from('adcampaigns')
-      .insert([{
-        name: campaignData.name,
-        message: campaignData.message,
-        zone: campaignData.zone,
-        shop_id: campaignData.shop_id,
-        mall_id: campaignData.mall_id,
-        created_by: campaignData.created_by,
-        is_active: true
-      }])
-      .select();
-
-    if (error) {
-      console.error('❌ Database insert error:', error);
-      throw new Error(`Database error: ${error.message}`);
-    }
-
-    console.log('✅ Database campaign created:', data);
-    
-    // Refresh campaigns list
-    await fetchCampaigns();
-    setCreateForm({
-      name: '',
-      message: '',
-      zone: user?.mall_id === 3 ? 'china-square' : user?.mall_id === 6 ? 'langata' : user?.mall_id === 7 ? 'nhc' : 'china-square',
-      shop_id: user?.shop_id || ''
-    });
-    setShowCreateForm(false);
-    alert('Campaign created successfully (database fallback)!');
-  };
-
-  const handleDeleteCampaign = async (campaignId: string) => {
-    if (!confirm('Are you sure you want to delete this campaign?')) return;
-    
-    try {
-      const token = localStorage.getItem('auth_token') || '';
-      const headers = createAuthHeaders(token);
-      
-      // Try n8n webhook first
-      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns-delete', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ campaign_id: campaignId })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        // Refresh campaigns list
-        await fetchCampaigns();
-        alert('Campaign deleted successfully!');
-      } else {
-        // Database fallback
-        await deleteCampaignFromDatabase(campaignId);
-      }
-    } catch (error) {
-      console.error('❌ Campaign deletion error:', error);
-      
-      // Try database fallback
-      try {
-        await deleteCampaignFromDatabase(campaignId);
-      } catch (fallbackError) {
-        console.error('❌ Database fallback delete failed:', fallbackError);
-        alert('Failed to delete campaign. Please try again.');
-      }
-    }
-  };
-
-  // Database fallback campaign deletion
-  const deleteCampaignFromDatabase = async (campaignId: string) => {
-    console.log('🗄️ Deleting campaign from database:', campaignId);
-    
-    const { error } = await supabase
-      .from('adcampaigns')
-      .delete()
-      .eq('id', campaignId);
-
-    if (error) {
-      console.error('❌ Database delete error:', error);
-      throw new Error(`Database error: ${error.message}`);
-    }
-
-    console.log('✅ Database campaign deleted');
-    
-    // Refresh campaigns list
-    await fetchCampaigns();
-    alert('Campaign deleted successfully (database fallback)!');
-  };
-
-  const handleEditCampaign = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    try {
-      const token = localStorage.getItem('auth_token') || '';
-      const headers = createAuthHeaders(token);
-      
-      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns-update', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          campaign_id: selectedCampaign?.id,
-          name: editForm.name,
-          message: editForm.message,
-          zone: editForm.zone,
-          is_active: editForm.is_active
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.success) {
-        // Refresh campaigns list
-        await fetchCampaigns();
-        setShowEditForm(false);
-        setSelectedCampaign(null);
-        alert('Campaign updated successfully!');
-      } else {
-        // Database fallback
-        await updateCampaignInDatabase();
-      }
-    } catch (error) {
-      console.error('❌ Campaign update error:', error);
-      
-      // Try database fallback
-      try {
-        await updateCampaignInDatabase();
-      } catch (fallbackError) {
-        console.error('❌ Database fallback update failed:', fallbackError);
-        alert('Failed to update campaign. Please try again.');
-      }
-    }
-  };
-
-  // Database fallback campaign update
-  const updateCampaignInDatabase = async () => {
-    console.log('🗄️ Updating campaign in database:', selectedCampaign?.id);
-    
-    const { error } = await supabase
-      .from('adcampaigns')
-      .update({
-        name: editForm.name,
-        message: editForm.message,
-        zone: editForm.zone,
-        is_active: editForm.is_active
-      })
-      .eq('id', selectedCampaign?.id);
-
-    if (error) {
-      console.error('❌ Database update error:', error);
-      throw new Error(`Database error: ${error.message}`);
-    }
-
-    console.log('✅ Database campaign updated');
-    
-    // Refresh campaigns list
-    await fetchCampaigns();
-    setShowEditForm(false);
-    setSelectedCampaign(null);
-    alert('Campaign updated successfully (database fallback)!');
-  };
-
-  const openEditForm = (campaign: Campaign) => {
-    setSelectedCampaign(campaign);
-    setEditForm({
-      name: campaign.name || campaign.title || '',
-      message: campaign.message || campaign.description || '',
-      zone: campaign.zone || campaign.location || '',
-      is_active: campaign.isActive !== undefined ? campaign.isActive : (campaign.is_active !== undefined ? campaign.is_active : true)
-    });
-    setShowEditForm(true);
-  };
-
-  const openViewModal = (campaign: Campaign) => {
-    setSelectedCampaign(campaign);
-    setShowViewModal(true);
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading campaigns...</p>
-        </div>
-      </div>
-    );
+    ]
   }
+];
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Campaign Management</h1>
-          <p className="text-gray-600">Manage your marketing campaigns</p>
-        </div>
-        <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
-          <PlusCircle className="h-4 w-4" />
-          Create Campaign
-        </Button>
-      </div>
-
-      {/* Analytics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Campaigns</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics.totalCampaigns}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Campaigns</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics.activeCampaigns}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Scans</CardTitle>
-            <QrCode className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics.totalScans}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg. Engagement</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics.avgEngagement}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Campaigns List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Campaigns</CardTitle>
-          <CardDescription>
-            {campaigns.length === 0 
-              ? "No campaigns found. Create your first campaign to get started." 
-              : `Showing ${campaigns.length} campaign${campaigns.length !== 1 ? 's' : ''}`
-            }
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {campaigns.length === 0 ? (
-            <div className="text-center py-8">
-              <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No campaigns yet</h3>
-              <p className="text-gray-600 mb-4">Create your first campaign to start engaging with customers</p>
-              <Button onClick={() => setShowCreateForm(true)}>
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Create Your First Campaign
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {campaigns.map((campaign) => (
-                <div key={campaign.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <h3 className="font-medium">{campaign.title || campaign.name}</h3>
-                      <Badge variant={campaign.isActive ? "default" : "secondary"}>
-                        {campaign.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-600 mt-1">{campaign.description || campaign.message}</p>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {campaign.location || campaign.zone}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        {new Date(campaign.createdDate || campaign.created_at || '').toLocaleDateString()}
-                      </span>
-                      {campaign.scan_count !== undefined && (
-                        <span>Scans: {campaign.scan_count}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openViewModal(campaign)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openEditForm(campaign)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDeleteCampaign(campaign.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Create Campaign Modal */}
-      {showCreateForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-4">Create New Campaign</h2>
-            <form onSubmit={handleCreateCampaign} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Campaign Name</label>
-                <Input
-                  type="text"
-                  value={createForm.name}
-                  onChange={(e) => setCreateForm({...createForm, name: e.target.value})}
-                  placeholder="Enter campaign name"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Message</label>
-                <Textarea
-                  value={createForm.message}
-                  onChange={(e) => setCreateForm({...createForm, message: e.target.value})}
-                  placeholder="Enter campaign message"
-                  rows={3}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Target Zone</label>
-                <select
-                  value={createForm.zone}
-                  onChange={(e) => setCreateForm({...createForm, zone: e.target.value})}
-                  className="w-full p-2 border rounded-md"
-                  required
-                >
-                  <option value="china-square">China Square Mall</option>
-                  <option value="langata">Langata Mall</option>
-                  <option value="nhc">NHC Mall</option>
-                </select>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowCreateForm(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit">Create Campaign</Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Campaign Modal */}
-      {showEditForm && selectedCampaign && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-lg font-semibold mb-4">Edit Campaign</h2>
-            <form onSubmit={handleEditCampaign} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Campaign Name</label>
-                <Input
-                  type="text"
-                  value={editForm.name}
-                  onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Message</label>
-                <Textarea
-                  value={editForm.message}
-                  onChange={(e) => setEditForm({...editForm, message: e.target.value})}
-                  rows={3}
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Target Zone</label>
-                <Input
-                  type="text"
-                  value={editForm.zone}
-                  onChange={(e) => setEditForm({...editForm, zone: e.target.value})}
-                  required
-                />
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="is_active"
-                  checked={editForm.is_active}
-                  onChange={(e) => setEditForm({...editForm, is_active: e.target.checked})}
-                  className="mr-2"
-                />
-                <label htmlFor="is_active" className="text-sm">Active</label>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowEditForm(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit">Update Campaign</Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* View Campaign Modal */}
-      {showViewModal && selectedCampaign && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-lg">
-            <h2 className="text-lg font-semibold mb-4">Campaign Details</h2>
-            <div className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Name</label>
-                <p className="text-sm text-gray-900">{selectedCampaign.title || selectedCampaign.name}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Message</label>
-                <p className="text-sm text-gray-900">{selectedCampaign.description || selectedCampaign.message}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Zone</label>
-                <p className="text-sm text-gray-900">{selectedCampaign.location || selectedCampaign.zone}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Status</label>
-                <Badge variant={selectedCampaign.isActive ? "default" : "secondary"}>
-                  {selectedCampaign.isActive ? "Active" : "Inactive"}
-                </Badge>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Created</label>
-                <p className="text-sm text-gray-900">
-                  {new Date(selectedCampaign.createdDate || selectedCampaign.created_at || '').toLocaleDateString()}
-                </p>
-              </div>
-              {selectedCampaign.scan_count !== undefined && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">Total Scans</label>
-                  <p className="text-sm text-gray-900">{selectedCampaign.scan_count}</p>
-                </div>
-              )}
-            </div>
-            <div className="flex justify-end mt-6">
-              <Button onClick={() => setShowViewModal(false)}>Close</Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+// Authentication Service
+export class AuthService {
+  static async login(username: string, password: string): Promise<{ success: boolean; token?: string; user?: User; error?: string }> {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    const realUser = REAL_USERS.get(username.toLowerCase());
+    
+    if (!realUser) {
+      return { success: false, error: 'User not found' };
+    }
+    
+    // For demo purposes, compare against the hashed password
+    // In production, you'd use bcrypt.compare(password, realUser.password_hash)
+    const isValidPassword = password === 'demo123'; // Simple demo validation
+    
+    if (!isValidPassword) {
+      return { success: false, error: 'Invalid username or password' };
+    }
+    
+    if (!realUser.user.active) {
+      return { success: false, error: 'Account is inactive' };
+    }
+    
+    // Create simple token (browser-compatible)
+    const token = generateSimpleToken(realUser.user);
+    
+    return {
+      success: true,
+      token,
+      user: realUser.user
+    };
+  }
+  
+  static logout(): void {
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_data');
+  }
+  
+  static verifyToken(token: string): AuthToken | null {
+    try {
+      // Decode the token format: userId-username-role-mallId-shopId-timestamp
+      const decodedString = atob(token);
+      const [userId, username, role, mallId, shopId, timestamp] = decodedString.split('-');
+      
+      // Basic validation
+      if (!userId || !username || !role || !timestamp) return null;
+      
+      // Check if token is expired
+      const tokenTime = parseInt(timestamp);
+      const expirationTime = tokenTime + (24 * 60 * 60) * 1000; // 24 hours in milliseconds
+      
+      if (Date.now() > expirationTime) {
+        return null; // Token expired
+      }
+      
+      // Create AuthToken object
+      return {
+        username,
+        role: role as 'super_admin' | 'mall_admin' | 'shop_admin',
+        userId: parseInt(userId),
+        mall_id: mallId ? parseInt(mallId) : null,
+        shop_id: shopId ? parseInt(shopId) : null,
+        exp: expirationTime
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+  
+  static isTokenValid(token: string): boolean {
+    return this.verifyToken(token) !== null;
+  }
+  
+  static decodeToken(token: string): AuthToken | null {
+    try {
+      const decodedString = atob(token);
+      const [userId, username, role, mallId, shopId, timestamp] = decodedString.split('-');
+      
+      if (!userId || !username || !role || !timestamp) return null;
+      
+      return {
+        username,
+        role: role as 'super_admin' | 'mall_admin' | 'shop_admin',
+        userId: parseInt(userId),
+        mall_id: mallId ? parseInt(mallId) : null,
+        shop_id: shopId ? parseInt(shopId) : null,
+        exp: parseInt(timestamp) + (24 * 60 * 60) * 1000
+      };
+    } catch {
+      return null;
+    }
+  }
+  
+  static getCurrentUser(): User | null {
+    try {
+      const token = localStorage.getItem('auth_token');
+      const userData = localStorage.getItem('user_data');
+      
+      if (!token || !userData) return null;
+      
+      // Verify token is still valid
+      if (!this.isTokenValid(token)) {
+        this.logout();
+        return null;
+      }
+      
+      // Parse user data
+      const user = JSON.parse(userData) as User;
+      
+      // Update user data with any changes from the REAL_USERS map
+      const realUser = REAL_USERS.get(user.username);
+      if (realUser) {
+        return realUser.user;
+      }
+      
+      return user;
+    } catch {
+      return null;
+    }
+  }
 }
+
+// API Service for Mall Management
+export class MallApiService {
+  private static readonly API_BASE_URL = 'https://n8n.tenear.com/webhook/management/malls';
+  
+  static async fetchMalls(token: string): Promise<{ success: boolean; data?: Mall[]; error?: string }> {
+    try {
+      // Decode token to get user role and mall_id for filtering
+      const authToken = AuthService.decodeToken(token);
+      if (!authToken) {
+        return { success: false, error: 'Invalid token' };
+      }
+
+      // Use real data with proper role-based filtering
+      let filteredMalls = REAL_MALLS;
+      
+      if (authToken.role === 'mall_admin' && authToken.mall_id) {
+        // Mall admins can only see their assigned mall
+        filteredMalls = REAL_MALLS.filter(mall => mall.id === authToken.mall_id);
+      } else if (authToken.role === 'shop_admin' && authToken.mall_id) {
+        // Shop admins can only see malls for their assigned shop
+        filteredMalls = REAL_MALLS.filter(mall => mall.id === authToken.mall_id);
+      }
+      // Super admins see all malls (no filtering needed)
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return { 
+        success: true, 
+        data: filteredMalls
+      };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
+  }
+  
+  static async fetchMallDetails(mallId: number, token: string): Promise<{ success: boolean; data?: Mall; error?: string }> {
+    try {
+      const mallsResponse = await this.fetchMalls(token);
+      if (!mallsResponse.success || !mallsResponse.data) {
+        return { success: false, error: 'Failed to fetch malls' };
+      }
+      
+      const mall = mallsResponse.data.find(m => m.id === mallId);
+      if (!mall) {
+        return { success: false, error: 'Mall not found or access denied' };
+      }
+      
+      return { success: true, data: mall };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
+  }
+  
+  // CRITICAL FIX: This method now properly filters shops for shop admins
+  static async fetchShops(mallId: number, token: string): Promise<{ success: boolean; data?: Shop[]; error?: string }> {
+    try {
+      const mallsResponse = await this.fetchMalls(token);
+      if (!mallsResponse.success || !mallsResponse.data) {
+        return { success: false, error: 'Failed to fetch malls' };
+      }
+      
+      const mall = mallsResponse.data.find(m => m.id === mallId);
+      if (!mall) {
+        return { success: false, error: 'Mall not found or access denied' };
+      }
+      
+      // Get all shops for this mall
+      let shops = mall.shops || [];
+      
+      // CRITICAL FIX: For shop admins, only return their specific assigned shop
+      const authToken = AuthService.decodeToken(token);
+      if (authToken?.role === 'shop_admin' && authToken.shop_id) {
+        // Shop admins can only see their own assigned shop
+        shops = shops.filter(shop => shop.id === authToken.shop_id);
+      }
+      // Mall admins and super admins see all shops in the mall
+      
+      return { success: true, data: shops };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
+  }
+  
+  static async createMall(mallData: Partial<Mall>, token: string): Promise<{ success: boolean; data?: Mall; error?: string }> {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const newMall: Mall = {
+        id: Math.max(...REAL_MALLS.map(m => m.id)) + 1,
+        name: mallData.name || 'New Mall',
+        latitude: mallData.latitude || -1.2921,
+        longitude: mallData.longitude || 36.8219,
+        address: mallData.address || 'Unknown Location',
+        radius_meters: mallData.radius_meters || 500,
+        active: mallData.active !== undefined ? mallData.active : true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        shops: []
+      };
+      
+      return { success: true, data: newMall };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
+  }
+  
+  static async updateMall(mallId: number, mallData: Partial<Mall>, token: string): Promise<{ success: boolean; data?: Mall; error?: string }> {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const existingMall = REAL_MALLS.find(m => m.id === mallId);
+      if (!existingMall) {
+        return { success: false, error: 'Mall not found' };
+      }
+      
+      const updatedMall: Mall = {
+        ...existingMall,
+        ...mallData,
+        updated_at: new Date().toISOString()
+      };
+      
+      return { success: true, data: updatedMall };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
+  }
+  
+  static async deleteMall(mallId: number, token: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      const existingMall = REAL_MALLS.find(m => m.id === mallId);
+      if (!existingMall) {
+        return { success: false, error: 'Mall not found' };
+      }
+      
+      return { success: true };
+    } catch (error) {
+      return { 
+        success: false, 
+        error: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      };
+    }
+  }
+  
+  static createAuthHeaders(token: string): HeadersInit {
+    return {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+  }
+}
+
+// Export service objects for easy importing
+export const AuthServiceExports = {
+  login: AuthService.login.bind(AuthService),
+  logout: AuthService.logout.bind(AuthService),
+  decodeToken: AuthService.decodeToken.bind(AuthService),
+  verifyToken: AuthService.verifyToken.bind(AuthService),
+  isTokenValid: AuthService.isTokenValid.bind(AuthService),
+  getCurrentUser: AuthService.getCurrentUser.bind(AuthService)
+};
+
+export const MallApiServiceExports = {
+  fetchMalls: MallApiService.fetchMalls.bind(MallApiService),
+  fetchMallDetails: MallApiService.fetchMallDetails.bind(MallApiService),
+  createMall: MallApiService.createMall.bind(MallApiService),
+  updateMall: MallApiService.updateMall.bind(MallApiService),
+  deleteMall: MallApiService.deleteMall.bind(MallApiService),
+  fetchShops: MallApiService.fetchShops.bind(MallApiService),
+  createAuthHeaders: MallApiService.createAuthHeaders.bind(MallApiService)
+};
+
+// Individual exports for easier importing
+export const login = AuthService.login;
+export const logout = AuthService.logout;
+export const decodeToken = AuthService.decodeToken;
+export const verifyToken = AuthService.verifyToken;
+export const isTokenValid = AuthService.isTokenValid;
+export const getCurrentUser = AuthService.getCurrentUser;
+
+// Utility function for creating auth headers
+export function createAuthHeaders(token: string): HeadersInit {
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  };
+}
+
+export const fetchMalls = MallApiService.fetchMalls;
+export const fetchMallDetails = MallApiService.fetchMallDetails;
+export const createMall = MallApiService.createMall;
+export const updateMall = MallApiService.updateMall;
+export const deleteMall = MallApiService.deleteMall;
+export const fetchShops = MallApiService.fetchShops;
+export const createAuthHeadersFromService = MallApiService.createAuthHeaders;
