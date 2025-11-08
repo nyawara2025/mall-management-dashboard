@@ -39,20 +39,20 @@ export default function QRCheckInPage({ campaignId, location, shopId }: QRCheckI
 
       setCampaign(campaignData[0]);
 
-      // Create visitor check-in record
+      // Create visitor check-in record using CORRECT column names
       const visitorId = `visitor_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       
       const { data: checkInData, error: checkInError } = await supabase
         .from('qr_checkins')
         .insert([{
-          campaign_id: campaignId,
-          visitor_id: visitorId,
-          location: location,
-          shop_id: shopId || campaignData[0].shop_id,
-          mall_id: campaignData[0].mall_id,
-          timestamp: new Date().toISOString(),
-          user_agent: navigator.userAgent,
-          referrer: document.referrer || null
+          location_id: location,           // Correct column name
+          visitor_id: visitorId,           // Correct column name  
+          checkin_timestamp: new Date().toISOString(),  // Correct column name
+          zone_name: campaignData[0].zone || 'General', // Map to zone_name
+          checkin_benefits: `Scan reward for ${campaignData[0].name}`,
+          qr_type: 'campaign_qr',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         }])
         .limit(1);
 
@@ -80,7 +80,7 @@ export default function QRCheckInPage({ campaignId, location, shopId }: QRCheckI
   const getLocationDisplayName = (loc: string) => {
     const locationMap: { [key: string]: string } = {
       'entrance': 'Shop Entrance',
-      'checkout': 'Checkout Counter',
+      'checkout': 'Checkout Counter', 
       'display': 'Product Display'
     };
     return locationMap[loc] || loc;
