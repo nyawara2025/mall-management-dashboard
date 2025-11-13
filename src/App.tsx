@@ -97,13 +97,7 @@ function AppContent() {
             <div className="min-h-screen">
               <Header onBack={() => setCurrentView('dashboard')} title="Visitor Engagement Manager" />
               <div className="pt-16">
-                <VisitorEngagementManager user={{
-                  id: user?.id || 0,
-                  username: user?.username || 'unknown',
-                  mall_id: user?.mall_id || 0,
-                  shop_id: user?.shop_id || 0,
-                  shop_name: user?.shop_name || 'Unknown Shop'
-                }} />
+                <VisitorEngagementManager user={user!} />
               </div>
             </div>
           )}
