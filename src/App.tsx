@@ -16,19 +16,14 @@ function AppContent() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [campaignId, setCampaignId] = useState<string | null>(null);
 
-  // Handle QR check-in for visitors and other public routes
+  // Handle admin routes (all visitor routes are now handled at App level)
   React.useEffect(() => {
     const path = window.location.pathname;
     const hash = window.location.hash;
-    const searchParams = new URLSearchParams(window.location.search);
     
-    console.log('🔍 Route detection:', { path, hash, search: window.location.search });
+    console.log('🔍 Admin Route detection:', { path, hash });
     
-    // Handle QR check-in routes (both old and new formats)
-    if (path.startsWith('/qr/checkin') || path.startsWith('/multi-mall-qr') || path.includes('multi-mall-qr')) {
-      console.log('📱 Setting view to multi-mall-qr-checkin');
-      setCurrentView('multi-mall-qr-checkin');
-    } else if (path.startsWith('/campaign/')) {
+    if (path.startsWith('/campaign/')) {
       const id = path.split('/campaign/')[1];
       setCampaignId(id);
       setCurrentView('campaign-view');
@@ -65,16 +60,7 @@ function AppContent() {
     );
   }
 
-  // Show multi-mall QR check-in page for visitors
-  if (currentView === 'multi-mall-qr-checkin') {
-    return (
-      <div>
-        <MultiMallQrCheckinPage />
-      </div>
-    );
-  }
-
-  // Main app for authenticated users
+  // Main app for authenticated users (ALL routes above handled PUBLIC routes)
   return (
     <div className="App">
       <ProtectedRoute>
@@ -136,6 +122,37 @@ function Header({ onBack, title }: { onBack: () => void; title: string }) {
 }
 
 function App() {
+  const path = window.location.pathname;
+  
+  // Check if this is a public visitor route (bypass AuthProvider completely)
+  const isPublicVisitorRoute = 
+    path.startsWith('/qr/checkin') || 
+    path.startsWith('/multi-mall-qr') || 
+    path.includes('multi-mall-qr');
+
+  console.log('🔓 App-level route check:', { path, isPublicVisitorRoute });
+
+  // For public visitor routes, render without AuthProvider
+  if (isPublicVisitorRoute) {
+    console.log('🎯 Rendering PUBLIC visitor route outside AuthProvider');
+    
+    if (path.startsWith('/multi-mall-qr') || path.includes('multi-mall-qr')) {
+      console.log('🎯 Rendering MultiMallQrCheckinPage (PUBLIC)');
+      return <MultiMallQrCheckinPage />;
+    }
+    
+    // Fallback for other visitor routes
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">QR Check-in</h2>
+          <p className="text-gray-600">Processing your visit...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // For all other routes, use AuthProvider (admin routes)
   return (
     <AuthProvider>
       <AppContent />

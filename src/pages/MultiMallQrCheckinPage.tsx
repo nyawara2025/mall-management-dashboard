@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { CheckCircle, MapPin, Calendar, User, Building, Package } from 'lucide-react';
 
 interface QRCheckInData {
@@ -45,7 +44,8 @@ const VISITOR_TYPES: Record<string, string> = {
 };
 
 export default function QrCheckinPage() {
-  const [searchParams] = useSearchParams();
+  // Parse URL parameters directly to avoid router context issues
+  const urlParams = new URLSearchParams(window.location.search);
   const [checkInData, setCheckInData] = useState<QRCheckInData | null>(null);
   const [checkInResult, setCheckInResult] = useState<CheckInResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -54,20 +54,20 @@ export default function QrCheckinPage() {
   useEffect(() => {
     console.log('📱 MultiMallQrCheckinPage loaded');
     console.log('🔍 Current URL:', window.location.href);
-    console.log('🔍 Search params:', Object.fromEntries(searchParams.entries()));
+    console.log('🔍 URL params:', Object.fromEntries(urlParams.entries()));
     parseQRData();
   }, []);
 
   const parseQRData = () => {
     console.log('🔍 Parsing QR data...');
     
-    const location = searchParams.get('location');
-    const zone = searchParams.get('zone');
-    const type = searchParams.get('type');
-    const mall = searchParams.get('mall');
-    const shop = searchParams.get('shop');
-    const visitor_type = searchParams.get('visitor_type');
-    const timestamp = searchParams.get('timestamp');
+    const location = urlParams.get('location');
+    const zone = urlParams.get('zone');
+    const type = urlParams.get('type');
+    const mall = urlParams.get('mall');
+    const shop = urlParams.get('shop');
+    const visitor_type = urlParams.get('visitor_type');
+    const timestamp = urlParams.get('timestamp');
 
     console.log('📋 Parsed parameters:', { location, zone, type, mall, shop, visitor_type, timestamp });
 
