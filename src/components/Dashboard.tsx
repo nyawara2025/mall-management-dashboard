@@ -13,7 +13,8 @@ import {
   UserCheck,
   Settings,
   LogOut,
-  ShoppingBag
+  ShoppingBag,
+  QrCode
 } from 'lucide-react';
 import { MallCard } from './MallCard';
 import { Sidebar } from './Sidebar';
@@ -190,6 +191,34 @@ export function Dashboard({ onViewChange }: DashboardProps) {
             </div>
           </div>
 
+          {/* QR Code Generation - For All User Roles */}
+          <div className="mb-8">
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="bg-purple-100 p-3 rounded-lg">
+                    <QrCode className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                      QR Code Generation
+                    </h3>
+                    <p className="text-gray-600 text-sm">
+                      Generate QR codes for visitor check-ins, campaigns, and location-specific engagement
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => onViewChange?.('qr-generation')}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+                >
+                  <QrCode className="w-5 h-5" />
+                  Generate QR Codes
+                </button>
+              </div>
+            </div>
+          </div>
+
           {/* Campaign Management for Shop Admins */}
           {user.role === 'shop_admin' && (
             <div className="mb-8">
@@ -206,7 +235,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                         Campaign Management
                       </h3>
                       <p className="text-gray-600 text-sm">
-                        Create promotional campaigns, generate QR codes, and track customer engagement
+                        Create promotional campaigns, track customer engagement, and manage visitor analytics
                       </p>
                     </div>
                   </div>

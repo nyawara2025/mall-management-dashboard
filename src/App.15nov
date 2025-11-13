@@ -5,8 +5,6 @@ import { Dashboard } from './components/Dashboard';
 import CampaignManagement from './components/CampaignManagement';
 import CampaignViewer from './components/CampaignViewer';
 import QRCheckInPage from './components/QRCheckInPage';
-import MultiMallQrCheckinPage from './pages/MultiMallQrCheckinPage';
-import QRGeneration from './components/QRGeneration';
 import Analytics from './components/Analytics';
 import { useAuth } from './contexts/AuthContext';
 import './index.css';
@@ -19,20 +17,17 @@ function AppContent() {
   // Handle QR check-in for visitors
   React.useEffect(() => {
     const path = window.location.pathname;
-    const hash = window.location.hash;
     const searchParams = new URLSearchParams(window.location.search);
     
-    if (path.startsWith('/qr/checkin') || path.startsWith('/multi-mall-qr')) {
-      setCurrentView('multi-mall-qr-checkin');
+    if (path.startsWith('/qr/checkin')) {
+      const campaignId = searchParams.get('campaign');
+      const location = searchParams.get('location') || 'unknown';
+      setCampaignId(campaignId);
+      setCurrentView('qr-checkin');
     } else if (path.startsWith('/campaign/')) {
       const id = path.split('/campaign/')[1];
       setCampaignId(id);
       setCurrentView('campaign-view');
-    } else if (hash === '#qr-generation') {
-      // Handle direct navigation to QR generation from campaign management
-      setCurrentView('qr-generation');
-      // Clear the hash to prevent re-triggering
-      window.history.replaceState(null, '', window.location.pathname + window.location.search);
     }
   }, []);
 
@@ -58,15 +53,6 @@ function AppContent() {
     );
   }
 
-  // Show multi-mall QR check-in page for visitors
-  if (currentView === 'multi-mall-qr-checkin') {
-    return (
-      <div>
-        <MultiMallQrCheckinPage />
-      </div>
-    );
-  }
-
   // Main app for authenticated users
   return (
     <div className="App">
@@ -80,14 +66,6 @@ function AppContent() {
               <Header onBack={() => setCurrentView('dashboard')} title="Campaign Management" />
               <div className="pt-16">
                 <CampaignManagement />
-              </div>
-            </div>
-          )}
-          {currentView === 'qr-generation' && (
-            <div className="min-h-screen">
-              <Header onBack={() => setCurrentView('dashboard')} title="QR Code Generation" />
-              <div className="pt-16">
-                <QRGeneration />
               </div>
             </div>
           )}
