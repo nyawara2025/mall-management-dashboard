@@ -6,8 +6,6 @@ export interface User {
   full_name: string;
   mall_id?: number | null;
   shop_id?: number | null;
-  mall_access?: number[]; // Array of mall IDs the user can access
-  shop_access?: number[]; // Array of shop IDs the user can access
   active: boolean;
 }
 

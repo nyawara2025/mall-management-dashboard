@@ -46,7 +46,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
         // Double-check: If user is shop_admin and not super_admin, ensure they only see their mall
         let filteredMalls = response.data;
         if (user && user.role === 'shop_admin' && user.mall_access && user.mall_access.length > 0) {
-          filteredMalls = response.data.filter(mall => user.mall_access?.includes(Number(mall.id)));
+          filteredMalls = response.data.filter(mall => user.mall_access?.includes(mall.id));
           console.log('🔒 Dashboard: Shop admin - filtered to mall_access:', user.mall_access, 'Total malls:', filteredMalls.length);
         }
         

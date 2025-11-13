@@ -33,32 +33,14 @@ export function Dashboard({ onViewChange }: DashboardProps) {
     setError(null);
 
     try {
-      const token = localStorage.getItem('geofence_auth_token') || '';
-      console.log('🎯 Dashboard: Fetching malls...');
-      console.log('🎯 Dashboard: Retrieved token:', token ? `${token.substring(0, 20)}...` : 'EMPTY TOKEN');
-      console.log('🎯 Dashboard: Token length:', token.length);
-      console.log('🎯 Dashboard: Current user:', user);
-      
-      const response = await MallApiService.fetchMalls(token);
-      console.log('🎯 Dashboard: Mall API response:', response);
-      
+      const response = await MallApiService.fetchMalls(localStorage.getItem('geofence_auth_token') || '');
       if (response.success && response.data) {
-        // Double-check: If user is shop_admin and not super_admin, ensure they only see their mall
-        let filteredMalls = response.data;
-        if (user && user.role === 'shop_admin' && user.mall_access && user.mall_access.length > 0) {
-          filteredMalls = response.data.filter(mall => user.mall_access?.includes(Number(mall.id)));
-          console.log('🔒 Dashboard: Shop admin - filtered to mall_access:', user.mall_access, 'Total malls:', filteredMalls.length);
-        }
-        
-        setMalls(filteredMalls);
-        console.log('🎯 Dashboard: Successfully loaded', filteredMalls.length, 'malls');
+        setMalls(response.data);
       } else {
         setMalls([]);
         setError(response.error || 'Failed to fetch malls');
-        console.log('🎯 Dashboard: Failed to load malls:', response.error);
       }
     } catch (err) {
-      console.error('🎯 Dashboard: Network error:', err);
       setError('Network error occurred');
     } finally {
       setIsLoading(false);
@@ -173,16 +155,16 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                     {user.role === 'mall_admin' && `You are the administrator for your assigned mall. You can manage all shops within your location.`}
                     {user.role === 'shop_admin' && `Welcome to your shop management dashboard. Here you can create campaigns, track performance, and manage your shop's promotional activities.`}
                   </p>
-                  {user.mall_access && user.mall_access.length > 0 && user.role !== 'shop_admin' && (
+                  {user.mall_id && user.role !== 'shop_admin' && (
                     <div className="mt-3 flex items-center gap-2 text-sm text-text-secondary">
                       <MapPin className="w-4 h-4" />
-                      Assigned Mall ID: {user.mall_access[0]}
+                      Assigned Mall ID: {user.mall_id}
                     </div>
                   )}
-                  {user.role === 'shop_admin' && user.mall_access && user.mall_access.length > 0 && (
+                  {user.role === 'shop_admin' && user.mall_id && (
                     <div className="mt-3 flex items-center gap-2 text-sm text-text-secondary">
                       <MapPin className="w-4 h-4" />
-                      Located at: {user.full_name?.split(' - ')[1] || 'Your Mall'} (Mall ID: {user.mall_access[0]})
+                      Located at: {user.full_name?.split(' - ')[1] || 'Your Mall'}
                     </div>
                   )}
                 </div>
@@ -272,7 +254,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                     key={mall.id}
                     mall={mall}
                     userRole={user.role}
-                    userMallId={user.mall_access && user.mall_access.length > 0 ? user.mall_access[0] : null}
+                    userMallId={user.mall_id}
                   />
                 ))}
               </div>

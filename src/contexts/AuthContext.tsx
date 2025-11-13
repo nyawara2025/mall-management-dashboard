@@ -90,8 +90,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Check for existing session on mount
   useEffect(() => {
     const initializeAuth = async () => {
-      const token = localStorage.getItem('auth_token');
-      const userStr = localStorage.getItem('auth_user');
+      const token = localStorage.getItem('geofence_auth_token');
+      const userStr = localStorage.getItem('geofence_user_data');
 
       if (token && userStr) {
         try {
@@ -105,13 +105,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
             });
           } else {
             // Token is invalid, clear storage
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('auth_user');
+            localStorage.removeItem('geofence_auth_token');
+            localStorage.removeItem('geofence_user_data');
           }
         } catch (error) {
           // Invalid stored data, clear it
-          localStorage.removeItem('auth_token');
-          localStorage.removeItem('auth_user');
+          localStorage.removeItem('geofence_auth_token');
+          localStorage.removeItem('geofence_user_data');
         }
       }
     };
@@ -128,8 +128,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (result.success && result.token && result.user) {
         // Store in localStorage
-        localStorage.setItem('auth_token', result.token);
-        localStorage.setItem('auth_user', JSON.stringify(result.user));
+        localStorage.setItem('geofence_auth_token', result.token);
+        localStorage.setItem('geofence_user_data', JSON.stringify(result.user));
 
         // Update state
         dispatch({
@@ -154,8 +154,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Logout function
   const logout = () => {
     // Clear localStorage
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
+    localStorage.removeItem('geofence_auth_token');
+    localStorage.removeItem('geofence_user_data');
 
     // Update state
     dispatch({ type: 'LOGOUT' });

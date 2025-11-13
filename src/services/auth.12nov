@@ -25,11 +25,11 @@ function hashPassword(password: string): string {
 }
 
 // Initialize real users database with proper password hashes
-REAL_USERS.set('admin', { 
+REAL_USERS.set('bosco', { 
   password_hash: hashPassword('admin123'), 
   user: { 
-    id: 1, 
-    username: 'admin', 
+    id: 100, 
+    username: 'bosco', 
     full_name: 'System Administrator', 
     role: 'super_admin', 
     mall_id: null, 
@@ -40,11 +40,11 @@ REAL_USERS.set('admin', {
   } 
 })
 
-REAL_USERS.set('mall_admin_china', { 
+REAL_USERS.set('jane', { 
   password_hash: hashPassword('mall123'), 
   user: { 
-    id: 2, 
-    username: 'mall_admin_china', 
+    id: 5, 
+    username: 'jane', 
     full_name: 'China Square Mall Manager', 
     role: 'mall_admin', 
     mall_id: 3, 
@@ -58,8 +58,8 @@ REAL_USERS.set('mall_admin_china', {
 REAL_USERS.set('mall_admin_langata', { 
   password_hash: hashPassword('mall123'), 
   user: { 
-    id: 4, 
-    username: 'mall_admin_langata', 
+    id: 10, 
+    username: 'faith', 
     full_name: 'Langata Mall Manager', 
     role: 'mall_admin', 
     mall_id: 6, 
@@ -73,8 +73,8 @@ REAL_USERS.set('mall_admin_langata', {
 REAL_USERS.set('mall_admin_nhc', { 
   password_hash: hashPassword('mall123'), 
   user: { 
-    id: 5, 
-    username: 'mall_admin_nhc', 
+    id: 11, 
+    username: 'ngina', 
     full_name: 'NHC Mall Manager', 
     role: 'mall_admin', 
     mall_id: 7, 
@@ -85,12 +85,12 @@ REAL_USERS.set('mall_admin_nhc', {
   } 
 })
 
-REAL_USERS.set('james', { 
+REAL_USERS.set('sandra', { 
   password_hash: hashPassword('demo123'), 
   user: { 
-    id: 10, 
-    username: 'james', 
-    full_name: 'James - Langata Mall', 
+    id: 12, 
+    username: 'sandra', 
+    full_name: 'Sandra Sawe', 
     role: 'shop_admin', 
     mall_id: 6, 
     shop_id: 6, 
@@ -100,12 +100,12 @@ REAL_USERS.set('james', {
   } 
 })
 
-REAL_USERS.set('peter', { 
+REAL_USERS.set('ben', { 
   password_hash: hashPassword('demo123'), 
   user: { 
-    id: 11, 
-    username: 'peter', 
-    full_name: 'Peter - China Square Mall', 
+    id: 6, 
+    username: 'ben', 
+    full_name: 'Ben Agina', 
     role: 'shop_admin', 
     mall_id: 3, 
     shop_id: 3, 
@@ -115,27 +115,27 @@ REAL_USERS.set('peter', {
   } 
 })
 
-REAL_USERS.set('paul', { 
+REAL_USERS.set('ibrahim', { 
   password_hash: hashPassword('demo123'), 
   user: { 
-    id: 12, 
-    username: 'paul', 
-    full_name: 'Paul - China Square Mall', 
+    id: 15, 
+    username: 'ibrahim', 
+    full_name: 'Ibrahim - NHC Mall', 
     role: 'shop_admin', 
-    mall_id: 3, 
-    shop_id: 4, 
-    mall_access: [3],
-    shop_access: [4],
+    mall_id: 7, 
+    shop_id: 9, 
+    mall_access: [7],
+    shop_access: [9],
     active: true 
   } 
 })
 
-REAL_USERS.set('victor', { 
+REAL_USERS.set('andrew', { 
   password_hash: hashPassword('demo123'), 
   user: { 
     id: 13, 
-    username: 'victor', 
-    full_name: 'Victor - Langata Mall', 
+    username: 'andrew', 
+    full_name: 'Andrew - The Phone Shop', 
     role: 'shop_admin', 
     mall_id: 6, 
     shop_id: 7, 
@@ -145,12 +145,12 @@ REAL_USERS.set('victor', {
   } 
 })
 
-REAL_USERS.set('stephanie', { 
+REAL_USERS.set('fred', { 
   password_hash: hashPassword('demo123'), 
   user: { 
     id: 14, 
-    username: 'stephanie', 
-    full_name: 'Stephanie - Langata Mall', 
+    username: 'fred', 
+    full_name: 'Fred - Cleanshelf SuperMarket', 
     role: 'shop_admin', 
     mall_id: 6, 
     shop_id: 8, 
@@ -160,17 +160,17 @@ REAL_USERS.set('stephanie', {
   } 
 })
 
-REAL_USERS.set('ibrahim', { 
+REAL_USERS.set('nkatha', { 
   password_hash: hashPassword('demo123'), 
   user: { 
-    id: 15, 
-    username: 'ibrahim', 
-    full_name: 'Ibrahim - Maliet Salon & Spa', 
+    id: 16, 
+    username: 'nkatha', 
+    full_name: 'Nkatha - Hydramist Drinking Water Services', 
     role: 'shop_admin', 
     mall_id: 7, 
-    shop_id: 9, 
+    shop_id: 11, 
     mall_access: [7],
-    shop_access: [9],
+    shop_access: [11],
     active: true 
   } 
 })
@@ -226,43 +226,9 @@ function generateToken(user: UserRecord): string {
   return btoa(JSON.stringify(payload))
 }
 
-// Parse and verify token (handles both mock, n8n, and dash-separated tokens)
+// Parse and verify token (handles both mock and n8n tokens)
 function parseToken(tokenStr: string): UserRecord | null {
   try {
-    // First, check if this is a dash-separated token (new format)
-    if (tokenStr.includes('-') && !tokenStr.includes('=') && !tokenStr.includes('/')) {
-      const parts = tokenStr.split('-')
-      
-      if (parts.length >= 6) {
-        const [userId, username, role, mallId, shopId, timestamp] = parts
-        
-        const mallIdNum = parseInt(mallId, 10)
-        const shopIdNum = parseInt(shopId, 10)
-        
-        // DEBUG: Log the parsed token data
-        console.log('🔍 DEBUG parseToken dash-separated:', {
-          userId, username, role, mallId, shopId, mallIdNum, shopIdNum
-        })
-        
-        // Return user data from dash-separated token
-        const result = {
-          id: parseInt(userId, 10),
-          username: username,
-          full_name: username, // Default full_name to username if not available
-          role: role as 'super_admin' | 'mall_admin' | 'shop_admin', // Cast role to proper type
-          mall_id: mallIdNum,
-          shop_id: shopIdNum,
-          active: true, // Default active to true
-          mall_access: [mallIdNum], // mall_access should contain mall_id
-          shop_access: [shopIdNum] // shop_access should contain shop_id
-        }
-        
-        console.log('🔍 DEBUG parseToken result:', result)
-        return result
-      }
-    }
-    
-    // Fallback: Try to parse as base64 encoded token (old format)
     const payload = JSON.parse(atob(tokenStr))
     
     // Check if token is expired
@@ -319,15 +285,9 @@ function loadAuthData(): User | null {
     const userDataStr = localStorage.getItem('geofence_user_data')
     const authToken = localStorage.getItem('geofence_auth_token')
     
-    console.log('🔍 DEBUG loadAuthData - localStorage userDataStr:', userDataStr)
-    console.log('🔍 DEBUG loadAuthData - localStorage authToken:', authToken)
-    
     if (userDataStr && authToken) {
       const userData = JSON.parse(userDataStr)
       const tokenUser = parseToken(authToken)
-      
-      console.log('🔍 DEBUG loadAuthData - userData from localStorage:', userData)
-      console.log('🔍 DEBUG loadAuthData - tokenUser from parseToken:', tokenUser)
       
       if (tokenUser && tokenUser.active) {
         // For n8n users, prefer token data over stored data for consistency
@@ -380,11 +340,18 @@ async function login(username: string, password: string): Promise<{ success: boo
         shop_access: result.shop_access || [result.shop_id].filter(Boolean)
       }
       
-      // Generate token in the dash-separated format that n8n expects
-      const timestamp = Date.now()
-      const mallId = userData.mall_id || userData.mall_access?.[0] || 0
-      const shopId = userData.shop_id || userData.shop_access?.[0] || 0
-      const token = `${userData.id}-${userData.username}-${userData.role}-${mallId}-${shopId}-${timestamp}`
+      // Generate a token from the user data
+      const tokenPayload = {
+        sub: userData.id.toString(),
+        username: userData.username,
+        role: userData.role,
+        mall_id: userData.mall_id,
+        shop_id: userData.shop_id,
+        mall_access: userData.mall_access,
+        shop_access: userData.shop_access,
+        exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+      }
+      const token = btoa(JSON.stringify(tokenPayload))
       
       // Save the token and user data
       saveAuthData(userData, token)
@@ -458,33 +425,15 @@ function hasShopAccess(user: User | null, shopId: number): boolean {
 
 // Get user's accessible malls
 function getUserMalls(user: User | null): number[] {
-  console.log('🔍 DEBUG getUserMalls - Input user:', user)
-  
-  if (!user) {
-    console.log('🔍 DEBUG getUserMalls - User is null, returning []')
-    return []
-  }
-  
-  console.log('🔍 DEBUG getUserMalls - user.mall_access:', user.mall_access)
-  console.log('🔍 DEBUG getUserMalls - user.role:', user.role)
-  console.log('🔍 DEBUG getUserMalls - user.mall_id:', user.mall_id)
+  if (!user) return []
   
   if (user.mall_access && user.mall_access.length > 0) {
-    console.log('🔍 DEBUG getUserMalls - Returning from mall_access:', user.mall_access)
     return user.mall_access
   }
   
-  if (user.role === 'super_admin') {
-    console.log('🔍 DEBUG getUserMalls - Super admin, returning [3, 6, 7]')
-    return [3, 6, 7]
-  }
+  if (user.role === 'super_admin') return [3, 6, 7]
+  if (user.mall_id) return [user.mall_id]
   
-  if (user.mall_id) {
-    console.log('🔍 DEBUG getUserMalls - Returning from mall_id:', [user.mall_id])
-    return [user.mall_id]
-  }
-  
-  console.log('🔍 DEBUG getUserMalls - No match, returning []')
   return []
 }
 
@@ -542,15 +491,6 @@ function getCurrentUserMallAndShop(user: User | null): { mall_id: number, shop_i
     const userMallId = userData.mall_id || mallAccess[0]
     const userShopId = userData.shop_id || shopAccess[0]
     
-    // DEBUG: Add detailed logging for shop_admin
-    console.log('🔑 Shop Admin Debugging:', {
-      'userData.shop_id': userData.shop_id,
-      'shopAccess': shopAccess,
-      'shopAccess[0]': shopAccess[0],
-      'userMallId': userMallId,
-      'userShopId': userShopId
-    })
-    
     // Log the shop admin data for debugging
     console.log('🔑 Shop Admin User Data:', {
       userData: userData,
@@ -560,28 +500,9 @@ function getCurrentUserMallAndShop(user: User | null): { mall_id: number, shop_i
       resolvedShopId: userShopId
     })
     
-    // Ensure shop_id matches the mall - add validation
-    const finalMallId = userMallId
-    const finalShopId = userShopId
-    
-    // Validation: shop_id should be valid for the mall
-    if (finalMallId === 7 && ![9, 10, 11].includes(finalShopId)) {
-      console.log('❌ SHOP_ID MISMATCH: Expected shop 9,10,11 for mall 7, got:', finalShopId)
-      console.log('❌ Using fallback shop_id 9 for mall 7')
-      return { mall_id: 7, shop_id: 9 }
-    } else if (finalMallId === 6 && ![6, 7, 8].includes(finalShopId)) {
-      console.log('❌ SHOP_ID MISMATCH: Expected shop 6,7,8 for mall 6, got:', finalShopId)
-      console.log('❌ Using fallback shop_id 6 for mall 6')
-      return { mall_id: 6, shop_id: 6 }
-    } else if (finalMallId === 3 && ![3, 4].includes(finalShopId)) {
-      console.log('❌ SHOP_ID MISMATCH: Expected shop 3,4 for mall 3, got:', finalShopId)
-      console.log('❌ Using fallback shop_id 3 for mall 3')
-      return { mall_id: 3, shop_id: 3 }
-    }
-    
     return { 
-      mall_id: finalMallId || 3, 
-      shop_id: finalShopId || 3 
+      mall_id: userMallId || 3, 
+      shop_id: userShopId || 3 
     }
   }
   
@@ -683,23 +604,14 @@ class MallApiServiceClass {
     try {
       // Use n8n management/malls webhook for mall data and token extraction
       console.log('🏢 Fetching malls via n8n webhook...')
-      console.log('🔗 URL to be called:', this.n8nMallManagementWebhook)
-      console.log('🔑 API Call: Authorization header will be set to:', `Bearer ${token}`)
-      console.log('🔑 API Call: Token length:', token.length)
-      console.log('🔑 API Call: Token format:', token.includes('-') ? 'Dash-separated' : 'Other')
       
-      const requestHeaders = {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-      console.log('🔑 API Call: Full request headers:', requestHeaders)
-      
-      console.log('🚀 About to make fetch call...')
       const response = await fetch(this.n8nMallManagementWebhook, {
         method: 'GET',
-        headers: requestHeaders
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       })
-      console.log('✅ Fetch call completed successfully')
 
       if (!response.ok) {
         throw new Error(`Failed to fetch malls: ${response.status}`)
@@ -709,43 +621,24 @@ class MallApiServiceClass {
       console.log('🔍 Raw n8n response:', result)
       
       // Handle n8n response format - FIXED: Look for result.data.malls
-      // n8n may return array with single object or direct object
       let malls: Mall[] = []
       
-      // CRITICAL FIX: Handle array response from n8n
-      const responseData = Array.isArray(result) ? result[0] : result
-      console.log('🔍 DEBUG - Response data extraction:')
-      console.log('   - Original result type:', Array.isArray(result) ? 'Array' : 'Object')
-      console.log('   - Extracted responseData.success:', responseData.success)
-      console.log('   - responseData.data present:', !!responseData.data)
-      console.log('   - responseData.data.malls present:', !!responseData.data?.malls)
-      console.log('   - Is responseData.data.malls array?', Array.isArray(responseData.data?.malls))
-      
-      if (responseData.success && responseData.data && responseData.data.malls && Array.isArray(responseData.data.malls)) {
-        console.log('🎯 Processing n8n data.malls array with', responseData.data.malls.length, 'items')
-        
+      if (result.success && result.data && result.data.malls && Array.isArray(result.data.malls)) {
         // Transform n8n response format to our expected format
-        malls = responseData.data.malls.map((mall: any, index: number) => {
-          console.log(`   Transforming mall[${index}]: mall_id=${mall.mall_id}, mall_name=${mall.mall_name}`)
-          
-          const transformedMall = {
-            id: mall.mall_id,  // Transform mall_id to id
-            name: mall.mall_name,  // Transform mall_name to name
-            latitude: mall.latitude,
-            longitude: mall.longitude,
-            address: mall.mall_address,
-            radius_meters: mall.radius_meters,
-            active: mall.active,
-            created_at: mall.created_at,
-            updated_at: mall.updated_at
-          }
-          console.log(`   Transformed to:`, transformedMall)
-          return transformedMall
-        })
+        malls = result.data.malls.map((mall: any) => ({
+          id: mall.mall_id,  // Transform mall_id to id
+          name: mall.mall_name,  // Transform mall_name to name
+          latitude: mall.latitude,
+          longitude: mall.longitude,
+          address: mall.mall_address,
+          radius_meters: mall.radius_meters,
+          active: mall.active,
+          created_at: mall.created_at,
+          updated_at: mall.updated_at
+        }))
         console.log('✅ Successfully transformed n8n malls:', malls)
-      } else if (Array.isArray(responseData)) {
-        console.log('📝 Using direct array response')
-        malls = responseData
+      } else if (Array.isArray(result)) {
+        malls = result
       } else {
         // Fallback to static data if webhook response format is different
         malls = [
@@ -789,48 +682,10 @@ class MallApiServiceClass {
       // Filter malls based on user access
       const user = getCurrentUser()
       let accessibleMalls = malls
-      
-      console.log('🔍 DEBUG fetchMalls - user object:', user)
-      console.log('🔍 DEBUG fetchMalls - user.mall_access:', user?.mall_access)
-      console.log('🔍 DEBUG fetchMalls - user.role:', user?.role)
-      console.log('🔍 DEBUG fetchMalls - user.mall_id:', user?.mall_id)
-      
+
       if (user && user.role !== 'super_admin') {
         const userMallIds = getUserMalls(user)
-        console.log('🔍 DEBUG fetchMalls - userMallIds result:', userMallIds)
-        console.log('🔍 DEBUG fetchMalls - malls to filter:', malls)
-        console.log('🔍 DEBUG fetchMalls - Mall types:', malls.map(mall => ({ id: mall.id, type: typeof mall.id })))
-        
-        // CRITICAL: Show complete mall object structure
-        console.log('🔍 DEBUG fetchMalls - COMPLETE MALL OBJECTS STRUCTURE:')
-        malls.forEach((mall, index) => {
-          console.log(`   Mall[${index}] - COMPLETE OBJECT:`, JSON.stringify(mall, null, 2))
-        })
-        
-        // Enhanced debugging: Show each mall comparison
-        console.log('🔍 DEBUG fetchMalls - Detailed filtering:')
-        malls.forEach((mall, index) => {
-          const mallIdNum = Number(mall.id)
-          const isIncluded = userMallIds.includes(mallIdNum)
-          console.log(`   Mall[${index}]: id=${mall.id} (${typeof mall.id}) → Number=${mallIdNum} → Included: ${isIncluded}`)
-        })
-        
-        // Check if we need to use alternative field names (use any to bypass TypeScript)
-        const anyMalls = malls as any[]
-        const hasIdField = anyMalls.some(mall => mall.id !== undefined && mall.id !== null)
-        const hasMallIdField = anyMalls.some(mall => mall.mall_id !== undefined && mall.mall_id !== null)
-        const hasIdNumberField = anyMalls.some(mall => mall.id_number !== undefined && mall.id_number !== null)
-        
-        console.log('🔍 DEBUG fetchMalls - Field availability check:')
-        console.log(`   - Total malls in array: ${malls.length}`)
-        console.log(`   - Has 'id' field: ${hasIdField}`)
-        console.log(`   - Has 'mall_id' field: ${hasMallIdField}`)
-        console.log(`   - Has 'id_number' field: ${hasIdNumberField}`)
-        console.log(`   - Sample mall object:`, malls[0] || 'No malls found')
-        
-        // Use transformed id field for filtering
-        accessibleMalls = malls.filter(mall => userMallIds.includes(Number(mall.id)))
-        console.log('🔍 DEBUG fetchMalls - After filtering:', accessibleMalls)
+        accessibleMalls = malls.filter(mall => userMallIds.includes(mall.id))
       }
 
       console.log('✅ Malls fetched successfully:', accessibleMalls)
@@ -871,7 +726,7 @@ class MallApiServiceClass {
       return { success: true }
     } catch (error) {
       console.error('❌ Error deleting campaign:', error)
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' }
+      return { success: false, error: error.message }
     }
   }
 
@@ -907,7 +762,7 @@ class MallApiServiceClass {
       return { success: true }
     } catch (error) {
       console.error('❌ Error processing QR check-in:', error)
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error occurred' }
+      return { success: false, error: error.message }
     }
   }
 
@@ -984,6 +839,36 @@ class MallApiServiceClass {
       return await response.json()
     } catch (error) {
       console.error('❌ Error updating campaign:', error)
+      throw error
+    }
+  }
+
+  async deleteCampaign(campaignId: number, mallId: number, shopId: number): Promise<any> {
+    try {
+      const payload = {
+        action: 'delete',
+        campaign: {
+          id: campaignId,
+          mall_id: mallId,
+          shop_id: shopId
+        }
+      }
+      
+      console.log('🗑️ Deleting campaign:', payload)
+      
+      const response = await fetch(this.n8nWebhookPost, {
+        method: 'POST',
+        headers: createAuthHeaders(),
+        body: JSON.stringify(payload)
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      return await response.json()
+    } catch (error) {
+      console.error('❌ Error deleting campaign:', error)
       throw error
     }
   }
