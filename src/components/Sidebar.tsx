@@ -12,7 +12,8 @@ import {
   Store,
   MapPin,
   UserCheck,
-  Megaphone
+  Megaphone,
+  MessageCircle
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -44,6 +45,17 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
       action: () => {
         setCurrentView('campaigns');
         onViewChange?.('campaigns');
+      },
+      role: 'shop_admin'
+    },
+    {
+      name: 'Visitor Engagement',
+      href: '#',
+      icon: MessageCircle,
+      current: currentView === 'visitor-engagement',
+      action: () => {
+        setCurrentView('visitor-engagement');
+        onViewChange?.('visitor-engagement');
       },
       role: 'shop_admin'
     },
@@ -101,8 +113,8 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
       return ['Dashboard', 'Analytics'].includes(item.name);
     }
     if (user?.role === 'shop_admin') {
-      // Shop admins see Dashboard, Campaign Management, and Analytics
-      return ['Dashboard', 'Campaign Management', 'Analytics'].includes(item.name);
+      // Shop admins see Dashboard, Campaign Management, Visitor Engagement, and Analytics
+      return ['Dashboard', 'Campaign Management', 'Visitor Engagement', 'Analytics'].includes(item.name);
     }
     return false;
   });

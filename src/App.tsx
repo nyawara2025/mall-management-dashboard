@@ -8,6 +8,7 @@ import QRCheckInPage from './components/QRCheckInPage';
 import MultiMallQrCheckinPage from './pages/MultiMallQrCheckinPage';
 import QRGeneration from './components/QRGeneration';
 import Analytics from './components/Analytics';
+import VisitorEngagementManager from './components/VisitorEngagementManager';
 import { useAuth } from './contexts/AuthContext';
 import './index.css';
 
@@ -89,6 +90,14 @@ function AppContent() {
               <Header onBack={() => setCurrentView('dashboard')} title="Analytics & Insights" />
               <div className="pt-16">
                 <Analytics />
+              </div>
+            </div>
+          )}
+          {currentView === 'visitor-engagement' && (
+            <div className="min-h-screen">
+              <Header onBack={() => setCurrentView('dashboard')} title="Visitor Engagement Manager" />
+              <div className="pt-16">
+                <VisitorEngagementManager user={user!} />
               </div>
             </div>
           )}

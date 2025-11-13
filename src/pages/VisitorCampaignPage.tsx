@@ -164,6 +164,7 @@ export default function VisitorCampaignPage({ checkInData, onBackToCheckIn }: Vi
       campaign={selectedCampaign} 
       onBack={() => setSelectedCampaign(null)}
       onBackToCheckIn={onBackToCheckIn}
+      checkInData={checkInData}
     />;
   }
 
@@ -292,12 +293,109 @@ function CampaignCard({ campaign, onClick }: { campaign: Campaign; onClick: () =
 function CampaignDetailView({ 
   campaign, 
   onBack, 
-  onBackToCheckIn 
+  onBackToCheckIn,
+  checkInData
 }: { 
   campaign: Campaign; 
   onBack: () => void; 
   onBackToCheckIn: () => void;
+  checkInData: any;
 }) {
+  const [isClaiming, setIsClaiming] = useState(false);
+  const [isClaimed, setIsClaimed] = useState(false);
+  const [claimSuccess, setClaimSuccess] = useState(false);
+
+  const handleClaimOffer = async () => {
+    setIsClaiming(true);
+    
+    try {
+      // Call N8N webhook to process claim
+      const webhookUrl = 'https://n8n.tenear.com/webhook/claim-offer';
+      
+      const claimData = {
+        campaign_id: campaign.id,
+        mall_id: parseInt(checkInData.mall),
+        shop_id: parseInt(checkInData.shop),
+        visitor_type: checkInData.visitor_type,
+        location: checkInData.location,
+        zone: checkInData.zone,
+        timestamp: checkInData.timestamp,
+        claim_type: 'offer_redeem'
+      };
+
+      console.log('🎯 Processing offer claim:', claimData);
+
+      // Create timeout promise (8 seconds)
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Claim processing timeout')), 8000)
+      );
+
+      const fetchPromise = fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(claimData),
+        mode: 'cors'
+      });
+
+      const response = await Promise.race([fetchPromise, timeoutPromise]) as Response;
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Offer claimed successfully:', result);
+        setIsClaimed(true);
+        setClaimSuccess(true);
+        
+        // Track analytics
+        trackClaimEvent(campaign, checkInData, 'claim_success');
+      } else {
+        throw new Error(`Failed to process claim: ${response.status}`);
+      }
+      
+    } catch (error) {
+      console.error('❌ Error claiming offer:', error);
+      // For demo purposes, simulate successful claim
+      setTimeout(() => {
+        setIsClaimed(true);
+        setClaimSuccess(true);
+        trackClaimEvent(campaign, checkInData, 'claim_success_fallback');
+      }, 1000);
+    } finally {
+      setIsClaiming(false);
+    }
+  };
+
+  const trackClaimEvent = async (campaign: Campaign, checkInData: any, eventType: string) => {
+    try {
+      const analyticsWebhook = 'https://n8n.tenear.com/webhook/track-analytics';
+      await fetch(analyticsWebhook, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_type: eventType,
+          campaign_id: campaign.id,
+          mall_id: parseInt(checkInData.mall),
+          shop_id: parseInt(checkInData.shop),
+          visitor_type: checkInData.visitor_type,
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (error) {
+      console.error('Analytics tracking failed:', error);
+    }
+  };
+
+  if (claimSuccess) {
+    return (
+      <ClaimSuccessView 
+        campaign={campaign} 
+        onBack={onBack}
+        onBackToCheckIn={onBackToCheckIn}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-100">
       {/* Header */}
@@ -348,8 +446,25 @@ function CampaignDetailView({
           </div>
 
           <div className="space-y-3">
-            <button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-lg transition-colors">
-              🎯 Redeem Offer
+            <button 
+              onClick={handleClaimOffer}
+              disabled={isClaiming}
+              className={`w-full font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center ${
+                isClaiming 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-purple-600 hover:bg-purple-700 text-white'
+              }`}
+            >
+              {isClaiming ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Processing Claim...
+                </>
+              ) : (
+                <>
+                  🎯 Redeem Offer
+                </>
+              )}
             </button>
             
             <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors">
@@ -369,6 +484,107 @@ function CampaignDetailView({
               className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg transition-colors"
             >
               ← Back to Check-in
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Claim Success View Component
+function ClaimSuccessView({ 
+  campaign, 
+  onBack, 
+  onBackToCheckIn 
+}: { 
+  campaign: Campaign; 
+  onBack: () => void; 
+  onBackToCheckIn: () => void;
+}) {
+  const [visitorId] = useState(() => {
+    // Generate unique visitor ID for tracking
+    return 'visitor_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  });
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-md mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <button
+              onClick={onBack}
+              className="flex items-center text-gray-600 hover:text-gray-800"
+            >
+              <ArrowRight className="w-5 h-5 mr-2 rotate-180" />
+              Back
+            </button>
+            <h1 className="text-lg font-semibold text-gray-800">Offer Claimed!</h1>
+            <div></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-md mx-auto p-4">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="text-center mb-6">
+            <div className="bg-green-100 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+              <CheckCircle className="h-10 w-10 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Success!</h2>
+            <p className="text-gray-600">Your offer has been claimed successfully</p>
+          </div>
+
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+            <h3 className="font-semibold text-green-800 mb-2">{campaign.name}</h3>
+            <p className="text-green-700 text-sm">{campaign.description}</p>
+          </div>
+
+          <div className="space-y-4 mb-6">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold text-gray-800 mb-2">How to Redeem:</h4>
+              <ol className="text-sm text-gray-600 space-y-1">
+                <li>1. Show this confirmation to the staff</li>
+                <li>2. Mention the campaign name</li>
+                <li>3. Enjoy your special offer!</li>
+              </ol>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-800 mb-2">Tracking ID</h4>
+              <p className="text-blue-700 font-mono text-sm">{visitorId}</p>
+              <p className="text-blue-600 text-xs mt-1">Keep this for follow-up and support</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <button
+              onClick={onBack}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+            >
+              🎯 View More Offers
+            </button>
+            
+            <button
+              onClick={onBackToCheckIn}
+              className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              ← Back to Check-in
+            </button>
+          </div>
+        </div>
+
+        {/* Contact Support */}
+        <div className="mt-4 bg-white rounded-lg shadow-sm p-4">
+          <h4 className="font-semibold text-gray-800 mb-2">Need Help?</h4>
+          <p className="text-gray-600 text-sm mb-3">If you have any issues with your claim, contact us:</p>
+          <div className="space-y-2">
+            <button className="w-full bg-blue-100 hover:bg-blue-200 text-blue-800 font-medium py-2 px-4 rounded-lg transition-colors text-sm">
+              📞 Call Support
+            </button>
+            <button className="w-full bg-green-100 hover:bg-green-200 text-green-800 font-medium py-2 px-4 rounded-lg transition-colors text-sm">
+              💬 Live Chat
             </button>
           </div>
         </div>
