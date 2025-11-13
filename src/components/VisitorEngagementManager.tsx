@@ -45,14 +45,10 @@ interface Interaction {
   details?: string;
 }
 
+import { User } from '../types/auth';
+
 interface VisitorEngagementManagerProps {
-  user: {
-    id: number;
-    username: string;
-    mall_id: number;
-    shop_id: number;
-    shop_name: string;
-  };
+  user: User;
 }
 
 export default function VisitorEngagementManager({ user }: VisitorEngagementManagerProps) {
@@ -68,7 +64,7 @@ export default function VisitorEngagementManager({ user }: VisitorEngagementMana
     // Auto-refresh every 30 seconds
     const interval = setInterval(fetchEngagementData, 30000);
     return () => clearInterval(interval);
-  }, [user.shop_id]);
+  }, [user.shop_id, user.mall_id]);
 
   const fetchEngagementData = async () => {
     try {
@@ -78,8 +74,8 @@ export default function VisitorEngagementManager({ user }: VisitorEngagementMana
       const webhookUrl = 'https://n8n.tenear.com/webhook/get-visitor-engagement';
       
       const params = new URLSearchParams({
-        shop_id: user.shop_id.toString(),
-        mall_id: user.mall_id.toString()
+        shop_id: (user.shop_id || 0).toString(),
+        mall_id: (user.mall_id || 0).toString()
       });
 
       const response = await fetch(`${webhookUrl}?${params.toString()}`, {
@@ -180,7 +176,7 @@ export default function VisitorEngagementManager({ user }: VisitorEngagementMana
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           visitor_id: selectedClaim.visitor_id,
-          shop_id: user.shop_id,
+          shop_id: user.shop_id || 0,
           message: engagementMessage,
           message_type: 'engagement',
           timestamp: new Date().toISOString()
@@ -270,7 +266,7 @@ export default function VisitorEngagementManager({ user }: VisitorEngagementMana
         </div>
         
         <p className="text-gray-600">
-          Monitor and engage with visitors at {user.shop_name}
+          Monitor and engage with visitors at {user.shop_name || 'Unknown Shop'}
         </p>
       </div>
 
