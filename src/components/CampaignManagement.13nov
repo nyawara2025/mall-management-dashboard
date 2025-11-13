@@ -676,74 +676,46 @@ const CampaignManagement: React.FC = () => {
               <p className="text-sm text-gray-600">{campaign.benefits}</p>
             </div>
 
-            {/* QR Code Generation */}
+            {/* QR Codes */}
             <div className="space-y-2">
-              <h4 className="text-sm font-medium text-gray-800">QR Code Management:</h4>
-              <button
-                onClick={() => {
-                  // Store campaign data for QR generation
-                  localStorage.setItem('selected_campaign_for_qr', JSON.stringify({
-                    campaignId: campaign.id,
-                    campaignName: campaign.name,
-                    shopName: campaign.shop_name,
-                    mallId: campaign.mall_id,
-                    shopId: campaign.shop_id
-                  }));
-                  // Trigger QR generation
-                  window.location.hash = '#qr-generation';
-                  window.location.reload();
-                }}
-                className="w-full bg-purple-600 text-white py-3 px-3 rounded-lg text-sm hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h4m-9.97-9.97l.8.8m-.8-9.8L4 4m8.8 8.8L16 16M4 16l2 2" />
-                </svg>
-                Generate QR Codes for this Campaign
-              </button>
-              <p className="text-xs text-gray-500 text-center">
-                Create custom QR codes with visitor types and campaign settings
-              </p>
-              
-              {/* Show existing QR codes if they exist */}
-              {(campaign.qr_code_url_entrance || campaign.qr_code_url_checkout || campaign.qr_code_url_display) && (
-                <div className="mt-3">
-                  <h5 className="text-xs font-medium text-gray-700 mb-2">Existing QR Codes:</h5>
-                  <div className="grid grid-cols-3 gap-2">
-                    {campaign.qr_code_url_entrance && (
-                      <div className="text-center">
-                        <img 
-                          src={campaign.qr_code_url_entrance || ''} 
-                          alt="Entrance QR" 
-                          className="w-16 h-16 mx-auto border rounded hover:scale-105 transition-transform cursor-pointer"
-                          onClick={() => campaign.qr_code_url_entrance && window.open(campaign.qr_code_url_entrance, '_blank')}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Entrance</p>
-                      </div>
-                    )}
-                    {campaign.qr_code_url_checkout && (
-                      <div className="text-center">
-                        <img 
-                          src={campaign.qr_code_url_checkout || ''} 
-                          alt="Checkout QR" 
-                          className="w-16 h-16 mx-auto border rounded hover:scale-105 transition-transform cursor-pointer"
-                          onClick={() => campaign.qr_code_url_checkout && window.open(campaign.qr_code_url_checkout, '_blank')}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Checkout</p>
-                      </div>
-                    )}
-                    {campaign.qr_code_url_display && (
-                      <div className="text-center">
-                        <img 
-                          src={campaign.qr_code_url_display || ''} 
-                          alt="Display QR" 
-                          className="w-16 h-16 mx-auto border rounded hover:scale-105 transition-transform cursor-pointer"
-                          onClick={() => campaign.qr_code_url_display && window.open(campaign.qr_code_url_display, '_blank')}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Display</p>
-                      </div>
-                    )}
+              <h4 className="text-sm font-medium text-gray-800">QR Codes:</h4>
+              {campaign.qr_code_url_entrance ? (
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="text-center">
+                    <img 
+                      src={campaign.qr_code_url_entrance || ''} 
+                      alt="Entrance QR" 
+                      className="w-16 h-16 mx-auto border rounded hover:scale-105 transition-transform cursor-pointer"
+                      onClick={() => campaign.qr_code_url_entrance && window.open(campaign.qr_code_url_entrance, '_blank')}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Entrance</p>
+                  </div>
+                  <div className="text-center">
+                    <img 
+                      src={campaign.qr_code_url_checkout || ''} 
+                      alt="Checkout QR" 
+                      className="w-16 h-16 mx-auto border rounded hover:scale-105 transition-transform cursor-pointer"
+                      onClick={() => campaign.qr_code_url_checkout && window.open(campaign.qr_code_url_checkout, '_blank')}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Checkout</p>
+                  </div>
+                  <div className="text-center">
+                    <img 
+                      src={campaign.qr_code_url_display || ''} 
+                      alt="Display QR" 
+                      className="w-16 h-16 mx-auto border rounded hover:scale-105 transition-transform cursor-pointer"
+                      onClick={() => campaign.qr_code_url_display && window.open(campaign.qr_code_url_display, '_blank')}
+                    />
+                    <p className="text-xs text-gray-500 mt-1">Display</p>
                   </div>
                 </div>
+              ) : (
+                <button
+                  onClick={() => generateQRCodes(campaign.id)}
+                  className="w-full bg-green-600 text-white py-2 px-3 rounded text-sm hover:bg-green-700 transition-colors"
+                >
+                  Generate QR Codes
+                </button>
               )}
             </div>
 
