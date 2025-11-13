@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, MapPin, Calendar, User, Building, Package } from 'lucide-react';
-import VisitorCampaignPage from './VisitorCampaignPage';
 
 interface QRCheckInData {
   location: string;
@@ -49,7 +48,6 @@ export default function QrCheckinPage() {
   const urlParams = new URLSearchParams(window.location.search);
   const [checkInData, setCheckInData] = useState<QRCheckInData | null>(null);
   const [checkInResult, setCheckInResult] = useState<CheckInResult | null>(null);
-  const [showCampaigns, setShowCampaigns] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStage, setProcessingStage] = useState<string>('');
 
@@ -193,20 +191,10 @@ export default function QrCheckinPage() {
 
   // Auto-process check-in when data is loaded
   useEffect(() => {
-    if (checkInData && !checkInResult && !isProcessing && !showCampaigns) {
+    if (checkInData && !checkInResult && !isProcessing) {
       processCheckIn();
     }
   }, [checkInData]);
-
-  // Show campaigns page when requested
-  if (showCampaigns && checkInData) {
-    return (
-      <VisitorCampaignPage 
-        checkInData={checkInData}
-        onBackToCheckIn={() => setShowCampaigns(false)}
-      />
-    );
-  }
 
   if (isProcessing) {
     return (
@@ -312,16 +300,6 @@ export default function QrCheckinPage() {
           )}
 
           <div className="mt-6 space-y-3">
-            {/* View Campaigns button for successful check-ins */}
-            {checkInResult.success && (
-              <button
-                onClick={() => setShowCampaigns(true)}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center"
-              >
-                🎯 View Exclusive Campaigns
-              </button>
-            )}
-            
             {/* Retry button if there was an error */}
             {checkInResult.error && (
               <button
