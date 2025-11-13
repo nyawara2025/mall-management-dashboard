@@ -16,13 +16,17 @@ function AppContent() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [campaignId, setCampaignId] = useState<string | null>(null);
 
-  // Handle QR check-in for visitors
+  // Handle QR check-in for visitors and other public routes
   React.useEffect(() => {
     const path = window.location.pathname;
     const hash = window.location.hash;
     const searchParams = new URLSearchParams(window.location.search);
     
-    if (path.startsWith('/qr/checkin') || path.startsWith('/multi-mall-qr')) {
+    console.log('🔍 Route detection:', { path, hash, search: window.location.search });
+    
+    // Handle QR check-in routes (both old and new formats)
+    if (path.startsWith('/qr/checkin') || path.startsWith('/multi-mall-qr') || path.includes('multi-mall-qr')) {
+      console.log('📱 Setting view to multi-mall-qr-checkin');
       setCurrentView('multi-mall-qr-checkin');
     } else if (path.startsWith('/campaign/')) {
       const id = path.split('/campaign/')[1];
@@ -33,6 +37,9 @@ function AppContent() {
       setCurrentView('qr-generation');
       // Clear the hash to prevent re-triggering
       window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    } else {
+      // Default to dashboard for authenticated users
+      setCurrentView('dashboard');
     }
   }, []);
 
