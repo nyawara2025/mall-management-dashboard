@@ -159,8 +159,8 @@ const CampaignManagement: React.FC = () => {
     mall_id: 0
   });
 
-  const [currentMallId, setCurrentMallId] = useState<number>(6);
-  const [currentShopId, setCurrentShopId] = useState<number>(6);
+  const [currentMallId, setCurrentMallId] = useState<number>(7);
+  const [currentShopId, setCurrentShopId] = useState<number>(9);
   const [isInitialized, setIsInitialized] = useState(false);
   const [availableMalls, setAvailableMalls] = useState<any[]>([]);
 
@@ -322,69 +322,7 @@ const CampaignManagement: React.FC = () => {
     }
   };
 
-  const generateQRCodes = async (campaignId: number) => {
-    try {
-      setLoading(true);
-      
-      // Get current user for authentication from localStorage
-      const authToken = localStorage.getItem('geofence_auth_token');
-      const userDataStr = localStorage.getItem('geofence_user_data');
-      
-      if (!authToken || !userDataStr) {
-        throw new Error('User not authenticated');
-      }
-      
-      const userData = JSON.parse(userDataStr);
-      
-      // Generate QR codes for different locations
-      const baseUrl = `${window.location.origin}`;
-      const entranceUrl = `${baseUrl}/qr/checkin?campaign=${campaignId}&zone=entrance&location=Entrance`;
-      const checkoutUrl = `${baseUrl}/qr/checkin?campaign=${campaignId}&zone=checkout&location=Checkout`;
-      const displayUrl = `${baseUrl}/qr/checkin?campaign=${campaignId}&zone=display&location=Display`;
 
-      // Prepare data for n8n webhook to update QR codes
-      const qrUpdateData = {
-        action: 'update_qr_codes',
-        campaign_id: campaignId,
-        qr_codes: {
-          entrance: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(entranceUrl)}`,
-          checkout: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(checkoutUrl)}`,
-          display: `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(displayUrl)}`
-        },
-        updated_at: new Date().toISOString()
-      };
-
-      console.log('🔄 Updating QR codes via n8n webhook:', qrUpdateData);
-
-      // Use n8n webhook to update QR codes instead of direct database access
-      const response = await fetch('https://n8n.tenear.com/webhook/manage-campaigns-post', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify(qrUpdateData)
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ QR Update webhook error:', errorText);
-        throw new Error(`QR Update failed: ${response.status} - ${errorText}`);
-      }
-
-      const result = await response.json();
-      console.log('✅ QR codes updated via n8n webhook:', result);
-
-      // Refresh campaigns to show updated QR codes
-      await fetchCampaignsForMall(currentMallId);
-      alert('QR codes generated successfully!');
-    } catch (err) {
-      console.error('Error generating QR codes:', err);
-      alert(`Failed to generate QR codes: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleCreateCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -443,10 +381,7 @@ const CampaignManagement: React.FC = () => {
       const result = await response.json();
       console.log('✅ Campaign created via n8n webhook:', result);
 
-      // Generate QR codes for the new campaign
-      if (result.campaign && result.campaign.id) {
-        await generateQRCodes(result.campaign.id);
-      }
+
 
       // Reset form and close modal
       const currentShop = SHOPS[currentShopId];
@@ -519,6 +454,8 @@ const CampaignManagement: React.FC = () => {
     }));
     localStorage.setItem('current_shop_id', newShopId.toString());
   };
+
+
 
   // Delete campaign function
   const handleDeleteCampaign = async (campaignId: number, campaignName: string) => {
@@ -676,76 +613,7 @@ const CampaignManagement: React.FC = () => {
               <p className="text-sm text-gray-600">{campaign.benefits}</p>
             </div>
 
-            {/* QR Code Generation */}
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-gray-800">QR Code Management:</h4>
-              <button
-                onClick={() => {
-                  // Store campaign data for QR generation
-                  localStorage.setItem('selected_campaign_for_qr', JSON.stringify({
-                    campaignId: campaign.id,
-                    campaignName: campaign.name,
-                    shopName: campaign.shop_name,
-                    mallId: campaign.mall_id,
-                    shopId: campaign.shop_id
-                  }));
-                  // Trigger QR generation
-                  window.location.hash = '#qr-generation';
-                  window.location.reload();
-                }}
-                className="w-full bg-purple-600 text-white py-3 px-3 rounded-lg text-sm hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h4m-9.97-9.97l.8.8m-.8-9.8L4 4m8.8 8.8L16 16M4 16l2 2" />
-                </svg>
-                Generate QR Codes for this Campaign
-              </button>
-              <p className="text-xs text-gray-500 text-center">
-                Create custom QR codes with visitor types and campaign settings
-              </p>
-              
-              {/* Show existing QR codes if they exist */}
-              {(campaign.qr_code_url_entrance || campaign.qr_code_url_checkout || campaign.qr_code_url_display) && (
-                <div className="mt-3">
-                  <h5 className="text-xs font-medium text-gray-700 mb-2">Existing QR Codes:</h5>
-                  <div className="grid grid-cols-3 gap-2">
-                    {campaign.qr_code_url_entrance && (
-                      <div className="text-center">
-                        <img 
-                          src={campaign.qr_code_url_entrance || ''} 
-                          alt="Entrance QR" 
-                          className="w-16 h-16 mx-auto border rounded hover:scale-105 transition-transform cursor-pointer"
-                          onClick={() => campaign.qr_code_url_entrance && window.open(campaign.qr_code_url_entrance, '_blank')}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Entrance</p>
-                      </div>
-                    )}
-                    {campaign.qr_code_url_checkout && (
-                      <div className="text-center">
-                        <img 
-                          src={campaign.qr_code_url_checkout || ''} 
-                          alt="Checkout QR" 
-                          className="w-16 h-16 mx-auto border rounded hover:scale-105 transition-transform cursor-pointer"
-                          onClick={() => campaign.qr_code_url_checkout && window.open(campaign.qr_code_url_checkout, '_blank')}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Checkout</p>
-                      </div>
-                    )}
-                    {campaign.qr_code_url_display && (
-                      <div className="text-center">
-                        <img 
-                          src={campaign.qr_code_url_display || ''} 
-                          alt="Display QR" 
-                          className="w-16 h-16 mx-auto border rounded hover:scale-105 transition-transform cursor-pointer"
-                          onClick={() => campaign.qr_code_url_display && window.open(campaign.qr_code_url_display, '_blank')}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Display</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+
 
             {/* Action Buttons */}
             <div className="mt-4 flex gap-2">
