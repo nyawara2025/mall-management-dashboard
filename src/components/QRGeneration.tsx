@@ -201,8 +201,8 @@ export default function QRGeneration() {
           // Generate unique qr_code_data for database
           const qrCodeData = `${formData.locationId}_${formData.campaignName}_${visitorType}_${Date.now()}_${i}`;
           
-          // Create QR code URL - must match location_id in qr_checkins
-          const qrUrl = `${baseUrl}/multi-mall-qr?location=${qrCodeData}&zone=${formData.zone}&type=shop_checkin&mall=${formData.mallId}&shop=${formData.shopId}&visitor_type=${visitorType}&campaign=${encodeURIComponent(formData.campaignName)}&timestamp=${new Date().toISOString()}`;
+          // Create QR code URL pointing to n8n webhook
+          const qrUrl = `https://n8n.tenear.com/webhook/claim-offer?location=${qrCodeData}&zone=${formData.zone}&type=shop_checkin&mall=${formData.mallId}&shop=${formData.shopId}&visitor_type=${visitorType}&campaign=${encodeURIComponent(formData.campaignName)}&timestamp=${new Date().toISOString()}`;
           
           // Generate QR code image
           const qrSize = formData.qrSize === 'small' ? '200x200' : formData.qrSize === 'medium' ? '400x400' : '600x600';
