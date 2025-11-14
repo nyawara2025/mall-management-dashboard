@@ -634,15 +634,12 @@ class MallApiServiceClass {
       const result = await response.json()
       console.log('🔍 Raw n8n response:', result)
       
-      // Handle both array and object response formats from n8n
-      let actualResult = Array.isArray(result) ? result[0] : result;
-      
       // Handle n8n response format: { success: true, data: { malls: [...] } }
       let malls: Mall[] = []
       
-      if (actualResult.success && actualResult.data && actualResult.data.malls && Array.isArray(actualResult.data.malls)) {
+      if (result.success && result.data && result.data.malls && Array.isArray(result.data.malls)) {
         // Transform n8n response format to our expected format
-        malls = actualResult.data.malls.map((mall: any) => ({
+        malls = result.data.malls.map((mall: any) => ({
           id: mall.mall_id,  // Transform mall_id to id
           name: mall.mall_name,  // Transform mall_name to name
           latitude: mall.latitude,
