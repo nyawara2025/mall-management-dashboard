@@ -40,14 +40,15 @@ export function Dashboard({ onViewChange }: DashboardProps) {
       console.log('🎯 Dashboard: Token length:', token.length);
       console.log('🎯 Dashboard: Current user:', user);
       
-      const response = await MallApiService.fetchMalls(token);
+      // Properly type the response to fix TypeScript compilation errors
+      const response: { success: boolean; data?: Mall[]; error?: string } = await MallApiService.fetchMalls(token);
       console.log('🎯 Dashboard: Mall API response:', response);
       
       if (response.success && response.data) {
         // Double-check: If user is shop_admin and not super_admin, ensure they only see their mall
         let filteredMalls = response.data;
         if (user && user.role === 'shop_admin' && user.mall_access && user.mall_access.length > 0) {
-          filteredMalls = response.data.filter(mall => user.mall_access?.includes(Number(mall.id)));
+          filteredMalls = response.data.filter((mall: Mall) => user.mall_access?.includes(Number(mall.id)));
           console.log('🔒 Dashboard: Shop admin - filtered to mall_access:', user.mall_access, 'Total malls:', filteredMalls.length);
         }
         
