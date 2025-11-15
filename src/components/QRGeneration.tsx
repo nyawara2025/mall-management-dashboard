@@ -305,29 +305,30 @@ export default function QRGeneration() {
           
           if (formData.qrType === 'claim') {
             // Offer Claims QR - point to n8n webhook for data capture
+            // OPTIMIZED: Use short keys to reduce QR URL length for better scannability
             const claimData = {
-              location: `${formData.locationId}_${visitorType}_${i}`,
-              zone: formData.zone,
-              mall_id: formData.mallId,
-              shop_id: formData.shopId,
-              visitor_type: visitorType,
-              campaign_id: formData.campaignName,
-              campaign_name: formData.campaignName.substring(0, 30),
-              timestamp: Date.now()
+              l: `${formData.locationId}_${visitorType}_${i}`, // location
+              z: formData.zone, // zone
+              m: formData.mallId, // mall_id
+              s: formData.shopId, // shop_id
+              t: visitorType, // visitor_type
+              c: formData.campaignName.substring(0, 15), // campaign_name (max 15 chars)
+              ts: Date.now() // timestamp
             };
             
             const encodedData = btoa(JSON.stringify(claimData));
             qrUrl = `https://n8n.tenear.com/webhook/claim-offer?d=${encodeURIComponent(encodedData)}`;
           } else {
             // Zone Check-in QR - point to n8n webhook for visitor check-ins
+            // OPTIMIZED: Use short keys to reduce QR URL length for better scannability
             const checkinData = {
-              location: `${formData.locationId}_${visitorType}_${i}`,
-              zone: formData.zone,
-              mall_id: formData.mallId,
-              shop_id: formData.shopId,
-              visitor_type: visitorType,
-              checkin_type: 'general',
-              timestamp: Date.now()
+              l: `${formData.locationId}_${visitorType}_${i}`, // location
+              z: formData.zone, // zone
+              m: formData.mallId, // mall_id
+              s: formData.shopId, // shop_id
+              t: visitorType, // visitor_type
+              ct: 'general', // checkin_type
+              ts: Date.now() // timestamp
             };
             
             const encodedData = btoa(JSON.stringify(checkinData));
@@ -363,7 +364,7 @@ export default function QRGeneration() {
             campaignName: formData.campaignName,
             visitorType,
             timestamp: new Date().toISOString(),
-            qrCodeData: qrCodeData // Unique indentifier for Data tracking
+            qrCodeData: qrCodeData // Unique identifier for database tracking
           };
 
           newQRs.push(qrData);
