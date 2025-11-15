@@ -27,6 +27,7 @@ interface QRGenerationData {
   };
   qrSize: 'small' | 'medium' | 'large';
   generateCount: number;
+  qrType: 'claim' | 'checkin';
 }
 
 interface MallLocation {
@@ -37,6 +38,17 @@ interface MallLocation {
   zone: string;
   shop_id: string;
   description: string;
+}
+
+interface Campaign {
+  id: number;
+  campaign_id: string;
+  name: string;
+  message: string;
+  active: boolean;
+  mall_id: number;
+  shop_id: number;
+  created_at: string;
 }
 
 interface GeneratedQR {
@@ -60,18 +72,18 @@ const VISITOR_TYPES = [
   { id: 'social_visitor', name: 'Social Visitor', icon: '👥', color: 'bg-pink-100 text-pink-800' }
 ];
 
+const QR_TYPES = [
+  { id: 'claim', name: 'Offer Claims', description: 'QR codes for claiming promotional offers and discounts' },
+  { id: 'checkin', name: 'Zone Check-ins', description: 'QR codes for tracking visitor movement across mall zones' }
+];
+
 const QR_SIZES = [
   { id: 'small', name: 'Small (5cm)', description: 'Business cards, small signage' },
   { id: 'medium', name: 'Medium (10cm)', description: 'Standard placement, flyers' },
   { id: 'large', name: 'Large (15cm)', description: 'Posters, main displays' }
 ];
 
-const PREDEFINED_CAMPAIGNS = [
-  { id: 'welcome_nov2025', name: 'Welcome Campaign November 2025', description: 'General visitor welcome' },
-  { id: 'wine_weekend_langata', name: 'Wine Appreciation Weekend', description: 'Langata Mall wine event' },
-  { id: 'barbershop_special_offer', name: 'Spatial Barbershop Special', description: 'November special offers' },
-  { id: 'spa_relaxation_nhc', name: 'NHC Spa Relaxation Package', description: 'Wellness and relaxation' }
-];
+// Dynamic campaigns fetched from database
 
 // Updated MALL_LOCATIONS with proper mall_name values
 const MALL_LOCATIONS: MallLocation[] = [
@@ -109,6 +121,8 @@ export default function QRGeneration() {
   const [generationProgress, setGenerationProgress] = useState('');
   const [generatedQRs, setGeneratedQRs] = useState<GeneratedQR[]>([]);
   const [preloadedCampaign, setPreloadedCampaign] = useState<any>(null);
+  const [availableCampaigns, setAvailableCampaigns] = useState<Campaign[]>([]);
+  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
   
   const [formData, setFormData] = useState<QRGenerationData>({
     mallId: '',
@@ -124,7 +138,8 @@ export default function QRGeneration() {
       endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     },
     qrSize: 'medium',
-    generateCount: 1
+    generateCount: 1,
+    qrType: 'claim'
   });
 
   // Check for preloaded campaign data from Campaign Management
@@ -157,6 +172,49 @@ export default function QRGeneration() {
     }
   }, []);
 
+  // Fetch campaigns from adcampaigns table
+  useEffect(() => {
+    const fetchCampaigns = async () => {
+      setIsLoadingCampaigns(true);
+      try {
+        console.log('🔍 Fetching campaigns from adcampaigns table...');
+        
+        const { data, error } = await supabase
+          .from('adcampaigns')
+          .select(`
+            id,
+            campaign_id,
+            name,
+            message,
+            active,
+            mall_id,
+            shop_id,
+            created_at
+          `)
+          .eq('active', true)
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error('❌ Error fetching campaigns from adcampaigns:', error);
+          setAvailableCampaigns([]);
+        } else {
+          setAvailableCampaigns(data || []);
+          console.log('✅ Fetched campaigns from adcampaigns:', data?.length || 0);
+          if (data && data.length > 0) {
+            console.log('📋 Sample campaigns:', JSON.stringify(data.slice(0, 2), null, 2));
+          }
+        }
+      } catch (error) {
+        console.error('❌ Exception fetching campaigns:', error);
+        setAvailableCampaigns([]);
+      } finally {
+        setIsLoadingCampaigns(false);
+      }
+    };
+
+    fetchCampaigns();
+  }, []);
+
   const handleMallSelection = (location: MallLocation) => {
     setFormData(prev => ({
       ...prev,
@@ -181,8 +239,21 @@ export default function QRGeneration() {
 
   // Database Schema Compliant QR Generation
   const generateQRCodes = async () => {
-    if (!formData.campaignName || formData.visitorTypes.length === 0) {
-      alert('Please select a campaign name and at least one visitor type.');
+    // Validate campaign selection
+    if (!formData.campaignName) {
+      alert('Please select a campaign from the dropdown.');
+      return;
+    }
+    
+    // Check if selected campaign exists in available campaigns
+    const selectedCampaign = availableCampaigns.find(c => c.campaign_id === formData.campaignName);
+    if (!selectedCampaign && availableCampaigns.length > 0) {
+      alert('Please select a valid campaign from the available options.');
+      return;
+    }
+    
+    if (formData.visitorTypes.length === 0) {
+      alert('Please select at least one visitor type.');
       return;
     }
 
@@ -202,7 +273,11 @@ export default function QRGeneration() {
           const qrCodeData = `${formData.locationId}_${formData.campaignName}_${visitorType}_${Date.now()}_${i}`;
           
           // Create QR code URL pointing to n8n webhook
-          const qrUrl = `https://n8n.tenear.com/webhook/claim-offer?location=${qrCodeData}&zone=${formData.zone}&type=shop_checkin&mall=${formData.mallId}&shop=${formData.shopId}&visitor_type=${visitorType}&campaign=${encodeURIComponent(formData.campaignName)}&timestamp=${new Date().toISOString()}`;
+          const webhookUrl = formData.qrType === 'claim' 
+            ? 'https://n8n.tenear.com/webhook/claim-offer'
+            : 'https://n8n.tenear.com/webhook/visitor-checkins';
+          
+          const qrUrl = `${webhookUrl}?location=${encodeURIComponent(qrCodeData)}&zone=${encodeURIComponent(formData.zone)}&type=${encodeURIComponent(formData.qrType)}&mall=${encodeURIComponent(formData.mallId)}&shop=${encodeURIComponent(formData.shopId)}&visitor_type=${encodeURIComponent(visitorType)}&campaign=${encodeURIComponent(formData.campaignName)}&timestamp=${encodeURIComponent(new Date().toISOString())}`;
           
           // Generate QR code image
           const qrSize = formData.qrSize === 'small' ? '200x200' : formData.qrSize === 'medium' ? '400x400' : '600x600';
@@ -393,9 +468,17 @@ export default function QRGeneration() {
             className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Select a campaign</option>
-            {PREDEFINED_CAMPAIGNS.map(campaign => (
-              <option key={campaign.id} value={campaign.id}>{campaign.name}</option>
-            ))}
+            {isLoadingCampaigns ? (
+              <option disabled>Loading campaigns...</option>
+            ) : availableCampaigns.length > 0 ? (
+              availableCampaigns.map((campaign) => (
+                <option key={campaign.campaign_id} value={campaign.campaign_id}>
+                  {campaign.name} (Campaign ID: {campaign.campaign_id})
+                </option>
+              ))
+            ) : (
+              <option disabled>No campaigns available</option>
+            )}
           </select>
           <input
             type="text"
@@ -465,7 +548,24 @@ export default function QRGeneration() {
         </div>
 
         {/* QR Settings */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              QR Code Type
+            </label>
+            <select
+              value={formData.qrType}
+              onChange={(e) => setFormData(prev => ({ ...prev, qrType: e.target.value as 'claim' | 'checkin' }))}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {QR_TYPES.map(type => (
+                <option key={type.id} value={type.id}>{type.name}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              {QR_TYPES.find(t => t.id === formData.qrType)?.description}
+            </p>
+          </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               QR Code Size
@@ -524,7 +624,8 @@ export default function QRGeneration() {
           </div>
           <div>
             <span className="text-sm text-gray-500">Settings:</span>
-            <p className="font-medium text-gray-900">{formData.qrSize} size</p>
+            <p className="font-medium text-gray-900">{QR_TYPES.find(t => t.id === formData.qrType)?.name}</p>
+            <p className="text-sm text-gray-600">{formData.qrSize} size</p>
             <p className="text-sm text-gray-600">{formData.generateCount} QR code{formData.generateCount > 1 ? 's' : ''} per type</p>
           </div>
         </div>
@@ -551,9 +652,28 @@ export default function QRGeneration() {
         <p className="text-gray-700 mb-2">
           Total QR codes to generate: <span className="font-bold text-blue-600">{formData.visitorTypes.length * formData.generateCount}</span>
         </p>
-        <p className="text-sm text-gray-600">
-          Each QR code will be unique and configured for {formData.locationName} with campaign "{formData.campaignName}".
-        </p>
+        {(() => {
+          const selectedCampaign = availableCampaigns.find(c => c.campaign_id === formData.campaignName);
+          return (
+            <div className="text-sm text-gray-600 space-y-1">
+              <p>Each QR code will be unique and configured for <span className="font-semibold">{formData.locationName}</span> with campaign:</p>
+              {selectedCampaign ? (
+                <div className="bg-white rounded border p-3 mt-2">
+                  <p className="font-semibold text-blue-600">{selectedCampaign.name}</p>
+                  <p className="text-xs text-gray-500">Campaign ID: {selectedCampaign.campaign_id}</p>
+                  {selectedCampaign.message && (
+                    <p className="text-xs text-gray-600 mt-1">{selectedCampaign.message}</p>
+                  )}
+                </div>
+              ) : (
+                <div className="mt-2">
+                  <p className="font-semibold text-blue-600">{formData.campaignName}</p>
+                  <p className="text-xs text-gray-500">{formData.locationName}</p>
+                </div>
+              )}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
