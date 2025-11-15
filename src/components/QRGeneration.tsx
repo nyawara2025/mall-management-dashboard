@@ -363,7 +363,7 @@ export default function QRGeneration() {
             campaignName: formData.campaignName,
             visitorType,
             timestamp: new Date().toISOString(),
-            qrCodeData: simplifiedData.id // Use simplified ID instead of long string
+            qrCodeData: qrCodeData // Unique indentifier for Data tracking
           };
 
           newQRs.push(qrData);
