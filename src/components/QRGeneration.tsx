@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '../types/auth';
+import { useAuth } from '../contexts/AuthContext';
 import { QrCode, Download, Eye, Settings, Calendar, MapPin, Building, Users, Target } from 'lucide-react';
 
 /**
@@ -116,6 +117,7 @@ const MALL_LOCATIONS: MallLocation[] = [
 ];
 
 export default function QRGeneration() {
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState('');
@@ -142,6 +144,27 @@ export default function QRGeneration() {
     qrType: 'claim'
   });
 
+  // Authentication check - ensure user is logged in and has required permissions
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-gray-500">Please log in to access QR code generation</p>
+      </div>
+    );
+  }
+
+  // Check if user has shop/mall assignments
+  if (!user.shop_id || !user.mall_id) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-red-500 mb-2">Shop/Mall permissions required</p>
+          <p className="text-gray-500">Please contact administrator to assign shop and mall permissions to your account.</p>
+        </div>
+      </div>
+    );
+  }
+
   // Check for preloaded campaign data from Campaign Management
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -155,12 +178,12 @@ export default function QRGeneration() {
         // Pre-populate form with campaign data
         setFormData(prev => ({
           ...prev,
-          mallId: campaign.mallId || '7',
-          mallName: campaign.mallName || 'NHC Mall',
-          locationId: campaign.locationId || 'nhc_maliet_salon',
-          locationName: campaign.locationName || 'Maliet Salon & Spa',
-          zone: campaign.zone || 'Maliet_Salon',
-          shopId: campaign.shopId || '9',
+          mallId: campaign.mallId || (user?.mall_id?.toString() || '6'),  // Use user's mall_id, fallback to 6
+          mallName: campaign.mallName || 'Langata Mall',  // Default to Sandra's mall
+          locationId: campaign.locationId || 'langata_kika_wines',
+          locationName: campaign.locationName || 'Kika Wines & Spirits',
+          zone: campaign.zone || 'Kika_Wines',
+          shopId: campaign.shopId || (user?.shop_id?.toString() || '6'),  // Use user's shop_id, fallback to 6
           campaignName: campaign.campaignName || campaign.campaign_id,
           visitorTypes: ['first_time_visitor', 'loyal_customer'] // Default visitor types
         }));
@@ -277,7 +300,20 @@ export default function QRGeneration() {
             ? 'https://n8n.tenear.com/webhook/claim-offer'
             : 'https://n8n.tenear.com/webhook/visitor-checkins';
           
-          const qrUrl = `${webhookUrl}?location=${encodeURIComponent(qrCodeData)}&zone=${encodeURIComponent(formData.zone)}&type=${encodeURIComponent(formData.qrType)}&mall=${encodeURIComponent(formData.mallId)}&shop=${encodeURIComponent(formData.shopId)}&visitor_type=${encodeURIComponent(visitorType)}&campaign=${encodeURIComponent(formData.campaignName)}&timestamp=${encodeURIComponent(new Date().toISOString())}`;
+          // Debug: Log shop/mall mapping being used for webhook
+          console.log(`🔗 QR Webhook Data:`, {
+            user_shop_id: user.shop_id,
+            user_mall_id: user.mall_id,
+            form_shop_id: formData.shopId,
+            form_mall_id: formData.mallId,
+            campaign: formData.campaignName,
+            webhook_url: webhookUrl
+          });
+          
+          // Use base64 encoding for location to ensure URL-safe characters
+          // This prevents issues with n8n webhook header parsing
+          const encodedLocation = btoa(qrCodeData);
+          const qrUrl = `${webhookUrl}?location=${encodeURIComponent(encodedLocation)}&zone=${encodeURIComponent(formData.zone)}&type=${encodeURIComponent(formData.qrType)}&mall=${encodeURIComponent(formData.mallId)}&shop=${encodeURIComponent(formData.shopId)}&visitor_type=${encodeURIComponent(visitorType)}&campaign=${encodeURIComponent(formData.campaignName)}&timestamp=${encodeURIComponent(new Date().toISOString())}&qr_data=${encodeURIComponent(qrCodeData)}`;
           
           // Generate QR code image
           const qrSize = formData.qrSize === 'small' ? '200x200' : formData.qrSize === 'medium' ? '400x400' : '600x600';
