@@ -292,28 +292,63 @@ export default function QRGeneration() {
         for (let i = 0; i < formData.generateCount; i++) {
           setGenerationProgress(`Generating QR for ${visitorType} (${i + 1}/${formData.generateCount})...`);
 
-          // Generate unique qr_code_data for database
+          // Generate unique qr_code_data for database tracking
           const qrCodeData = `${formData.locationId}_${formData.campaignName}_${visitorType}_${Date.now()}_${i}`;
           
-          // Create QR code URL pointing to n8n webhook
-          const webhookUrl = formData.qrType === 'claim' 
-            ? 'https://n8n.tenear.com/webhook/claim-offer'
-            : 'https://n8n.tenear.com/webhook/visitor-checkins';
+          // CRITICAL: QR codes point to n8n webhooks to ensure visitor claims
+          // and check-ins are properly captured in the visitor_claims table
+          // for analytics and metrics tracking
           
-          // Debug: Log shop/mall mapping being used for webhook
-          console.log(`🔗 QR Webhook Data:`, {
-            user_shop_id: user.shop_id,
-            user_mall_id: user.mall_id,
-            form_shop_id: formData.shopId,
-            form_mall_id: formData.mallId,
-            campaign: formData.campaignName,
-            webhook_url: webhookUrl
-          });
+          // Create QR URL pointing to n8n webhooks for data capture
+          // This ensures visitor claims are stored in the visitor_claims table
+          let qrUrl;
           
-          // Use base64 encoding for location to ensure URL-safe characters
-          // This prevents issues with n8n webhook header parsing
-          const encodedLocation = btoa(qrCodeData);
-          const qrUrl = `${webhookUrl}?location=${encodeURIComponent(encodedLocation)}&zone=${encodeURIComponent(formData.zone)}&type=${encodeURIComponent(formData.qrType)}&mall=${encodeURIComponent(formData.mallId)}&shop=${encodeURIComponent(formData.shopId)}&visitor_type=${encodeURIComponent(visitorType)}&campaign=${encodeURIComponent(formData.campaignName)}&timestamp=${encodeURIComponent(new Date().toISOString())}&qr_data=${encodeURIComponent(qrCodeData)}`;
+          if (formData.qrType === 'claim') {
+            // Offer Claims QR - point to n8n webhook for data capture
+            const claimData = {
+              location: `${formData.locationId}_${visitorType}_${i}`,
+              zone: formData.zone,
+              mall_id: formData.mallId,
+              shop_id: formData.shopId,
+              visitor_type: visitorType,
+              campaign_id: formData.campaignName,
+              campaign_name: formData.campaignName.substring(0, 30),
+              timestamp: Date.now()
+            };
+            
+            const encodedData = btoa(JSON.stringify(claimData));
+            qrUrl = `https://n8n.tenear.com/webhook/claim-offer?d=${encodeURIComponent(encodedData)}`;
+          } else {
+            // Zone Check-in QR - point to n8n webhook for visitor check-ins
+            const checkinData = {
+              location: `${formData.locationId}_${visitorType}_${i}`,
+              zone: formData.zone,
+              mall_id: formData.mallId,
+              shop_id: formData.shopId,
+              visitor_type: visitorType,
+              checkin_type: 'general',
+              timestamp: Date.now()
+            };
+            
+            const encodedData = btoa(JSON.stringify(checkinData));
+            qrUrl = `https://n8n.tenear.com/webhook/visitor-checkins?d=${encodeURIComponent(encodedData)}`;
+          }
+          
+        // Debug: Log the QR data capture information
+        console.log(`🔗 QR Generated:`, {
+          type: formData.qrType,
+          url: qrUrl,
+          user_shop_id: user.shop_id,
+          user_mall_id: user.mall_id,
+          will_capture_data: true,
+          webhook_endpoint: formData.qrType === 'claim' ? '/webhook/claim-offer' : '/webhook/visitor-checkins'
+        });
+
+        // Test QR URL format (first QR only)
+        if (i === 0 && visitorType === formData.visitorTypes[0]) {
+          console.log(`🧪 Test QR URL: ${qrUrl}`);
+          console.log(`🧪 Data will be captured in visitor_claims table via n8n webhook`);
+        }
           
           // Generate QR code image
           const qrSize = formData.qrSize === 'small' ? '200x200' : formData.qrSize === 'medium' ? '400x400' : '600x600';
@@ -328,7 +363,7 @@ export default function QRGeneration() {
             campaignName: formData.campaignName,
             visitorType,
             timestamp: new Date().toISOString(),
-            qrCodeData // This must match qr_checkins.location_id
+            qrCodeData: simplifiedData.id // Use simplified ID instead of long string
           };
 
           newQRs.push(qrData);
