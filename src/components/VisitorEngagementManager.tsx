@@ -71,7 +71,7 @@ export default function VisitorEngagementManager({ user }: VisitorEngagementMana
       setLoading(true);
       
       // Call N8N webhook to get visitor engagement data
-      const webhookUrl = 'https://n8n.tenear.com/webhook/get-visitor-engagement';
+      const webhookUrl = 'https://n8n.tenear.com/webhook/dashboard-metrics';
       
       const params = new URLSearchParams({
         shop_id: (user.shop_id || 0).toString(),
