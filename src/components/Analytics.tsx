@@ -281,6 +281,7 @@ const Analytics: React.FC = () => {
       setCampaignMetrics(processedMetrics);
       
       // Create mock n8n-style data for compatibility
+      const totalScans = processedMetrics.reduce((sum, m) => sum + m.scans, 0);
       const mockMetrics: MetricsData = {
         total_checkins: totalScans || 0,
         unique_visitors: campaigns?.length || 0,
@@ -296,7 +297,11 @@ const Analytics: React.FC = () => {
         engagement_methods: [
           { method: 'QR Scan', count: totalScans || 0, percentage: 100 }
         ],
-        recent_activity: processedMetrics.flatMap(m => m.recentActivity) || []
+        recent_activity: processedMetrics.flatMap(m => m.recentActivity.map(a => ({
+          timestamp: a.timestamp,
+          zone: a.details || 'Campaign',
+          type: a.action
+        }))) || []
       };
       
       setMetrics(mockMetrics);
