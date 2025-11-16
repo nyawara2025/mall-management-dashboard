@@ -38,11 +38,13 @@ const MALL_DATA = {
 
 const SHOP_DATA = {
   3: { name: "Spatial Barbershop", mall_id: 3 },
-  4: { name: "Cleanshelf SuperMarket", mall_id: 3 },
-  5: { name: "Cleanshelf", mall_id: 6 },
+  4: { name: "Mall Cafe", mall_id: 3 },
+  8: { name: "Cleanshelf SuperMarket", mall_id: 6 },
   6: { name: "Kika Wines & Spirits", mall_id: 6 },
   7: { name: "The Phone Shop", mall_id: 6 },
-  8: { name: "Maliet Salon", mall_id: 7 }
+  9: { name: "Maliet Salon", mall_id: 7 },
+  10: {name: "Gravity CBC Resource Centre", mall_id: 7 },
+  11: {name: "Hydramist Drinking Water Services", mall_id: 7 }
 };
 
 // Helper function to get dynamic titles (PRESERVED)
@@ -141,7 +143,7 @@ const Analytics: React.FC = () => {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-        },
+        }
       });
       
       console.log('API Response status:', response.status);
@@ -161,24 +163,35 @@ const Analytics: React.FC = () => {
       try {
         const rawData = JSON.parse(text);
         
-        // Transform n8n response to expected format
+        // FIXED: Extract data from the nested structure (today_metrics, not summary)
+        const rawMetrics = rawData.today_metrics || {};
+        const zoneMetrics = rawData.zone_metrics || [];
+        
+        console.log('Raw metrics extracted:', rawMetrics);
+        console.log('Zone metrics extracted:', zoneMetrics);
+        
+        // Transform n8n response to expected format with proper data extraction
         data = {
-          total_checkins: rawData.summary?.total_visits || 0,
-          unique_visitors: rawData.summary?.total_unique_visitors || 0,
-          vip_visitors: rawData.summary?.total_vip_visits || 0,
-          active_zones: rawData.summary?.total_zones || 0,
-          phone_contacts: 0,
-          active_last_2_hours: 0,
-          zone_performance: rawData.summary?.zones?.map((zone: any) => ({
-            zone: zone.qr_zone,
+          total_checkins: parseInt(rawMetrics.total_visits) || 0,
+          unique_visitors: parseInt(rawMetrics.unique_visitors) || 0,
+          vip_visitors: parseInt(rawMetrics.vip_visits) || 0,
+          active_zones: parseInt(rawMetrics.zones_active) || 0,
+          phone_contacts: parseInt(rawMetrics.phone_contacts) || 0,
+          active_last_2_hours: parseInt(rawMetrics.active_last_2_hours) || 0,
+          zone_performance: zoneMetrics.map((zone: any) => ({
+            zone: zone.qr_zone || 'Unknown Zone',
             checkins: parseInt(zone.total_visits) || 0,
             percentage: 0
-          })) || [],
+          })),
           engagement_methods: [
-            { method: 'SMS', count: Math.floor((rawData.summary?.total_visits || 0) * (rawData.summary?.avg_sms_rate || 0) / 100), percentage: rawData.summary?.avg_sms_rate || 0 }
+            { method: 'SMS', count: parseInt(rawMetrics.phone_contacts) || 0, percentage: rawData.summary?.avg_sms_rate || 0 },
+            { method: 'Email', count: parseInt(rawMetrics.email_contacts) || 0, percentage: 0 }
           ],
           recent_activity: []
         };
+        
+        console.log('Processed metrics data:', data);
+        
       } catch (parseError) {
         console.error('JSON parsing failed:', parseError);
         console.log('Raw response:', text);
