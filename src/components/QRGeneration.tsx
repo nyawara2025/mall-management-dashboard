@@ -352,34 +352,32 @@ export default function QRGeneration() {
           // This ensures visitor claims are stored in the visitor_claims table
           let qrUrl;
           
+          // MAINTAIN WEBHOOK COMPATIBILITY: Use compressed but complete data format
+          // This ensures webhook receives all necessary data while making QR more scannable
           if (formData.qrType === 'claim') {
-            // Offer Claims QR - point to n8n webhook for data capture
-            const claimData = {
-              l: `${formData.locationId}_${visitorType}_${i}`, // location
-              z: formData.zone, // zone
-              m: finalMallId, // mall_id with proper resolution
-              s: finalShopId, // shop_id with proper resolution
-              t: visitorType, // visitor_type
-              c: formData.campaignName.substring(0, 15), // campaign_name (max 15 chars)
-              ts: Date.now() // timestamp
+            // Claim QR - compress data but keep webhook compatibility
+            const compactData = {
+              m: finalMallId,           // mall_id
+              s: finalShopId,           // shop_id  
+              v: visitorType.substring(0,3), // visitor_type (first 3 chars)
+              c: formData.campaignName.substring(0,20), // campaign (truncated)
+              l: formData.locationId,   // location_id
+              z: formData.zone          // zone
             };
-            
-            const encodedData = btoa(JSON.stringify(claimData));
-            qrUrl = `${checkinBaseUrl}/qr/checkin?campaign=${encodeURIComponent(formData.campaignName)}&zone=${encodeURIComponent(formData.zone)}&location=${encodeURIComponent(formData.locationId)}&type=claim&mall_id=${finalMallId}&shop_id=${finalShopId}&visitor_type=${encodeURIComponent(visitorType)}&data=${encodeURIComponent(encodedData)}`;
+            const encodedData = btoa(JSON.stringify(compactData));
+            qrUrl = `${checkinBaseUrl}/checkin?d=${encodedData}`;
           } else {
-            // Zone Check-in QR - point to n8n webhook for visitor check-ins
-            const checkinData = {
-              l: `${formData.locationId}_${visitorType}_${i}`, // location
-              z: formData.zone, // zone
-              m: finalMallId, // mall_id with proper resolution
-              s: finalShopId, // shop_id with proper resolution
-              t: visitorType, // visitor_type
-              ct: 'general', // checkin_type
-              ts: Date.now() // timestamp
+            // Check-in QR - compress data but keep webhook compatibility
+            const compactData = {
+              m: finalMallId,           // mall_id
+              s: finalShopId,           // shop_id
+              v: visitorType.substring(0,3), // visitor_type (first 3 chars) 
+              c: formData.campaignName.substring(0,20), // campaign (truncated)
+              l: formData.locationId,   // location_id
+              z: formData.zone          // zone
             };
-            
-            const encodedData = btoa(JSON.stringify(checkinData));
-            qrUrl = `${checkinBaseUrl}/qr/checkin?campaign=${encodeURIComponent(formData.campaignName)}&zone=${encodeURIComponent(formData.zone)}&location=${encodeURIComponent(formData.locationId)}&type=checkin&mall_id=${finalMallId}&shop_id=${finalShopId}&visitor_type=${encodeURIComponent(visitorType)}&data=${encodeURIComponent(encodedData)}`;
+            const encodedData = btoa(JSON.stringify(compactData));
+            qrUrl = `${checkinBaseUrl}/checkin?d=${encodedData}`;
           }
           
         // Debug: Log the QR data capture information
@@ -398,9 +396,9 @@ export default function QRGeneration() {
           console.log(`🧪 Data will be captured in visitor_claims table via n8n webhook`);
         }
           
-          // Generate QR code image with OPTIMIZED settings for better screen scanning
-          const qrSize = formData.qrSize === 'small' ? '400x400' : formData.qrSize === 'medium' ? '600x600' : '800x800'; // Increased sizes for better scanning
-          const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}&data=${encodeURIComponent(qrUrl)}&format=png&qzone=10&margin=20&color=000000&bgcolor=FFFFFF&correction=H`; // Higher error correction and margins
+          // Generate QR code image with MAXIMUM scannability settings
+          const qrSize = formData.qrSize === 'small' ? '500x500' : formData.qrSize === 'medium' ? '700x700' : '1000x1000'; // Larger sizes for screen scanning
+          const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}&data=${encodeURIComponent(qrUrl)}&format=png&qzone=12&margin=25&color=000000&bgcolor=FFFFFF&correction=H`; // Maximum error correction and margins
 
           const qrData: GeneratedQR = {
             id: `${visitorType}_${i}`,
