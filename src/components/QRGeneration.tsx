@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '../types/auth';
 import { useAuth } from '../contexts/AuthContext';
+import { AuthService } from '../services/auth';
 import { QrCode, Download, Eye, Settings, Calendar, MapPin, Building, Users, Target } from 'lucide-react';
 
 /**
@@ -202,6 +203,10 @@ export default function QRGeneration() {
       try {
         console.log('🔍 Fetching campaigns from adcampaigns table...');
         
+        // Use AuthService to get proper mall/shop context
+        const userMallShop = AuthService.getCurrentUserMallAndShop();
+        console.log('🔍 Using AuthService for campaign filtering:', userMallShop);
+        
         const { data, error } = await supabase
           .from('adcampaigns')
           .select(`
@@ -215,8 +220,8 @@ export default function QRGeneration() {
             created_at
           `)
           .eq('active', true)
-          .eq('mall_id', user.mall_id)  // Filter by user's mall
-          .eq('shop_id', user.shop_id)  // Filter by user's shop
+          .eq('mall_id', userMallShop.mall_id)  // Use resolved mall_id
+          .eq('shop_id', userMallShop.shop_id)  // Use resolved shop_id
           .order('name', { ascending: true });
 
         if (error) {
@@ -301,40 +306,79 @@ export default function QRGeneration() {
           // and check-ins are properly captured in the visitor_claims table
           // for analytics and metrics tracking
           
+          // PROPER FIX: Use AuthService to resolve mall_id and shop_id correctly
+          // This replaces hardcoded fallbacks with proper authentication handling
+          
+          // Debug authentication context
+          console.log('🔍 QR Generation - Authentication Debug:', {
+            user: user,
+            formData: {
+              mallId: formData.mallId,
+              shopId: formData.shopId
+            }
+          });
+          
+          // Get properly resolved mall_id and shop_id from AuthService
+          const userMallShop = AuthService.getCurrentUserMallAndShop();
+          const resolvedMallId = userMallShop.mall_id.toString();
+          const resolvedShopId = userMallShop.shop_id.toString();
+          
+          console.log('🔍 AuthService.getCurrentUserMallAndShop():', userMallShop);
+          
+          // If we have specific form data, use that; otherwise use resolved values
+          const finalMallId = formData.mallId || resolvedMallId;
+          const finalShopId = formData.shopId || resolvedShopId;
+          
+          console.log('🔍 Final QR Parameters:', {
+            mallId: finalMallId,
+            shopId: finalShopId,
+            resolved: { mallId: resolvedMallId, shopId: resolvedShopId },
+            formData: { mallId: formData.mallId, shopId: formData.shopId }
+          });
+          
+          // Validate that we have valid mall_id and shop_id
+          if (!finalMallId || !finalShopId || finalMallId === '0' || finalShopId === '0') {
+            console.error('❌ AUTHENTICATION ERROR: Cannot resolve mall_id or shop_id');
+            console.log('AuthService result:', userMallShop);
+            console.log('Current user:', user);
+            console.log('Form data mallId/shopId:', { mallId: formData.mallId, shopId: formData.shopId });
+            
+            alert(`Authentication Error: Unable to determine mall_id and shop_id.\n\nDetails:\n- User mall_id: ${user?.mall_id}\n- User shop_id: ${user?.shop_id}\n- AuthService mall_id: ${userMallShop.mall_id}\n- AuthService shop_id: ${userMallShop.shop_id}\n\nPlease log out and log back in to refresh your session.`);
+            return;
+          }
+          
           // Create QR URL pointing to n8n webhooks for data capture
           // This ensures visitor claims are stored in the visitor_claims table
           let qrUrl;
           
           if (formData.qrType === 'claim') {
             // Offer Claims QR - point to n8n webhook for data capture
-            // OPTIMIZED: Use short keys to reduce QR URL length for better scannability
             const claimData = {
               l: `${formData.locationId}_${visitorType}_${i}`, // location
               z: formData.zone, // zone
-              m: formData.mallId, // mall_id
-              s: formData.shopId, // shop_id
+              m: finalMallId, // mall_id with proper resolution
+              s: finalShopId, // shop_id with proper resolution
               t: visitorType, // visitor_type
               c: formData.campaignName.substring(0, 15), // campaign_name (max 15 chars)
               ts: Date.now() // timestamp
             };
             
             const encodedData = btoa(JSON.stringify(claimData));
-            qrUrl = `${baseUrl}/qr/checkin?campaign=${encodeURIComponent(formData.campaignName)}&zone=${encodeURIComponent(formData.zone)}&location=${encodeURIComponent(formData.locationId)}&type=claim&mall_id=${formData.mallId}&shop_id=${formData.shopId}&visitor_type=${encodeURIComponent(visitorType)}&data=${encodeURIComponent(encodedData)}`;
+            qrUrl = `${baseUrl}/qr/checkin?campaign=${encodeURIComponent(formData.campaignName)}&zone=${encodeURIComponent(formData.zone)}&location=${encodeURIComponent(formData.locationId)}&type=claim&mall_id=${finalMallId}&shop_id=${finalShopId}&visitor_type=${encodeURIComponent(visitorType)}&data=${encodeURIComponent(encodedData)}`;
           } else {
             // Zone Check-in QR - point to n8n webhook for visitor check-ins
-            // OPTIMIZED: Use short keys to reduce QR URL length for better scannability
             const checkinData = {
               l: `${formData.locationId}_${visitorType}_${i}`, // location
               z: formData.zone, // zone
-              m: formData.mallId, // mall_id
-              s: formData.shopId, // shop_id
+              m: finalMallId, // mall_id with proper resolution
+              s: finalShopId, // shop_id with proper resolution
               t: visitorType, // visitor_type
               ct: 'general', // checkin_type
               ts: Date.now() // timestamp
             };
             
             const encodedData = btoa(JSON.stringify(checkinData));
-            qrUrl = `${baseUrl}/qr/checkin?campaign=${encodeURIComponent(formData.campaignName)}&zone=${encodeURIComponent(formData.zone)}&location=${encodeURIComponent(formData.locationId)}&type=checkin&mall_id=${formData.mallId}&shop_id=${formData.shopId}&visitor_type=${encodeURIComponent(visitorType)}&data=${encodeURIComponent(encodedData)}`;
+            qrUrl = `${baseUrl}/qr/checkin?campaign=${encodeURIComponent(formData.campaignName)}&zone=${encodeURIComponent(formData.zone)}&location=${encodeURIComponent(formData.locationId)}&type=checkin&mall_id=${finalMallId}&shop_id=${finalShopId}&visitor_type=${encodeURIComponent(visitorType)}&data=${encodeURIComponent(encodedData)}`;
           }
           
         // Debug: Log the QR data capture information
@@ -499,10 +543,37 @@ export default function QRGeneration() {
         </div>
 
         <div className="grid gap-4">
-          {/* Filter locations by user's mall context */}
-          {MALL_LOCATIONS
-            .filter(location => location.mall_id === user.mall_id?.toString())
-            .map((location) => (
+          {/* Filter locations by user's mall context using AuthService */}
+          {(() => {
+            // Use AuthService to get user's accessible malls and shops
+            const accessibleMalls = AuthService.getUserMalls();
+            const accessibleShops = AuthService.getUserShops();
+            
+            console.log('🔍 Location filtering - User access:', {
+              accessibleMalls,
+              accessibleShops,
+              userRole: user?.role,
+              userMallId: user?.mall_id,
+              userShopId: user?.shop_id
+            });
+            
+            // Filter locations based on user access
+            const userAccessibleLocations = MALL_LOCATIONS.filter(location => {
+              const locationMallId = parseInt(location.mall_id, 10);
+              const locationShopId = parseInt(location.shop_id, 10);
+              
+              // User can access this location if:
+              // 1. Super admin (has access to all)
+              // 2. Location's mall is in user's mall_access
+              // 3. Location's shop is in user's shop_access
+              // 4. Location matches user's direct mall_id and shop_id
+              return accessibleMalls.includes(locationMallId) || 
+                     accessibleShops.includes(locationShopId) ||
+                     (user?.role === 'super_admin');
+            });
+            
+            return userAccessibleLocations;
+          })().map((location) => (
             <div 
               key={location.location_id}
               onClick={() => handleMallSelection(location)}
@@ -519,11 +590,24 @@ export default function QRGeneration() {
               </div>
             </div>
           ))}
-          {MALL_LOCATIONS.filter(location => location.mall_id === user.mall_id?.toString()).length === 0 && (
+          {(() => {
+            const accessibleMalls = AuthService.getUserMalls();
+            const accessibleShops = AuthService.getUserShops();
+            const userAccessibleLocations = MALL_LOCATIONS.filter(location => {
+              const locationMallId = parseInt(location.mall_id, 10);
+              const locationShopId = parseInt(location.shop_id, 10);
+              return accessibleMalls.includes(locationMallId) || 
+                     accessibleShops.includes(locationShopId) ||
+                     (user?.role === 'super_admin');
+            });
+            
+            return userAccessibleLocations.length === 0;
+          })() && (
             <div className="text-center py-8 text-gray-500">
               <Building className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p>No locations found for your mall.</p>
-              <p className="text-sm mt-2">Please contact administrator to set up locations for Mall ID: {user.mall_id}</p>
+              <p>No locations found for your user.</p>
+              <p className="text-sm mt-2">User access: Malls [{AuthService.getUserMalls().join(', ')}] Shops [{AuthService.getUserShops().join(', ')}]</p>
+              <p className="text-sm mt-2">Please contact administrator to assign proper mall/shop access to your account.</p>
             </div>
           )}
         </div>
