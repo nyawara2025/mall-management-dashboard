@@ -822,16 +822,37 @@ export default function QRGeneration() {
                     }}
                     className="w-full bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
                   >
-                    Download PNG
+                    📱 Download PNG (High Contrast)
                   </button>
+                  
+                  <button
+                    onClick={() => {
+                      // Share via Web Share API or copy to clipboard
+                      if (navigator.share) {
+                        navigator.share({
+                          title: `QR Code - ${qr.locationName}`,
+                          text: `Scan this QR code to check in at ${qr.locationName}`,
+                          url: qr.url
+                        });
+                      } else {
+                        // Fallback: copy URL to clipboard
+                        navigator.clipboard.writeText(qr.url);
+                        alert('QR Code URL copied to clipboard! You can paste it into WhatsApp, email, or any messaging app.');
+                      }
+                    }}
+                    className="w-full bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 transition-colors"
+                  >
+                    📧 Share via WhatsApp/Email
+                  </button>
+                  
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(qr.url);
-                      alert('URL copied to clipboard!');
+                      alert('URL copied to clipboard! Open your phone camera and point it at this text to scan the QR code.');
                     }}
                     className="w-full bg-gray-100 text-gray-700 px-3 py-2 rounded text-sm hover:bg-gray-200 transition-colors"
                   >
-                    Copy URL
+                    📋 Copy QR URL
                   </button>
                 </div>
               </div>
@@ -840,8 +861,9 @@ export default function QRGeneration() {
 
           {/* Bulk Actions */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h4 className="text-lg font-semibold text-gray-900 mb-4">🚀 Quick Actions</h4>
-            <div className="flex flex-wrap gap-4">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">🚀 Enhanced QR Distribution Options</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              
               <button
                 onClick={() => {
                   // Download all QR codes
@@ -851,41 +873,90 @@ export default function QRGeneration() {
                       link.href = qr.imageUrl;
                       link.download = `${qr.locationName}_${qr.visitorType}_${Date.now()}_${index}.png`;
                       link.click();
-                    }, index * 500); // Stagger downloads
+                    }, index * 500);
                   });
                 }}
-                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
               >
                 <Download className="w-4 h-4" />
-                Download All
+                Download All (PNG)
               </button>
               
               <button
                 onClick={() => {
-                  // Copy all URLs
-                  const urls = generatedQRs.map(qr => qr.url).join('\n');
+                  // Share all URLs
+                  const urls = generatedQRs.map(qr => `Location: ${qr.locationName}\nType: ${qr.visitorType.replace(/_/g, ' ')}\nURL: ${qr.url}`).join('\n\n');
                   navigator.clipboard.writeText(urls);
-                  alert('All URLs copied to clipboard!');
+                  alert('All QR URLs copied! Paste into WhatsApp, email, or any messaging app for easy distribution.');
                 }}
-                className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
+                className="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors"
               >
-                Copy All URLs
+                📧 Copy All URLs
+              </button>
+              
+              <button
+                onClick={() => {
+                  // Test all URLs
+                  generatedQRs.forEach((qr, index) => {
+                    setTimeout(() => {
+                      window.open(qr.url, '_blank');
+                    }, index * 1000);
+                  });
+                }}
+                className="bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors"
+              >
+                🔍 Test All URLs
               </button>
             </div>
           </div>
 
           {/* Usage Instructions */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <h4 className="text-lg font-semibold text-yellow-800 mb-3">📱 Usage Instructions</h4>
-            <ul className="text-sm text-yellow-700 space-y-2">
-              <li>• <strong>For Screen Scanning:</strong> QR codes now optimized for phone camera scanning with improved contrast</li>
-              <li>• <strong>For Printing:</strong> Print QR codes on weather-resistant material (plastic or vinyl)</li>
-              <li>• <strong>Size:</strong> {QR_SIZES.find(s => s.id === formData.qrSize)?.description} - Larger sizes improve scanning reliability</li>
-              <li>• <strong>Placement:</strong> Place at eye level (1.2m - 1.5m) in high-traffic areas</li>
-              <li>• <strong>Lighting:</strong> Ensure adequate lighting (500-1000 lux) for best scanning results</li>
-              <li>• <strong>Each QR code is unique</strong> and tracks visitor engagement with proper location data</li>
-              <li>• <strong>Monitor analytics</strong> in your dashboard to track visitor check-ins in real-time</li>
-            </ul>
+            <h4 className="text-lg font-semibold text-yellow-800 mb-3">📱 Enhanced QR Scanning Guide</h4>
+            
+            {/* Method 1: Screen Scanning */}
+            <div className="mb-4">
+              <h5 className="font-semibold text-yellow-700">🔲 Method 1: Screen Scanning</h5>
+              <ul className="text-sm text-yellow-600 space-y-1 ml-4">
+                <li>• Increase screen brightness to maximum</li>
+                <li>• Hold phone 6-12 inches from screen</li>
+                <li>• Clean phone camera lens</li>
+                <li>• Try multiple QR scanner apps (Google Lens, Camera app, QR Scanner)</li>
+              </ul>
+            </div>
+            
+            {/* Method 2: Download & Scan */}
+            <div className="mb-4">
+              <h5 className="font-semibold text-yellow-700">📱 Method 2: Download & Scan from Gallery</h5>
+              <ul className="text-sm text-yellow-600 space-y-1 ml-4">
+                <li>• Download PNG files to your phone using the "Download PNG" button</li>
+                <li>• Open phone's gallery app</li>
+                <li>• Tap the QR code image</li>
+                <li>• Tap to scan (Google Lens icon should appear)</li>
+              </ul>
+            </div>
+            
+            {/* Method 3: Share via Messaging */}
+            <div className="mb-4">
+              <h5 className="font-semibold text-yellow-700">📧 Method 3: Share via WhatsApp/Email</h5>
+              <ul className="text-sm text-yellow-600 space-y-1 ml-4">
+                <li>• Use "Share via WhatsApp/Email" button</li>
+                <li>• Send to yourself or visitors</li>
+                <li>• Recipients can tap the link to check in</li>
+                <li>• Or copy URL and scan from their phone</li>
+              </ul>
+            </div>
+            
+            {/* General Tips */}
+            <div>
+              <h5 className="font-semibold text-yellow-700">💡 General Scanning Tips</h5>
+              <ul className="text-sm text-yellow-600 space-y-1 ml-4">
+                <li>• QR codes are optimized with high contrast and error correction</li>
+                <li>• Each code is unique and tracks visitor engagement</li>
+                <li>• Monitor real-time analytics in your dashboard</li>
+                <li>• If scanning fails, try the URL method instead</li>
+              </ul>
+            </div>
           </div>
         </div>
       )}
