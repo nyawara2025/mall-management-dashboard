@@ -291,7 +291,8 @@ export default function QRGeneration() {
     setGenerationProgress('Initializing QR generation...');
     
     const baseUrl = window.location.origin;
-    const checkinBaseUrl = 'https://tenearcheckins.pages.dev'; // NEW: Point to Cloudflare Pages
+    const checkinBaseUrl = 'https://tenearcheckins.pages.dev'; // Zone Check-ins site
+    const offersBaseUrl = 'https://tenearoffers.pages.dev'; // Offer Claims site
     const newQRs: GeneratedQR[] = [];
 
     try {
@@ -352,32 +353,14 @@ export default function QRGeneration() {
           // This ensures visitor claims are stored in the visitor_claims table
           let qrUrl;
           
-          // MAINTAIN WEBHOOK COMPATIBILITY: Use compressed but complete data format
-          // This ensures webhook receives all necessary data while making QR more scannable
+          // ANALYTICS COMPATIBLE: Use simple query parameters for webhook compatibility
+          // This ensures n8n webhooks receive familiar data format
           if (formData.qrType === 'claim') {
-            // Claim QR - compress data but keep webhook compatibility
-            const compactData = {
-              m: finalMallId,           // mall_id
-              s: finalShopId,           // shop_id  
-              v: visitorType.substring(0,3), // visitor_type (first 3 chars)
-              c: formData.campaignName.substring(0,20), // campaign (truncated)
-              l: formData.locationId,   // location_id
-              z: formData.zone          // zone
-            };
-            const encodedData = btoa(JSON.stringify(compactData));
-            qrUrl = `${checkinBaseUrl}/checkin?d=${encodedData}`;
+            // Claim QR - simple parameters for analytics compatibility
+            qrUrl = `${offersBaseUrl}/checkin?mall_id=${finalMallId}&shop_id=${finalShopId}&visitor_type=${visitorType}&campaign=${encodeURIComponent(formData.campaignName.substring(0,30))}&location=${encodeURIComponent(formData.locationId)}&zone=${encodeURIComponent(formData.zone)}&type=claim`;
           } else {
-            // Check-in QR - compress data but keep webhook compatibility
-            const compactData = {
-              m: finalMallId,           // mall_id
-              s: finalShopId,           // shop_id
-              v: visitorType.substring(0,3), // visitor_type (first 3 chars) 
-              c: formData.campaignName.substring(0,20), // campaign (truncated)
-              l: formData.locationId,   // location_id
-              z: formData.zone          // zone
-            };
-            const encodedData = btoa(JSON.stringify(compactData));
-            qrUrl = `${checkinBaseUrl}/checkin?d=${encodedData}`;
+            // Check-in QR - simple parameters for analytics compatibility  
+            qrUrl = `${checkinBaseUrl}/checkin?mall_id=${finalMallId}&shop_id=${finalShopId}&visitor_type=${visitorType}&campaign=${encodeURIComponent(formData.campaignName.substring(0,30))}&location=${encodeURIComponent(formData.locationId)}&zone=${encodeURIComponent(formData.zone)}&type=checkin`;
           }
           
         // Debug: Log the QR data capture information
