@@ -215,6 +215,8 @@ export default function QRGeneration() {
             created_at
           `)
           .eq('active', true)
+          .eq('mall_id', user.mall_id)  // Filter by user's mall
+          .eq('shop_id', user.shop_id)  // Filter by user's shop
           .order('name', { ascending: true });
 
         if (error) {
@@ -317,7 +319,7 @@ export default function QRGeneration() {
             };
             
             const encodedData = btoa(JSON.stringify(claimData));
-            qrUrl = `https://n8n.tenear.com/webhook/claim-offer?d=${encodeURIComponent(encodedData)}`;
+            qrUrl = `${baseUrl}/qr/checkin?campaign=${encodeURIComponent(formData.campaignName)}&zone=${encodeURIComponent(formData.zone)}&location=${encodeURIComponent(formData.locationId)}&type=claim&mall_id=${formData.mallId}&shop_id=${formData.shopId}&visitor_type=${encodeURIComponent(visitorType)}&data=${encodeURIComponent(encodedData)}`;
           } else {
             // Zone Check-in QR - point to n8n webhook for visitor check-ins
             // OPTIMIZED: Use short keys to reduce QR URL length for better scannability
@@ -332,7 +334,7 @@ export default function QRGeneration() {
             };
             
             const encodedData = btoa(JSON.stringify(checkinData));
-            qrUrl = `https://n8n.tenear.com/webhook/visitor-checkins?d=${encodeURIComponent(encodedData)}`;
+            qrUrl = `${baseUrl}/qr/checkin?campaign=${encodeURIComponent(formData.campaignName)}&zone=${encodeURIComponent(formData.zone)}&location=${encodeURIComponent(formData.locationId)}&type=checkin&mall_id=${formData.mallId}&shop_id=${formData.shopId}&visitor_type=${encodeURIComponent(visitorType)}&data=${encodeURIComponent(encodedData)}`;
           }
           
         // Debug: Log the QR data capture information
@@ -497,7 +499,10 @@ export default function QRGeneration() {
         </div>
 
         <div className="grid gap-4">
-          {MALL_LOCATIONS.map((location) => (
+          {/* Filter locations by user's mall context */}
+          {MALL_LOCATIONS
+            .filter(location => location.mall_id === user.mall_id?.toString())
+            .map((location) => (
             <div 
               key={location.location_id}
               onClick={() => handleMallSelection(location)}
@@ -514,6 +519,13 @@ export default function QRGeneration() {
               </div>
             </div>
           ))}
+          {MALL_LOCATIONS.filter(location => location.mall_id === user.mall_id?.toString()).length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              <Building className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <p>No locations found for your mall.</p>
+              <p className="text-sm mt-2">Please contact administrator to set up locations for Mall ID: {user.mall_id}</p>
+            </div>
+          )}
         </div>
       </div>
     );

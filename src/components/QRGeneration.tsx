@@ -353,9 +353,9 @@ export default function QRGeneration() {
           console.log(`🧪 Data will be captured in visitor_claims table via n8n webhook`);
         }
           
-          // Generate QR code image
-          const qrSize = formData.qrSize === 'small' ? '200x200' : formData.qrSize === 'medium' ? '400x400' : '600x600';
-          const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}&data=${encodeURIComponent(qrUrl)}&format=png&qzone=4`;
+          // Generate QR code image with IMPROVED settings for better screen scanning
+          const qrSize = formData.qrSize === 'small' ? '300x300' : formData.qrSize === 'medium' ? '500x500' : '700x700';
+          const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}&data=${encodeURIComponent(qrUrl)}&format=png&qzone=8&margin=15&color=000000&bgcolor=FFFFFF&correction=H`;
 
           const qrData: GeneratedQR = {
             id: `${visitorType}_${i}`,
@@ -794,6 +794,9 @@ export default function QRGeneration() {
             <p className="text-green-700">
               Successfully generated <span className="font-bold">{generatedQRs.length}</span> QR codes for {formData.locationName}.
             </p>
+            <p className="text-sm text-green-600 mt-2">
+              ✅ QR codes are optimized for screen scanning and database tracking
+            </p>
           </div>
 
           {/* QR Codes Grid */}
@@ -875,11 +878,13 @@ export default function QRGeneration() {
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
             <h4 className="text-lg font-semibold text-yellow-800 mb-3">📱 Usage Instructions</h4>
             <ul className="text-sm text-yellow-700 space-y-2">
-              <li>• Print QR codes on weather-resistant material (plastic or vinyl)</li>
-              <li>• Recommended size: {QR_SIZES.find(s => s.id === formData.qrSize)?.description}</li>
-              <li>• Place at eye level (1.2m - 1.5m) in high-traffic areas</li>
-              <li>• Each QR code is unique and tracks visitor engagement</li>
-              <li>• Monitor analytics in your dashboard to track visitor check-ins</li>
+              <li>• <strong>For Screen Scanning:</strong> QR codes now optimized for phone camera scanning with improved contrast</li>
+              <li>• <strong>For Printing:</strong> Print QR codes on weather-resistant material (plastic or vinyl)</li>
+              <li>• <strong>Size:</strong> {QR_SIZES.find(s => s.id === formData.qrSize)?.description} - Larger sizes improve scanning reliability</li>
+              <li>• <strong>Placement:</strong> Place at eye level (1.2m - 1.5m) in high-traffic areas</li>
+              <li>• <strong>Lighting:</strong> Ensure adequate lighting (500-1000 lux) for best scanning results</li>
+              <li>• <strong>Each QR code is unique</strong> and tracks visitor engagement with proper location data</li>
+              <li>• <strong>Monitor analytics</strong> in your dashboard to track visitor check-ins in real-time</li>
             </ul>
           </div>
         </div>
