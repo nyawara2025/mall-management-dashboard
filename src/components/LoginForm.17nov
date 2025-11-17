@@ -28,8 +28,17 @@ export function LoginForm() {
     }
   };
 
-  // Note: Individual login - no user credentials exposed for security
-  // Contact your administrator for access credentials
+  const realCredentials = [
+    { username: 'bosco', password: 'demo123', role: 'Super Admin', description: 'Access to all malls and shops' },
+    { username: 'jane', password: 'demo123', role: 'Mall Admin', description: 'China Square Mall only' },
+    { username: 'faith', password: 'demo123', role: 'Mall Admin', description: 'Langata Mall only' },
+    { username: 'ngina', password: 'demo123', role: 'Mall Admin', description: 'NHC Mall only' },
+    { username: 'ben', password: 'demo123', role: 'Shop Admin', description: 'Spatial Barbershop - China Square Mall' },
+    { username: 'sandra', password: 'demo123', role: 'Shop Admin', description: 'Kika Wines - Langata Mall' },
+    { username: 'andrew', password: 'demo123', role: 'Shop Admin', description: 'The Phone Shop - Langata Mall' },
+    { username: 'fred', password: 'demo123', role: 'Shop Admin', description: 'Cleanshelf SupaMarket - Langata Mall' },
+    { username: 'ibrahim', password: 'demo123', role: 'Shop Admin', description: 'Maliet Salon & Spa - NHC Mall' },
+  ];
 
   return (
     <div className="min-h-screen bg-page-bg flex items-center justify-center px-4">
@@ -131,63 +140,61 @@ export function LoginForm() {
         </div>
 
         <div className="hidden lg:block">
-          <div className="text-center space-y-8">
-            <div className="space-y-4">
-              <div className="flex items-center justify-center">
-                <div className="bg-primary-100 p-4 rounded-xl">
-                  <Building2 className="w-12 h-12 text-primary-700" />
-                </div>
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-text-primary mb-2">
-                  Secure Authentication
-                </h2>
-                <p className="text-text-secondary text-lg">
-                  Professional Mall Management System
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-surface-bg border border-border-subtle rounded-xl p-6 space-y-4">
-              <h3 className="font-semibold text-text-primary text-center">
-                Role-Based Access Control
-              </h3>
-              <div className="grid gap-4">
-                <div className="flex items-center gap-3 p-3 bg-primary-50 rounded-lg">
-                  <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
-                  <div className="text-left">
-                    <p className="font-medium text-text-primary">Super Admin</p>
-                    <p className="text-sm text-text-secondary">Full system access to all malls and shops</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <div className="text-left">
-                    <p className="font-medium text-text-primary">Mall Admin</p>
-                    <p className="text-sm text-text-secondary">Manage assigned mall and its shops</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <div className="text-left">
-                    <p className="font-medium text-text-primary">Shop Admin</p>
-                    <p className="text-sm text-text-secondary">Manage specific shop operations</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
-              <p className="text-sm text-warning text-center">
-                <strong>Security Notice:</strong> Contact your administrator for access credentials. 
-                This is a secure individual login system - no user information is displayed publicly.
-              </p>
-            </div>
-
+          <div className="space-y-6">
             <div className="text-center">
-              <p className="text-xs text-text-secondary">
-                Protected by role-based authentication and secure session management
+              <h2 className="text-xl font-semibold text-text-primary mb-2">
+                Real User Credentials
+              </h2>
+              <p className="text-text-secondary">
+                Use these accounts to access different user roles
               </p>
+            </div>
+
+            <div className="space-y-4">
+              {realCredentials.map((cred, index) => (
+                <div key={index} className="card border-l-4 border-primary-500">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-text-primary">
+                          {cred.username}
+                        </h3>
+                        <span className="tag">
+                          {cred.role}
+                        </span>
+                      </div>
+                      <p className="text-sm text-text-secondary mb-2">
+                        {cred.description}
+                      </p>
+                      <p className="text-xs text-text-secondary font-mono">
+                        Password: {cred.password}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUsername(cred.username);
+                        setPassword(cred.password);
+                      }}
+                      className="btn-secondary text-xs px-3 py-1"
+                      disabled={isLoading}
+                    >
+                      Use
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-surface-bg border border-border-subtle rounded-md p-4">
+              <h4 className="font-medium text-text-primary mb-2">
+                Role-Based Access
+              </h4>
+              <ul className="text-sm text-text-secondary space-y-1">
+                <li>• <strong>Super Admin:</strong> Can see all malls and shops</li>
+                <li>• <strong>Mall Admin:</strong> Can see only their assigned mall</li>
+                <li>• <strong>Shop Admin:</strong> Can see only their shop</li>
+              </ul>
             </div>
           </div>
         </div>
