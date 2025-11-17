@@ -364,7 +364,7 @@ export default function QRGeneration() {
             };
             
             const encodedData = btoa(JSON.stringify(claimData));
-            qrUrl = `${baseUrl}/qr/checkin?campaign=${encodeURIComponent(formData.campaignName)}&zone=${encodeURIComponent(formData.zone)}&location=${encodeURIComponent(formData.locationId)}&type=claim&mall_id=${finalMallId}&shop_id=${finalShopId}&visitor_type=${encodeURIComponent(visitorType)}&data=${encodeURIComponent(encodedData)}`;
+            qrUrl = `${checkinBaseUrl}/qr/checkin?campaign=${encodeURIComponent(formData.campaignName)}&zone=${encodeURIComponent(formData.zone)}&location=${encodeURIComponent(formData.locationId)}&type=claim&mall_id=${finalMallId}&shop_id=${finalShopId}&visitor_type=${encodeURIComponent(visitorType)}&data=${encodeURIComponent(encodedData)}`;
           } else {
             // Zone Check-in QR - point to n8n webhook for visitor check-ins
             const checkinData = {
