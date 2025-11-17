@@ -290,7 +290,7 @@ export default function QRGeneration() {
     setIsGenerating(true);
     setGenerationProgress('Initializing QR generation...');
     
-    const baseUrl = window.location.origin;
+    const checkinBaseUrl = 'https://tenearcheckins.pages.dev';
     const newQRs: GeneratedQR[] = [];
 
     try {
@@ -378,7 +378,7 @@ export default function QRGeneration() {
             };
             
             const encodedData = btoa(JSON.stringify(checkinData));
-            qrUrl = `${baseUrl}/qr/checkin?campaign=${encodeURIComponent(formData.campaignName)}&zone=${encodeURIComponent(formData.zone)}&location=${encodeURIComponent(formData.locationId)}&type=checkin&mall_id=${finalMallId}&shop_id=${finalShopId}&visitor_type=${encodeURIComponent(visitorType)}&data=${encodeURIComponent(encodedData)}`;
+            qrUrl = `${checkinBaseUrl}/qr/checkin?campaign=${encodeURIComponent(formData.campaignName)}&zone=${encodeURIComponent(formData.zone)}&location=${encodeURIComponent(formData.locationId)}&type=checkin&mall_id=${finalMallId}&shop_id=${finalShopId}&visitor_type=${encodeURIComponent(visitorType)}&data=${encodeURIComponent(encodedData)}`;
           }
           
         // Debug: Log the QR data capture information
