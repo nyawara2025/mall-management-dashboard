@@ -290,7 +290,8 @@ export default function QRGeneration() {
     setIsGenerating(true);
     setGenerationProgress('Initializing QR generation...');
     
-    const checkinBaseUrl = 'https://tenearcheckins.pages.dev';
+    const baseUrl = window.location.origin;
+    const checkinBaseUrl = 'https://tenearcheckins.pages.dev'; // NEW: Point to Cloudflare Pages
     const newQRs: GeneratedQR[] = [];
 
     try {
@@ -397,9 +398,9 @@ export default function QRGeneration() {
           console.log(`🧪 Data will be captured in visitor_claims table via n8n webhook`);
         }
           
-          // Generate QR code image with IMPROVED settings for better screen scanning
-          const qrSize = formData.qrSize === 'small' ? '300x300' : formData.qrSize === 'medium' ? '500x500' : '700x700';
-          const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}&data=${encodeURIComponent(qrUrl)}&format=png&qzone=8&margin=15&color=000000&bgcolor=FFFFFF&correction=H`;
+          // Generate QR code image with OPTIMIZED settings for better screen scanning
+          const qrSize = formData.qrSize === 'small' ? '400x400' : formData.qrSize === 'medium' ? '600x600' : '800x800'; // Increased sizes for better scanning
+          const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}&data=${encodeURIComponent(qrUrl)}&format=png&qzone=10&margin=20&color=000000&bgcolor=FFFFFF&correction=H`; // Higher error correction and margins
 
           const qrData: GeneratedQR = {
             id: `${visitorType}_${i}`,
