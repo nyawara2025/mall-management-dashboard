@@ -883,7 +883,7 @@ export default function QRGeneration() {
             {generatedQRs.map((qr) => (
               <div key={qr.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <div className="text-center">
-                  <img src={qr.imageUrl} alt={`QR Code for ${qr.visitorType}`} className="mx-auto mb-3 w-64 h-64" />
+                  <img src={qr.imageUrl} alt={`QR Code for ${qr.visitorType}`} className="mx-auto mb-3 w-80 h-80 max-w-full" />
                   <h4 className="font-semibold text-gray-900">{qr.locationName}</h4>
                   <p className="text-sm text-gray-600 mb-2">{qr.mallName}</p>
                   <p className="text-xs text-blue-600 font-medium">{qr.visitorType.replace(/_/g, ' ')}</p>
