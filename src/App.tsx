@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { SessionMonitor, SessionWarning } from './components/SessionMonitor';
 import { Dashboard } from './components/Dashboard';
 import CampaignManagement from './components/CampaignManagement';
 import CampaignViewer from './components/CampaignViewer';
 import QRCheckInPage from './components/QRCheckInPage';
+import QrCheckinPage from './pages/QrCheckinPage';
+import QRSuccessPage from './pages/QRSuccessPage';
 import MultiMallQrCheckinPage from './pages/MultiMallQrCheckinPage';
 import QRGeneration from './components/QRGeneration';
 import Analytics from './components/Analytics';
 import VisitorEngagementManager from './components/VisitorEngagementManager';
+import PaymentManagement from './components/PaymentManagement';
 import { useAuth } from './contexts/AuthContext';
 import './index.css';
 
@@ -63,9 +67,11 @@ function AppContent() {
 
   // Main app for authenticated users (ALL routes above handled PUBLIC routes)
   return (
-    <div className="App">
-      <ProtectedRoute>
-        <div className="min-h-screen bg-gray-50">
+    <SessionMonitor>
+      <SessionWarning />
+      <div className="App">
+        <ProtectedRoute>
+          <div className="min-h-screen bg-gray-50">
           {currentView === 'dashboard' && (
             <Dashboard onViewChange={setCurrentView} />
           )}
@@ -101,9 +107,26 @@ function AppContent() {
               </div>
             </div>
           )}
+          {currentView === 'payments' && (
+            <div className="min-h-screen">
+              <Header onBack={() => setCurrentView('dashboard')} title="MPESA Payment Management" />
+              <div className="pt-16">
+                <PaymentManagement />
+              </div>
+            </div>
+          )}
+          {currentView === 'transactions' && (
+            <div className="min-h-screen">
+              <Header onBack={() => setCurrentView('dashboard')} title="Transaction History" />
+              <div className="pt-16">
+                <PaymentManagement />
+              </div>
+            </div>
+          )}
         </div>
       </ProtectedRoute>
     </div>
+    </SessionMonitor>
   );
 }
 
@@ -148,6 +171,16 @@ function App() {
     if (path.startsWith('/multi-mall-qr') || path.includes('multi-mall-qr')) {
       console.log('🎯 Rendering MultiMallQrCheckinPage (PUBLIC)');
       return <MultiMallQrCheckinPage />;
+    }
+    
+    // Handle QR check-in routes
+    if (path.startsWith('/qr/checkin')) {
+      return <QrCheckinPage />;
+    }
+    
+    // Handle QR success page
+    if (path.startsWith('/qr/success')) {
+      return <QRSuccessPage />;
     }
     
     // Fallback for other visitor routes

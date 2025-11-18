@@ -291,8 +291,8 @@ export default function QRGeneration() {
     setGenerationProgress('Initializing QR generation...');
     
     const baseUrl = window.location.origin;
-    const checkinBaseUrl = 'https://tenearcheckins.pages.dev'; // Zone Check-ins site
-    const offersBaseUrl = 'https://tenearoffers.pages.dev'; // Offer Claims site
+    const checkinBaseUrl = window.location.origin; // Zone Check-ins site
+    const offersBaseUrl = window.location.origin; // Offer Claims site
     const newQRs: GeneratedQR[] = [];
 
     try {
@@ -353,14 +353,27 @@ export default function QRGeneration() {
           // This ensures visitor claims are stored in the visitor_claims table
           let qrUrl;
           
+          // OPTIMIZED URLS: Keep only essential parameters for QR scannability
+          // Mall name, shop name, and other details will be fetched from database by the backend
+          const qrParams = new URLSearchParams({
+            mall_id: finalMallId,
+            shop_id: finalShopId,
+            visitor_type: visitorType,
+            campaign: formData.campaignName.substring(0, 25), // Shorter campaign name
+            location: formData.locationId,
+            zone: formData.zone,
+            type: formData.qrType
+            // Removed: mall_name, shop_name, timestamp - will be fetched from database
+          });
+
           // ANALYTICS COMPATIBLE: Use simple query parameters for webhook compatibility
           // This ensures n8n webhooks receive familiar data format
           if (formData.qrType === 'claim') {
-            // Claim QR - simple parameters for analytics compatibility
-            qrUrl = `${offersBaseUrl}/checkin?mall_id=${finalMallId}&shop_id=${finalShopId}&visitor_type=${visitorType}&campaign=${encodeURIComponent(formData.campaignName.substring(0,30))}&location=${encodeURIComponent(formData.locationId)}&zone=${encodeURIComponent(formData.zone)}&type=claim`;
+            // Claim QR - enhanced parameters for beautiful success page
+            qrUrl = `${offersBaseUrl}/checkin?${qrParams.toString()}`;
           } else {
-            // Check-in QR - simple parameters for analytics compatibility  
-            qrUrl = `${checkinBaseUrl}/checkin?mall_id=${finalMallId}&shop_id=${finalShopId}&visitor_type=${visitorType}&campaign=${encodeURIComponent(formData.campaignName.substring(0,30))}&location=${encodeURIComponent(formData.locationId)}&zone=${encodeURIComponent(formData.zone)}&type=checkin`;
+            // Check-in QR - enhanced parameters for beautiful success page  
+            qrUrl = `${checkinBaseUrl}/checkin?${qrParams.toString()}`;
           }
           
         // Debug: Log the QR data capture information
@@ -870,7 +883,7 @@ export default function QRGeneration() {
             {generatedQRs.map((qr) => (
               <div key={qr.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <div className="text-center">
-                  <img src={qr.imageUrl} alt={`QR Code for ${qr.visitorType}`} className="mx-auto mb-3 w-32 h-32" />
+                  <img src={qr.imageUrl} alt={`QR Code for ${qr.visitorType}`} className="mx-auto mb-3 w-64 h-64" />
                   <h4 className="font-semibold text-gray-900">{qr.locationName}</h4>
                   <p className="text-sm text-gray-600 mb-2">{qr.mallName}</p>
                   <p className="text-xs text-blue-600 font-medium">{qr.visitorType.replace(/_/g, ' ')}</p>
