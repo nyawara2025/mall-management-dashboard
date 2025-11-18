@@ -9,7 +9,7 @@ interface QrCheckinData {
   mallId?: string | null;
   shopId?: string | null;
   visitorType?: string | null;
-  encodedData?: string | null;
+  // encodedData removed - no longer needed in ultra-minimal format
 }
 
 const QrCheckinPage: React.FC = () => {
@@ -20,15 +20,15 @@ const QrCheckinPage: React.FC = () => {
   const [checkinResult, setCheckinResult] = useState<any>(null);
 
   useEffect(() => {
-    // Parse QR code data from URL parameters (supports both old and new short format)
-    const campaign = searchParams.get('c') || searchParams.get('campaign');
-    const zone = searchParams.get('z') || searchParams.get('zone');
-    const location = searchParams.get('l') || searchParams.get('location');
+    // Parse QR code data from URL parameters (ultra-minimal format)
+    // No mall_id parameter - it's derived from the domain/context
+    const campaign = searchParams.get('c') || searchParams.get('campaign') || '';
+    const zone = searchParams.get('z') || searchParams.get('zone') || '';
+    const location = searchParams.get('l') || searchParams.get('location') || '';
     const type = searchParams.get('t') || searchParams.get('type') || 'checkin';
-    const mallId = searchParams.get('m') || searchParams.get('mall_id');
-    const shopId = searchParams.get('s') || searchParams.get('shop_id');
-    const visitorType = searchParams.get('v') || searchParams.get('visitor_type');
-    const data = searchParams.get('data');
+    const shopId = searchParams.get('s') || searchParams.get('shop_id') || '';
+    const visitorType = searchParams.get('v') || searchParams.get('visitor_type') || '';
+    const mallId = searchParams.get('m') || searchParams.get('mall_id') || ''; // Optional for backward compatibility
 
     if (campaign && zone && location) {
       setCheckinData({
@@ -38,8 +38,8 @@ const QrCheckinPage: React.FC = () => {
         type,
         mallId,
         shopId,
-        visitorType,
-        encodedData: data
+        visitorType
+        // encodedData removed - no longer needed in ultra-minimal format
       });
     } else {
       setCheckinResult({ error: 'Invalid QR code data' });
@@ -56,25 +56,19 @@ const QrCheckinPage: React.FC = () => {
         ? 'https://n8n.tenear.com/webhook/claim-offer' 
         : 'https://n8n.tenear.com/webhook/visitor-checkins';
 
-      // Prepare payload - decode data if available, otherwise use URL params
-      let payload = {
+      // Prepare payload - use URL params directly (ultra-minimal format)
+      const payload = {
         campaign_id: checkinData.campaign,
         zone: checkinData.zone,
         location: checkinData.location,
+        type: checkinData.type,
+        mall_id: checkinData.mallId,
+        shop_id: checkinData.shopId,
+        visitor_type: checkinData.visitorType,
         timestamp: new Date().toISOString(),
         user_agent: navigator.userAgent,
         referrer: document.referrer
       };
-
-      // If encoded data is available, add it to payload
-      if (checkinData.encodedData) {
-        try {
-          const decodedData = JSON.parse(atob(checkinData.encodedData));
-          payload = { ...payload, ...decodedData };
-        } catch (e) {
-          console.warn('Failed to decode QR data:', e);
-        }
-      }
 
       // Add additional parameters if available
       if (checkinData.mallId) (payload as any).mall_id = parseInt(checkinData.mallId);

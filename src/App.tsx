@@ -9,6 +9,7 @@ import QRCheckInPage from './components/QRCheckInPage';
 import QrCheckinPage from './pages/QrCheckinPage';
 import QRSuccessPage from './pages/QRSuccessPage';
 import MultiMallQrCheckinPage from './pages/MultiMallQrCheckinPage';
+// import SimpleQrTestPage from './pages/SimpleQrTestPage'; // Removed - file doesn't exist
 import QRGeneration from './components/QRGeneration';
 import Analytics from './components/Analytics';
 import VisitorEngagementManager from './components/VisitorEngagementManager';
@@ -159,6 +160,7 @@ function App() {
   // Check if this is a public visitor route (bypass AuthProvider completely)
   const isPublicVisitorRoute = 
     path.startsWith('/qr/checkin') || 
+    path.startsWith('/q') ||
     path.startsWith('/multi-mall-qr') || 
     path.includes('multi-mall-qr');
 
@@ -173,8 +175,13 @@ function App() {
       return <MultiMallQrCheckinPage />;
     }
     
-    // Handle QR check-in routes
-    if (path.startsWith('/qr/checkin')) {
+    // Handle QR test route (optimization testing) - DISABLED
+    // if (path.startsWith('/qr/test')) {
+    //   return <SimpleQrTestPage />;
+    // }
+    
+    // Handle QR check-in routes (both old /qr/checkin and new /q)
+    if (path.startsWith('/qr/checkin') || path.startsWith('/q')) {
       return <QrCheckinPage />;
     }
     
