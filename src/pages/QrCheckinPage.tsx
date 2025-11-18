@@ -21,28 +21,36 @@ const QrCheckinPage: React.FC = () => {
 
   useEffect(() => {
     // Parse QR code data from URL parameters (ultra-minimal format)
-    // No mall_id parameter - it's derived from the domain/context
     const campaign = searchParams.get('c') || searchParams.get('campaign') || '';
     const zone = searchParams.get('z') || searchParams.get('zone') || '';
     const location = searchParams.get('l') || searchParams.get('location') || '';
     const type = searchParams.get('t') || searchParams.get('type') || 'checkin';
     const shopId = searchParams.get('s') || searchParams.get('shop_id') || '';
     const visitorType = searchParams.get('v') || searchParams.get('visitor_type') || '';
-    const mallId = searchParams.get('m') || searchParams.get('mall_id') || ''; // Optional for backward compatibility
+    
+    console.log('🔍 QR Code Parameters:', {
+      campaign, zone, location, type, shopId, visitorType,
+      urlParams: Object.fromEntries(searchParams.entries())
+    });
 
+    // Require minimum parameters for processing
     if (campaign && zone && location) {
       setCheckinData({
         campaign,
         zone,
         location,
-        type,
-        mallId,
+        type: type || 'checkin',
+        mallId: null, // Not used in ultra-minimal format
         shopId,
         visitorType
-        // encodedData removed - no longer needed in ultra-minimal format
       });
+      console.log('✅ QR code data parsed successfully');
     } else {
-      setCheckinResult({ error: 'Invalid QR code data' });
+      console.error('❌ Invalid QR code data:', { campaign, zone, location });
+      setCheckinResult({ 
+        error: 'Invalid QR code data', 
+        details: 'Missing required parameters (campaign, zone, or location)' 
+      });
     }
   }, [searchParams]);
 
@@ -50,30 +58,37 @@ const QrCheckinPage: React.FC = () => {
     if (!checkinData) return;
 
     setIsProcessing(true);
+    
     try {
-      // Determine webhook URL based on type
+      // Determine webhook URL and payload for n8n workflows
       const webhookUrl = checkinData.type === 'claim' 
         ? 'https://n8n.tenear.com/webhook/claim-offer' 
         : 'https://n8n.tenear.com/webhook/visitor-checkins';
 
-      // Prepare payload - use URL params directly (ultra-minimal format)
+      // Prepare payload for n8n workflows (optimized for both claim-offer and visitor-checkins)
       const payload = {
-        campaign_id: checkinData.campaign,
+        // Primary identifiers
+        campaign: checkinData.campaign,
         zone: checkinData.zone,
         location: checkinData.location,
         type: checkinData.type,
-        mall_id: checkinData.mallId,
-        shop_id: checkinData.shopId,
-        visitor_type: checkinData.visitorType,
+        
+        // Optional identifiers
+        shop_id: checkinData.shopId || null,
+        visitor_type: checkinData.visitorType || null,
+        
+        // Metadata
         timestamp: new Date().toISOString(),
         user_agent: navigator.userAgent,
-        referrer: document.referrer
+        referrer: document.referrer || null,
+        
+        // Source identification
+        source: 'qr_code_scan',
+        url: window.location.href
       };
 
-      // Add additional parameters if available
-      if (checkinData.mallId) (payload as any).mall_id = parseInt(checkinData.mallId);
-      if (checkinData.shopId) (payload as any).shop_id = parseInt(checkinData.shopId);
-      if (checkinData.visitorType) (payload as any).visitor_type = checkinData.visitorType;
+      console.log('📡 Sending webhook to:', webhookUrl);
+      console.log('📦 Payload:', payload);
 
       const response = await fetch(webhookUrl, {
         method: 'POST',
@@ -83,44 +98,81 @@ const QrCheckinPage: React.FC = () => {
         body: JSON.stringify(payload)
       });
 
-      // Handle both JSON responses (legacy) and redirect responses (new hybrid approach)
-      if (response.status === 302 || response.status === 301 || response.redirected) {
-        // New flow: n8n sends redirect to success page
-        const redirectUrl = response.headers.get('location') || response.url;
-        if (redirectUrl) {
-          console.log('🔄 Following redirect to:', redirectUrl);
-          // Handle relative and absolute URLs
-          if (redirectUrl.startsWith('/')) {
-            // Relative URL - append to current domain
-            window.location.href = window.location.origin + redirectUrl;
-          } else {
-            // Absolute URL
-            window.location.href = redirectUrl;
-          }
-          return;
-        }
+      console.log('📡 Webhook Response Status:', response.status, response.statusText);
+      
+      // Handle network errors and failed responses
+      if (!response.ok) {
+        throw new Error(`Network error: ${response.status} ${response.statusText}`);
       }
 
-      // Legacy flow: n8n sends JSON response
-      const result = await response.json();
-      setCheckinResult(result);
+      // Handle both JSON responses and redirects
+      let result;
+      try {
+        const responseText = await response.text();
+        console.log('📦 Raw Response:', responseText);
+        
+        // Try to parse as JSON
+        try {
+          result = JSON.parse(responseText);
+        } catch (jsonError) {
+          // If it's not JSON, treat as redirect URL or simple text
+          if (responseText.includes('redirect') || responseText.includes('location')) {
+            throw new Error('Redirect detected - please contact support');
+          }
+          result = { message: responseText, raw_response: responseText };
+        }
+      } catch (parseError) {
+        console.warn('Failed to parse response:', parseError);
+        const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+        result = { message: 'Response received but could not be parsed', raw_error: errorMessage };
+      }
+
+      console.log('✅ Processed Result:', result);
+      
+      // Display success message
+      setCheckinResult({
+        success: true,
+        message: checkinData.type === 'claim' 
+          ? 'Offer claimed successfully!' 
+          : 'Check-in completed successfully!',
+        data: result,
+        visitor_info: {
+          location: checkinData.location,
+          zone: checkinData.zone,
+          visitor_type: checkinData.visitorType,
+          campaign: checkinData.campaign
+        }
+      });
     } catch (error) {
       console.error('Checkin error:', error);
       
-      // Check if it's a redirect error (network-level redirect)
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-        console.log('🔄 Possible redirect detected, attempting to handle...');
-        // This might be a redirect that the fetch API couldn't follow
-        // Try to extract redirect URL from error or fall back to direct navigation
-        setCheckinResult({ 
-          error: 'Network redirect detected. Please try again or contact support.',
-          redirectHint: true
-        });
-      } else {
-        setCheckinResult({ 
-          error: 'Failed to process check-in. Please try again.' 
-        });
+      // Provide detailed error information for debugging
+      let errorMessage = 'Failed to process your request. Please try again.';
+      let errorDetails = '';
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      
+      if (error instanceof TypeError && errorMsg.includes('Failed to fetch')) {
+        errorMessage = 'Unable to connect to the server.';
+        errorDetails = 'This might be due to a network issue or the server might be temporarily unavailable.';
+      } else if (errorMsg.includes('Network error')) {
+        errorMessage = errorMsg;
+        errorDetails = 'Please check your internet connection and try again.';
+      } else if (errorMsg.includes('404')) {
+        errorMessage = 'Service not available.';
+        errorDetails = 'The check-in service might be temporarily unavailable.';
+      } else if (errorMsg.includes('CORS')) {
+        errorMessage = 'Access blocked by browser.';
+        errorDetails = 'This is a technical issue that needs to be fixed by the administrator.';
       }
+      
+      setCheckinResult({ 
+        error: errorMessage,
+        details: errorDetails,
+        debug_info: {
+          message: errorMsg,
+          timestamp: new Date().toISOString()
+        }
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -150,13 +202,50 @@ const QrCheckinPage: React.FC = () => {
         <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
           <div className="text-red-500 text-6xl mb-4">⚠️</div>
           <h2 className="text-2xl font-bold text-gray-800 mb-4">Check-in Failed</h2>
-          <p className="text-gray-600 mb-6">{checkinResult.error}</p>
-          <button
-            onClick={() => navigate('/')}
-            className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Go to Dashboard
-          </button>
+          <p className="text-gray-600 mb-4">{checkinResult.error}</p>
+          {checkinResult.details && (
+            <div className="bg-red-50 rounded-lg p-4 mb-6">
+              <p className="text-sm text-red-700">{checkinResult.details}</p>
+            </div>
+          )}
+          {checkinResult.redirectHint && (
+            <div className="bg-yellow-50 rounded-lg p-4 mb-6">
+              <p className="text-sm text-yellow-700">This might be due to a network redirect. Please try again.</p>
+            </div>
+          )}
+          <div className="space-y-3">
+            <button
+              onClick={() => {
+                setCheckinResult(null);
+                window.location.reload();
+              }}
+              className="w-full py-3 px-4 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="w-full py-3 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show loading state while processing
+  if (isProcessing) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Processing...</h2>
+          <p className="text-gray-600 mb-4">
+            {checkinData?.type === 'claim' ? 'Processing your offer claim...' : 'Processing your check-in...'}
+          </p>
+          <p className="text-sm text-gray-500">Please wait a moment...</p>
         </div>
       </div>
     );
@@ -174,6 +263,31 @@ const QrCheckinPage: React.FC = () => {
           <div className="bg-gray-50 rounded-lg p-4 mb-6">
             <p className="text-sm text-gray-500">Location</p>
             <p className="font-semibold">{checkinData?.location}</p>
+          </div>
+          <button
+            onClick={() => navigate('/')}
+            className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Return to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Default case: No data and no error (likely missing parameters)
+  if (!checkinData && !checkinResult?.error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
+          <div className="text-yellow-500 text-6xl mb-4">🔍</div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Invalid QR Code</h2>
+          <p className="text-gray-600 mb-6">
+            This QR code doesn't contain the required information to process your check-in.
+          </p>
+          <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
+            <p className="text-sm text-gray-500 mb-2"><strong>Current URL:</strong></p>
+            <p className="text-xs text-gray-700 break-all">{window.location.href}</p>
           </div>
           <button
             onClick={() => navigate('/')}
