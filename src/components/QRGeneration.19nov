@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '../types/auth';
 import { useAuth } from '../contexts/AuthContext';
-import { AuthService } from '../services/auth';
 import { QrCode, Download, Eye, Settings, Calendar, MapPin, Building, Users, Target } from 'lucide-react';
 
 /**
@@ -203,10 +202,6 @@ export default function QRGeneration() {
       try {
         console.log('🔍 Fetching campaigns from adcampaigns table...');
         
-        // Use AuthService to get proper mall/shop context
-        const userMallShop = AuthService.getCurrentUserMallAndShop();
-        console.log('🔍 Using AuthService for campaign filtering:', userMallShop);
-        
         const { data, error } = await supabase
           .from('adcampaigns')
           .select(`
@@ -220,8 +215,8 @@ export default function QRGeneration() {
             created_at
           `)
           .eq('active', true)
-          .eq('mall_id', userMallShop.mall_id)  // Use resolved mall_id
-          .eq('shop_id', userMallShop.shop_id)  // Use resolved shop_id
+          .eq('mall_id', user.mall_id)  // Filter by user's mall
+          .eq('shop_id', user.shop_id)  // Filter by user's shop
           .order('name', { ascending: true });
 
         if (error) {
@@ -291,8 +286,6 @@ export default function QRGeneration() {
     setGenerationProgress('Initializing QR generation...');
     
     const baseUrl = window.location.origin;
-    const checkinBaseUrl = window.location.origin; // Zone Check-ins site
-    const offersBaseUrl = window.location.origin; // Offer Claims site
     const newQRs: GeneratedQR[] = [];
 
     try {
@@ -308,72 +301,40 @@ export default function QRGeneration() {
           // and check-ins are properly captured in the visitor_claims table
           // for analytics and metrics tracking
           
-          // PROPER FIX: Use AuthService to resolve mall_id and shop_id correctly
-          // This replaces hardcoded fallbacks with proper authentication handling
-          
-          // Debug authentication context
-          console.log('🔍 QR Generation - Authentication Debug:', {
-            user: user,
-            formData: {
-              mallId: formData.mallId,
-              shopId: formData.shopId
-            }
-          });
-          
-          // Get properly resolved mall_id and shop_id from AuthService
-          const userMallShop = AuthService.getCurrentUserMallAndShop();
-          const resolvedMallId = userMallShop.mall_id.toString();
-          const resolvedShopId = userMallShop.shop_id.toString();
-          
-          console.log('🔍 AuthService.getCurrentUserMallAndShop():', userMallShop);
-          
-          // If we have specific form data, use that; otherwise use resolved values
-          const finalMallId = formData.mallId || resolvedMallId;
-          const finalShopId = formData.shopId || resolvedShopId;
-          
-          console.log('🔍 Final QR Parameters:', {
-            mallId: finalMallId,
-            shopId: finalShopId,
-            resolved: { mallId: resolvedMallId, shopId: resolvedShopId },
-            formData: { mallId: formData.mallId, shopId: formData.shopId }
-          });
-          
-          // Validate that we have valid mall_id and shop_id
-          if (!finalMallId || !finalShopId || finalMallId === '0' || finalShopId === '0') {
-            console.error('❌ AUTHENTICATION ERROR: Cannot resolve mall_id or shop_id');
-            console.log('AuthService result:', userMallShop);
-            console.log('Current user:', user);
-            console.log('Form data mallId/shopId:', { mallId: formData.mallId, shopId: formData.shopId });
-            
-            alert(`Authentication Error: Unable to determine mall_id and shop_id.\n\nDetails:\n- User mall_id: ${user?.mall_id}\n- User shop_id: ${user?.shop_id}\n- AuthService mall_id: ${userMallShop.mall_id}\n- AuthService shop_id: ${userMallShop.shop_id}\n\nPlease log out and log back in to refresh your session.`);
-            return;
-          }
-          
           // Create QR URL pointing to n8n webhooks for data capture
           // This ensures visitor claims are stored in the visitor_claims table
           let qrUrl;
           
-          // ULTRA-MINIMAL URLS: Maximum scannability - shortest possible parameters
-          // Using 1 character parameter names + eliminating unnecessary data
-          const qrParams = new URLSearchParams({
-            s: finalShopId,      // shop_id → s (primary identifier)
-            v: visitorType,      // visitor_type → v
-            c: formData.campaignName.substring(0, 10), // campaign → c (10 chars max)
-            l: formData.locationId,  // location → l
-            z: formData.zone,    // zone → z
-            t: formData.qrType   // type → t (1 or 6 chars)
-          });
-
-          // MINIMAL PATH: Shortest possible URL structure for maximum scannability
-          // Path shortened from /qr/checkin (11 chars) to /q (1 char) = 10 char saving
-          const path = '/q'; // Ultra-short path
-          
           if (formData.qrType === 'claim') {
-            // Claim QR - minimal URL for claim-offer workflow
-            qrUrl = `${offersBaseUrl}${path}?${qrParams.toString()}`;
+            // Offer Claims QR - point to n8n webhook for data capture
+            // OPTIMIZED: Use short keys to reduce QR URL length for better scannability
+            const claimData = {
+              l: `${formData.locationId}_${visitorType}_${i}`, // location
+              z: formData.zone, // zone
+              m: formData.mallId, // mall_id
+              s: formData.shopId, // shop_id
+              t: visitorType, // visitor_type
+              c: formData.campaignName.substring(0, 15), // campaign_name (max 15 chars)
+              ts: Date.now() // timestamp
+            };
+            
+            const encodedData = btoa(JSON.stringify(claimData));
+            qrUrl = `${baseUrl}/qr/checkin?campaign=${encodeURIComponent(formData.campaignName)}&zone=${encodeURIComponent(formData.zone)}&location=${encodeURIComponent(formData.locationId)}&type=claim&mall_id=${formData.mallId}&shop_id=${formData.shopId}&visitor_type=${encodeURIComponent(visitorType)}&data=${encodeURIComponent(encodedData)}`;
           } else {
-            // Check-in QR - minimal URL for visitor-checkins workflow  
-            qrUrl = `${checkinBaseUrl}${path}?${qrParams.toString()}`;
+            // Zone Check-in QR - point to n8n webhook for visitor check-ins
+            // OPTIMIZED: Use short keys to reduce QR URL length for better scannability
+            const checkinData = {
+              l: `${formData.locationId}_${visitorType}_${i}`, // location
+              z: formData.zone, // zone
+              m: formData.mallId, // mall_id
+              s: formData.shopId, // shop_id
+              t: visitorType, // visitor_type
+              ct: 'general', // checkin_type
+              ts: Date.now() // timestamp
+            };
+            
+            const encodedData = btoa(JSON.stringify(checkinData));
+            qrUrl = `${baseUrl}/qr/checkin?campaign=${encodeURIComponent(formData.campaignName)}&zone=${encodeURIComponent(formData.zone)}&location=${encodeURIComponent(formData.locationId)}&type=checkin&mall_id=${formData.mallId}&shop_id=${formData.shopId}&visitor_type=${encodeURIComponent(visitorType)}&data=${encodeURIComponent(encodedData)}`;
           }
           
         // Debug: Log the QR data capture information
@@ -392,11 +353,9 @@ export default function QRGeneration() {
           console.log(`🧪 Data will be captured in visitor_claims table via n8n webhook`);
         }
           
-          // Generate QR code using PROVEN WORKING external API
-          const qrSize = formData.qrSize === 'small' ? '400x400' : formData.qrSize === 'medium' ? '600x600' : '800x800';
-          
-          // High-contrast QR with extra margins - this was working before
-          const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}&data=${encodeURIComponent(qrUrl)}&format=png&qzone=8&margin=20&color=000000&bgcolor=FFFFFF`;
+          // Generate QR code image
+          const qrSize = formData.qrSize === 'small' ? '200x200' : formData.qrSize === 'medium' ? '400x400' : '600x600';
+          const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}&data=${encodeURIComponent(qrUrl)}&format=png&qzone=4`;
 
           const qrData: GeneratedQR = {
             id: `${visitorType}_${i}`,
@@ -540,37 +499,10 @@ export default function QRGeneration() {
         </div>
 
         <div className="grid gap-4">
-          {/* Filter locations by user's mall context using AuthService */}
-          {(() => {
-            // Use AuthService to get user's accessible malls and shops
-            const accessibleMalls = AuthService.getUserMalls();
-            const accessibleShops = AuthService.getUserShops();
-            
-            console.log('🔍 Location filtering - User access:', {
-              accessibleMalls,
-              accessibleShops,
-              userRole: user?.role,
-              userMallId: user?.mall_id,
-              userShopId: user?.shop_id
-            });
-            
-            // Filter locations based on user access
-            const userAccessibleLocations = MALL_LOCATIONS.filter(location => {
-              const locationMallId = parseInt(location.mall_id, 10);
-              const locationShopId = parseInt(location.shop_id, 10);
-              
-              // User can access this location if:
-              // 1. Super admin (has access to all)
-              // 2. Location's mall is in user's mall_access
-              // 3. Location's shop is in user's shop_access
-              // 4. Location matches user's direct mall_id and shop_id
-              return accessibleMalls.includes(locationMallId) || 
-                     accessibleShops.includes(locationShopId) ||
-                     (user?.role === 'super_admin');
-            });
-            
-            return userAccessibleLocations;
-          })().map((location) => (
+          {/* Filter locations by user's mall context */}
+          {MALL_LOCATIONS
+            .filter(location => location.mall_id === user.mall_id?.toString())
+            .map((location) => (
             <div 
               key={location.location_id}
               onClick={() => handleMallSelection(location)}
@@ -587,24 +519,11 @@ export default function QRGeneration() {
               </div>
             </div>
           ))}
-          {(() => {
-            const accessibleMalls = AuthService.getUserMalls();
-            const accessibleShops = AuthService.getUserShops();
-            const userAccessibleLocations = MALL_LOCATIONS.filter(location => {
-              const locationMallId = parseInt(location.mall_id, 10);
-              const locationShopId = parseInt(location.shop_id, 10);
-              return accessibleMalls.includes(locationMallId) || 
-                     accessibleShops.includes(locationShopId) ||
-                     (user?.role === 'super_admin');
-            });
-            
-            return userAccessibleLocations.length === 0;
-          })() && (
+          {MALL_LOCATIONS.filter(location => location.mall_id === user.mall_id?.toString()).length === 0 && (
             <div className="text-center py-8 text-gray-500">
               <Building className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <p>No locations found for your user.</p>
-              <p className="text-sm mt-2">User access: Malls [{AuthService.getUserMalls().join(', ')}] Shops [{AuthService.getUserShops().join(', ')}]</p>
-              <p className="text-sm mt-2">Please contact administrator to assign proper mall/shop access to your account.</p>
+              <p>No locations found for your mall.</p>
+              <p className="text-sm mt-2">Please contact administrator to set up locations for Mall ID: {user.mall_id}</p>
             </div>
           )}
         </div>
@@ -875,9 +794,6 @@ export default function QRGeneration() {
             <p className="text-green-700">
               Successfully generated <span className="font-bold">{generatedQRs.length}</span> QR codes for {formData.locationName}.
             </p>
-            <p className="text-sm text-green-600 mt-2">
-              ✅ QR codes are optimized for screen scanning and database tracking
-            </p>
           </div>
 
           {/* QR Codes Grid */}
@@ -885,7 +801,7 @@ export default function QRGeneration() {
             {generatedQRs.map((qr) => (
               <div key={qr.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <div className="text-center">
-                  <img src={qr.imageUrl} alt={`QR Code for ${qr.visitorType}`} className="mx-auto mb-3 w-96 h-96 max-w-full" />
+                  <img src={qr.imageUrl} alt={`QR Code for ${qr.visitorType}`} className="mx-auto mb-3 w-32 h-32" />
                   <h4 className="font-semibold text-gray-900">{qr.locationName}</h4>
                   <p className="text-sm text-gray-600 mb-2">{qr.mallName}</p>
                   <p className="text-xs text-blue-600 font-medium">{qr.visitorType.replace(/_/g, ' ')}</p>
@@ -903,37 +819,16 @@ export default function QRGeneration() {
                     }}
                     className="w-full bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
                   >
-                    📱 Download PNG (High Contrast)
+                    Download PNG
                   </button>
-                  
-                  <button
-                    onClick={() => {
-                      // Share via Web Share API or copy to clipboard
-                      if (navigator.share) {
-                        navigator.share({
-                          title: `QR Code - ${qr.locationName}`,
-                          text: `Scan this QR code to check in at ${qr.locationName}`,
-                          url: qr.url
-                        });
-                      } else {
-                        // Fallback: copy URL to clipboard
-                        navigator.clipboard.writeText(qr.url);
-                        alert('QR Code URL copied to clipboard! You can paste it into WhatsApp, email, or any messaging app.');
-                      }
-                    }}
-                    className="w-full bg-green-600 text-white px-3 py-2 rounded text-sm hover:bg-green-700 transition-colors"
-                  >
-                    📧 Share via WhatsApp/Email
-                  </button>
-                  
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(qr.url);
-                      alert('URL copied to clipboard! Open your phone camera and point it at this text to scan the QR code.');
+                      alert('URL copied to clipboard!');
                     }}
                     className="w-full bg-gray-100 text-gray-700 px-3 py-2 rounded text-sm hover:bg-gray-200 transition-colors"
                   >
-                    📋 Copy QR URL
+                    Copy URL
                   </button>
                 </div>
               </div>
@@ -942,9 +837,8 @@ export default function QRGeneration() {
 
           {/* Bulk Actions */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h4 className="text-lg font-semibold text-gray-900 mb-4">🚀 Enhanced QR Distribution Options</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">🚀 Quick Actions</h4>
+            <div className="flex flex-wrap gap-4">
               <button
                 onClick={() => {
                   // Download all QR codes
@@ -954,90 +848,39 @@ export default function QRGeneration() {
                       link.href = qr.imageUrl;
                       link.download = `${qr.locationName}_${qr.visitorType}_${Date.now()}_${index}.png`;
                       link.click();
-                    }, index * 500);
+                    }, index * 500); // Stagger downloads
                   });
                 }}
-                className="bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
               >
                 <Download className="w-4 h-4" />
-                Download All (PNG)
+                Download All
               </button>
               
               <button
                 onClick={() => {
-                  // Share all URLs
-                  const urls = generatedQRs.map(qr => `Location: ${qr.locationName}\nType: ${qr.visitorType.replace(/_/g, ' ')}\nURL: ${qr.url}`).join('\n\n');
+                  // Copy all URLs
+                  const urls = generatedQRs.map(qr => qr.url).join('\n');
                   navigator.clipboard.writeText(urls);
-                  alert('All QR URLs copied! Paste into WhatsApp, email, or any messaging app for easy distribution.');
+                  alert('All URLs copied to clipboard!');
                 }}
-                className="bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors"
+                className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
               >
-                📧 Copy All URLs
-              </button>
-              
-              <button
-                onClick={() => {
-                  // Test all URLs
-                  generatedQRs.forEach((qr, index) => {
-                    setTimeout(() => {
-                      window.open(qr.url, '_blank');
-                    }, index * 1000);
-                  });
-                }}
-                className="bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors"
-              >
-                🔍 Test All URLs
+                Copy All URLs
               </button>
             </div>
           </div>
 
           {/* Usage Instructions */}
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-            <h4 className="text-lg font-semibold text-yellow-800 mb-3">📱 Enhanced QR Scanning Guide</h4>
-            
-            {/* Method 1: Screen Scanning */}
-            <div className="mb-4">
-              <h5 className="font-semibold text-yellow-700">🔲 Method 1: Screen Scanning</h5>
-              <ul className="text-sm text-yellow-600 space-y-1 ml-4">
-                <li>• Increase screen brightness to maximum</li>
-                <li>• Hold phone 6-12 inches from screen</li>
-                <li>• Clean phone camera lens</li>
-                <li>• Try multiple QR scanner apps (Google Lens, Camera app, QR Scanner)</li>
-              </ul>
-            </div>
-            
-            {/* Method 2: Download & Scan */}
-            <div className="mb-4">
-              <h5 className="font-semibold text-yellow-700">📱 Method 2: Download & Scan from Gallery</h5>
-              <ul className="text-sm text-yellow-600 space-y-1 ml-4">
-                <li>• Download PNG files to your phone using the "Download PNG" button</li>
-                <li>• Open phone's gallery app</li>
-                <li>• Tap the QR code image</li>
-                <li>• Tap to scan (Google Lens icon should appear)</li>
-              </ul>
-            </div>
-            
-            {/* Method 3: Share via Messaging */}
-            <div className="mb-4">
-              <h5 className="font-semibold text-yellow-700">📧 Method 3: Share via WhatsApp/Email</h5>
-              <ul className="text-sm text-yellow-600 space-y-1 ml-4">
-                <li>• Use "Share via WhatsApp/Email" button</li>
-                <li>• Send to yourself or visitors</li>
-                <li>• Recipients can tap the link to check in</li>
-                <li>• Or copy URL and scan from their phone</li>
-              </ul>
-            </div>
-            
-            {/* General Tips */}
-            <div>
-              <h5 className="font-semibold text-yellow-700">💡 General Scanning Tips</h5>
-              <ul className="text-sm text-yellow-600 space-y-1 ml-4">
-                <li>• QR codes are optimized with high contrast and error correction</li>
-                <li>• Each code is unique and tracks visitor engagement</li>
-                <li>• Monitor real-time analytics in your dashboard</li>
-                <li>• If scanning fails, try the URL method instead</li>
-              </ul>
-            </div>
+            <h4 className="text-lg font-semibold text-yellow-800 mb-3">📱 Usage Instructions</h4>
+            <ul className="text-sm text-yellow-700 space-y-2">
+              <li>• Print QR codes on weather-resistant material (plastic or vinyl)</li>
+              <li>• Recommended size: {QR_SIZES.find(s => s.id === formData.qrSize)?.description}</li>
+              <li>• Place at eye level (1.2m - 1.5m) in high-traffic areas</li>
+              <li>• Each QR code is unique and tracks visitor engagement</li>
+              <li>• Monitor analytics in your dashboard to track visitor check-ins</li>
+            </ul>
           </div>
         </div>
       )}
