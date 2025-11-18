@@ -369,11 +369,11 @@ export default function QRGeneration() {
           // ANALYTICS COMPATIBLE: Use simple query parameters for webhook compatibility
           // This ensures n8n webhooks receive familiar data format
           if (formData.qrType === 'claim') {
-            // Claim QR - enhanced parameters for beautiful success page
-            qrUrl = `${offersBaseUrl}/checkin?${qrParams.toString()}`;
+            // Claim QR - points to the correct route for claim-offer workflow
+            qrUrl = `${offersBaseUrl}/qr/checkin?${qrParams.toString()}`;
           } else {
-            // Check-in QR - enhanced parameters for beautiful success page  
-            qrUrl = `${checkinBaseUrl}/checkin?${qrParams.toString()}`;
+            // Check-in QR - points to the correct route for visitor-checkins workflow  
+            qrUrl = `${checkinBaseUrl}/qr/checkin?${qrParams.toString()}`;
           }
           
         // Debug: Log the QR data capture information
