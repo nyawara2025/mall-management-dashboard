@@ -20,14 +20,14 @@ const QrCheckinPage: React.FC = () => {
   const [checkinResult, setCheckinResult] = useState<any>(null);
 
   useEffect(() => {
-    // Parse QR code data from URL parameters
-    const campaign = searchParams.get('campaign');
-    const zone = searchParams.get('zone');
-    const location = searchParams.get('location');
-    const type = searchParams.get('type') || 'checkin';
-    const mallId = searchParams.get('mall_id');
-    const shopId = searchParams.get('shop_id');
-    const visitorType = searchParams.get('visitor_type');
+    // Parse QR code data from URL parameters (supports both old and new short format)
+    const campaign = searchParams.get('c') || searchParams.get('campaign');
+    const zone = searchParams.get('z') || searchParams.get('zone');
+    const location = searchParams.get('l') || searchParams.get('location');
+    const type = searchParams.get('t') || searchParams.get('type') || 'checkin';
+    const mallId = searchParams.get('m') || searchParams.get('mall_id');
+    const shopId = searchParams.get('s') || searchParams.get('shop_id');
+    const visitorType = searchParams.get('v') || searchParams.get('visitor_type');
     const data = searchParams.get('data');
 
     if (campaign && zone && location) {
@@ -89,13 +89,44 @@ const QrCheckinPage: React.FC = () => {
         body: JSON.stringify(payload)
       });
 
+      // Handle both JSON responses (legacy) and redirect responses (new hybrid approach)
+      if (response.status === 302 || response.status === 301 || response.redirected) {
+        // New flow: n8n sends redirect to success page
+        const redirectUrl = response.headers.get('location') || response.url;
+        if (redirectUrl) {
+          console.log('🔄 Following redirect to:', redirectUrl);
+          // Handle relative and absolute URLs
+          if (redirectUrl.startsWith('/')) {
+            // Relative URL - append to current domain
+            window.location.href = window.location.origin + redirectUrl;
+          } else {
+            // Absolute URL
+            window.location.href = redirectUrl;
+          }
+          return;
+        }
+      }
+
+      // Legacy flow: n8n sends JSON response
       const result = await response.json();
       setCheckinResult(result);
     } catch (error) {
       console.error('Checkin error:', error);
-      setCheckinResult({ 
-        error: 'Failed to process check-in. Please try again.' 
-      });
+      
+      // Check if it's a redirect error (network-level redirect)
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.log('🔄 Possible redirect detected, attempting to handle...');
+        // This might be a redirect that the fetch API couldn't follow
+        // Try to extract redirect URL from error or fall back to direct navigation
+        setCheckinResult({ 
+          error: 'Network redirect detected. Please try again or contact support.',
+          redirectHint: true
+        });
+      } else {
+        setCheckinResult({ 
+          error: 'Failed to process check-in. Please try again.' 
+        });
+      }
     } finally {
       setIsProcessing(false);
     }
