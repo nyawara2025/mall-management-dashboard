@@ -291,8 +291,8 @@ export default function QRGeneration() {
     setGenerationProgress('Initializing QR generation...');
     
     const baseUrl = window.location.origin;
-    const checkinBaseUrl = window.location.origin; // Zone Check-ins site
-    const offersBaseUrl = window.location.origin; // Offer Claims site
+    const checkinBaseUrl = 'https://tenearcheckins.pages.dev'; // Zone Check-ins site
+    const offersBaseUrl = 'https://tenearcheckins.pages.dev'; // Offer Claims site
     const newQRs: GeneratedQR[] = [];
 
     try {
