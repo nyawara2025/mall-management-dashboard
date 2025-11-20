@@ -14,8 +14,6 @@ import QRGeneration from './components/QRGeneration';
 import Analytics from './components/Analytics';
 import VisitorEngagementManager from './components/VisitorEngagementManager';
 import PaymentManagement from './components/PaymentManagement';
-import ReceivingPaymentModule from './components/ReceivingPaymentModule';
-import PaymentReceiptMessaging from './components/PaymentReceiptMessaging';
 import { useAuth } from './contexts/AuthContext';
 import './index.css';
 
@@ -116,16 +114,6 @@ function AppContent() {
               <div className="pt-16">
                 <PaymentManagement />
               </div>
-            </div>
-          )}
-          {currentView === 'payment-reception' && (
-            <div className="min-h-screen">
-              <ReceivingPaymentModule onBack={() => setCurrentView('dashboard')} />
-            </div>
-          )}
-          {currentView === 'receipt-messaging' && (
-            <div className="min-h-screen">
-              <PaymentReceiptMessaging onBack={() => setCurrentView('dashboard')} />
             </div>
           )}
           {currentView === 'transactions' && (

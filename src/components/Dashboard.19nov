@@ -19,9 +19,7 @@ import {
   Phone,
   DollarSign,
   CheckCircle,
-  Clock,
-  Inbox,
-  MessageSquare
+  Clock
 } from 'lucide-react';
 import { MallCard } from './MallCard';
 import { Sidebar } from './Sidebar';
@@ -369,65 +367,6 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                     </svg>
                     Manage Campaigns
                   </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Payment Modules for Shop Admins */}
-          {user.role === 'shop_admin' && (
-            <div className="mb-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Payment Reception Module */}
-                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-green-100 p-3 rounded-lg">
-                        <Inbox className="w-6 h-6 text-green-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                          Payment Reception
-                        </h3>
-                        <p className="text-gray-600 text-sm">
-                          Monitor incoming MPESA payments, track transactions, and manage real-time payment reception
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => onViewChange?.('payment-reception')}
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
-                    >
-                      <Inbox className="w-5 h-5" />
-                      View Dashboard
-                    </button>
-                  </div>
-                </div>
-
-                {/* Receipt Messaging Module */}
-                <div className="bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-purple-100 p-3 rounded-lg">
-                        <MessageSquare className="w-6 h-6 text-purple-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                          Receipt Messaging
-                        </h3>
-                        <p className="text-gray-600 text-sm">
-                          Manage message templates, automate receipt delivery, and track message analytics
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => onViewChange?.('receipt-messaging')}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
-                    >
-                      <MessageSquare className="w-5 h-5" />
-                      Manage Templates
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>

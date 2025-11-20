@@ -148,8 +148,8 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
       return ['Dashboard', 'Analytics'].includes(item.name);
     }
     if (user?.role === 'shop_admin') {
-      // Shop admins see Dashboard, Campaign Management, Payment Reception, Receipt Messaging, Visitor Engagement, and Analytics
-      return ['Dashboard', 'Campaign Management', 'Payment Reception', 'Receipt Messaging', 'Visitor Engagement', 'Analytics'].includes(item.name);
+      // Shop admins see Dashboard, Campaign Management, Visitor Engagement, and Analytics
+      return ['Dashboard', 'Campaign Management', 'Visitor Engagement', 'Analytics'].includes(item.name);
     }
     return false;
   });

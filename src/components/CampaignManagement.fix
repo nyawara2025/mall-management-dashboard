@@ -914,7 +914,10 @@ const CampaignManagement: React.FC = () => {
       <p className="text-xs text-gray-500 mt-1">
         Change to view campaigns for a different mall
       </p>
-
+      {/* Debug info - REMOVE IN PRODUCTION */}
+      <p className="text-xs text-red-500 mt-1">
+        DEBUG: Dropdown currentMallId={currentMallId}, available malls=[{availableMalls.map(m => `${m.id}:${m.name}`).join(', ')}]
+      </p>
     </div>
   );
 
@@ -942,7 +945,11 @@ const CampaignManagement: React.FC = () => {
             <span className="text-xs text-gray-500">
               Your shop: {SHOPS[currentShopId]?.name || `Shop ${currentShopId}`} (ID: {currentShopId})
             </span>
-
+            {/* Debug info - REMOVE IN PRODUCTION */}
+            <br />
+            <span className="text-xs text-red-500">
+              DEBUG: currentMallId={currentMallId}, mall name={getMallInfo(currentMallId).name}
+            </span>
           </p>
         </div>
         <button
