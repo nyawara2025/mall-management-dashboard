@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User } from '../types/auth';
 import { MallApiService } from '../services/auth';
+import QRGeneration from './QRGeneration';
 
 /**
  * Campaign Management Component
@@ -279,6 +280,10 @@ const CampaignManagement: React.FC = () => {
   const [currentMallId, setCurrentMallId] = useState<number>(6); // Token default
   const [currentShopId, setCurrentShopId] = useState<number>(6); // Token default
 
+  // QR Generation state
+  const [showQRGeneration, setShowQRGeneration] = useState(false);
+  const [selectedCampaignForQR, setSelectedCampaignForQR] = useState<any>(null);
+
   // Token parsing function - Extracts user data from authentication token
   const parseAuthToken = (token: string): { mall_id: number; shop_id: number; user_id: string; username: string; role: string } | null => {
     console.log('🔍 PARSING TOKEN:', token);
@@ -450,6 +455,11 @@ const CampaignManagement: React.FC = () => {
       console.log('✅ Campaign fetch successful:', Array.isArray(data) ? data.length : 'non-array response', 'campaigns');
       console.log('📊 Campaign data received:', data);
       
+      // DEBUG: Log first campaign structure
+      if (Array.isArray(data) && data.length > 0) {
+        console.log('🔍 First campaign structure sample:', JSON.stringify(data[0], null, 2));
+      }
+      
       // Handle both array and object response formats
       let campaignData;
       if (Array.isArray(data)) {
@@ -465,6 +475,10 @@ const CampaignManagement: React.FC = () => {
       }
       
       console.log('🎯 Extracted campaign data:', campaignData);
+      console.log('🔍 First campaign structure sample:', campaignData[0] || 'No campaigns');
+      if (campaignData[0]) {
+        console.log('📋 Available fields in campaign:', Object.keys(campaignData[0]));
+      }
       setCampaigns(campaignData);
       
     } catch (error) {
@@ -501,15 +515,38 @@ const CampaignManagement: React.FC = () => {
     try {
       console.log('📤 Submitting campaign form');
       
-      // Get authenticated shop ID from token
+      // Get authenticated user and shop data from token
+      const userData = await getCurrentUserMallAndShop();
       const authenticatedShopId = await getCurrentShopId();
       
+      // Get user data from token
+      const authToken = localStorage.getItem('geofence_auth_token');
+      const parsedToken = authToken ? parseAuthToken(authToken) : null;
+      
+      // Get shop name from authenticated token or use shop ID as fallback
+      const shopName = parsedToken?.username ? parsedToken.username : `Shop ${authenticatedShopId}`;
+      
+      // Determine action based on form mode
+      const isUpdate = formMode === 'edit';
+      const action = isUpdate ? 'update' : 'create';
+
+      // Map form fields to N8N workflow expected format
       const campaignData = {
-        ...formData,
-        action: 'create', // Required by N8N workflow for routing
-        shop_id: authenticatedShopId.toString(), // Use authenticated shop_id
+        action: action, // Required by N8N workflow for routing
+        name: formData.title || '', // Campaign name
+        description: formData.visitor_message || '', // Map visitor_message to description
+        benefits: formData.offer_details || '', // Map offer_details to benefits
+        discount_code: formData.discount_code || null,
+        valid_until: formData.valid_until || null,
+        active: formData.active !== undefined ? formData.active : true, // Include active status
+        shop_id: authenticatedShopId.toString(),
         mall_id: selectedMallId?.toString(),
-        created_at: new Date().toISOString()
+        shop_name: shopName, // Use shop name from authenticated data
+        user_id: parsedToken?.user_id?.toString() || null,
+        username: parsedToken?.username || null,
+        qr_codes: null, // QR codes will be integrated later with existing QR wizard system
+        ...(isUpdate ? { id: formData.id } : {}), // Include ID for updates
+        ...(isUpdate ? {} : { created_at: new Date().toISOString() }) // Only add created_at for new campaigns
       };
 
       console.log('🎯 FORM DATA WITH AUTHENTICATED SHOP_ID:', {
@@ -580,14 +617,15 @@ const CampaignManagement: React.FC = () => {
       }
 
       const response = await fetch(`https://n8n.tenear.com/webhook/manage-campaigns-delete`, {
-        method: 'DELETE',
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('geofence_auth_token')}`
         },
         body: JSON.stringify({
           campaign_id: campaignId,
-          shop_id: (await getCurrentShopId()).toString()
+          shop_id: (await getCurrentShopId()).toString(),
+          action: 'delete'  // Add action to distinguish from other POST requests
         })
       });
 
@@ -626,7 +664,7 @@ const CampaignManagement: React.FC = () => {
         valid_until: '',
         shop_id: authenticatedShopId.toString(), // Use authenticated shop_id from token
         mall_id: selectedMallId?.toString(),
-        is_active: true
+        active: true
       });
     });
   };
@@ -641,17 +679,46 @@ const CampaignManagement: React.FC = () => {
 
   // Handle edit campaign
   const handleViewCampaign = (campaign: any) => {
-    console.log('👁️ Viewing campaign:', campaign.id);
+    console.log('👁️ Viewing campaign:', campaign.campaign_id || campaign.id);
     // For now, show alert with campaign details
     // TODO: Implement modal or detailed view later
-    alert(`Campaign Details:\n\nName: ${campaign.title || campaign.name}\nDescription: ${campaign.description}\nStatus: ${campaign.is_active ? 'Active' : 'Inactive'}\nShop ID: ${campaign.shop_id}\nCreated: ${campaign.created_at ? new Date(campaign.created_at).toLocaleDateString() : 'Unknown'}`);
+    alert(`Campaign Details:\n\nName: ${campaign.name}\nDescription: ${campaign.message || campaign.description}\nStatus: ${campaign.active ? 'Active' : 'Inactive'}\nShop ID: ${campaign.shop_id}\nCreated: ${campaign.created_at ? new Date(campaign.created_at).toLocaleDateString() : 'Unknown'}`);
+  };
+
+  // Map N8N campaign data to edit form format
+  const mapCampaignToEditForm = (campaign: any) => {
+    console.log('🔄 Mapping campaign data for edit form:', campaign);
+    const mapped = {
+      ...campaign,
+      id: campaign.campaign_id || campaign.id,  // Map N8N campaign_id → form id
+      title: campaign.name,  // Map N8N name → form title
+      visitor_message: campaign.message || campaign.description || campaign.visitor_message,  // Map N8N message → form visitor_message
+      offer_details: campaign.benefits || campaign.offer_details,  // Map N8N benefits → form offer_details
+      // Keep original fields for backward compatibility
+      description: campaign.message || campaign.description || campaign.visitor_message || '',  // Map N8N message → description field
+    };
+    console.log('✅ Mapped campaign data:', mapped);
+    return mapped;
   };
 
   const handleEditCampaign = (campaign: any) => {
-    console.log('✏️ Editing campaign:', campaign.id);
+    console.log('✏️ Editing campaign:', campaign.campaign_id || campaign.id);
     setFormMode('edit');
-    setSelectedCampaign(campaign);
+    const mappedCampaign = mapCampaignToEditForm(campaign);
+    console.log('🎯 Setting selectedCampaign with mapped data:', mappedCampaign);
+    setSelectedCampaign(mappedCampaign);
     setShowForm(true);
+  };
+
+  const handleGenerateQR = (campaign: any) => {
+    console.log('📱 Generating QR codes for campaign:', campaign.campaign_id || campaign.id);
+    setSelectedCampaignForQR(campaign);
+    setShowQRGeneration(true);
+  };
+
+  const handleCloseQRGeneration = () => {
+    setShowQRGeneration(false);
+    setSelectedCampaignForQR(null);
   };
 
   // Initialize component with token-based authentication
@@ -764,7 +831,7 @@ const CampaignManagement: React.FC = () => {
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Active Campaigns</h3>
               <p className="text-3xl font-bold text-green-600">
-                {Array.isArray(campaigns) ? campaigns.filter(c => c.is_active).length : 0}
+                {Array.isArray(campaigns) ? campaigns.filter(c => c.active).length : 0}
               </p>
             </div>
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -797,22 +864,22 @@ const CampaignManagement: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.isArray(campaigns) && campaigns.map(campaign => (
-                <div key={campaign.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                <div key={campaign.campaign_id || campaign.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="font-semibold text-gray-900">{campaign.title}</h3>
+                    <h3 className="font-semibold text-gray-900">{campaign.name}</h3>
                     <span className={`px-2 py-1 text-xs rounded-full ${
-                      campaign.is_active 
+                      campaign.active 
                         ? 'bg-green-100 text-green-800' 
                         : 'bg-gray-100 text-gray-800'
                     }`}>
-                      {campaign.is_active ? 'Active' : 'Inactive'}
+                      {campaign.active ? 'Active' : 'Inactive'}
                     </span>
                   </div>
                   
-                  <p className="text-gray-600 text-sm mb-3">{campaign.description}</p>
+                  <p className="text-gray-600 text-sm mb-3">{campaign.message || campaign.description || 'No description'}</p>
                   
                   <div className="text-xs text-gray-500 mb-3">
-                    <div>Shop ID: {campaign.shop_id}</div>
+                    <div>Shop: {campaign.shop_name || `Shop ${campaign.shop_id}`}</div>
                     <div>Created: {campaign.created_at ? new Date(campaign.created_at).toLocaleDateString() : 'Unknown'}</div>
                   </div>
                   
@@ -832,7 +899,14 @@ const CampaignManagement: React.FC = () => {
                       <span>Edit</span>
                     </button>
                     <button
-                      onClick={() => handleDelete(campaign.id)}
+                      onClick={() => handleGenerateQR(campaign)}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-1 rounded text-xs flex items-center space-x-1"
+                    >
+                      <span>📱</span>
+                      <span>Generate QR</span>
+                    </button>
+                    <button
+                      onClick={() => handleDelete(campaign.campaign_id || campaign.id)}
                       className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-xs flex items-center space-x-1"
                     >
                       <span>🗑️</span>
@@ -971,12 +1045,12 @@ const CampaignManagement: React.FC = () => {
                   <div className="flex items-center">
                     <input
                       type="checkbox"
-                      id="is_active"
-                      checked={selectedCampaign?.is_active ?? true}
-                      onChange={(e) => setSelectedCampaign((prev: any) => ({ ...prev, is_active: e.target.checked }))}
+                      id="active"
+                      checked={selectedCampaign?.active ?? true}
+                      onChange={(e) => setSelectedCampaign((prev: any) => ({ ...prev, active: e.target.checked }))}
                       className="mr-2"
                     />
-                    <label htmlFor="is_active" className="text-sm text-gray-700">
+                    <label htmlFor="active" className="text-sm text-gray-700">
                       Campaign is active
                     </label>
                   </div>
@@ -998,6 +1072,31 @@ const CampaignManagement: React.FC = () => {
                   </div>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Generation Modal */}
+      {showQRGeneration && selectedCampaignForQR && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-6xl max-h-[90vh] overflow-hidden">
+            <div className="flex justify-between items-center p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900">
+                Generate QR Codes for: {selectedCampaignForQR.name}
+              </h2>
+              <button
+                onClick={handleCloseQRGeneration}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-100px)]">
+              <QRGeneration 
+                preselectedCampaign={selectedCampaignForQR}
+                onClose={handleCloseQRGeneration}
+              />
             </div>
           </div>
         </div>
