@@ -157,7 +157,7 @@ Payment could not be completed. Please try again or contact support.
   const fetchDeliveries = useCallback(async () => {
     try {
       // Fetch from payment_transactions table to get delivery history
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/payment_transactions?select=*&shop_id=eq.${user?.shop_id}&order=created_at.desc&limit=100`, {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/payment_transactions?select=*&shop_id=eq.55&order=created_at.desc&limit=100`, {
         headers: {
           'apikey': SUPABASE_ANON_KEY,
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,

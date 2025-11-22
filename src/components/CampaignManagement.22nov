@@ -506,7 +506,6 @@ const CampaignManagement: React.FC = () => {
       
       const campaignData = {
         ...formData,
-        action: 'create', // Required by N8N workflow for routing
         shop_id: authenticatedShopId.toString(), // Use authenticated shop_id
         mall_id: selectedMallId?.toString(),
         created_at: new Date().toISOString()
@@ -640,13 +639,6 @@ const CampaignManagement: React.FC = () => {
   };
 
   // Handle edit campaign
-  const handleViewCampaign = (campaign: any) => {
-    console.log('👁️ Viewing campaign:', campaign.id);
-    // For now, show alert with campaign details
-    // TODO: Implement modal or detailed view later
-    alert(`Campaign Details:\n\nName: ${campaign.title || campaign.name}\nDescription: ${campaign.description}\nStatus: ${campaign.is_active ? 'Active' : 'Inactive'}\nShop ID: ${campaign.shop_id}\nCreated: ${campaign.created_at ? new Date(campaign.created_at).toLocaleDateString() : 'Unknown'}`);
-  };
-
   const handleEditCampaign = (campaign: any) => {
     console.log('✏️ Editing campaign:', campaign.id);
     setFormMode('edit');
@@ -817,13 +809,6 @@ const CampaignManagement: React.FC = () => {
                   </div>
                   
                   <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleViewCampaign(campaign)}
-                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded text-xs flex items-center space-x-1"
-                    >
-                      <span>👁️</span>
-                      <span>View</span>
-                    </button>
                     <button
                       onClick={() => handleEditCampaign(campaign)}
                       className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-xs flex items-center space-x-1"

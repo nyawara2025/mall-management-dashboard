@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { AuthContextType, User } from '../types/auth';
-import { AuthService, login as loginWithN8N } from '../services/auth';
+import { AuthService } from '../services/auth';
 
 // Auth State
 interface AuthState {
@@ -207,10 +207,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     console.log('🚀 [AuthContext] Dispatched AUTH_START');
 
     try {
-      console.log('🔑 [AuthContext] Calling n8n webhook login...');
-      const result = await loginWithN8N(username, password);
+      console.log('🔑 [AuthContext] Calling AuthService.login...');
+      const result = await AuthService.login(username, password);
       
-      console.log('🔐 [AuthContext] N8n login result:', result);
+      console.log('🔐 [AuthContext] AuthService login result:', result);
 
       if (result.success && result.token && result.user) {
         console.log('✅ [AuthContext] Login successful, storing auth data');

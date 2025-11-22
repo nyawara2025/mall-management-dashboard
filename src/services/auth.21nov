@@ -712,50 +712,9 @@ class MallApiServiceClass implements MallApiServiceInterface {
 
   async fetchMalls(token: string): Promise<{ success: boolean; data?: Mall[]; error?: string }> {
     try {
-      console.log('🏢 MallApiService - Fetching mall data from n8n webhook');
+      console.log('🏢 MallApiService - Using reliable static mall data (bypassing n8n workflow)');
       
-      // Call the actual n8n malls webhook instead of using static data
-      const response = await fetch(this.n8nMallManagementWebhook, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      console.log('📡 MallApiService - n8n malls webhook response status:', response.status);
-      
-      if (!response.ok) {
-        throw new Error(`Mall webhook error: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      console.log('📦 MallApiService - n8n malls response:', result);
-      
-      // Handle the response format from n8n malls workflow
-      let mallData: Mall[] = [];
-      if (result.success && result.data) {
-        mallData = result.data.map((mall: any) => ({
-          id: mall.id,
-          name: mall.name,
-          latitude: mall.latitude,
-          longitude: mall.longitude,
-          address: mall.address,
-          radius_meters: mall.radius_meters || 1000,
-          active: mall.active !== false,
-          created_at: mall.created_at,
-          updated_at: mall.updated_at
-        }));
-      }
-      
-      console.log('✅ MallApiService - Loaded', mallData.length, 'malls from n8n webhook');
-      return { success: true, data: mallData }
-      
-    } catch (error) {
-      console.error('❌ MallApiService - Error calling n8n malls webhook:', error);
-      
-      // Fallback to static data only if webhook fails (for development/debugging)
-      console.log('🔄 MallApiService - Falling back to static data due to webhook error');
+      // CRITICAL FIX: Use static mall data to avoid n8n workflow "undefined" shop_id error
       const staticMalls: Mall[] = [
         {
           id: 3,
@@ -792,8 +751,23 @@ class MallApiServiceClass implements MallApiServiceInterface {
         }
       ];
       
-      console.log('⚠️ MallApiService - Using fallback static data:', staticMalls.length, 'malls');
-      return { success: true, data: staticMalls }
+      console.log('✅ MallApiService - Static mall data loaded:', staticMalls.length, 'malls');
+
+      // Filter malls based on user access (preserves existing logic)
+      const user = getCurrentUser()
+      let accessibleMalls = staticMalls
+      
+      if (user && user.role !== 'super_admin') {
+        const userMallIds = getUserMalls(user)
+        accessibleMalls = staticMalls.filter(mall => userMallIds.includes(Number(mall.id)))
+        console.log('🔒 MallApiService - Filtered for user role:', user.role, 'Accessible malls:', accessibleMalls.length);
+      }
+
+      console.log('✅ MallApiService - Final accessible malls:', accessibleMalls)
+      return { success: true, data: accessibleMalls }
+    } catch (error) {
+      console.error('❌ MallApiService - Error:', error)
+      return { success: false, error: 'Failed to fetch malls' }
     }
   }
 

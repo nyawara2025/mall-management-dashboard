@@ -154,44 +154,39 @@ export default function Analytics() {
     try {
       console.log('🔍 Fetching QR analytics from visitor_checkins table...');
       
-      // Get total check-ins from correct table - SECURED with shop filter
+      // Get total check-ins from correct table
       const { data: totalData } = await supabase
         .from('visitor_checkins')
-        .select('id')
-        .eq('shop_id', user?.shop_id);
+        .select('id');
       const totalCount = totalData?.length || 0;
 
-      // Get zone performance from correct table - SECURED with shop filter
+      // Get zone performance from correct table
       const { data: zoneData } = await supabase
         .from('visitor_checkins')
         .select('zone_name, id')
-        .eq('shop_id', user?.shop_id)
         .order('zone_name');
 
-      // Get hourly data from correct table - SECURED with shop filter
+      // Get hourly data from correct table
       const { data: hourlyData } = await supabase
         .from('visitor_checkins')
         .select(`
           timestamp,
           created_at
         `)
-        .eq('shop_id', user?.shop_id)
         .order('created_at', { ascending: false });
 
-      // Get recent activity from correct table - SECURED with shop filter
+      // Get recent activity from correct table
       const { data: activityData } = await supabase
         .from('visitor_checkins')
         .select('*')
-        .eq('shop_id', user?.shop_id)
         .order('created_at', { ascending: false })
         .limit(10);
 
-      // Get today's check-ins from correct table - SECURED with shop filter
+      // Get today's check-ins from correct table
       const today = new Date().toISOString().split('T')[0];
       const { data: todayData } = await supabase
         .from('visitor_checkins')
         .select('id')
-        .eq('shop_id', user?.shop_id)
         .gte('created_at', `${today}T00:00:00.000Z`);
       const todayCount = todayData?.length || 0;
 
@@ -297,137 +292,44 @@ export default function Analytics() {
   const fetchCampaignAnalytics = async () => {
     setLoading(true);
     try {
-      // Get real campaign data from Supabase database - SECURED with shop filter
-      const [checkinsResponse, claimsResponse] = await Promise.all([
-        supabase.from('visitor_checkins').select('*').eq('shop_id', user?.shop_id).order('created_at', { ascending: false }),
-        supabase.from('visitor_claims').select('*').eq('shop_id', user?.shop_id).order('created_at', { ascending: false })
-      ]);
-
-      const checkins = checkinsResponse.data || [];
-      const claims = claimsResponse.data || [];
-
-      // Calculate real metrics from database data
-      const totalScans = checkins.length;
-      const totalClaims = claims.length;
-      const totalUniqueVisitors = new Set(checkins.map((c: any) => c.visitor_id || c.visitor_email || 'anonymous')).size;
+      const token = localStorage.getItem('geofence_auth_token') || '';
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Origin': window.location.origin,
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+      };
       
-      // Calculate engagement rate (claims/scans ratio)
-      const avgEngagement = totalScans > 0 ? Math.round((totalClaims / totalScans) * 100) : 0;
+      let analyticsUrl;
+      if (user?.role === 'shop_admin' && user?.shop_id) {
+        analyticsUrl = `https://n8n.tenear.com/webhook/get-analytics?shop_id=${user.shop_id}&time_range=${timeRange}`;
+      } else {
+        analyticsUrl = `https://n8n.tenear.com/webhook/get-analytics?time_range=${timeRange}`;
+      }
       
-      // Group by campaign names to get campaign performance
-      const campaignGroups: Record<string, { scans: number; claims: number }> = {};
+      const response = await fetch(analyticsUrl, { method: 'GET', headers });
       
-      // Process checkins by campaign/zone
-      checkins.forEach((checkin: any) => {
-        const campaignName = checkin.zone_name || 'General Campaign';
-        if (!campaignGroups[campaignName]) {
-          campaignGroups[campaignName] = { scans: 0, claims: 0 };
-        }
-        campaignGroups[campaignName].scans++;
-      });
-      
-      // Process claims by campaign
-      claims.forEach((claim: any) => {
-        const campaignName = claim.campaign_name || 'General Campaign';
-        if (!campaignGroups[campaignName]) {
-          campaignGroups[campaignName] = { scans: 0, claims: 0 };
-        }
-        campaignGroups[campaignName].claims++;
-      });
-
-      // Convert to campaigns array format
-      const campaigns = Object.entries(campaignGroups).map(([name, data]) => ({
-        id: Math.random().toString(36).substr(2, 9),
-        name,
-        scans: data.scans,
-        claims: data.claims,
-        engagementRate: data.scans > 0 ? Math.round((data.claims / data.scans) * 100) : 0,
-        clicks: {
-          claim: data.claims,
-          share: Math.floor(data.scans * 0.3),
-          call: Math.floor(data.scans * 0.2),
-          directions: Math.floor(data.scans * 0.4),
-          like: Math.floor(data.scans * 0.5)
-        },
-        performance: {
-          clickThroughRate: totalUniqueVisitors > 0 ? Math.round((data.scans / totalUniqueVisitors) * 100) : 0,
-          conversionRate: data.scans > 0 ? Math.round((data.claims / data.scans) * 100) : 0,
-          popularActions: ['claim', 'like', 'directions']
-        },
-        recentActivity: [
-          {
-            timestamp: new Date().toISOString(),
-            action: 'Total Activity',
-            userType: 'All Visitors'
-          }
-        ]
-      }));
-
-      // Sort campaigns by performance
-      campaigns.sort((a, b) => b.scans - a.scans);
-      
-      const topCampaign = campaigns.length > 0 ? campaigns[0].name : 'No campaigns';
-      const totalCampaigns = campaigns.length;
-      const activeCampaigns = campaigns.filter(c => c.scans > 0).length;
-
-      setAnalytics({
-        overview: {
-          totalCampaigns,
-          activeCampaigns,
-          totalScans,
-          totalClaims,
-          avgEngagement,
-          topCampaign,
-          visitorMetrics: {
-            totalVisitors: totalUniqueVisitors,
-            totalEvents: totalScans,
-            avgVisitsPerUser: totalUniqueVisitors > 0 ? (totalScans / totalUniqueVisitors).toFixed(1) : '0.0',
-            growthRate: '+5%' // Could be calculated from historical data
-          }
-        },
-        campaigns,
-        visitorAnalytics: {
-          visitorCategories: {
-            firstTime: checkins.filter((c: any) => !c.visitor_email).length,
-            welcomeBack: checkins.filter((c: any) => c.visitor_email && !c.marketing_consent).length,
-            frequent: checkins.filter((c: any) => c.marketing_consent).length,
-            vip: Math.floor(checkins.length * 0.1) // Top 10% could be considered VIP
+      if (response.ok) {
+        const data = await response.json();
+        setAnalytics(transformBackendData(data));
+      } else {
+        console.warn('Campaign analytics API unavailable - showing database data only');
+        setAnalytics({ 
+          overview: { 
+            totalCampaigns: 0, 
+            activeCampaigns: 0, 
+            totalScans: 0, 
+            totalClaims: 0, 
+            avgEngagement: 0, 
+            topCampaign: 'No data available',
+            visitorMetrics: { totalVisitors: 0, totalEvents: 0, avgVisitsPerUser: 0, growthRate: '0%' }
           },
-          insights: {
-            totalUniqueVisitors,
-            totalEvents: totalScans,
-            averageVisitsPerUser: (totalScans / totalUniqueVisitors).toFixed(1),
-            period: 'today',
-            peakHours: [], // Could be calculated from timestamp analysis
-            mostActiveZone: checkins.length > 0 ? 
-              Object.entries(
-                checkins.reduce((acc: any, curr: any) => {
-                  const zone = curr.zone_name || 'Unknown';
-                  acc[zone] = (acc[zone] || 0) + 1;
-                  return acc;
-                }, {})
-              ).sort(([,a], [,b]) => (b as number) - (a as number))[0][0] : 'N/A'
-          },
-          trends: {
-            firstTimeGrowth: '+0%',
-            frequentGrowth: '+0%',
-            vipGrowth: '+0%',
-            overallGrowth: '+5%'
-          },
-          timeBasedData: []
-        },
-        recentActivity: checkins.slice(0, 10).map((checkin: any) => ({
-          timestamp: checkin.created_at,
-          action: 'QR Scan',
-          campaign: checkin.zone_name || 'General Campaign',
-          location: checkin.location || 'Mall',
-          userType: checkin.visitor_email ? 'Registered' : 'Anonymous'
-        }))
-      });
-
-      console.log('✅ Campaign Analytics: Fetched real data from database');
-      console.log(`📊 Total Scans: ${totalScans}, Total Claims: ${totalClaims}, Campaigns: ${totalCampaigns}`);
-
+          campaigns: [],
+          error: 'Campaign analytics API unavailable'
+        });
+      }
     } catch (error) {
       console.error('Error fetching campaign analytics:', error);
       setAnalytics({ 
@@ -580,10 +482,10 @@ export default function Analytics() {
   const fetchVisitorEngagement = async () => {
     setEngagementLoading(true);
     try {
-      // Get visitor engagement data from correct tables - SECURED with shop filter
+      // Get visitor engagement data from correct tables
       const [checkinsResponse, claimsResponse] = await Promise.all([
-        supabase.from('visitor_checkins').select('*').eq('shop_id', user?.shop_id).order('created_at', { ascending: false }).limit(100),
-        supabase.from('visitor_claims').select('*').eq('shop_id', user?.shop_id).order('created_at', { ascending: false }).limit(50)
+        supabase.from('visitor_checkins').select('*').order('created_at', { ascending: false }).limit(100),
+        supabase.from('visitor_claims').select('*').order('created_at', { ascending: false }).limit(50)
       ]);
 
       const checkins = checkinsResponse.data || [];
