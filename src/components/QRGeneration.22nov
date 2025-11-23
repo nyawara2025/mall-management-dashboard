@@ -117,7 +117,12 @@ const MALL_LOCATIONS: MallLocation[] = [
   { mall_id: '7', mall_name: 'NHC Mall', location_id: 'nhc_estate', location_name: 'NHC Estate', zone: 'NHC_Estate', shop_id: '9', description: 'Estate management services' }
 ];
 
-export default function QRGeneration() {
+interface QRGenerationProps {
+  preselectedCampaign?: any;
+  onClose?: () => void;
+}
+
+export default function QRGeneration({ preselectedCampaign, onClose }: QRGenerationProps = {}) {
   const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -168,33 +173,56 @@ export default function QRGeneration() {
 
   // Check for preloaded campaign data from Campaign Management
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const campaignParam = urlParams.get('campaign');
-    
-    if (campaignParam) {
-      try {
-        const campaign = JSON.parse(decodeURIComponent(campaignParam));
-        setPreloadedCampaign(campaign);
-        
-        // Pre-populate form with campaign data
-        setFormData(prev => ({
-          ...prev,
-          mallId: campaign.mallId || (user?.mall_id?.toString() || '6'),  // Use user's mall_id, fallback to 6
-          mallName: campaign.mallName || 'Langata Mall',  // Default to Sandra's mall
-          locationId: campaign.locationId || 'langata_kika_wines',
-          locationName: campaign.locationName || 'Kika Wines & Spirits',
-          zone: campaign.zone || 'Kika_Wines',
-          shopId: campaign.shopId || (user?.shop_id?.toString() || '6'),  // Use user's shop_id, fallback to 6
-          campaignName: campaign.campaignName || campaign.campaign_id,
-          visitorTypes: ['first_time_visitor', 'loyal_customer'] // Default visitor types
-        }));
-        
-        setStep(2); // Skip location selection, go to settings
-      } catch (error) {
-        console.error('Error parsing campaign data:', error);
+    // Handle preselectedCampaign prop (for integration with CampaignManagement)
+    if (preselectedCampaign) {
+      console.log('📱 QRGeneration: Preselected campaign received:', preselectedCampaign);
+      setPreloadedCampaign(preselectedCampaign);
+      
+      // Pre-populate form with campaign data
+      setFormData(prev => ({
+        ...prev,
+        mallId: preselectedCampaign.mall_id?.toString() || preselectedCampaign.mallId || (user?.mall_id?.toString() || '3'),
+        mallName: preselectedCampaign.mall_name || preselectedCampaign.mallName || 'China Square Mall',
+        locationId: preselectedCampaign.locationId || 'china_square_spatial_barbershop',
+        locationName: preselectedCampaign.locationName || 'Spatial Barbershop & Spa',
+        zone: preselectedCampaign.zone || 'Spatial_Barbershop',
+        shopId: preselectedCampaign.shop_id?.toString() || preselectedCampaign.shopId || (user?.shop_id?.toString() || '3'),
+        campaignName: preselectedCampaign.campaign_id || preselectedCampaign.campaignName || preselectedCampaign.id,
+        visitorTypes: ['first_time_visitor', 'loyal_customer'] // Default visitor types
+      }));
+      
+      // Skip to step 2 for faster workflow when called from CampaignManagement
+      setStep(2);
+    } else {
+      // Handle URL parameter fallback
+      const urlParams = new URLSearchParams(window.location.search);
+      const campaignParam = urlParams.get('campaign');
+      
+      if (campaignParam) {
+        try {
+          const campaign = JSON.parse(decodeURIComponent(campaignParam));
+          setPreloadedCampaign(campaign);
+          
+          // Pre-populate form with campaign data
+          setFormData(prev => ({
+            ...prev,
+            mallId: campaign.mallId || (user?.mall_id?.toString() || '3'),  // Use user's mall_id, fallback to 3
+            mallName: campaign.mallName || 'China Square Mall',  // Default to China Square Mall
+            locationId: campaign.locationId || 'china_square_spatial_barbershop',
+            locationName: campaign.locationName || 'Spatial Barbershop & Spa',
+            zone: campaign.zone || 'Spatial_Barbershop',
+            shopId: campaign.shopId || (user?.shop_id?.toString() || '3'),  // Use user's shop_id, fallback to 3
+            campaignName: campaign.campaignName || campaign.campaign_id,
+            visitorTypes: ['first_time_visitor', 'loyal_customer'] // Default visitor types
+          }));
+          
+          setStep(2); // Skip location selection, go to settings
+        } catch (error) {
+          console.error('Error parsing campaign data:', error);
+        }
       }
     }
-  }, []);
+  }, [preselectedCampaign, user]);
 
   // Fetch campaigns from adcampaigns table
   useEffect(() => {
@@ -1114,7 +1142,15 @@ export default function QRGeneration() {
       {/* Navigation Buttons */}
       <div className="flex justify-between mt-8">
         <button
-          onClick={() => step > 1 ? setStep(step - 1) : window.location.href = '/'}
+          onClick={() => {
+            if (step > 1) {
+              setStep(step - 1);
+            } else if (onClose) {
+              onClose();
+            } else {
+              window.location.href = '/';
+            }
+          }}
           className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
         >
           {step > 1 ? 'Previous' : 'Back to Dashboard'}

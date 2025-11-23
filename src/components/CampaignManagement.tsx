@@ -316,14 +316,14 @@ const CampaignManagement: React.FC = () => {
       
       if (!authToken) {
         console.log('⚠️ No authenticated token found, using defaults');
-        return { mall_id: 6, shop_id: 6 };
+        return { mall_id: 3, shop_id: 3 };
       }
 
       const parsedToken = parseAuthToken(authToken);
       
       if (!parsedToken) {
         console.error('❌ Failed to parse token, using defaults');
-        return { mall_id: 6, shop_id: 6 };
+        return { mall_id: 3, shop_id: 3 };
       }
 
       console.log('🎯 AUTHENTICATED USER DATA:', {
@@ -341,7 +341,7 @@ const CampaignManagement: React.FC = () => {
       
     } catch (error) {
       console.error('❌ Error getting user mall and shop from token:', error);
-      return { mall_id: 6, shop_id: 6 };
+      return { mall_id: 3, shop_id: 3 };
     }
   };
 
@@ -425,6 +425,102 @@ const CampaignManagement: React.FC = () => {
     }
   };
 
+  // Helper function to determine campaign status with multiple fallbacks
+  const getCampaignStatus = (campaign: any): boolean => {
+    // Check various status fields in order of preference
+    if (campaign.active !== undefined) return campaign.active;
+    if (campaign.status) return campaign.status === 'active' || campaign.status === true;
+    if (campaign.isActive !== undefined) return campaign.isActive;
+    if (campaign.enabled !== undefined) return campaign.enabled;
+    if (campaign.published !== undefined) return campaign.published;
+    
+    // Default to false if no status found
+    return false;
+  };
+
+  // Helper function to format created date with multiple fallbacks
+  // Track QR code scan via existing visitor-checkins webhook
+  const trackQRScan = async (campaignId: string) => {
+    try {
+      console.log('📱 Tracking QR scan for campaign via visitor-checkins webhook:', campaignId);
+      
+      // Use the existing visitor-checkins webhook that the user mentioned
+      const response = await fetch('https://n8n.tenear.com/webhook/visitor-checkins', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'track_qr_scan',
+          campaign_id: campaignId,
+          scan_timestamp: new Date().toISOString(),
+          scan_type: 'qr_code_scan'
+        })
+      });
+      
+      if (response.ok) {
+        console.log('✅ QR scan tracked via visitor-checkins webhook');
+        // Refresh campaigns to get updated scan counts
+        if (selectedMallId !== null) {
+          await fetchCampaignsForMall(selectedMallId);
+        }
+      } else {
+        console.warn('⚠️ Failed to track QR scan via visitor-checkins webhook');
+      }
+    } catch (error) {
+      console.error('❌ Error tracking QR scan:', error);
+    }
+  };
+
+  const formatCreatedDate = (campaign: any): string => {
+    const possibleDateFields = [
+      campaign.created_at,
+      campaign.createdAt, 
+      campaign.created?.at,
+      campaign.created,
+      campaign.timestamp,
+      campaign.created_date
+    ];
+    
+    for (const dateField of possibleDateFields) {
+      if (dateField) {
+        try {
+          const date = new Date(dateField);
+          if (!isNaN(date.getTime())) {
+            return date.toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short', 
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+          }
+        } catch (e) {
+          console.warn('Invalid date format:', dateField);
+        }
+      }
+    }
+    
+    return 'Unknown';
+  };
+
+  // FIELD MAPPING FIX: Handle current N8N response format
+  const normalizeCampaignForDisplay = (campaign: any): any => {
+    // Map N8N fields to frontend expected fields
+    return {
+      ...campaign,
+      campaign_id: campaign.id || campaign.campaign_id,
+      name: campaign.title || campaign.name,
+      message: campaign.description || campaign.message,
+      shop_name: campaign.locationName || campaign.shopName || campaign.shop_name,
+      created_at: formatCreatedDate(campaign),
+      shop_id: campaign.shopId || campaign.shop_id,
+      mall_id: campaign.mallId || campaign.mall_id,
+      active: campaign.isActive || campaign.active,
+      scan_count: campaign.scan_count || campaign.scans || campaign.scanCount || 0
+    };
+  };
+
   // Fetch campaigns for selected mall
   const fetchCampaignsForMall = async (mallId: number) => {
     try {
@@ -474,12 +570,16 @@ const CampaignManagement: React.FC = () => {
         console.warn('⚠️ Unexpected campaign data format:', data);
       }
       
+      // APPLY FIELD MAPPING: Normalize campaign data for display
+      const normalizedCampaignData = campaignData.map((campaign: any) => normalizeCampaignForDisplay(campaign));
+      
       console.log('🎯 Extracted campaign data:', campaignData);
       console.log('🔍 First campaign structure sample:', campaignData[0] || 'No campaigns');
       if (campaignData[0]) {
         console.log('📋 Available fields in campaign:', Object.keys(campaignData[0]));
+        console.log('🔄 Normalized campaign data:', normalizedCampaignData[0]);
       }
-      setCampaigns(campaignData);
+      setCampaigns(normalizedCampaignData);
       
     } catch (error) {
       console.error('❌ Error fetching campaigns:', error);
@@ -710,10 +810,22 @@ const CampaignManagement: React.FC = () => {
     setShowForm(true);
   };
 
-  const handleGenerateQR = (campaign: any) => {
+  const handleGenerateQR = async (campaign: any) => {
     console.log('📱 Generating QR codes for campaign:', campaign.campaign_id || campaign.id);
+    
     setSelectedCampaignForQR(campaign);
     setShowQRGeneration(true);
+  };
+
+  // Manual refresh scan counts
+  const handleRefreshScans = async () => {
+    console.log('🔄 Refreshing scan counts...');
+    // FIX: Add null check to prevent TypeScript error
+    if (selectedMallId !== null) {
+      await fetchCampaignsForMall(selectedMallId);
+    } else {
+      console.warn('⚠️ No mall selected for refresh');
+    }
   };
 
   const handleCloseQRGeneration = () => {
@@ -843,13 +955,22 @@ const CampaignManagement: React.FC = () => {
           {/* Action Buttons */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-gray-900">Campaigns</h2>
-            <button
-              onClick={handleCreateCampaign}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center space-x-2"
-            >
-              <span>➕</span>
-              <span>Create Campaign</span>
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={handleRefreshScans}
+                className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-md flex items-center space-x-2 text-sm"
+              >
+                <span>🔄</span>
+                <span>Refresh Scans</span>
+              </button>
+              <button
+                onClick={handleCreateCampaign}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center space-x-2"
+              >
+                <span>➕</span>
+                <span>Create Campaign</span>
+              </button>
+            </div>
           </div>
 
           {/* Campaigns List */}
@@ -868,19 +989,21 @@ const CampaignManagement: React.FC = () => {
                   <div className="flex justify-between items-start mb-3">
                     <h3 className="font-semibold text-gray-900">{campaign.name}</h3>
                     <span className={`px-2 py-1 text-xs rounded-full ${
-                      campaign.active 
+                      getCampaignStatus(campaign) 
                         ? 'bg-green-100 text-green-800' 
                         : 'bg-gray-100 text-gray-800'
                     }`}>
-                      {campaign.active ? 'Active' : 'Inactive'}
+                      {getCampaignStatus(campaign) ? 'Active' : 'Inactive'}
                     </span>
                   </div>
                   
                   <p className="text-gray-600 text-sm mb-3">{campaign.message || campaign.description || 'No description'}</p>
                   
                   <div className="text-xs text-gray-500 mb-3">
-                    <div>Shop: {campaign.shop_name || `Shop ${campaign.shop_id}`}</div>
-                    <div>Created: {campaign.created_at ? new Date(campaign.created_at).toLocaleDateString() : 'Unknown'}</div>
+                    <div>Shop: {campaign.shop_name || campaign.shopName || campaign.shop?.name || campaign.shop?.name || `Shop ${campaign.shop_id || campaign.shopId || campaign.shop?.id || 'Unknown'}`}</div>
+                    <div>Created: {formatCreatedDate(campaign)}</div>
+                    <div>Scans: {normalizeCampaignForDisplay(campaign).scan_count} total</div>
+                    <div>ID: {normalizeCampaignForDisplay(campaign).campaign_id || 'N/A'}</div>
                   </div>
                   
                   <div className="flex space-x-2">

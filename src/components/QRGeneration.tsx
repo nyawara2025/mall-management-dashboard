@@ -3,6 +3,55 @@ import { supabase } from '../lib/supabase';
 import { User } from '../types/auth';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthService } from '../services/auth';
+
+// Scalable Mall and Shop Lookup Functions
+const getMallName = (mallId: number): string => {
+  const mallMap: Record<number, string> = {
+    3: 'China Square Mall',
+    6: 'Langata Mall',
+    7: 'NHC Mall',
+    // Easy to add new malls: 8: 'New Mall Name', etc.
+  };
+  return mallMap[mallId] || `Mall ${mallId}`;
+};
+
+const getShopName = (shopId: number): string => {
+  const shopMap: Record<number, string> = {
+    3: 'Spatial Barbershop & Spa',
+    4: 'Electronics Store',
+    6: 'Kika Wines & Spirits',
+    7: 'The Phone Shop',
+    8: 'Cleanshelf SupaMarket',
+    9: 'Maliet Salon & Spa',
+    10: 'Fashion Store',
+    11: 'Restaurant',
+    // Easy to add new shops: 12: 'New Shop Name', etc.
+  };
+  return shopMap[shopId] || `Shop ${shopId}`;
+};
+
+const getMallSlug = (mallId: number): string => {
+  const slugMap: Record<number, string> = {
+    3: 'china-square',
+    6: 'langata',
+    7: 'nhc',
+  };
+  return slugMap[mallId] || `mall-${mallId}`;
+};
+
+const getShopSlug = (shopId: number): string => {
+  const slugMap: Record<number, string> = {
+    3: 'spatial-barbershop',
+    4: 'electronics-store',
+    6: 'kika-wines',
+    7: 'phone-shop',
+    8: 'cleanshelf-market',
+    9: 'maliet-salon',
+    10: 'fashion-store',
+    11: 'restaurant',
+  };
+  return slugMap[shopId] || `shop-${shopId}`;
+};
 import { QrCode, Download, Eye, Settings, Calendar, MapPin, Building, Users, Target } from 'lucide-react';
 
 /**
@@ -179,14 +228,23 @@ export default function QRGeneration({ preselectedCampaign, onClose }: QRGenerat
       setPreloadedCampaign(preselectedCampaign);
       
       // Pre-populate form with campaign data
+      // Get user's actual mall and shop context
+      const userMallShop = AuthService.getCurrentUserMallAndShop();
+      const resolvedMallId = preselectedCampaign.mall_id || userMallShop.mall_id;
+      const resolvedShopId = preselectedCampaign.shop_id || userMallShop.shop_id;
+      
+      // Resolve mall and shop names dynamically
+      const resolvedMallName = getMallName(resolvedMallId);
+      const resolvedShopName = getShopName(resolvedShopId);
+      
       setFormData(prev => ({
         ...prev,
-        mallId: preselectedCampaign.mall_id?.toString() || preselectedCampaign.mallId || (user?.mall_id?.toString() || '6'),
-        mallName: preselectedCampaign.mall_name || preselectedCampaign.mallName || 'Langata Mall',
-        locationId: preselectedCampaign.locationId || 'langata_kika_wines',
-        locationName: preselectedCampaign.locationName || 'Kika Wines & Spirits',
-        zone: preselectedCampaign.zone || 'Kika_Wines',
-        shopId: preselectedCampaign.shop_id?.toString() || preselectedCampaign.shopId || (user?.shop_id?.toString() || '6'),
+        mallId: resolvedMallId.toString(),
+        mallName: resolvedMallName,
+        locationId: preselectedCampaign.locationId || `${getMallSlug(resolvedMallId)}_${getShopSlug(resolvedShopId)}`,
+        locationName: resolvedShopName,
+        zone: preselectedCampaign.zone || `${getShopSlug(resolvedShopId)}`,
+        shopId: resolvedShopId.toString(),
         campaignName: preselectedCampaign.campaign_id || preselectedCampaign.campaignName || preselectedCampaign.id,
         visitorTypes: ['first_time_visitor', 'loyal_customer'] // Default visitor types
       }));
@@ -204,14 +262,23 @@ export default function QRGeneration({ preselectedCampaign, onClose }: QRGenerat
           setPreloadedCampaign(campaign);
           
           // Pre-populate form with campaign data
+          // Get user's actual mall and shop context
+          const userMallShop = AuthService.getCurrentUserMallAndShop();
+          const resolvedMallId = campaign.mallId ? parseInt(campaign.mallId) : userMallShop.mall_id;
+          const resolvedShopId = campaign.shopId ? parseInt(campaign.shopId) : userMallShop.shop_id;
+          
+          // Resolve mall and shop names dynamically
+          const resolvedMallName = getMallName(resolvedMallId);
+          const resolvedShopName = getShopName(resolvedShopId);
+          
           setFormData(prev => ({
             ...prev,
-            mallId: campaign.mallId || (user?.mall_id?.toString() || '6'),  // Use user's mall_id, fallback to 6
-            mallName: campaign.mallName || 'Langata Mall',  // Default to Sandra's mall
-            locationId: campaign.locationId || 'langata_kika_wines',
-            locationName: campaign.locationName || 'Kika Wines & Spirits',
-            zone: campaign.zone || 'Kika_Wines',
-            shopId: campaign.shopId || (user?.shop_id?.toString() || '6'),  // Use user's shop_id, fallback to 6
+            mallId: resolvedMallId.toString(),
+            mallName: resolvedMallName,
+            locationId: campaign.locationId || `${getMallSlug(resolvedMallId)}_${getShopSlug(resolvedShopId)}`,
+            locationName: resolvedShopName,
+            zone: campaign.zone || `${getShopSlug(resolvedShopId)}`,
+            shopId: resolvedShopId.toString(),
             campaignName: campaign.campaignName || campaign.campaign_id,
             visitorTypes: ['first_time_visitor', 'loyal_customer'] // Default visitor types
           }));
@@ -373,7 +440,7 @@ export default function QRGeneration({ preselectedCampaign, onClose }: QRGenerat
             console.log('Current user:', user);
             console.log('Form data mallId/shopId:', { mallId: formData.mallId, shopId: formData.shopId });
             
-            alert(`Authentication Error: Unable to determine mall_id and shop_id.\n\nDetails:\n- User mall_id: ${user?.mall_id}\n- User shop_id: ${user?.shop_id}\n- AuthService mall_id: ${userMallShop.mall_id}\n- AuthService shop_id: ${userMallShop.shop_id}\n\nPlease log out and log back in to refresh your session.`);
+            alert(`Authentication Error: Unable to determine mall_id and shop_id.\n\nDetails:\n- User mall_id: ${user?.mall_id || 'null'}\n- User shop_id: ${user?.shop_id || 'null'}\n- AuthService mall_id: ${userMallShop.mall_id}\n- AuthService shop_id: ${userMallShop.shop_id}\n\nPlease log out and log back in to refresh your session.`);
             return;
           }
           
@@ -381,15 +448,15 @@ export default function QRGeneration({ preselectedCampaign, onClose }: QRGenerat
           // This ensures visitor claims are stored in the visitor_claims table
           let qrUrl;
           
-          // ULTRA-MINIMAL URLS: Maximum scannability - shortest possible parameters
-          // Using 1 character parameter names + eliminating unnecessary data
+          // OPTIMIZED URLS: Maximum scannability with correct parameter values
+          // Short parameter keys but correct values for check-in compatibility
           const qrParams = new URLSearchParams({
-            s: finalShopId,      // shop_id → s (primary identifier)
-            v: visitorType,      // visitor_type → v
-            c: formData.campaignName.substring(0, 10), // campaign → c (10 chars max)
-            l: formData.locationId,  // location → l
-            z: formData.zone,    // zone → z
-            t: formData.qrType   // type → t (1 or 6 chars)
+            s: finalShopId,                    // shop_id → s (just the number)
+            v: visitorType,                    // visitor_type → full value (first_time_visitor, loyal_customer)
+            c: 'default',                      // campaign → simplified but present
+            l: 'main',                         // location → simplified but present  
+            z: 'zone1',                        // zone → simplified but present
+            t: formData.qrType === 'checkin' ? '1' : '2' // type → t (1=checkin, 2=claim)
           });
 
           // MINIMAL PATH: Shortest possible URL structure for maximum scannability
@@ -404,10 +471,26 @@ export default function QRGeneration({ preselectedCampaign, onClose }: QRGenerat
             qrUrl = `${checkinBaseUrl}${path}?${qrParams.toString()}`;
           }
           
+        // URL length validation for QR scannability
+        if (qrUrl.length > 120) {
+          console.warn(`⚠️ QR URL too long (${qrUrl.length} chars):`, qrUrl);
+          alert(`QR URL is too long for reliable scanning. Please use shorter campaign names.`);
+          return;
+        }
+        
         // Debug: Log the QR data capture information
         console.log(`🔗 QR Generated:`, {
           type: formData.qrType,
           url: qrUrl,
+          urlLength: qrUrl.length,
+          parameters: {
+            shopId: finalShopId,
+            visitorType: visitorType,
+            campaign: 'default',
+            location: 'main', 
+            zone: 'zone1',
+            type: formData.qrType === 'checkin' ? '1' : '2'
+          },
           user_shop_id: user.shop_id,
           user_mall_id: user.mall_id,
           will_capture_data: true,
