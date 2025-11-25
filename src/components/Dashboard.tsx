@@ -26,6 +26,8 @@ import {
 } from 'lucide-react';
 import { MallCard } from './MallCard';
 import { Sidebar } from './Sidebar';
+import NotificationCenter from './NotificationCenter';
+import RealTimeNotificationCenter from './RealTimeNotificationCenter';
 
 interface DashboardProps {
   onViewChange?: (view: string) => void;
@@ -135,6 +137,17 @@ export function Dashboard({ onViewChange }: DashboardProps) {
               </div>
               
               <div className="flex items-center gap-4">
+                {/* Notification Centers - Side by Side Test */}
+                {user.mall_access && user.mall_access.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    {/* OLD Polling System */}
+                    <NotificationCenter user={user} />
+                    
+                    {/* NEW Real-Time System */}
+                    <RealTimeNotificationCenter user={user} />
+                  </div>
+                )}
+                
                 {/* Refresh Button */}
                 <button
                   onClick={handleRefresh}
@@ -382,32 +395,64 @@ export function Dashboard({ onViewChange }: DashboardProps) {
           {/* Campaign Management for Shop Admins */}
           {user.role === 'shop_admin' && (
             <div className="mb-8">
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-blue-100 p-3 rounded-lg">
-                      <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-blue-100 p-3 rounded-lg">
+                        <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                          Campaign Management
+                        </h3>
+                        <p className="text-gray-600 text-sm">
+                          Create promotional campaigns, track customer engagement, and manage visitor analytics
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onViewChange?.('campaigns')}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                       </svg>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        Campaign Management
-                      </h3>
-                      <p className="text-gray-600 text-sm">
-                        Create promotional campaigns, track customer engagement, and manage visitor analytics
-                      </p>
-                    </div>
+                      Manage Campaigns
+                    </button>
                   </div>
-                  <button
-                    onClick={() => onViewChange?.('campaigns')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    Manage Campaigns
-                  </button>
+                </div>
+
+                {/* Campaign Template Manager - NEW */}
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-purple-100 p-3 rounded-lg">
+                        <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                          Template Manager
+                        </h3>
+                        <p className="text-gray-600 text-sm">
+                          Create templates for personalized visitor experiences and enhanced QR content
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onViewChange?.('templates')}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      Manage Templates
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

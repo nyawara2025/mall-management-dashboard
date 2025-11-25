@@ -19,10 +19,15 @@ import {
   Phone,
   DollarSign,
   CheckCircle,
-  Clock
+  Clock,
+  Inbox,
+  MessageSquare,
+  User
 } from 'lucide-react';
 import { MallCard } from './MallCard';
 import { Sidebar } from './Sidebar';
+import NotificationCenter from './NotificationCenter';
+import RealTimeNotificationCenter from './RealTimeNotificationCenter';
 
 interface DashboardProps {
   onViewChange?: (view: string) => void;
@@ -33,6 +38,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
   const [malls, setMalls] = useState<Mall[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
   const fetchMalls = async () => {
     setIsLoading(true);
@@ -131,6 +137,17 @@ export function Dashboard({ onViewChange }: DashboardProps) {
               </div>
               
               <div className="flex items-center gap-4">
+                {/* Notification Centers - Side by Side Test */}
+                {user.mall_access && user.mall_access.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    {/* OLD Polling System */}
+                    <NotificationCenter user={user} />
+                    
+                    {/* NEW Real-Time System */}
+                    <RealTimeNotificationCenter user={user} />
+                  </div>
+                )}
+                
                 {/* Refresh Button */}
                 <button
                   onClick={handleRefresh}
@@ -141,19 +158,56 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                   Refresh
                 </button>
                 
-                {/* User Info */}
-                <div className="flex items-center gap-3 bg-page-bg px-4 py-2 rounded-md">
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-text-primary">
-                      {user.full_name}
-                    </p>
-                    <div className="flex items-center gap-1">
-                      {getRoleIcon(user.role)}
-                      <span className={`text-xs font-medium ${getRoleColor(user.role)}`}>
-                        {user.role.replace('_', ' ').toUpperCase()}
-                      </span>
+                {/* User Menu */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center gap-3 bg-page-bg px-4 py-2 rounded-md hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="text-right">
+                      <p className="text-sm font-medium text-text-primary">
+                        {user.full_name}
+                      </p>
+                      <div className="flex items-center gap-1">
+                        {getRoleIcon(user.role)}
+                        <span className={`text-xs font-medium ${getRoleColor(user.role)}`}>
+                          {user.role.replace('_', ' ').toUpperCase()}
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                    <User className="w-4 h-4 text-gray-500" />
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  
+                  {/* Dropdown Menu */}
+                  {showUserMenu && (
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1 z-50">
+                      <div className="px-4 py-2 border-b border-gray-200">
+                        <p className="text-sm font-medium text-gray-900">{user.full_name}</p>
+                        <p className="text-xs text-gray-500">{user.username}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          logout();
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* Click outside to close */}
+                  {showUserMenu && (
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowUserMenu(false)}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -367,6 +421,65 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                     </svg>
                     Manage Campaigns
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Payment Modules for Shop Admins */}
+          {user.role === 'shop_admin' && (
+            <div className="mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Payment Reception Module */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-green-100 p-3 rounded-lg">
+                        <Inbox className="w-6 h-6 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                          Payment Reception
+                        </h3>
+                        <p className="text-gray-600 text-sm">
+                          Monitor incoming MPESA payments, track transactions, and manage real-time payment reception
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onViewChange?.('payment-reception')}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                      <Inbox className="w-5 h-5" />
+                      View Dashboard
+                    </button>
+                  </div>
+                </div>
+
+                {/* Receipt Messaging Module */}
+                <div className="bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-200 rounded-lg p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-purple-100 p-3 rounded-lg">
+                        <MessageSquare className="w-6 h-6 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                          Receipt Messaging
+                        </h3>
+                        <p className="text-gray-600 text-sm">
+                          Manage message templates, automate receipt delivery, and track message analytics
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onViewChange?.('receipt-messaging')}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                      <MessageSquare className="w-5 h-5" />
+                      Manage Templates
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

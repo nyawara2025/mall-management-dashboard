@@ -59,10 +59,9 @@ interface CampaignTemplate {
     icon: string;
     color: string;
   };
-  isDatabaseTemplate?: boolean;
 }
 
-type CampaignTemplateId = 'welcome-offer' | 'flash-sale' | 'gift-offer';
+type CampaignTemplateId = 'welcome-offer' | 'flash-sale' | 'gift-offer' | 'premium-spirits' | 'premium-grooming' | 'luxury-spa';
 
 // CAMPAIGN TEMPLATES SYSTEM
 const CAMPAIGN_TEMPLATES: Record<CampaignTemplateId, CampaignTemplate> = {
@@ -164,6 +163,105 @@ const CAMPAIGN_TEMPLATES: Record<CampaignTemplateId, CampaignTemplate> = {
       icon: '🎁',
       color: 'green'
     }
+  },
+  'premium-spirits': {
+    id: 'premium-spirits',
+    name: 'Premium Spirits',
+    description: 'Exclusive alcohol offers for premium customers',
+    icon: '🥃',
+    visitorMessage: {
+      title: '🥃 Premium Spirits Collection',
+      body: 'Discover our exclusive selection of premium spirits. As a special visitor, enjoy special pricing on our finest bottles.',
+      emoji: '🥃',
+      theme: {
+        primaryColor: '#7C3AED',
+        secondaryColor: '#F3E8FF',
+        backgroundGradient: 'from-purple-50 to-indigo-100',
+        borderStyle: 'border-2 border-purple-200 rounded-xl',
+        iconStyle: 'bg-purple-600 text-white'
+      },
+      actionButton: {
+        text: 'Browse Spirits',
+        color: 'bg-purple-600 hover:bg-purple-700'
+      }
+    },
+    offer: {
+      discount: '20% OFF',
+      bonus: 'Premium Selection',
+      code: `SPIR${Date.now().toString().slice(-4)}`,
+      validUntil: 'Dec 21, 2025'
+    },
+    preview: {
+      style: 'bg-purple-50 border-purple-200',
+      icon: '🥃',
+      color: 'purple'
+    }
+  },
+  'premium-grooming': {
+    id: 'premium-grooming',
+    name: 'Premium Grooming',
+    description: 'High-end grooming services and products',
+    icon: '✂️',
+    visitorMessage: {
+      title: '✂️ Premium Grooming Experience',
+      body: 'Experience our premium grooming services. As a visitor, enjoy access to our exclusive grooming products and services.',
+      emoji: '✂️',
+      theme: {
+        primaryColor: '#EC4899',
+        secondaryColor: '#FDF2F8',
+        backgroundGradient: 'from-pink-50 to-rose-100',
+        borderStyle: 'border-2 border-pink-200 rounded-xl',
+        iconStyle: 'bg-pink-600 text-white'
+      },
+      actionButton: {
+        text: 'Book Service',
+        color: 'bg-pink-600 hover:bg-pink-700'
+      }
+    },
+    offer: {
+      discount: '25% OFF',
+      bonus: 'Premium Service',
+      code: `GROO${Date.now().toString().slice(-4)}`,
+      validUntil: 'Dec 21, 2025'
+    },
+    preview: {
+      style: 'bg-pink-50 border-pink-200',
+      icon: '✂️',
+      color: 'pink'
+    }
+  },
+  'luxury-spa': {
+    id: 'luxury-spa',
+    name: 'Luxury Spa',
+    description: 'Premium spa and wellness services',
+    icon: '💆‍♀️',
+    visitorMessage: {
+      title: '💆‍♀️ Luxury Spa Experience',
+      body: 'Relax and rejuvenate at our luxury spa. Visitors enjoy special pricing on our premium wellness treatments.',
+      emoji: '💆‍♀️',
+      theme: {
+        primaryColor: '#06B6D4',
+        secondaryColor: '#ECFEFF',
+        backgroundGradient: 'from-cyan-50 to-sky-100',
+        borderStyle: 'border-2 border-cyan-200 rounded-xl',
+        iconStyle: 'bg-cyan-600 text-white'
+      },
+      actionButton: {
+        text: 'Book Treatment',
+        color: 'bg-cyan-600 hover:bg-cyan-700'
+      }
+    },
+    offer: {
+      discount: '35% OFF',
+      bonus: 'Luxury Experience',
+      code: `SPA${Date.now().toString().slice(-4)}`,
+      validUntil: 'Dec 21, 2025'
+    },
+    preview: {
+      style: 'bg-cyan-50 border-cyan-200',
+      icon: '💆‍♀️',
+      color: 'cyan'
+    }
   }
 };
 
@@ -186,10 +284,6 @@ const CampaignManagement: React.FC = () => {
   // QR Generation state
   const [showQRGeneration, setShowQRGeneration] = useState(false);
   const [selectedCampaignForQR, setSelectedCampaignForQR] = useState<any>(null);
-
-  // Database template state management
-  const [databaseTemplates, setDatabaseTemplates] = useState<CampaignTemplate[]>([]);
-  const [loadingTemplates, setLoadingTemplates] = useState(false);
 
   // Token parsing function - Extracts user data from authentication token
   const parseAuthToken = (token: string): { mall_id: number; shop_id: number; user_id: string; username: string; role: string } | null => {
@@ -377,91 +471,6 @@ const CampaignManagement: React.FC = () => {
     } catch (error) {
       console.error('❌ Error tracking QR scan:', error);
     }
-  };
-
-  // Fetch database templates for current shop
-  const fetchDatabaseTemplates = async () => {
-    setLoadingTemplates(true);
-    try {
-      console.log('📋 Fetching database templates for current shop');
-      
-      const currentShopId = await getCurrentShopId();
-      
-      const response = await fetch('https://n8n.tenear.com/webhook/templates-get', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          action: 'get_all', 
-          shop_id: currentShopId 
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch templates: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      console.log('✅ Database templates fetched:', data);
-      
-      if (data.templates && Array.isArray(data.templates)) {
-        const convertedTemplates = data.templates.map((template: any): CampaignTemplate => ({
-          id: `db-${template.id}`,
-          name: template.name,
-          description: template.description,
-          icon: template.icon || '📋',
-          visitorMessage: {
-            title: template.visitor_message_title || `Welcome to ${template.name}!`,
-            body: template.visitor_message || 'Welcome to our shop!',
-            emoji: template.emoji || '👋',
-            theme: {
-              primaryColor: template.primary_color || '#3B82F6',
-              secondaryColor: template.secondary_color || '#EFF6FF',
-              backgroundGradient: template.background_gradient || 'from-blue-50 to-indigo-100',
-              borderStyle: template.border_style || 'border-2 border-blue-200 rounded-xl',
-              iconStyle: template.icon_style || 'bg-blue-600 text-white'
-            },
-            actionButton: {
-              text: template.action_button_text || 'Shop Now',
-              color: template.action_button_color || 'bg-blue-600 hover:bg-blue-700'
-            }
-          },
-          offer: {
-            discount: template.discount || 'Special Offer',
-            bonus: template.bonus || '',
-            code: template.discount_code || `DB${Date.now().toString().slice(-4)}`,
-            validUntil: template.valid_until || 'Limited Time'
-          },
-          preview: {
-            style: 'bg-green-50 border-green-200',
-            icon: '📋',
-            color: 'green'
-          },
-          isDatabaseTemplate: true
-        }));
-        
-        setDatabaseTemplates(convertedTemplates);
-        console.log('🎯 Converted database templates:', convertedTemplates);
-      }
-    } catch (error) {
-      console.error('❌ Error fetching database templates:', error);
-      setError('Failed to fetch templates');
-    } finally {
-      setLoadingTemplates(false);
-    }
-  };
-
-  // Helper function to merge database and fallback templates
-  const getAllTemplates = () => {
-    const fallbackTemplates = Object.entries(CAMPAIGN_TEMPLATES).map(([key, template]) => ({
-      ...template,
-      id: key,
-      isDatabaseTemplate: false
-    }));
-    
-    // Return database templates first, then fallback templates
-    return [...databaseTemplates, ...fallbackTemplates];
   };
 
   const formatCreatedDate = (campaign: any): string => {
@@ -850,9 +859,6 @@ const CampaignManagement: React.FC = () => {
         // Fetch malls and campaigns
         await fetchMalls();
         
-        // Load database templates for current shop
-        await fetchDatabaseTemplates();
-        
         console.log('✅ CampaignManagement initialization complete');
         
       } catch (error) {
@@ -882,20 +888,6 @@ const CampaignManagement: React.FC = () => {
     setSelectedCampaign((prev: any) => ({
       ...prev,
       template_id: templateId,
-      visitor_message: template.visitorMessage.body,
-      offer_details: `${template.offer.discount} - ${template.offer.bonus}`,
-      discount_code: template.offer.code,
-      valid_until: template.offer.validUntil
-    }));
-  };
-
-  // Apply database template to form
-  const applyDatabaseTemplate = (template: CampaignTemplate) => {
-    console.log('📋 Applying database template:', template.name);
-    
-    setSelectedCampaign((prev: any) => ({
-      ...prev,
-      template_id: template.id,
       visitor_message: template.visitorMessage.body,
       offer_details: `${template.offer.discount} - ${template.offer.bonus}`,
       discount_code: template.offer.code,
@@ -1105,73 +1097,20 @@ const CampaignManagement: React.FC = () => {
 
               {/* Campaign Templates */}
               <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-700">Shop-Specific Templates</h3>
-                    <p className="text-xs text-gray-500">Templates created for your shop appear first</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={fetchDatabaseTemplates}
-                    disabled={loadingTemplates}
-                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-3 py-1 rounded text-xs flex items-center space-x-1"
-                  >
-                    <span>{loadingTemplates ? '⏳' : '🔄'}</span>
-                    <span>Refresh Templates</span>
-                  </button>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Quick Start Templates</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {Object.entries(CAMPAIGN_TEMPLATES).map(([key, template]) => (
+                    <button
+                      key={key}
+                      onClick={() => applyTemplate(key as CampaignTemplateId)}
+                      className={`p-3 rounded-lg border text-left hover:bg-gray-50 ${template.preview.style}`}
+                    >
+                      <div className="text-lg mb-1">{template.icon}</div>
+                      <div className="text-xs font-medium">{template.name}</div>
+                      <div className="text-xs text-gray-500">{template.description}</div>
+                    </button>
+                  ))}
                 </div>
-                
-                {loadingTemplates ? (
-                  <div className="text-center py-4 text-gray-500">
-                    Loading templates...
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Database Templates Section */}
-                    {databaseTemplates.length > 0 && (
-                      <div>
-                        <h4 className="text-xs font-semibold text-gray-600 mb-2">📋 Database Templates</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                          {databaseTemplates.map((template) => (
-                            <button
-                              key={template.id}
-                              onClick={() => applyDatabaseTemplate(template)}
-                              className={`p-3 rounded-lg border text-left hover:bg-gray-50 bg-green-50 border-green-200`}
-                            >
-                              <div className="flex items-center justify-between mb-1">
-                                <div className="text-lg">{template.icon}</div>
-                                <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
-                                  📋 Database
-                                </span>
-                              </div>
-                              <div className="text-xs font-medium">{template.name}</div>
-                              <div className="text-xs text-gray-500">{template.description}</div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    
-                    {/* Fallback Templates Section */}
-                    <div>
-                      <h4 className="text-xs font-semibold text-gray-600 mb-2">Universal Templates</h4>
-                      <p className="text-xs text-gray-500 mb-2">Basic templates that work for any shop type</p>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                        {Object.entries(CAMPAIGN_TEMPLATES).map(([key, template]) => (
-                          <button
-                            key={key}
-                            onClick={() => applyTemplate(key as CampaignTemplateId)}
-                            className={`p-3 rounded-lg border text-left hover:bg-gray-50 ${template.preview.style}`}
-                          >
-                            <div className="text-lg mb-1">{template.icon}</div>
-                            <div className="text-xs font-medium">{template.name}</div>
-                            <div className="text-xs text-gray-500">{template.description}</div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               <form onSubmit={(e) => {

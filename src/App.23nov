@@ -4,7 +4,6 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { SessionMonitor, SessionWarning } from './components/SessionMonitor';
 import { Dashboard } from './components/Dashboard';
 import CampaignManagement from './components/CampaignManagement';
-import CampaignTemplateManager from './components/CampaignTemplateManager';
 import CampaignViewer from './components/CampaignViewer';
 import QRCheckInPage from './components/QRCheckInPage';
 import QrCheckinPage from './pages/QrCheckinPage';
@@ -93,21 +92,6 @@ function AppContent() {
               />
               <div className="pt-16">
                 <CampaignManagement />
-              </div>
-            </div>
-          )}
-          {currentView === 'templates' && (
-            <div className="min-h-screen">
-              <Header 
-                onBack={() => setCurrentView('dashboard')} 
-                title="Campaign Template Manager"
-                user={user}
-                onLogout={logout}
-                showUserMenu={showUserMenu}
-                setShowUserMenu={setShowUserMenu}
-              />
-              <div className="pt-16">
-                <CampaignTemplateManager />
               </div>
             </div>
           )}

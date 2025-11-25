@@ -714,7 +714,7 @@ class MallApiServiceClass implements MallApiServiceInterface {
     try {
       console.log('🏢 MallApiService - Fetching mall data from n8n webhook');
       
-      // Call the actual n8n malls webhook instead of using static data
+      // Call the actual n8n malls webhook (matching CampaignManagement.tsx pattern)
       const response = await fetch(this.n8nMallManagementWebhook, {
         method: 'GET',
         headers: {
@@ -733,14 +733,31 @@ class MallApiServiceClass implements MallApiServiceInterface {
       console.log('📦 MallApiService - n8n malls response:', result);
       
       // Handle the response format from n8n malls workflow
+      // N8N mall webhook returns array directly (like CampaignManagement.tsx expects)
       let mallData: Mall[] = [];
-      if (result.success && result.data) {
-        mallData = result.data.map((mall: any) => ({
-          id: mall.id,
-          name: mall.name,
+      
+      // Check if result is an array directly (CampaignManagement pattern)
+      if (Array.isArray(result)) {
+        mallData = result.map((mall: any) => ({
+          id: mall.mall_id || mall.id, // Handle both "mall_id" (n8n) and "id" (fallback)
+          name: mall.mall_name || mall.name, // Handle both "mall_name" (n8n) and "name" (fallback)
           latitude: mall.latitude,
           longitude: mall.longitude,
-          address: mall.address,
+          address: mall.mall_address || mall.address, // Handle both "mall_address" (n8n) and "address" (fallback)
+          radius_meters: mall.radius_meters || 1000,
+          active: mall.active !== false,
+          created_at: mall.created_at,
+          updated_at: mall.updated_at
+        }));
+      } 
+      // Fallback: Handle {success: true, data: []} format
+      else if (result.success && result.data && Array.isArray(result.data)) {
+        mallData = result.data.map((mall: any) => ({
+          id: mall.mall_id || mall.id,
+          name: mall.mall_name || mall.name,
+          latitude: mall.latitude,
+          longitude: mall.longitude,
+          address: mall.mall_address || mall.address,
           radius_meters: mall.radius_meters || 1000,
           active: mall.active !== false,
           created_at: mall.created_at,

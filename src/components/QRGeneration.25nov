@@ -380,10 +380,8 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
     // Encode as base64
     const encodedData = btoa(JSON.stringify(qrData));
     
-    // Create webhook-compatible URL - use appropriate base URL based on QR type
-    const baseUrl = formData.qrType === 'checkin' 
-      ? 'https://tenarcheckins.pages.dev'   // Zone Check-ins
-      : 'https://tenearoffers.pages.dev';   // Offer Claims
+    // Create webhook-compatible URL
+    const baseUrl = 'https://tenearcheckins.pages.dev'; // Our webhook-driven system
     const qrUrl = `${baseUrl}?d=${encodedData}`;
     
     console.log('🎯 WEBHOOK QR Generated:', {

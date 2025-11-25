@@ -179,76 +179,21 @@ const QrCheckinPage: React.FC = () => {
   };
 
   const getZoneName = (zone: string): string => {
-    // DYNAMIC: Handle both hardcoded zones and dynamic shop-specific zones
     const zoneMap: { [key: string]: string } = {
       'entrance': 'Mall Entrance',
-      'checkout': 'Checkout Counter', 
-      'display': 'Product Display',
-      // Dynamic shop zones (from MALL_LOCATIONS in QRGeneration)
-      'kika_wines': 'Kika Wines & Spirits',
-      'spatial_barbershop': 'Spatial Barbershop & Spa',
-      'electrons': 'Electronics Store',
-      'phone_shop': 'The Phone Shop',
-      'cleanshelf_market': 'Cleanshelf Supermarket',
-      'maliet_salon': 'Maliet Salon & Spa',
-      'fashion_store': 'Fashion Store',
-      'restaurant': 'Restaurant',
-      'aquarius_bar': 'Aquarius Bar',
-      'the_gym': 'The Gym'
+      'checkout': 'Checkout Counter',
+      'display': 'Product Display'
     };
-    
-    // Convert zone to lowercase and handle underscores
-    const normalizedZone = zone.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    
-    // Try direct match first
-    if (zoneMap[normalizedZone]) {
-      return zoneMap[normalizedZone];
-    }
-    
-    // Try without underscores
-    const simplifiedZone = normalizedZone.replace(/_/g, '');
-    if (zoneMap[simplifiedZone]) {
-      return zoneMap[simplifiedZone];
-    }
-    
-    // Return formatted version if not found
-    return zone.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return zoneMap[zone] || zone;
   };
 
   const getZoneColor = (zone: string): string => {
-    // DYNAMIC: Handle both hardcoded zones and dynamic shop-specific zones
     const colorMap: { [key: string]: string } = {
       'entrance': 'bg-green-500',
       'checkout': 'bg-blue-500',
-      'display': 'bg-purple-500',
-      // Shop-specific colors
-      'kika_wines': 'bg-purple-600',
-      'spatial_barbershop': 'bg-blue-600',
-      'electronics_store': 'bg-indigo-600',
-      'phone_shop': 'bg-cyan-600',
-      'cleanshelf_market': 'bg-green-600',
-      'maliet_salon': 'bg-pink-600',
-      'fashion_store': 'bg-violet-600',
-      'restaurant': 'bg-orange-600',
-      'aquarius_bar': 'bg-red-600',
-      'the_gym': 'bg-gray-600'
+      'display': 'bg-purple-500'
     };
-    
-    // Normalize zone for lookup
-    const normalizedZone = zone.toLowerCase().replace(/[^a-z0-9]/g, '_');
-    
-    // Try direct match first
-    if (colorMap[normalizedZone]) {
-      return colorMap[normalizedZone];
-    }
-    
-    // Try without underscores
-    const simplifiedZone = normalizedZone.replace(/_/g, '');
-    if (colorMap[simplifiedZone]) {
-      return colorMap[simplifiedZone];
-    }
-    
-    return 'bg-gray-500';
+    return colorMap[zone] || 'bg-gray-500';
   };
 
   if (checkinResult?.error) {
@@ -369,33 +314,17 @@ const QrCheckinPage: React.FC = () => {
 
         {checkinData && (
           <div className="space-y-4 mb-6">
-            {/* Shop Information */}
-            <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
-              <div className="text-center">
-                <h3 className="text-lg font-bold text-gray-900 mb-2">🏪 {getZoneName(checkinData.zone)}</h3>
-                <p className="text-gray-600">{checkinData.location.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
-              </div>
-            </div>
-
-            {/* Campaign Information */}
-            <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg border border-purple-200">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div>
-                <p className="text-sm text-purple-600">🎯 Campaign</p>
-                <p className="font-semibold text-purple-900">{checkinData.campaign.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</p>
+                <p className="text-sm text-gray-500">Campaign</p>
+                <p className="font-semibold">{checkinData.campaign}</p>
               </div>
-              {checkinData.visitorType && (
-                <div className="text-right">
-                  <p className="text-sm text-purple-600">👤 Visitor Type</p>
-                  <p className="font-semibold text-purple-900">{checkinData.visitorType.replace(/_/g, ' ')}</p>
-                </div>
-              )}
             </div>
 
-            {/* Zone Information */}
             <div className={`p-4 ${getZoneColor(checkinData.zone)} text-white rounded-lg`}>
-              <p className="text-sm opacity-90">📍 Location Zone</p>
+              <p className="text-sm opacity-90">Location Zone</p>
               <p className="text-xl font-bold">{getZoneName(checkinData.zone)}</p>
-              <p className="text-sm opacity-90">Mall Zone: {checkinData.zone.replace(/_/g, ' ')}</p>
+              <p className="text-sm opacity-90">{checkinData.location}</p>
             </div>
           </div>
         )}
