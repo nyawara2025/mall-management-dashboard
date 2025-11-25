@@ -382,7 +382,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
     
     // Create webhook-compatible URL - use appropriate base URL based on QR type
     const baseUrl = formData.qrType === 'checkin' 
-      ? 'https://tenarcheckins.pages.dev'   // Zone Check-ins
+      ? 'https://tenearcheckins.pages.dev'   // Zone Check-ins
       : 'https://tenearoffers.pages.dev';   // Offer Claims
     const qrUrl = `${baseUrl}?d=${encodedData}`;
     
