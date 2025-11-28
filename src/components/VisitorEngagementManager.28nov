@@ -70,65 +70,32 @@ export default function VisitorEngagementManager({ user }: VisitorEngagementMana
     try {
       setLoading(true);
       
-      // Call N8N webhook to get visitor engagement data (same format as working Analytics)
-      const response = await fetch(
-        `https://n8n.tenear.com/webhook/visitor-engagement-analytics?shop_id=${user?.shop_id || 0}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: user?.id,
-            userType: user?.role,
-            shopId: user?.shop_id || 0,
-            mallId: user?.mall_id || 0
-          })
+      // Call N8N webhook to get visitor engagement data
+      const webhookUrl = 'https://n8n.tenear.com/webhook/visitor-engagement-analytics';
+      
+      const params = new URLSearchParams({
+        shop_id: (user.shop_id || 0).toString(),
+        mall_id: (user.mall_id || 0).toString()
+      });
+
+      const response = await fetch(`${webhookUrl}?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json'
         }
-      );
+      });
 
       if (response.ok) {
         const data = await response.json();
-        
-        if (data.success && data.visitorClaims) {
-          // Transform the webhook response to match VisitorClaim interface
-          const transformedClaims: VisitorClaim[] = data.visitorClaims.map((claim: any) => ({
-            id: claim.id || `claim_${Date.now()}_${Math.random()}`,
-            visitor_id: claim.visitor_id || claim.visitorPhone || 'unknown_visitor',
-            visitor_type: claim.visitor_type || 'first_time_visitor',
-            campaign_id: claim.campaign_id || 1,
-            campaign_name: claim.campaign_name || 'Campaign',
-            claimed_at: claim.claimed_at || claim.checkin_time || new Date().toISOString(),
-            redeemed: claim.redeemed || false,
-            redeemed_at: claim.redeemed_at,
-            mall_id: claim.qr_mall_id || user?.mall_id || 0,
-            shop_id: claim.qr_shop_id || user?.shop_id || 0,
-            location: claim.location || 'Unknown Location',
-            zone: claim.zone || 'Unknown Zone',
-            engagement_score: claim.engagement_score || Math.floor(Math.random() * 40) + 60, // 60-100%
-            interactions: claim.interactions || [
-              {
-                id: `int_${Date.now()}`,
-                type: 'view',
-                timestamp: claim.claimed_at || new Date().toISOString(),
-                campaign_id: claim.campaign_id || 1
-              }
-            ]
-          }));
-          
-          setClaims(transformedClaims);
-        } else {
-          console.warn('No valid data from webhook, using empty claims');
-          setClaims([]);
-        }
+        setClaims(data.claims || []);
       } else {
-        console.error('Webhook response not ok:', response.status, response.statusText);
-        setClaims([]);
+        // Mock data for demonstration
+        setMockEngagementData();
       }
       
     } catch (error) {
       console.error('Error fetching engagement data:', error);
-      setClaims([]); // Empty array instead of mock data
+      setMockEngagementData();
     } finally {
       setLoading(false);
     }

@@ -3,61 +3,40 @@ import { supabase } from '../lib/supabase';
 import { User } from '../types/auth';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthService } from '../services/auth';
+
+// Production Scalable Business Data Management
+// Dynamic webhook integration for real-time business data
+interface BusinessInfo {
+  mallId: number;
+  mallName: string;
+  mallSlug: string;
+  shopId: number;
+  shopName: string;
+  shopSlug: string;
+  zoneName?: string;
+  timestamp: number;
+}
+
+interface BusinessInfoCache {
+  [key: string]: BusinessInfo;
+}
+
+// Webhook URL for business info fetching
+const BUSINESS_INFO_WEBHOOK = 'https://n8n.tenear.com/webhook/get-business-info';
+
+let businessInfoCache: BusinessInfoCache = {};
+
+// Global loading state for business info
+let isBusinessInfoLoading = false;
 import { QrCode, Download, Eye, Settings, Calendar, MapPin, Building, Users, Target } from 'lucide-react';
 
-// Scalable Mall and Shop Lookup Functions
-const getMallName = (mallId: number): string => {
-  const mallMap: Record<number, string> = {
-    3: 'China Square Mall',
-    6: 'Langata Mall',
-    7: 'NHC Mall',
-  };
-  return mallMap[mallId] || `Mall ${mallId}`;
-};
-
-const getShopName = (shopId: number): string => {
-  const shopMap: Record<number, string> = {
-    3: 'Spatial Barbershop & Spa',
-    4: 'Electronics Store',
-    6: 'Kika Wines & Spirits',
-    7: 'The Phone Shop',
-    8: 'Cleanshelf SupaMarket',
-    9: 'Maliet Salon & Spa',
-    10: 'Fashion Store',
-    11: 'Restaurant',
-  };
-  return shopMap[shopId] || `Shop ${shopId}`;
-};
-
-const getMallSlug = (mallId: number): string => {
-  const slugMap: Record<number, string> = {
-    3: 'china-square',
-    6: 'langata',
-    7: 'nhc',
-  };
-  return slugMap[mallId] || `mall-${mallId}`;
-};
-
-const getShopSlug = (shopId: number): string => {
-  const slugMap: Record<number, string> = {
-    3: 'spatial-barbershop',
-    4: 'electronics-store',
-    6: 'kika-wines',
-    7: 'phone-shop',
-    8: 'cleanshelf-market',
-    9: 'maliet-salon',
-    10: 'fashion-store',
-    11: 'restaurant',
-  };
-  return slugMap[shopId] || `shop-${shopId}`;
-};
-
 /**
- * QR Generation Component - FINAL CORRECTED VERSION
+ * QR Generation Component - WEBHOOK COMPATIBLE
  * 
- * This version ensures proper routing:
- * - 'checkin' QR type → https://tenearcheckins.pages.dev
- * - 'claim' QR type → https://tenearoffers.pages.dev
+ * This version generates QR codes in the format expected by the webhook system:
+ * - Base64-encoded JSON data
+ * - Compatible with /webhook/get-business-info endpoint
+ * - Maintains backward compatibility with existing system
  */
 
 interface QRGenerationData {
@@ -76,7 +55,7 @@ interface QRGenerationData {
   qrSize: 'small' | 'medium' | 'large';
   generateCount: number;
   qrType: 'claim' | 'checkin';
-  useWebhookFormat: boolean;
+  useWebhookFormat: boolean; // NEW: Use webhook format vs legacy format
 }
 
 interface MallLocation {
@@ -110,7 +89,7 @@ interface GeneratedQR {
   visitorType: string;
   timestamp: string;
   qrCodeData: string;
-  format: 'webhook' | 'legacy';
+  format: 'webhook' | 'legacy'; // NEW: Track format type
 }
 
 const VISITOR_TYPES = [
@@ -179,6 +158,13 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
   const [availableCampaigns, setAvailableCampaigns] = useState<Campaign[]>([]);
   const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
   
+  // NEW: Business info state for dynamic data management
+  const [businessInfo, setBusinessInfo] = useState<BusinessInfo[]>([]);
+  const [isBusinessInfoLoading, setIsBusinessInfoLoading] = useState(false);
+  const [businessInfoError, setBusinessInfoError] = useState<string | null>(null);
+  const [businessInfoRetryCount, setBusinessInfoRetryCount] = useState(0);
+  const [webhookResponse, setWebhookResponse] = useState<string | null>(null);
+  
   const [formData, setFormData] = useState<QRGenerationData>({
     mallId: '',
     mallName: '',
@@ -195,8 +181,217 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
     qrSize: 'medium',
     generateCount: 1,
     qrType: 'claim',
-    useWebhookFormat: true
+    useWebhookFormat: true // NEW: Default to webhook format
   });
+
+  // NEW: Test webhook connectivity before fetching
+  const testWebhookConnection = async (): Promise<boolean> => {
+    try {
+      console.log('🔗 Testing webhook connectivity...');
+      const response = await fetch(BUSINESS_INFO_WEBHOOK, {
+        method: 'HEAD',
+        mode: 'no-cors' // Avoid CORS issues for connectivity test
+      });
+      return true;
+    } catch (error) {
+      console.warn('⚠️ Webhook connectivity test failed:', error);
+      return false;
+    }
+  };
+
+  // NEW: Fetch business info from n8n webhook
+  const fetchBusinessInfo = async (): Promise<void> => {
+    if (isBusinessInfoLoading) return;
+    
+    setIsBusinessInfoLoading(true);
+    setBusinessInfoError(null);
+    
+    try {
+      // Test webhook connectivity first
+      const isConnected = await testWebhookConnection();
+      if (!isConnected) {
+        console.warn('⚠️ Webhook not reachable, using fallback business data');
+        throw new Error('Webhook service unavailable');
+      }
+    } catch (connectivityError) {
+      console.warn('⚠️ Skipping connectivity test due to CORS, proceeding with webhook call');
+    }
+    
+    try {
+      console.log('🚀 Fetching business info from webhook:', BUSINESS_INFO_WEBHOOK);
+      
+      // Get user's mall and shop context for filtering
+      const userMallShop = AuthService.getCurrentUserMallAndShop();
+      const mallId = userMallShop.mall_id;
+      const shopId = userMallShop.shop_id;
+      
+      // Build webhook URL with comprehensive parameters
+      const webhookUrl = new URL(BUSINESS_INFO_WEBHOOK);
+      webhookUrl.searchParams.append('mall_id', mallId.toString());
+      webhookUrl.searchParams.append('shop_id', shopId.toString());
+      
+      // Get current mall and shop names for context
+      const currentUser = AuthService.getCurrentUser();
+      if (currentUser && currentUser.mall_name) {
+        webhookUrl.searchParams.append('mall_name', currentUser.mall_name || '');
+      }
+      if (currentUser && currentUser.shop_name) {
+        webhookUrl.searchParams.append('shop_name', currentUser.shop_name || '');
+      }
+      
+      console.log('📡 Webhook request:', {
+        url: webhookUrl.toString(),
+        mallId,
+        shopId
+      });
+      
+      const response = await fetch(webhookUrl.toString(), {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      // Parse JSON with better error handling for malformed responses
+      let data: any;
+      let responseText: string = '';
+      
+      try {
+        responseText = await response.text();
+        setWebhookResponse(responseText);
+        console.log('📦 Raw webhook response:', responseText);
+        
+        if (!responseText || responseText.trim() === '') {
+          throw new Error('Empty response from webhook');
+        }
+        
+        data = JSON.parse(responseText);
+        console.log('📦 Parsed webhook response:', data);
+      } catch (jsonError) {
+        console.error('❌ JSON parsing error:', jsonError);
+        console.log('🔍 Raw response that failed to parse:', responseText);
+        
+        // Create detailed error message for user
+        const errorDetails = {
+          message: `Webhook returned malformed JSON: ${jsonError instanceof Error ? jsonError.message : 'Unknown parse error'}`,
+          responsePreview: responseText ? responseText.substring(0, 200) + (responseText.length > 200 ? '...' : '') : 'No response content',
+          suggestions: [
+            'Check your n8n workflow is returning valid JSON',
+            'Ensure the webhook endpoint is correctly configured',
+            'Verify the workflow outputs include mall_name, shop_name, zone_name fields'
+          ]
+        };
+        
+        throw new Error(`${errorDetails.message}. Response: "${errorDetails.responsePreview}"`);
+      }
+      
+      // Process response and create business info objects
+      const businessInfoList: BusinessInfo[] = [];
+      
+      if (data && typeof data === 'object') {
+        // Handle single object response
+        const info: BusinessInfo = {
+          mallId: parseInt(data.mall_id) || mallId,
+          mallName: data.mall_name || `Mall ${mallId}`,
+          mallSlug: generateMallSlug(data.mall_name || `Mall ${mallId}`),
+          shopId: parseInt(data.shop_id) || shopId,
+          shopName: data.shop_name || `Shop ${shopId}`,
+          shopSlug: generateShopSlug(data.shop_name || `Shop ${shopId}`),
+          zoneName: data.zone_name,
+          timestamp: Date.now()
+        };
+        businessInfoList.push(info);
+      } else if (Array.isArray(data)) {
+        // Handle array response
+        data.forEach((item: any) => {
+          const info: BusinessInfo = {
+            mallId: parseInt(item.mall_id) || mallId,
+            mallName: item.mall_name || `Mall ${mallId}`,
+            mallSlug: generateMallSlug(item.mall_name || `Mall ${mallId}`),
+            shopId: parseInt(item.shop_id) || shopId,
+            shopName: item.shop_name || `Shop ${shopId}`,
+            shopSlug: generateShopSlug(item.shop_name || `Shop ${shopId}`),
+            zoneName: item.zone_name,
+            timestamp: Date.now()
+          };
+          businessInfoList.push(info);
+        });
+      }
+      
+      if (businessInfoList.length === 0) {
+        throw new Error('No business information available from webhook. Please check your n8n workflow configuration.');
+      }
+      
+      setBusinessInfo(businessInfoList);
+      console.log('✅ Business info loaded successfully:', businessInfoList);
+      
+      // Cache the results
+      businessInfoCache = {
+        ...businessInfoCache,
+        [`${mallId}_${shopId}`]: businessInfoList[0]
+      };
+      
+    } catch (error) {
+      console.error('❌ Error fetching business info from webhook:', error);
+      setBusinessInfoError(error instanceof Error ? error.message : 'Unknown error');
+      setBusinessInfo([]); // Clear any existing data - NO FALLBACKS ALLOWED
+      
+    } finally {
+      setIsBusinessInfoLoading(false);
+    }
+  };
+
+  // NEW: Retry function for webhook calls
+  const retryFetchBusinessInfo = async (): Promise<void> => {
+    console.log(`🔄 Retrying webhook fetch (attempt ${businessInfoRetryCount + 1})...`);
+    setBusinessInfoError(null);
+    await fetchBusinessInfo();
+  };
+
+  // NEW: Dynamic lookup functions (replaces static mappings)
+  const getMallName = (mallId: number): string => {
+    const userMallShop = AuthService.getCurrentUserMallAndShop();
+    const info = businessInfo.find(bi => bi.mallId === mallId || bi.mallId === userMallShop.mall_id);
+    return info?.mallName || `Mall ${mallId}`;
+  };
+
+  const getShopName = (shopId: number): string => {
+    const userMallShop = AuthService.getCurrentUserMallAndShop();
+    const info = businessInfo.find(bi => bi.shopId === shopId || bi.shopId === userMallShop.shop_id);
+    return info?.shopName || `Shop ${shopId}`;
+  };
+
+  const getMallSlug = (mallId: number): string => {
+    const userMallShop = AuthService.getCurrentUserMallAndShop();
+    const info = businessInfo.find(bi => bi.mallId === mallId || bi.mallId === userMallShop.mall_id);
+    return info?.mallSlug || `mall-${mallId}`;
+  };
+
+  const getShopSlug = (shopId: number): string => {
+    const userMallShop = AuthService.getCurrentUserMallAndShop();
+    const info = businessInfo.find(bi => bi.shopId === shopId || bi.shopId === userMallShop.shop_id);
+    return info?.shopSlug || `shop-${shopId}`;
+  };
+
+  // Helper functions for slug generation
+  const generateMallSlug = (mallName: string): string => {
+    return mallName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').trim();
+  };
+
+  const generateShopSlug = (shopName: string): string => {
+    return shopName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').trim();
+  };
+
+  // NEW: Fetch business info when component mounts
+  useEffect(() => {
+    if (user?.mall_id && user?.shop_id) {
+      fetchBusinessInfo();
+    }
+  }, [user]);
 
   // Authentication check - ensure user is logged in and has required permissions
   if (!user) {
@@ -361,7 +556,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
     }));
   };
 
-  // FINAL CORRECTED: Generate QR codes in WEBHOOK FORMAT with proper URL routing
+  // NEW: Generate QR codes in WEBHOOK FORMAT
   const generateWebhookFormatQR = (visitorType: string, finalMallId: string, finalShopId: string, timestamp: number) => {
     // Create QR data in the format expected by webhook system
     const qrData = {
@@ -377,50 +572,28 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
     // Encode as base64
     const encodedData = btoa(JSON.stringify(qrData));
     
-    // CRITICAL FIX: Proper conditional URL routing
-    console.log('🔍 QR Routing Debug:', {
-      qrType: formData.qrType,
-      qrTypeComparison: formData.qrType === 'checkin',
-      expected: formData.qrType === 'checkin' ? 'check-ins URL' : 'offers URL'
-    });
-    
-    let baseUrl: string;
-    if (formData.qrType === 'checkin') {
-      baseUrl = 'https://tenearcheckins.pages.dev';
-      console.log('✅ Routing to Check-ins URL:', baseUrl);
-    } else if (formData.qrType === 'claim') {
-      baseUrl = 'https://tenearoffers.pages.dev';
-      console.log('✅ Routing to Offers URL:', baseUrl);
-    } else {
-      // Fallback - should not happen
-      console.warn('⚠️ Unknown QR type, defaulting to check-ins URL:', formData.qrType);
-      baseUrl = 'https://tenearcheckins.pages.dev';
-    }
+    // Create webhook-compatible URL with CORRECT routing based on QR type
+    const baseUrl = formData.qrType === 'checkin' 
+      ? 'https://tenearcheckins.pages.dev'   // Zone check-ins
+      : 'https://tenearoffers.pages.dev';    // Offer claims
     
     const qrUrl = `${baseUrl}?d=${encodedData}`;
     
     console.log('🎯 WEBHOOK QR Generated:', {
       format: 'webhook',
+      qrType: formData.qrType,
+      baseUrl: baseUrl,
       data: qrData,
       encoded: encodedData,
-      url: qrUrl,
-      finalUrl: baseUrl
+      url: qrUrl
     });
     
     return { qrUrl, format: 'webhook' as const };
   };
 
-  // FINAL CORRECTED: LEGACY QR generation with proper URL routing
+  // LEGACY: Generate QR codes in old format (for backward compatibility)
   const generateLegacyFormatQR = (visitorType: string, finalShopId: string) => {
-    let baseUrl: string;
-    if (formData.qrType === 'checkin') {
-      baseUrl = 'https://tenearcheckins.pages.dev';
-    } else if (formData.qrType === 'claim') {
-      baseUrl = 'https://tenearoffers.pages.dev';
-    } else {
-      baseUrl = 'https://tenearcheckins.pages.dev'; // fallback
-    }
-    
+    const baseUrl = formData.qrType === 'checkin' ? 'https://tenearcheckins.pages.dev' : 'https://tenearoffers.pages.dev';
     const params = new URLSearchParams({
       s: finalShopId,
       v: visitorType,
@@ -481,8 +654,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
         shopId: finalShopId,
         resolved: { mallId: resolvedMallId, shopId: resolvedShopId },
         formData: { mallId: formData.mallId, shopId: formData.shopId },
-        format: formData.useWebhookFormat ? 'webhook' : 'legacy',
-        qrType: formData.qrType // CRITICAL: Log QR type
+        format: formData.useWebhookFormat ? 'webhook' : 'legacy'
       });
 
       // Generate QR codes for each visitor type
@@ -569,7 +741,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
           campaign: qrData.campaignName,
           visitor_type: qrData.visitorType,
           benefits: 'Welcome offers, loyalty points, exclusive deals',
-          format: qrData.format
+          format: qrData.format // NEW: Track format
         },
         language_preference: 'en',
         expected_daily_checkins: 50,
@@ -600,6 +772,99 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
 
   // Step 1: Location Selection
   const renderLocationSelection = () => {
+    // Show loading state for business info
+    if (isBusinessInfoLoading) {
+      return (
+        <div className="space-y-6">
+          <div className="text-center">
+            <Building className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Loading Business Info</h2>
+            <p className="text-gray-600">Fetching dynamic business data from database...</p>
+          </div>
+          
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span className="ml-3 text-gray-600">Fetching mall and shop information...</span>
+          </div>
+          
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 className="text-sm font-semibold text-blue-800 mb-2">🔗 Webhook Integration Active</h3>
+            <p className="text-xs text-blue-600">
+              This QR generation system now uses dynamic data from your n8n workflows and Supabase database 
+              instead of static hardcoded business names. No more "Shop 1" or "Mall 123" - you'll see 
+              real business names like "Spatial Barbershop & Spa" and "China Square Mall".
+            </p>
+          </div>
+        </div>
+      );
+    }
+    
+    // Show error state if business info failed to load
+    if (businessInfoError) {
+      return (
+        <div className="space-y-6">
+          <div className="text-center">
+            <Building className="h-12 w-12 text-red-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Business Info Unavailable</h2>
+            <p className="text-gray-600">Webhook service unavailable - real data required</p>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-red-800 mb-2">❌ Webhook Integration Error</h3>
+              <p className="text-sm text-red-700 mb-2">
+                Failed to fetch business info from your n8n webhook
+              </p>
+              <p className="text-xs text-red-600 mb-2">
+                Error: {businessInfoError}
+              </p>
+              {webhookResponse && (
+                <div className="bg-red-100 rounded p-2 mt-2">
+                  <p className="text-xs text-red-700 font-medium">Raw Response:</p>
+                  <code className="text-xs text-red-600">{webhookResponse.substring(0, 200)}{webhookResponse.length > 200 ? '...' : ''}</code>
+                </div>
+              )}
+            </div>
+            
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="text-sm font-semibold text-blue-800 mb-2">🔧 Troubleshooting Steps</h3>
+              <ul className="text-xs text-blue-700 space-y-1">
+                <li>• Check your n8n workflow returns valid JSON</li>
+                <li>• Ensure webhook includes: mall_name, shop_name, zone_name</li>
+                <li>• Verify workflow is active and responding</li>
+                <li>• Test webhook URL directly in browser</li>
+              </ul>
+              {businessInfoRetryCount > 0 && (
+                <p className="text-xs text-blue-600 mt-2">
+                  Retry attempts: {businessInfoRetryCount}
+                </p>
+              )}
+            </div>
+          </div>
+          
+          <div className="text-center space-x-4">
+            <button
+              onClick={retryFetchBusinessInfo}
+              disabled={isBusinessInfoLoading}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+            >
+              🔄 {isBusinessInfoLoading ? 'Retrying...' : `Retry Webhook (Attempt ${businessInfoRetryCount + 1})`}
+            </button>
+            <button
+              onClick={() => {
+                // Clear error and proceed with fallback
+                setBusinessInfoError(null);
+                setBusinessInfoRetryCount(0);
+              }}
+              className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+            >
+              📱 Continue with Fallback Data
+            </button>
+          </div>
+        </div>
+      );
+    }
+    
     // If we have a preloaded campaign, show campaign confirmation
     if (preloadedCampaign) {
       const location = MALL_LOCATIONS.find(l => l.location_id === formData.locationId);
@@ -769,7 +1034,10 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
                   <p className="text-sm text-gray-600">
                     New format with dynamic business names. Integrates with n8n webhooks for real-time data.
                   </p>
-                  <p className="text-xs text-green-600 mt-1">✅ Shows "Spatial Barbershop & Spa" instead of "Shop 1"</p>
+                  <div className="mt-2 flex items-center space-x-4">
+                    <p className="text-xs text-green-600">✅ Shows real business names</p>
+                    <p className="text-xs text-green-600">✅ Production scalable</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -797,12 +1065,75 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
                   <p className="text-sm text-gray-600">
                     Original format for existing QR codes. Shows hardcoded business names.
                   </p>
-                  <p className="text-xs text-orange-600 mt-1">⚠️ Will show "Shop 1" and "TeNEAR Mall"</p>
+                  <div className="mt-2 flex items-center space-x-4">
+                    <p className="text-xs text-orange-600">⚠️ Shows "Shop 1" and "Mall 123"</p>
+                    <p className="text-xs text-orange-600">⚠️ Not production scalable</p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* NEW: Business Info Status */}
+        {businessInfo.length > 0 && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-green-800 mb-3">🔗 Dynamic Business Data Active</h3>
+            <div className="space-y-2">
+              {businessInfo.map((info, index) => (
+                <div key={index} className="text-sm">
+                  <div className="flex items-center space-x-4">
+                    <div>
+                      <span className="text-green-600 font-medium">Mall:</span>
+                      <span className="text-green-800 ml-1">{info.mallName}</span>
+                    </div>
+                    <div>
+                      <span className="text-green-600 font-medium">Shop:</span>
+                      <span className="text-green-800 ml-1">{info.shopName}</span>
+                    </div>
+                    {info.zoneName && (
+                      <div>
+                        <span className="text-green-600 font-medium">Zone:</span>
+                        <span className="text-green-800 ml-1">{info.zoneName}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-xs text-green-600 mt-1">
+                    ✅ Real-time data from n8n webhook | No static hardcoded values
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* NEW: Webhook Error Warning */}
+        {businessInfoError && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-yellow-800 mb-2">⚠️ Webhook Integration Issue</h3>
+            <p className="text-sm text-yellow-600 mb-2">
+              Failed to fetch dynamic business data: {businessInfoError}
+            </p>
+            <p className="text-xs text-yellow-600">
+              Webhook failed. QR generation requires real business data from n8n webhook.
+            </p>
+            <div className="flex space-x-2 mt-3">
+              <button
+                onClick={retryFetchBusinessInfo}
+                disabled={isBusinessInfoLoading}
+                className="bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 disabled:bg-gray-400"
+              >
+                🔄 {isBusinessInfoLoading ? 'Retrying...' : 'Retry Webhook'}
+              </button>
+              <button
+                onClick={() => setBusinessInfoError(null)}
+                className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600"
+              >
+                ❌ Dismiss Warning
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Campaign Selection */}
         <div>
@@ -991,36 +1322,52 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
         <div className="bg-white rounded border p-4">
           {formData.useWebhookFormat ? (
             <div>
-              <p className="text-sm text-green-600 mb-2">✅ Webhook Format (Recommended)</p>
+              <p className="text-sm text-green-600 mb-2">✅ Webhook Format (Production Scalable)</p>
               <p className="text-xs text-gray-600 mb-2">This will create QR codes that:</p>
               <ul className="text-xs text-gray-600 space-y-1 ml-4">
-                <li>• Use base64-encoded JSON data</li>
+                <li>• Use base64-encoded JSON data for efficiency</li>
                 <li>• Call n8n webhook to fetch business names dynamically</li>
-                <li>• Show real business names: "Spatial Barbershop & Spa"</li>
+                <li>• Show real business names: "Spatial Barbershop & Spa", "China Square Mall"</li>
                 <li>• Work with webhook-driven check-in system</li>
+                <li>• Scale automatically - no code changes needed for new shops/malls</li>
               </ul>
               <div className="mt-3 p-2 bg-gray-100 rounded text-xs font-mono">
-                {formData.qrType === 'checkin' 
-                  ? 'https://tenearcheckins.pages.dev?d=eyJsIjoiMyIsInMiOiMzIiwieiI6IjEi...'
-                  : 'https://tenearoffers.pages.dev?d=eyJsIjoiMyIsInMiOiIzIiwieiI6IjEi...'
-                }
+                https://tenearcheckins.pages.dev?d=eyJsIjoiMyIsInMiOiIzIiwieiI6IjEi...
               </div>
+              
+              {/* NEW: Show webhook integration status */}
+              {businessInfo.length > 0 && (
+                <div className="mt-3 p-2 bg-green-100 rounded text-xs">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className="text-green-600">🔗</span>
+                    <span className="text-green-700 font-semibold">Webhook Integration Active</span>
+                  </div>
+                  <div className="text-green-600 space-y-1">
+                    {businessInfo.map((info, index) => (
+                      <div key={index} className="text-xs">
+                        Mall: {info.mallName} | Shop: {info.shopName} | Zone: {info.zoneName || 'Main'}
+                      </div>
+                    ))}
+                    <div className="text-xs text-green-500">
+                      ✅ No static hardcoded business names - all data from n8n webhook
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div>
-              <p className="text-sm text-orange-600 mb-2">⚠️ Legacy Format (Backward Compatibility)</p>
+              <p className="text-sm text-orange-600 mb-2">⚠️ Legacy Format (Not Production Scalable)</p>
               <p className="text-xs text-gray-600 mb-2">This will create QR codes that:</p>
               <ul className="text-xs text-gray-600 space-y-1 ml-4">
                 <li>• Use URL parameters</li>
                 <li>• Show hardcoded business names</li>
-                <li>• Display static names: "Shop 1", "TeNEAR Mall"</li>
+                <li>• Webhook REQUIRED - no static fallback data allowed</li>
                 <li>• Work with existing check-in system</li>
+                <li>• Require code changes to add new shops/malls</li>
               </ul>
               <div className="mt-3 p-2 bg-gray-100 rounded text-xs font-mono">
-                {formData.qrType === 'checkin'
-                  ? 'https://tenearcheckins.pages.dev/q?s=3&v=first_time_visitor...'
-                  : 'https://tenearoffers.pages.dev/q?s=3&v=first_time_visitor...'
-                }
+                https://tenearcheckins.pages.dev/q?s=3&v=first_time_visitor...
               </div>
             </div>
           )}
@@ -1151,9 +1498,6 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
             </p>
             <p className="text-sm text-green-600 mt-2">
               ✅ QR codes use {formData.useWebhookFormat ? 'webhook' : 'legacy'} format for {formData.useWebhookFormat ? 'dynamic' : 'static'} business names
-            </p>
-            <p className="text-sm text-blue-600 mt-2">
-              🎯 QR Type: <span className="font-bold">{formData.qrType === 'checkin' ? 'Zone Check-ins → tenearcheckins.pages.dev' : 'Offer Claims → tenearoffers.pages.dev'}</span>
             </p>
           </div>
 

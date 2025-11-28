@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { User } from '../types/auth';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthService } from '../services/auth';
+import { QrCode, Download, Eye, Settings, Calendar, MapPin, Building, Users, Target } from 'lucide-react';
 
 // Scalable Mall and Shop Lookup Functions
 const getMallName = (mallId: number): string => {
@@ -10,7 +11,6 @@ const getMallName = (mallId: number): string => {
     3: 'China Square Mall',
     6: 'Langata Mall',
     7: 'NHC Mall',
-    // Easy to add new malls: 8: 'New Mall Name', etc.
   };
   return mallMap[mallId] || `Mall ${mallId}`;
 };
@@ -25,7 +25,6 @@ const getShopName = (shopId: number): string => {
     9: 'Maliet Salon & Spa',
     10: 'Fashion Store',
     11: 'Restaurant',
-    // Easy to add new shops: 12: 'New Shop Name', etc.
   };
   return shopMap[shopId] || `Shop ${shopId}`;
 };
@@ -52,15 +51,13 @@ const getShopSlug = (shopId: number): string => {
   };
   return slugMap[shopId] || `shop-${shopId}`;
 };
-import { QrCode, Download, Eye, Settings, Calendar, MapPin, Building, Users, Target } from 'lucide-react';
 
 /**
- * QR Generation Component - WEBHOOK COMPATIBLE
+ * QR Generation Component - FINAL CORRECTED VERSION
  * 
- * This version generates QR codes in the format expected by the webhook system:
- * - Base64-encoded JSON data
- * - Compatible with /webhook/get-business-info endpoint
- * - Maintains backward compatibility with existing system
+ * This version ensures proper routing:
+ * - 'checkin' QR type → https://tenearcheckins.pages.dev
+ * - 'claim' QR type → https://tenearoffers.pages.dev
  */
 
 interface QRGenerationData {
@@ -79,7 +76,7 @@ interface QRGenerationData {
   qrSize: 'small' | 'medium' | 'large';
   generateCount: number;
   qrType: 'claim' | 'checkin';
-  useWebhookFormat: boolean; // NEW: Use webhook format vs legacy format
+  useWebhookFormat: boolean;
 }
 
 interface MallLocation {
@@ -113,7 +110,7 @@ interface GeneratedQR {
   visitorType: string;
   timestamp: string;
   qrCodeData: string;
-  format: 'webhook' | 'legacy'; // NEW: Track format type
+  format: 'webhook' | 'legacy';
 }
 
 const VISITOR_TYPES = [
@@ -198,7 +195,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
     qrSize: 'medium',
     generateCount: 1,
     qrType: 'claim',
-    useWebhookFormat: true // NEW: Default to webhook format
+    useWebhookFormat: true
   });
 
   // Authentication check - ensure user is logged in and has required permissions
@@ -364,7 +361,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
     }));
   };
 
-  // NEW: Generate QR codes in WEBHOOK FORMAT
+  // FINAL CORRECTED: Generate QR codes in WEBHOOK FORMAT with proper URL routing
   const generateWebhookFormatQR = (visitorType: string, finalMallId: string, finalShopId: string, timestamp: number) => {
     // Create QR data in the format expected by webhook system
     const qrData = {
@@ -380,23 +377,50 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
     // Encode as base64
     const encodedData = btoa(JSON.stringify(qrData));
     
-    // Create webhook-compatible URL
-    const baseUrl = 'https://tenearcheckins.pages.dev'; // Our webhook-driven system
+    // CRITICAL FIX: Proper conditional URL routing
+    console.log('🔍 QR Routing Debug:', {
+      qrType: formData.qrType,
+      qrTypeComparison: formData.qrType === 'checkin',
+      expected: formData.qrType === 'checkin' ? 'check-ins URL' : 'offers URL'
+    });
+    
+    let baseUrl: string;
+    if (formData.qrType === 'checkin') {
+      baseUrl = 'https://tenearcheckins.pages.dev';
+      console.log('✅ Routing to Check-ins URL:', baseUrl);
+    } else if (formData.qrType === 'claim') {
+      baseUrl = 'https://tenearoffers.pages.dev';
+      console.log('✅ Routing to Offers URL:', baseUrl);
+    } else {
+      // Fallback - should not happen
+      console.warn('⚠️ Unknown QR type, defaulting to check-ins URL:', formData.qrType);
+      baseUrl = 'https://tenearcheckins.pages.dev';
+    }
+    
     const qrUrl = `${baseUrl}?d=${encodedData}`;
     
     console.log('🎯 WEBHOOK QR Generated:', {
       format: 'webhook',
       data: qrData,
       encoded: encodedData,
-      url: qrUrl
+      url: qrUrl,
+      finalUrl: baseUrl
     });
     
     return { qrUrl, format: 'webhook' as const };
   };
 
-  // LEGACY: Generate QR codes in old format (for backward compatibility)
+  // FINAL CORRECTED: LEGACY QR generation with proper URL routing
   const generateLegacyFormatQR = (visitorType: string, finalShopId: string) => {
-    const baseUrl = formData.qrType === 'checkin' ? 'https://tenearcheckins.pages.dev' : 'https://tenearoffers.pages.dev';
+    let baseUrl: string;
+    if (formData.qrType === 'checkin') {
+      baseUrl = 'https://tenearcheckins.pages.dev';
+    } else if (formData.qrType === 'claim') {
+      baseUrl = 'https://tenearoffers.pages.dev';
+    } else {
+      baseUrl = 'https://tenearcheckins.pages.dev'; // fallback
+    }
+    
     const params = new URLSearchParams({
       s: finalShopId,
       v: visitorType,
@@ -457,7 +481,8 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
         shopId: finalShopId,
         resolved: { mallId: resolvedMallId, shopId: resolvedShopId },
         formData: { mallId: formData.mallId, shopId: formData.shopId },
-        format: formData.useWebhookFormat ? 'webhook' : 'legacy'
+        format: formData.useWebhookFormat ? 'webhook' : 'legacy',
+        qrType: formData.qrType // CRITICAL: Log QR type
       });
 
       // Generate QR codes for each visitor type
@@ -544,7 +569,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
           campaign: qrData.campaignName,
           visitor_type: qrData.visitorType,
           benefits: 'Welcome offers, loyalty points, exclusive deals',
-          format: qrData.format // NEW: Track format
+          format: qrData.format
         },
         language_preference: 'en',
         expected_daily_checkins: 50,
@@ -975,7 +1000,10 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
                 <li>• Work with webhook-driven check-in system</li>
               </ul>
               <div className="mt-3 p-2 bg-gray-100 rounded text-xs font-mono">
-                https://tenearcheckins.pages.dev?d=eyJsIjoiMyIsInMiOiIzIiwieiI6IjEi...
+                {formData.qrType === 'checkin' 
+                  ? 'https://tenearcheckins.pages.dev?d=eyJsIjoiMyIsInMiOiMzIiwieiI6IjEi...'
+                  : 'https://tenearoffers.pages.dev?d=eyJsIjoiMyIsInMiOiIzIiwieiI6IjEi...'
+                }
               </div>
             </div>
           ) : (
@@ -989,7 +1017,10 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
                 <li>• Work with existing check-in system</li>
               </ul>
               <div className="mt-3 p-2 bg-gray-100 rounded text-xs font-mono">
-                https://tenearcheckins.pages.dev/q?s=3&v=first_time_visitor...
+                {formData.qrType === 'checkin'
+                  ? 'https://tenearcheckins.pages.dev/q?s=3&v=first_time_visitor...'
+                  : 'https://tenearoffers.pages.dev/q?s=3&v=first_time_visitor...'
+                }
               </div>
             </div>
           )}
@@ -1120,6 +1151,9 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
             </p>
             <p className="text-sm text-green-600 mt-2">
               ✅ QR codes use {formData.useWebhookFormat ? 'webhook' : 'legacy'} format for {formData.useWebhookFormat ? 'dynamic' : 'static'} business names
+            </p>
+            <p className="text-sm text-blue-600 mt-2">
+              🎯 QR Type: <span className="font-bold">{formData.qrType === 'checkin' ? 'Zone Check-ins → tenearcheckins.pages.dev' : 'Offer Claims → tenearoffers.pages.dev'}</span>
             </p>
           </div>
 
