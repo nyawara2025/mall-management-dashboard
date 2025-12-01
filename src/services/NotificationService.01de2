@@ -60,17 +60,18 @@ class NotificationService {
   }
 
   private loadStoredAlerts() {
-    // 🔒 SECURITY FIX: Clear any existing test/demo alerts and start fresh
-    // This prevents loading hardcoded "Sandra" alerts or other test data
-    console.log('🔄 NotificationService: Starting fresh - clearing any old alert data');
-    
-    // Clear old alerts from localStorage to prevent fake data persistence
-    localStorage.removeItem('visitor_alerts');
-    
-    // Start with empty alerts array - only real-time database data will be shown
-    this.currentAlerts = [];
-    
-    console.log('✅ NotificationService: Cleared localStorage, starting with fresh alert state');
+    const stored = localStorage.getItem('visitor_alerts');
+    if (stored) {
+      try {
+        const alerts = JSON.parse(stored);
+        this.currentAlerts = alerts.map((alert: any) => ({
+          ...alert,
+          timestamp: new Date(alert.timestamp)
+        }));
+      } catch (error) {
+        console.warn('Failed to load stored alerts:', error);
+      }
+    }
   }
 
   private saveAlerts() {
@@ -148,12 +149,12 @@ class NotificationService {
       
       const { data: recentScans, error } = await supabase
         .from('visitor_checkins')
-        .select('id, qr_mall_id, qr_shop_id, visitor_phone, checkin_time, created_at')
-        .eq('qr_mall_id', userMallId)     // 🔒 SECURITY: Only user's mall
-        .eq('qr_shop_id', userShopId)     // 🔒 SECURITY: Only user's shop
+        .select('*')
+        .eq('mall_id', userMallId)     // 🔒 SECURITY: Only user's mall
+        .eq('shop_id', userShopId)     // 🔒 SECURITY: Only user's shop
         .eq('visitor_source', 'qr_scan') // Only QR scans
-        .gte('created_at', thirtyMinutesAgo)
-        .order('created_at', { ascending: false })
+        .gte('checkin_time', thirtyMinutesAgo)
+        .order('checkin_time', { ascending: false })
         .limit(50);
       
       if (error) {
@@ -426,17 +427,9 @@ class NotificationService {
 
   // Clear all alerts
   clearAllAlerts() {
-    console.log('🗑️ NotificationService: Clearing all alerts');
     this.currentAlerts = [];
-    localStorage.removeItem('visitor_alerts'); // Also clear from localStorage
+    this.saveAlerts();
     this.notifySubscribers();
-  }
-
-  // Force refresh alerts (useful for testing)
-  refreshAlerts() {
-    console.log('🔄 NotificationService: Forcing alert refresh');
-    this.clearAllAlerts();
-    // This will trigger a fresh fetch on next polling cycle
   }
 
   // Update notification settings

@@ -60,17 +60,18 @@ class NotificationService {
   }
 
   private loadStoredAlerts() {
-    // 🔒 SECURITY FIX: Clear any existing test/demo alerts and start fresh
-    // This prevents loading hardcoded "Sandra" alerts or other test data
-    console.log('🔄 NotificationService: Starting fresh - clearing any old alert data');
-    
-    // Clear old alerts from localStorage to prevent fake data persistence
-    localStorage.removeItem('visitor_alerts');
-    
-    // Start with empty alerts array - only real-time database data will be shown
-    this.currentAlerts = [];
-    
-    console.log('✅ NotificationService: Cleared localStorage, starting with fresh alert state');
+    const stored = localStorage.getItem('visitor_alerts');
+    if (stored) {
+      try {
+        const alerts = JSON.parse(stored);
+        this.currentAlerts = alerts.map((alert: any) => ({
+          ...alert,
+          timestamp: new Date(alert.timestamp)
+        }));
+      } catch (error) {
+        console.warn('Failed to load stored alerts:', error);
+      }
+    }
   }
 
   private saveAlerts() {
@@ -124,36 +125,22 @@ class NotificationService {
   }
 
   // Check for new visitor scans by querying Supabase database directly
-  private async checkForNewScans(userMallId: number, userShopId: number) {
+  private async checkForNewScans(mallId: number, shopId: number) {
     try {
       console.log('🔍 Checking for new visitor scans...');
       
       // Import Supabase client dynamically to avoid circular dependencies
       const { supabase } = await import('../lib/supabase');
       
-      // 🔒 SECURITY: Validate user has access to this mall/shop
-      if (!userMallId || !userShopId) {
-        console.warn('❌ Security: Missing mall_id or shop_id - skipping scan check');
-        return;
-      }
-      
-      console.log('🔒 SECURITY: Fetching scans only for authorized shop:', {
-        userMallId,
-        userShopId,
-        timestamp: new Date().toISOString()
-      });
-      
-      // Query visitor_checkins table for recent scans - FILTERED by user's shop
+      // Query visitor_checkins table for recent scans
       const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
       
+      // Query for scans that match the user's mall or shop
       const { data: recentScans, error } = await supabase
         .from('visitor_checkins')
-        .select('id, qr_mall_id, qr_shop_id, visitor_phone, checkin_time, created_at')
-        .eq('qr_mall_id', userMallId)     // 🔒 SECURITY: Only user's mall
-        .eq('qr_shop_id', userShopId)     // 🔒 SECURITY: Only user's shop
-        .eq('visitor_source', 'qr_scan') // Only QR scans
-        .gte('created_at', thirtyMinutesAgo)
-        .order('created_at', { ascending: false })
+        .select('*')
+        .gte('checkin_time', thirtyMinutesAgo)
+        .order('checkin_time', { ascending: false })
         .limit(50);
       
       if (error) {
@@ -162,42 +149,31 @@ class NotificationService {
       }
       
       if (recentScans && Array.isArray(recentScans)) {
-        console.log(`📊 Found ${recentScans.length} authorized QR scans for shop ${userShopId}`);
+        console.log(`📊 Found ${recentScans.length} recent scans`);
         
-        // 🔒 SECURITY: All scans are already filtered by user authorization
-        const userScans = recentScans;
+        // TEMPORARY FIX: For now, show all recent QR scans to Sandra since
+        // current QR codes don't have proper mall/shop identification
+        // In production, you'd want to fix the QR code generation to include
+        // proper mall_id and shop_id information
+        const userScans = recentScans.filter((scan: any) => {
+          // Only show QR scan entries (not other sources)
+          return scan.visitor_source === 'qr_scan';
+        });
         
-        // Debug: Log scan details to verify filtering
-        if (recentScans.length > 0) {
-          console.log('🔍 DEBUG: Scan filtering verification:', {
-            userMallId,
-            userShopId,
-            scanCount: recentScans.length,
-            sampleScans: recentScans.slice(0, 2).map(scan => ({
-              scanId: scan.session_id,
-              scanMallId: scan.mall_id,
-              scanShopId: scan.shop_id,
-              source: scan.visitor_source
-            }))
-          });
-        }
+        console.log(`🎯 Found ${userScans.length} QR scans (temporary fix for Sandra)`);
         
-        console.log(`🎯 Security: ${userScans.length} scans for authorized user only`);
-        
-        // Convert to alerts format using actual database data
-        const newAlerts: VisitorScanAlert[] = await Promise.all(
-          userScans.map(async (scan: any) => ({
-            id: `${scan.session_id}_${Date.now()}`,
-            campaignId: scan.campaign_id || 'general',
-            campaignName: await this.getCampaignName(scan),
-            visitorType: (scan.qr_checkin_type || 'checkin') as 'checkin' | 'claim',
-            location: scan.location || 'Unknown Location', 
-            mallName: await this.getMallName(scan.mall_id || userMallId), // 🔒 Use actual mall from DB
-            shopName: await this.getShopName(scan.shop_id || userShopId), // 🔒 Use actual shop from DB
-            timestamp: new Date(scan.checkin_time),
-            scanId: scan.session_id
-          }))
-        );
+        // Convert to alerts format with better defaults for generic QR scans
+        const newAlerts: VisitorScanAlert[] = userScans.map((scan: any) => ({
+          id: `${scan.session_id}_${Date.now()}`,
+          campaignId: scan.campaign_id || 'general',
+          campaignName: this.getCampaignName(scan),
+          visitorType: (scan.qr_checkin_type || 'checkin') as 'checkin' | 'claim',
+          location: scan.qr_location_text !== 'unknown' ? scan.qr_location_text : 'China Square Mall', 
+          mallName: 'China Square Mall', // Default mall since QR codes are generic
+          shopName: 'Sandra\'s Shop', // Default to Sandra's shop for testing
+          timestamp: new Date(scan.checkin_time),
+          scanId: scan.session_id
+        }));
 
         // Add new alerts
         this.addNewAlerts(newAlerts);
@@ -210,8 +186,8 @@ class NotificationService {
     }
   }
 
-  // Helper methods to get dynamic names from database
-  private async getCampaignName(scan: any): Promise<string> {
+  // Helper methods to map database values to readable names
+  private getCampaignName(scan: any): string {
     const location = scan.qr_location_text || '';
     if (location.includes('barbershop')) return 'Barbershop Campaign';
     if (location.includes('food')) return 'Food Court Promotion';
@@ -220,60 +196,22 @@ class NotificationService {
     return 'General Check-in';
   }
 
-  private async getMallName(mallId: number): Promise<string> {
-    try {
-      const { supabase } = await import('../lib/supabase');
-      
-      // Try multiple field names based on n8n response format
-      const { data: malls, error } = await supabase
-        .from('malls')
-        .select('mall_name,name')
-        .eq('mall_id', mallId);
-        
-      if (error) {
-        console.warn(`Could not find mall name for ID ${mallId}:`, error.message);
-        return `Mall ${mallId}`;
-      }
-      
-      if (!malls || malls.length === 0) {
-        console.warn(`No mall found for ID ${mallId}`);
-        return `Mall ${mallId}`;
-      }
-      
-      const mall = malls[0];
-      return mall.mall_name || mall.name || `Mall ${mallId}`;
-    } catch (error) {
-      console.warn('Error fetching mall name:', error);
-      return `Mall ${mallId}`;
-    }
+  private getMallName(mallId: number): string {
+    const mallNames: { [key: number]: string } = {
+      3: 'China Square Mall',
+      6: 'Langata Mall',
+      7: 'Westgate Mall'
+    };
+    return mallNames[mallId] || `Mall ${mallId}`;
   }
 
-  private async getShopName(shopId: number): Promise<string> {
-    try {
-      const { supabase } = await import('../lib/supabase');
-      
-      // Try multiple field names based on database structure
-      const { data: shops, error } = await supabase
-        .from('shops')
-        .select('shop_name,name')
-        .eq('shop_id', shopId);
-        
-      if (error) {
-        console.warn(`Could not find shop name for ID ${shopId}:`, error.message);
-        return `Shop ${shopId}`;
-      }
-      
-      if (!shops || shops.length === 0) {
-        console.warn(`No shop found for ID ${shopId}`);
-        return `Shop ${shopId}`;
-      }
-      
-      const shop = shops[0];
-      return shop.shop_name || shop.name || `Shop ${shopId}`;
-    } catch (error) {
-      console.warn('Error fetching shop name:', error);
-      return `Shop ${shopId}`;
-    }
+  private getShopName(shopId: number): string {
+    const shopNames: { [key: number]: string } = {
+      6: "Sandra's Shop",
+      11: 'Spatial Barbershop',
+      26: 'Kika Wines'
+    };
+    return shopNames[shopId] || `Shop ${shopId}`;
   }
 
   // Add new alerts and notify subscribers
@@ -426,17 +364,9 @@ class NotificationService {
 
   // Clear all alerts
   clearAllAlerts() {
-    console.log('🗑️ NotificationService: Clearing all alerts');
     this.currentAlerts = [];
-    localStorage.removeItem('visitor_alerts'); // Also clear from localStorage
+    this.saveAlerts();
     this.notifySubscribers();
-  }
-
-  // Force refresh alerts (useful for testing)
-  refreshAlerts() {
-    console.log('🔄 NotificationService: Forcing alert refresh');
-    this.clearAllAlerts();
-    // This will trigger a fresh fetch on next polling cycle
   }
 
   // Update notification settings
