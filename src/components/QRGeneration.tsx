@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { User } from '../types/auth';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthService } from '../services/auth';
+import { QrCode, Download, Eye, Settings, Calendar, MapPin, Building, Users, Target } from 'lucide-react';
 
 // Production Scalable Business Data Management
 // Dynamic webhook integration for real-time business data
@@ -17,6 +18,15 @@ interface BusinessInfo {
   timestamp: number;
 }
 
+// NEW: Zone interface for mall_zones table
+interface MallZone {
+  zone_id: number;
+  zone_name: string;
+  mall_id: number;
+  created_at: string;
+}
+
+// BusinessInfo cache interface
 interface BusinessInfoCache {
   [key: string]: BusinessInfo;
 }
@@ -28,15 +38,27 @@ let businessInfoCache: BusinessInfoCache = {};
 
 // Global loading state for business info
 let isBusinessInfoLoading = false;
-import { QrCode, Download, Eye, Settings, Calendar, MapPin, Building, Users, Target } from 'lucide-react';
 
 /**
- * QR Generation Component - WEBHOOK COMPATIBLE
+ * QR Generation Component - WEBHOOK COMPATIBLE WITH ZONE INTEGRATION
  * 
  * This version generates QR codes in the format expected by the webhook system:
  * - Base64-encoded JSON data
  * - Compatible with /webhook/get-business-info endpoint
- * - Maintains backward compatibility with existing system
+ * - ZONE DATA INTEGRATION: Loads zones from n8n webhook and includes zone_name in all QR codes
+ * 
+ * ZONE FLOW:
+ * 1. ✅ User Authentication → Already has mall_id context (no location selection needed)
+ * 2. ✅ Automatic Zone Fetch → System calls https://n8n.tenear.com/webhook/get-zones (POST with authenticated user's mall_id)
+ * 3. ✅ Zone Selection → User selects ONE zone from dropdown (only user selection in the process)
+ * 4. ✅ QR Generation → QR code includes zone_name in 'zn' field
+ * 5. ✅ Webhook Flow → Zone data flows to all webhook endpoints:
+ *    - https://n8n.tenear.com/webhook/claim-offer
+ *    - https://n8n.tenear.com/webhook/visitor-checkins-engagement
+ *    - https://n8n.tenear.com/webhook/qr-scan-loyalty
+ * 
+ * IMPORTANT: Zone name is ADDED to existing data, never replaces it
+ * IMPORTANT: User does NOT select mall location - this is already determined by authentication
  */
 
 interface QRGenerationData {
@@ -45,6 +67,7 @@ interface QRGenerationData {
   locationId: string;
   locationName: string;
   zone: string;
+  zoneName: string; // NEW: Actual zone name from mall_zones table
   shopId: string;
   campaignName: string;
   visitorTypes: string[];
@@ -166,12 +189,18 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
   const [businessInfoRetryCount, setBusinessInfoRetryCount] = useState(0);
   const [webhookResponse, setWebhookResponse] = useState<string | null>(null);
   
+  // NEW: Zones state for mall_zones table
+  const [availableZones, setAvailableZones] = useState<MallZone[]>([]);
+  const [isLoadingZones, setIsLoadingZones] = useState(false);
+  const [zonesError, setZonesError] = useState<string | null>(null);
+  
   const [formData, setFormData] = useState<QRGenerationData>({
     mallId: '',
     mallName: '',
     locationId: '',
     locationName: '',
     zone: '',
+    zoneName: '', // NEW: Actual zone name from mall_zones table
     shopId: '',
     campaignName: '',
     visitorTypes: [],
@@ -184,6 +213,121 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
     qrType: 'claim',
     useWebhookFormat: true // NEW: Default to webhook format
   });
+
+  // NEW: Fetch zones from n8n webhook
+  const fetchZones = async (mallId?: number): Promise<void> => {
+    if (isLoadingZones) return;
+    
+    setIsLoadingZones(true);
+    setZonesError(null);
+    
+    try {
+      console.log('🏢 Fetching zones from n8n webhook...');
+      
+      // Get user's mall context
+      const userMallShop = AuthService.getCurrentUserMallAndShop();
+      const resolvedMallId = mallId || userMallShop.mall_id;
+      
+      console.log('📡 Calling n8n webhook with mall_id:', resolvedMallId);
+      
+      // Call n8n webhook to get zones
+      const response = await fetch('https://n8n.tenear.com/webhook/get-zones', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          mall_id: resolvedMallId.toString(),
+          timestamp: Date.now()
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const responseData = await response.json();
+      console.log('📡 N8N webhook response:', responseData);
+      
+      // Handle n8n response format - convert to our expected format
+      let zonesData;
+      if (Array.isArray(responseData)) {
+        // If n8n returns array directly
+        zonesData = responseData;
+      } else if (responseData.data && Array.isArray(responseData.data)) {
+        // If n8n returns data wrapped in object
+        zonesData = responseData.data;
+      } else {
+        console.error('❌ Unexpected n8n response format:', responseData);
+        throw new Error('Invalid response format from n8n webhook');
+      }
+      
+      // Transform n8n response to match our interface
+      const transformedZones = zonesData.map((zone: any) => {
+        // Handle different possible column names from n8n
+        const zoneId = zone.id || zone.zone_id || zone.zoneId;
+        const zoneName = zone.name || zone.zone_name || zone.zoneName;
+        const mallId = zone.mall_id || zone.mallId;
+        const createdAt = zone.created_at || zone.createdAt || new Date().toISOString();
+        
+        if (!zoneName) {
+          console.warn('⚠️ Zone missing name:', zone);
+          return null;
+        }
+        
+        return {
+          zone_id: zoneId || Math.random(), // fallback if no ID
+          zone_name: zoneName,
+          mall_id: mallId || resolvedMallId,
+          created_at: createdAt
+        };
+      }).filter((zone: any) => zone !== null); // Remove invalid zones
+      
+      console.log('✅ Fetched zones from n8n:', transformedZones.length);
+      setAvailableZones(transformedZones);
+      
+      if (transformedZones.length > 0) {
+        console.log('📋 Sample zones:', JSON.stringify(transformedZones.slice(0, 3), null, 2));
+      } else {
+        console.warn('⚠️ No zones returned from n8n webhook');
+        setZonesError('No zones found for this mall');
+      }
+      
+    } catch (error) {
+      console.error('❌ Exception fetching zones from n8n:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setZonesError(`Failed to fetch zones from n8n webhook: ${errorMessage}`);
+      setAvailableZones([]);
+    } finally {
+      setIsLoadingZones(false);
+    }
+  };
+
+  // NEW: Get zone name by zone identifier
+  const getZoneName = (zoneIdentifier: string): string => {
+    console.log('🔍 getZoneName called with:', zoneIdentifier, 'Available zones:', availableZones.length);
+    
+    if (!availableZones || availableZones.length === 0) {
+      console.log('⚠️ No available zones for getZoneName');
+      return zoneIdentifier.replace(/_/g, ' ');
+    }
+    
+    const zone = availableZones.find(z => {
+      const zoneNameNormalized = z.zone_name.toLowerCase().replace(/\s+/g, '_');
+      const identifierNormalized = zoneIdentifier.toLowerCase();
+      
+      console.log(`🔍 Comparing: "${zoneNameNormalized}" vs "${identifierNormalized}"`);
+      
+      return zoneNameNormalized === identifierNormalized ||
+             z.zone_name === zoneIdentifier ||
+             z.zone_name.toLowerCase() === zoneIdentifier.toLowerCase() ||
+             (z.zone_name.includes(zoneIdentifier) || zoneIdentifier.includes(z.zone_name));
+    });
+    
+    const result = zone?.zone_name || zoneIdentifier.replace(/_/g, ' ');
+    console.log('✅ getZoneName result:', result);
+    return result;
+  };
 
   // NEW: Test webhook connectivity before fetching
   const testWebhookConnection = async (): Promise<boolean> => {
@@ -387,12 +531,21 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
     return shopName.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').trim();
   };
 
-  // NEW: Fetch business info when component mounts
+  // NEW: Fetch business info and zones when component mounts
   useEffect(() => {
     if (user?.mall_id && user?.shop_id) {
       fetchBusinessInfo();
+      fetchZones();
     }
   }, [user]);
+
+  // NEW: Auto-fetch zones when reaching zone selection step
+  useEffect(() => {
+    if (step === 2 && availableZones.length === 0 && user?.mall_id) {
+      console.log('🔄 Auto-fetching zones for Step 2, mall_id:', user.mall_id);
+      fetchZones(user.mall_id);
+    }
+  }, [step, availableZones.length, user?.mall_id]);
 
   // Authentication check - ensure user is logged in and has required permissions
   if (!user) {
@@ -432,6 +585,9 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
       const resolvedMallName = getMallName(resolvedMallId);
       const resolvedShopName = getShopName(resolvedShopId);
       
+      // Get zone name for the selected zone
+      const resolvedZoneName = getZoneName(preselectedCampaign.zone || `${getShopSlug(resolvedShopId)}`);
+      
       setFormData(prev => ({
         ...prev,
         mallId: resolvedMallId.toString(),
@@ -439,6 +595,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
         locationId: preselectedCampaign.locationId || `${getMallSlug(resolvedMallId)}_${getShopSlug(resolvedShopId)}`,
         locationName: resolvedShopName,
         zone: preselectedCampaign.zone || `${getShopSlug(resolvedShopId)}`,
+        zoneName: resolvedZoneName,
         shopId: resolvedShopId.toString(),
         campaignName: preselectedCampaign.campaign_id || preselectedCampaign.campaignName || preselectedCampaign.id,
         visitorTypes: ['first_time_visitor', 'loyal_customer'] // Default visitor types
@@ -466,6 +623,9 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
           const resolvedMallName = getMallName(resolvedMallId);
           const resolvedShopName = getShopName(resolvedShopId);
           
+          // Get zone name for the selected zone
+          const resolvedZoneName = getZoneName(campaign.zone || `${getShopSlug(resolvedShopId)}`);
+          
           setFormData(prev => ({
             ...prev,
             mallId: resolvedMallId.toString(),
@@ -473,6 +633,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
             locationId: campaign.locationId || `${getMallSlug(resolvedMallId)}_${getShopSlug(resolvedShopId)}`,
             locationName: resolvedShopName,
             zone: campaign.zone || `${getShopSlug(resolvedShopId)}`,
+            zoneName: resolvedZoneName,
             shopId: resolvedShopId.toString(),
             campaignName: campaign.campaignName || campaign.campaign_id,
             visitorTypes: ['first_time_visitor', 'loyal_customer'] // Default visitor types
@@ -484,7 +645,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
         }
       }
     }
-  }, [preselectedCampaign, user]);
+  }, [preselectedCampaign, user, availableZones]);
 
   // Fetch campaigns from adcampaigns table
   useEffect(() => {
@@ -536,6 +697,12 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
   }, []);
 
   const handleMallSelection = (location: MallLocation) => {
+    console.log('🏢 Handling mall selection:', location);
+    
+    // Get the actual zone name from mall_zones table
+    const zoneName = getZoneName(location.zone);
+    console.log('🏢 Resolved zone name:', zoneName, 'from zone identifier:', location.zone);
+    
     setFormData(prev => ({
       ...prev,
       mallId: location.mall_id,
@@ -543,8 +710,16 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
       locationId: location.location_id,
       locationName: location.location_name,
       zone: location.zone,
+      zoneName: prev.zoneName || zoneName, // Only update if not already selected from dropdown
       shopId: location.shop_id
     }));
+    
+    // Ensure zones are loaded for this mall
+    if (availableZones.length === 0) {
+      console.log('🔄 No zones loaded, fetching zones for mall:', location.mall_id);
+      fetchZones(parseInt(location.mall_id, 10));
+    }
+    
     setStep(2);
   };
 
@@ -557,19 +732,38 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
     }));
   };
 
-  // NEW: Generate QR codes in WEBHOOK FORMAT
+  // NEW: Generate QR codes in WEBHOOK FORMAT with zone name
   const generateWebhookFormatQR = (visitorType: string, finalMallId: string, finalShopId: string, timestamp: number, campaignReferenceId?: string) => {
     // Create QR data in the format expected by webhook system
     const qrData = {
       l: finalMallId,           // mall_id as string
       s: finalShopId,           // shop_id as string
       z: formData.locationId.replace(/[^a-zA-Z0-9]/g, ''),  // location_id without special chars
+      zn: formData.zoneName || '',  // NEW: zone_name from mall_zones table - ADDED, NOT REPLACING EXISTING DATA
       t: VISITOR_TYPES.find(vt => vt.id === visitorType)?.code || 'FTV', // visitor type code
       ct: formData.qrType === 'checkin' ? 1 : 2,  // campaign type
       c: campaignReferenceId || '', // Campaign reference ID for linking to adcampaigns.id
       ts: timestamp,            // timestamp
       v: 2                      // version
     };
+
+    // VALIDATION: Ensure zone data is included for all webhooks
+    if (!qrData.zn || qrData.zn.trim() === '') {
+      console.warn('⚠️ WARNING: Zone name is missing! This will affect webhook data for:');
+      console.warn('  - https://n8n.tenear.com/webhook/claim-offer');
+      console.warn('  - https://n8n.tenear.com/webhook/visitor-checkins-engagement');
+      console.warn('  - https://n8n.tenear.com/webhook/qr-scan-loyalty');
+      console.warn('  Current zone name:', qrData.zn);
+    } else {
+      console.log('✅ Zone data confirmed for all webhooks:', {
+        zoneName: qrData.zn,
+        webhooks: [
+          'https://n8n.tenear.com/webhook/claim-offer',
+          'https://n8n.tenear.com/webhook/visitor-checkins-engagement',
+          'https://n8n.tenear.com/webhook/qr-scan-loyalty'
+        ]
+      });
+    }
 
     // Encode as base64
     const encodedData = btoa(JSON.stringify(qrData));
@@ -587,7 +781,8 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
       baseUrl: baseUrl,
       data: qrData,
       encoded: encodedData,
-      url: qrUrl
+      url: qrUrl,
+      zoneName: formData.zoneName
     });
     
     return { qrUrl, format: 'webhook' as const };
@@ -602,6 +797,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
       c: formData.campaignName || 'default',
       l: formData.locationName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() || 'main',
       z: formData.zone.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase() || 'zone1',
+      zn: formData.zoneName || '', // NEW: Include zone name
       t: formData.qrType === 'checkin' ? '1' : '2'
     });
     
@@ -610,7 +806,8 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
     console.log('🎯 LEGACY QR Generated:', {
       format: 'legacy',
       url: qrUrl,
-      params: Object.fromEntries(params)
+      params: Object.fromEntries(params),
+      zoneName: formData.zoneName
     });
     
     return { qrUrl, format: 'legacy' as const };
@@ -660,6 +857,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
         shopId: finalShopId,
         resolved: { mallId: resolvedMallId, shopId: resolvedShopId },
         formData: { mallId: formData.mallId, shopId: formData.shopId },
+        zoneName: formData.zoneName,
         format: formData.useWebhookFormat ? 'webhook' : 'legacy'
       });
 
@@ -736,7 +934,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
     try {
       const locationData = {
         location_name: qrData.locationName,
-        zone_name: formData.zone,
+        zone_name: formData.zoneName || formData.zone, // Use actual zone name
         location_description: `${qrData.campaignName} - ${qrData.visitorType.replace(/_/g, ' ')}`,
         mall_name: formData.mallName,
         location_type: 'shop_checkin',
@@ -747,7 +945,8 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
           campaign: qrData.campaignName,
           visitor_type: qrData.visitorType,
           benefits: 'Welcome offers, loyalty points, exclusive deals',
-          format: qrData.format // NEW: Track format
+          format: qrData.format, // NEW: Track format
+          zone_name: formData.zoneName || '' // NEW: Include zone name in benefits
         },
         language_preference: 'en',
         expected_daily_checkins: 50,
@@ -779,7 +978,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
   // Step 1: Location Selection
   const renderLocationSelection = () => {
     // Show loading state for business info
-    if (isBusinessInfoLoading) {
+    if (isBusinessInfoLoading || isLoadingZones) {
       return (
         <div className="space-y-6">
           <div className="text-center">
@@ -790,81 +989,72 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
           
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-3 text-gray-600">Fetching mall and shop information...</span>
+            <span className="ml-3 text-gray-600">
+              {isLoadingZones ? 'Fetching zones from mall_zones table...' : 'Fetching mall and shop information...'}
+            </span>
           </div>
           
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="text-sm font-semibold text-blue-800 mb-2">🔗 Webhook Integration Active</h3>
+            <h3 className="text-sm font-semibold text-blue-800 mb-2">🔗 Enhanced Zone Capture Active</h3>
             <p className="text-xs text-blue-600">
-              This QR generation system now uses dynamic data from your n8n workflows and Supabase database 
-              instead of static hardcoded business names. No more "Shop 1" or "Mall 123" - you'll see 
-              real business names like "Spatial Barbershop & Spa" and "China Square Mall".
+              This QR generation system now fetches zone names from your Supabase mall_zones table 
+              and includes them in n8n webhooks for zone-specific analytics.
             </p>
           </div>
         </div>
       );
     }
     
-    // Show error state if business info failed to load
-    if (businessInfoError) {
+    // Show error state if business info or zones failed to load
+    if (businessInfoError || zonesError) {
       return (
         <div className="space-y-6">
           <div className="text-center">
             <Building className="h-12 w-12 text-red-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Business Info Unavailable</h2>
-            <p className="text-gray-600">Webhook service unavailable - real data required</p>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Data Loading Failed</h2>
+            <p className="text-gray-600">Required data unavailable - check database and webhook</p>
           </div>
           
           <div className="space-y-4">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-red-800 mb-2">❌ Webhook Integration Error</h3>
-              <p className="text-sm text-red-700 mb-2">
-                Failed to fetch business info from your n8n webhook
-              </p>
-              <p className="text-xs text-red-600 mb-2">
-                Error: {businessInfoError}
-              </p>
-              {webhookResponse && (
-                <div className="bg-red-100 rounded p-2 mt-2">
-                  <p className="text-xs text-red-700 font-medium">Raw Response:</p>
-                  <code className="text-xs text-red-600">{webhookResponse.substring(0, 200)}{webhookResponse.length > 200 ? '...' : ''}</code>
-                </div>
-              )}
-            </div>
-            
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="text-sm font-semibold text-blue-800 mb-2">🔧 Troubleshooting Steps</h3>
-              <ul className="text-xs text-blue-700 space-y-1">
-                <li>• Check your n8n workflow returns valid JSON</li>
-                <li>• Ensure webhook includes: mall_name, shop_name, zone_name</li>
-                <li>• Verify workflow is active and responding</li>
-                <li>• Test webhook URL directly in browser</li>
-              </ul>
-              {businessInfoRetryCount > 0 && (
-                <p className="text-xs text-blue-600 mt-2">
-                  Retry attempts: {businessInfoRetryCount}
+            {businessInfoError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-red-800 mb-2">❌ Webhook Integration Error</h3>
+                <p className="text-sm text-red-700 mb-2">
+                  Failed to fetch business info from your n8n webhook
                 </p>
-              )}
-            </div>
+                <p className="text-xs text-red-600 mb-2">
+                  Error: {businessInfoError}
+                </p>
+                {webhookResponse && (
+                  <div className="bg-red-100 rounded p-2 mt-2">
+                    <p className="text-xs text-red-700 font-medium">Raw Response:</p>
+                    <code className="text-xs text-red-600">{webhookResponse.substring(0, 200)}{webhookResponse.length > 200 ? '...' : ''}</code>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {zonesError && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-yellow-800 mb-2">⚠️ Zone Data Error</h3>
+                <p className="text-sm text-yellow-700 mb-2">
+                  Failed to fetch zones from mall_zones table: {zonesError}
+                </p>
+              </div>
+            )}
           </div>
           
           <div className="text-center space-x-4">
             <button
-              onClick={retryFetchBusinessInfo}
-              disabled={isBusinessInfoLoading}
+              onClick={async () => {
+                setBusinessInfoError(null);
+                setZonesError(null);
+                await Promise.all([fetchBusinessInfo(), fetchZones()]);
+              }}
+              disabled={isBusinessInfoLoading || isLoadingZones}
               className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
             >
-              🔄 {isBusinessInfoLoading ? 'Retrying...' : `Retry Webhook (Attempt ${businessInfoRetryCount + 1})`}
-            </button>
-            <button
-              onClick={() => {
-                // Clear error and proceed with fallback
-                setBusinessInfoError(null);
-                setBusinessInfoRetryCount(0);
-              }}
-              className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              📱 Continue with Fallback Data
+              🔄 Retry Data Fetch
             </button>
           </div>
         </div>
@@ -903,6 +1093,10 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
                 <span className="text-sm text-gray-500">Location:</span>
                 <p className="font-medium text-gray-900">{location?.location_name}</p>
               </div>
+              <div>
+                <span className="text-sm text-gray-500">Zone:</span>
+                <p className="font-medium text-green-600">{formData.zoneName || location?.zone.replace(/_/g, ' ')}</p>
+              </div>
             </div>
           </div>
 
@@ -929,6 +1123,23 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Select Mall Location</h2>
           <p className="text-gray-600">Choose where visitors will check in</p>
         </div>
+
+        {/* Zone Information Display */}
+        {availableZones.length > 0 && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-green-800 mb-3">🏢 Available Zones</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {availableZones.map((zone) => (
+                <div key={zone.zone_id} className="bg-white rounded p-2 text-center">
+                  <p className="text-sm font-medium text-green-700">{zone.zone_name}</p>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-green-600 mt-2">
+              ✅ Zone names fetched from mall_zones table - will be included in n8n webhooks
+            </p>
+          </div>
+        )}
 
         <div className="grid gap-4">
           {/* Filter locations by user's mall context using AuthService */}
@@ -961,23 +1172,38 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
             });
             
             return userAccessibleLocations;
-          })().map((location) => (
-            <div 
-              key={location.location_id}
-              onClick={() => handleMallSelection(location)}
-              className="border border-gray-200 rounded-lg p-6 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">{location.mall_name}</h3>
-                  <p className="text-blue-600 font-medium">{location.location_name}</p>
-                  <p className="text-sm text-gray-500 mt-1">{location.zone.replace(/_/g, ' ')}</p>
-                  <p className="text-sm text-gray-600 mt-2">{location.description}</p>
+          })().map((location) => {
+            const zoneName = getZoneName(location.zone);
+            return (
+              <div 
+                key={location.location_id}
+                onClick={() => handleMallSelection(location)}
+                className="border border-gray-200 rounded-lg p-6 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer"
+              >
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">{location.mall_name}</h3>
+                    <p className="text-blue-600 font-medium">{location.location_name}</p>
+                    <div className="mt-2">
+                      <span className="text-sm text-gray-500">Zone Identifier:</span>
+                      <p className="text-sm text-gray-700">{location.zone.replace(/_/g, ' ')}</p>
+                    </div>
+                    <div className="mt-1">
+                      <span className="text-sm text-green-600 font-medium">Zone Name:</span>
+                      <p className="text-sm font-medium text-green-700">{zoneName}</p>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-2">{location.description}</p>
+                    {availableZones.length > 0 && (
+                      <p className="text-xs text-green-600 mt-2">
+                        ✅ Zone name captured for analytics
+                      </p>
+                    )}
+                  </div>
+                  <MapPin className="h-5 w-5 text-gray-400" />
                 </div>
-                <MapPin className="h-5 w-5 text-gray-400" />
               </div>
-            </div>
-          ))}
+            );
+          })}
           {(() => {
             const accessibleMalls = AuthService.getUserMalls();
             const accessibleShops = AuthService.getUserShops();
@@ -1038,11 +1264,11 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
                 <div>
                   <p className="font-semibold text-gray-900">🚀 Webhook Format (Recommended)</p>
                   <p className="text-sm text-gray-600">
-                    New format with dynamic business names. Integrates with n8n webhooks for real-time data.
+                    New format with dynamic business names and zone capture. Integrates with n8n webhooks for real-time data.
                   </p>
                   <div className="mt-2 flex items-center space-x-4">
                     <p className="text-xs text-green-600">✅ Shows real business names</p>
-                    <p className="text-xs text-green-600">✅ Production scalable</p>
+                    <p className="text-xs text-green-600">✅ Captures zone names for analytics</p>
                   </div>
                 </div>
               </div>
@@ -1073,7 +1299,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
                   </p>
                   <div className="mt-2 flex items-center space-x-4">
                     <p className="text-xs text-orange-600">⚠️ Shows "Shop 1" and "Mall 123"</p>
-                    <p className="text-xs text-orange-600">⚠️ Not production scalable</p>
+                    <p className="text-xs text-orange-600">⚠️ Zone names may be missing</p>
                   </div>
                 </div>
               </div>
@@ -1081,10 +1307,10 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
           </div>
         </div>
 
-        {/* NEW: Business Info Status */}
-        {businessInfo.length > 0 && (
+        {/* NEW: Enhanced Business Info Status with Zone */}
+        {businessInfo.length > 0 && availableZones.length > 0 && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-green-800 mb-3">🔗 Dynamic Business Data Active</h3>
+            <h3 className="text-lg font-semibold text-green-800 mb-3">🔗 Enhanced Data Integration Active</h3>
             <div className="space-y-2">
               {businessInfo.map((info, index) => (
                 <div key={index} className="text-sm">
@@ -1105,38 +1331,10 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
                     )}
                   </div>
                   <div className="text-xs text-green-600 mt-1">
-                    ✅ Real-time data from n8n webhook | No static hardcoded values
+                    ✅ Real-time data from n8n webhook + Zone names from mall_zones table
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* NEW: Webhook Error Warning */}
-        {businessInfoError && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-yellow-800 mb-2">⚠️ Webhook Integration Issue</h3>
-            <p className="text-sm text-yellow-600 mb-2">
-              Failed to fetch dynamic business data: {businessInfoError}
-            </p>
-            <p className="text-xs text-yellow-600">
-              Webhook failed. QR generation requires real business data from n8n webhook.
-            </p>
-            <div className="flex space-x-2 mt-3">
-              <button
-                onClick={retryFetchBusinessInfo}
-                disabled={isBusinessInfoLoading}
-                className="bg-yellow-600 text-white px-3 py-1 rounded text-xs hover:bg-yellow-700 disabled:bg-gray-400"
-              >
-                🔄 {isBusinessInfoLoading ? 'Retrying...' : 'Retry Webhook'}
-              </button>
-              <button
-                onClick={() => setBusinessInfoError(null)}
-                className="bg-gray-500 text-white px-3 py-1 rounded text-xs hover:bg-gray-600"
-              >
-                ❌ Dismiss Warning
-              </button>
             </div>
           </div>
         )}
@@ -1172,6 +1370,88 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
             className="mt-2 w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
+
+        {/* NEW: Zone Selection Dropdown */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-blue-800">🏢 Zone Selection</h3>
+            {availableZones.length === 0 && (
+              <button
+                onClick={() => fetchZones()}
+                disabled={isLoadingZones}
+                className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:bg-gray-400"
+              >
+                {isLoadingZones ? 'Loading...' : 'Load Zones'}
+              </button>
+            )}
+          </div>
+          
+          {availableZones.length > 0 ? (
+            <>
+              <p className="text-sm text-blue-600 mb-3">
+                Choose the specific zone where visitors will check in. This will be included in n8n webhooks for zone analytics.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Available Zones ({availableZones.length} zones found)
+                </label>
+                <select
+                  value={formData.zoneName || ''}
+                  onChange={(e) => {
+                    const selectedZoneName = e.target.value;
+                    const selectedZone = availableZones.find(z => z.zone_name === selectedZoneName);
+                    console.log('🏢 Zone selected:', selectedZoneName, selectedZone);
+                    setFormData(prev => ({
+                      ...prev,
+                      zoneName: selectedZoneName,
+                      zone: selectedZone ? selectedZone.zone_id.toString() : prev.zone
+                    }));
+                  }}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Select a zone...</option>
+                  {availableZones.map((zone) => (
+                    <option key={zone.zone_id} value={zone.zone_name}>
+                      {zone.zone_name} (ID: {zone.zone_id})
+                    </option>
+                  ))}
+                </select>
+                {formData.zoneName && (
+                  <p className="text-xs text-green-600 mt-2">
+                    ✅ Selected zone: <span className="font-semibold">{formData.zoneName}</span> (Zone ID: {formData.zone})
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-sm text-gray-600 mb-2">No zones loaded from mall_zones table</p>
+              <p className="text-xs text-gray-500">
+                {zonesError ? `Error: ${zonesError}` : 'Click "Load Zones" to fetch available zones for your mall'}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Legacy Zone Display (when no zones available) */}
+        {availableZones.length === 0 && formData.zoneName && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <h3 className="text-lg font-semibold text-yellow-800 mb-2">🏢 Selected Zone</h3>
+            <div className="flex items-center space-x-4">
+              <div>
+                <span className="text-sm text-yellow-600 font-medium">Zone Name:</span>
+                <span className="text-yellow-800 ml-1 font-semibold">{formData.zoneName}</span>
+              </div>
+              <div>
+                <span className="text-sm text-yellow-600 font-medium">Zone ID:</span>
+                <span className="text-yellow-700 ml-1">{formData.zone}</span>
+              </div>
+            </div>
+            <p className="text-xs text-yellow-600 mt-2">
+              ⚠️ No zones loaded from mall_zones table - using fallback zone data
+            </p>
+          </div>
+        )}
 
         {/* Visitor Types */}
         <div>
@@ -1314,6 +1594,15 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
             <p className="text-sm text-gray-600">{formData.generateCount} QR code{formData.generateCount > 1 ? 's' : ''} per type</p>
           </div>
         </div>
+        
+        {/* NEW: Zone information in preview */}
+        {formData.zoneName && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <span className="text-sm text-gray-500">Zone for Analytics:</span>
+            <p className="font-medium text-green-600">{formData.zoneName}</p>
+            <p className="text-xs text-green-600">Will be sent to n8n webhooks for zone-specific metrics</p>
+          </div>
+        )}
       </div>
 
       {/* Format Preview */}
@@ -1328,34 +1617,51 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
         <div className="bg-white rounded border p-4">
           {formData.useWebhookFormat ? (
             <div>
-              <p className="text-sm text-green-600 mb-2">✅ Webhook Format (Production Scalable)</p>
+              <p className="text-sm text-green-600 mb-2">✅ Enhanced Webhook Format (Production Scalable)</p>
               <p className="text-xs text-gray-600 mb-2">This will create QR codes that:</p>
               <ul className="text-xs text-gray-600 space-y-1 ml-4">
                 <li>• Use base64-encoded JSON data for efficiency</li>
+                <li>• Include zone_name from mall_zones table</li>
                 <li>• Call n8n webhook to fetch business names dynamically</li>
                 <li>• Show real business names: "Spatial Barbershop & Spa", "China Square Mall"</li>
                 <li>• Work with webhook-driven check-in system</li>
-                <li>• Scale automatically - no code changes needed for new shops/malls</li>
+                <li>• Enable zone-specific analytics and reporting</li>
               </ul>
               <div className="mt-3 p-2 bg-gray-100 rounded text-xs font-mono">
                 https://tenearcheckins.pages.dev?d=eyJsIjoiMyIsInMiOiIzIiwieiI6IjEi...
               </div>
               
-              {/* NEW: Show webhook integration status */}
-              {businessInfo.length > 0 && (
+              {/* NEW: Show zone integration status */}
+              {formData.zoneName && (
                 <div className="mt-3 p-2 bg-green-100 rounded text-xs">
                   <div className="flex items-center space-x-2 mb-1">
-                    <span className="text-green-600">🔗</span>
-                    <span className="text-green-700 font-semibold">Webhook Integration Active</span>
+                    <span className="text-green-600">🏢</span>
+                    <span className="text-green-700 font-semibold">Zone Capture Active</span>
                   </div>
-                  <div className="text-green-600 space-y-1">
+                  <div className="text-green-600">
+                    Zone: <span className="font-semibold">{formData.zoneName}</span> (ID: {formData.zone})
+                  </div>
+                  <div className="text-xs text-green-500 mt-1">
+                    ✅ Zone name will be sent to n8n claim/offer & checkin webhooks
+                  </div>
+                </div>
+              )}
+              
+              {/* NEW: Show webhook integration status */}
+              {businessInfo.length > 0 && (
+                <div className="mt-2 p-2 bg-blue-100 rounded text-xs">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className="text-blue-600">🔗</span>
+                    <span className="text-blue-700 font-semibold">Webhook Integration Active</span>
+                  </div>
+                  <div className="text-blue-600 space-y-1">
                     {businessInfo.map((info, index) => (
                       <div key={index} className="text-xs">
                         Mall: {info.mallName} | Shop: {info.shopName} | Zone: {info.zoneName || 'Main'}
                       </div>
                     ))}
-                    <div className="text-xs text-green-500">
-                      ✅ No static hardcoded business names - all data from n8n webhook
+                    <div className="text-xs text-blue-500">
+                      ✅ No static hardcoded business names - all data from n8n webhook + mall_zones table
                     </div>
                   </div>
                 </div>
@@ -1422,8 +1728,11 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
             
             {/* Zone Info */}
             <div className="p-3 bg-green-100 rounded">
-              <p className="text-sm text-green-600">🏢 Zone</p>
-              <p className="font-semibold text-green-900">{formData.zone.replace(/_/g, ' ')}</p>
+              <p className="text-sm text-green-600">🏢 Zone (for Analytics)</p>
+              <p className="font-semibold text-green-900">{formData.zoneName || formData.zone.replace(/_/g, ' ')}</p>
+              {formData.zoneName && (
+                <p className="text-xs text-green-600">Sent to n8n webhooks for zone-specific metrics</p>
+              )}
             </div>
             
             {/* Format Info */}
@@ -1439,7 +1748,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
                 formData.useWebhookFormat ? 'text-green-900' : 'text-orange-900'
               }`}>
                 {formData.useWebhookFormat 
-                  ? 'Dynamic Business Names (Recommended)' 
+                  ? 'Dynamic Business Names + Zone Capture (Recommended)' 
                   : 'Static Business Names (Legacy)'
                 }
               </p>
@@ -1503,8 +1812,13 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
               Successfully generated <span className="font-bold">{generatedQRs.length}</span> QR codes for {formData.locationName}.
             </p>
             <p className="text-sm text-green-600 mt-2">
-              ✅ QR codes use {formData.useWebhookFormat ? 'webhook' : 'legacy'} format for {formData.useWebhookFormat ? 'dynamic' : 'static'} business names
+              ✅ QR codes use {formData.useWebhookFormat ? 'webhook' : 'legacy'} format with {formData.zoneName ? 'zone name capture' : 'basic zone info'}
             </p>
+            {formData.zoneName && (
+              <p className="text-sm text-green-600">
+                🏢 Zone: {formData.zoneName} (included in n8n webhooks)
+              </p>
+            )}
           </div>
 
           {/* Format Distribution */}
@@ -1520,7 +1834,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
                     <div className="bg-white rounded border p-3 text-center">
                       <p className="text-2xl font-bold text-green-600">{webhookCount}</p>
                       <p className="text-sm text-gray-600">🚀 Webhook Format</p>
-                      <p className="text-xs text-green-600">Dynamic business names</p>
+                      <p className="text-xs text-green-600">Dynamic business names + zone capture</p>
                     </div>
                     <div className="bg-white rounded border p-3 text-center">
                       <p className="text-2xl font-bold text-orange-600">{legacyCount}</p>
@@ -1552,6 +1866,9 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
                   <img src={qr.imageUrl} alt={`QR Code for ${qr.visitorType}`} className="mx-auto mb-3 w-96 h-96 max-w-full" />
                   <h4 className="font-semibold text-gray-900">{qr.locationName}</h4>
                   <p className="text-sm text-gray-600 mb-2">{qr.mallName}</p>
+                  {formData.zoneName && (
+                    <p className="text-sm text-green-600 font-medium mb-2">🏢 Zone: {formData.zoneName}</p>
+                  )}
                   <p className="text-xs text-gray-500 mt-2 truncate max-w-full" title={qr.url}>
                     {qr.url.length > 50 ? `${qr.url.substring(0, 50)}...` : qr.url}
                   </p>
@@ -1575,7 +1892,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
                       if (navigator.share) {
                         navigator.share({
                           title: `QR Code - ${qr.locationName}`,
-                          text: `Scan this QR code to check in at ${qr.locationName}`,
+                          text: `Scan this QR code to check in at ${qr.locationName}${formData.zoneName ? ` in ${formData.zoneName} zone` : ''}`,
                           url: qr.url
                         });
                       } else {
@@ -1629,7 +1946,9 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
               <button
                 onClick={() => {
                   // Share all URLs
-                  const urls = generatedQRs.map(qr => `Format: ${qr.format}\nLocation: ${qr.locationName}\nType: ${qr.visitorType.replace(/_/g, ' ')}\nURL: ${qr.url}`).join('\n\n');
+                  const urls = generatedQRs.map(qr => 
+                    `Format: ${qr.format}\nLocation: ${qr.locationName}\nZone: ${formData.zoneName || 'N/A'}\nType: ${qr.visitorType.replace(/_/g, ' ')}\nURL: ${qr.url}`
+                  ).join('\n\n');
                   navigator.clipboard.writeText(urls);
                   alert('All QR URLs copied! Paste into WhatsApp, email, or any messaging app for easy distribution.');
                 }}
@@ -1696,8 +2015,8 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
               <h5 className="font-semibold text-yellow-700">💡 General Scanning Tips</h5>
               <ul className="text-sm text-yellow-600 space-y-1 ml-4">
                 <li>• QR codes are optimized with high contrast and error correction</li>
-                <li>• Each code is unique and tracks visitor engagement</li>
-                <li>• Monitor real-time analytics in your dashboard</li>
+                <li>• Each code is unique and tracks visitor engagement with zone data</li>
+                <li>• Monitor zone-specific analytics in your dashboard</li>
                 <li>• If scanning fails, try the URL method instead</li>
               </ul>
             </div>
@@ -1712,7 +2031,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">QR Code Generation</h1>
-        <p className="text-gray-600">Create professional QR codes for your mall visitors</p>
+        <p className="text-gray-600">Create professional QR codes with zone capture for your mall visitors</p>
       </div>
 
       {/* Progress Steps */}
