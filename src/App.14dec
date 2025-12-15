@@ -19,7 +19,6 @@ import ReceivingPaymentModule from './components/ReceivingPaymentModule';
 import PaymentReceiptMessaging from './components/PaymentReceiptMessaging';
 import { useAuth } from './contexts/AuthContext';
 import { LogOut, User } from 'lucide-react';
-import { CustomerInquiries } from './components/CustomerInquiries';
 import './index.css';
 
 function AppContent() {
@@ -214,21 +213,6 @@ function AppContent() {
               />
               <div className="pt-16">
                 <PaymentManagement />
-              </div>
-            </div>
-          )}
-          {currentView === 'customer-inquiries' && (
-            <div className="min-h-screen">
-              <Header 
-                onBack={() => setCurrentView('dashboard')} 
-                title="Customer Inquiries"
-                user={user}
-                onLogout={logout}
-                showUserMenu={showUserMenu}
-                setShowUserMenu={setShowUserMenu}
-              />
-              <div className="pt-16">
-                <CustomerInquiries />
               </div>
             </div>
           )}

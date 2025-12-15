@@ -703,18 +703,6 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
     const zoneName = getZoneName(location.zone);
     console.log('🏢 Resolved zone name:', zoneName, 'from zone identifier:', location.zone);
     
-    // SECURITY FIX: Use authenticated user's shop ID instead of zone's shop ID
-    const userMallShop = AuthService.getCurrentUserMallAndShop();
-    const userShopId = userMallShop.shop_id.toString();
-    
-    const currentUser = AuthService.getCurrentUser();
-    
-    console.log('🔐 Security verification in handleMallSelection:', {
-      selectedZoneShopId: location.shop_id,
-      authenticatedUserShopId: userShopId,
-      authenticatedUserShopName: currentUser?.shop_name || 'Unknown Shop'
-    });
-    
     setFormData(prev => ({
       ...prev,
       mallId: location.mall_id,
@@ -723,7 +711,7 @@ export default function QRGeneration({ preselectedCampaign, onClose, onQRGenerat
       locationName: location.location_name,
       zone: location.zone,
       zoneName: prev.zoneName || zoneName, // Only update if not already selected from dropdown
-      shopId: userShopId // SECURITY: Use authenticated user's shop ID
+      shopId: location.shop_id
     }));
     
     // Ensure zones are loaded for this mall

@@ -16,8 +16,7 @@ import {
   MessageCircle,
   CreditCard,
   Inbox,
-  MessageSquare,
-  Inbox as CustomerInquiriesIcon
+  MessageSquare
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -96,17 +95,6 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
       role: 'shop_admin'
     },
     {
-      name: 'Customer Inquiries',
-      href: '#',
-      icon: CustomerInquiriesIcon,
-      current: currentView === 'customer-inquiries',
-      action: () => {
-        setCurrentView('customer-inquiries');
-        onViewChange?.('customer-inquiries');
-      },
-      role: 'shop_admin'
-    },
-    {
       name: 'Malls',
       href: '#',
       icon: Building2,
@@ -160,8 +148,8 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
       return ['Dashboard', 'Analytics'].includes(item.name);
     }
     if (user?.role === 'shop_admin') {
-      // Shop admins see Dashboard, Campaign Management, Payment Reception, Receipt Messaging, Visitor Engagement, Customer Inquiries, and Analytics
-      return ['Dashboard', 'Campaign Management', 'Payment Reception', 'Receipt Messaging', 'Visitor Engagement', 'Customer Inquiries', 'Analytics'].includes(item.name);
+      // Shop admins see Dashboard, Campaign Management, Payment Reception, Receipt Messaging, Visitor Engagement, and Analytics
+      return ['Dashboard', 'Campaign Management', 'Payment Reception', 'Receipt Messaging', 'Visitor Engagement', 'Analytics'].includes(item.name);
     }
     return false;
   });

@@ -1,0 +1,143 @@
+/**
+ * Transaction Service - N8N Webhook Integration (FIXED)
+ * Handles customer inquiries through N8N webhooks following the Product Management module pattern
+ */
+
+interface TransactionRequest {
+  path: string;
+  method: string;
+  data?: any;
+  token?: string;
+}
+
+interface TransactionResponse {
+  success: boolean;
+  data?: any;
+  error?: string;
+}
+
+class TransactionService {
+  private readonly N8N_WEBHOOK_BASE = 'https://n8n.tenear.com/webhook';
+  private readonly DEFAULT_TIMEOUT = 30000; // 30 seconds
+
+  /**
+   * Generic N8N webhook request handler with enhanced error handling
+   */
+  async callWebhook(path: string, data: any, token: string): Promise<TransactionResponse> {
+    console.log('🚀 N8N Webhook Call:', { path, data, token: token ? 'present' : 'missing' });
+
+    try {
+      const url = `${this.N8N_WEBHOOK_BASE}/${path}`;
+      console.log('📍 Webhook URL:', url);
+      
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
+        },
+        body: JSON.stringify({ path, ...data })
+      });
+
+      console.log('📡 Response Status:', response.status, response.statusText);
+      console.log('📡 Response Headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ N8N HTTP Error:', errorText);
+        throw new Error(`N8N Webhook HTTP ${response.status}: ${errorText}`);
+      }
+
+      const result = await response.json();
+      console.log('📊 N8N Response:', result);
+      
+      return {
+        success: true,
+        data: result
+      };
+
+    } catch (error) {
+      console.error('❌ N8N Webhook Error Details:', error);
+      
+      // Don't hide the real error with generic message
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown N8N error'
+      };
+    }
+  }
+
+  /**
+   * Get customer inquiries/transactions for a shop
+   */
+  async getTransactions(shopId: number, token: string, filters?: {
+    status?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    limit?: number;
+  }): Promise<TransactionResponse> {
+    console.log('🎯 GET TRANSACTIONS:', { shopId, token: token ? 'present' : 'missing', filters });
+
+    const requestData: Record<string, any> = {
+      shop_id: shopId,
+      date_filter: filters?.dateFrom ? 'custom' : 'week',
+      status_filter: filters?.status || 'all',
+      limit: filters?.limit || 100
+    };
+
+    if (filters?.dateFrom) {
+      requestData.date_from = filters.dateFrom;
+    }
+    if (filters?.dateTo) {
+      requestData.date_to = filters.dateTo;
+    }
+
+    return this.callWebhook('get-transactions', requestData, token);
+  }
+
+  /**
+   * Update transaction/inquiry status
+   */
+  async updateTransaction(transactionId: string, updates: {
+    status?: 'new' | 'contacted' | 'resolved';
+    notes?: string;
+    assigned_to?: string;
+  }, token: string): Promise<TransactionResponse> {
+    console.log('🔄 UPDATE TRANSACTION:', { transactionId, updates, token: token ? 'present' : 'missing' });
+
+    const requestData = {
+      transaction_id: transactionId,
+      ...updates
+    };
+
+    return this.callWebhook('update-transaction', requestData, token);
+  }
+
+  /**
+   * Get transaction statistics for a shop
+   */
+  async getTransactionStats(shopId: number, token: string): Promise<TransactionResponse> {
+    console.log('📊 GET TRANSACTION STATS:', { shopId, token: token ? 'present' : 'missing' });
+
+    const requestData = {
+      shop_id: shopId,
+      stats_only: true
+    };
+
+    return this.callWebhook('get-transactions', requestData, token);
+  }
+
+  /**
+   * Test N8N webhook connectivity
+   */
+  async testWebhook(path: string): Promise<TransactionResponse> {
+    console.log('🧪 TESTING N8N WEBHOOK:', path);
+    
+    const testData = { test: true, timestamp: new Date().toISOString() };
+    return this.callWebhook(path, testData, '');
+  }
+}
+
+// Export singleton instance
+export const transactionService = new TransactionService();
+export default transactionService;
