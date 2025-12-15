@@ -56,7 +56,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
       console.log('🎯 Dashboard: Mall API response:', response);
       
       if (response.success && response.data) {
-        // For shop_admin users, filter to only their assigned mall
+        // Double-check: If user is shop_admin and not super_admin, ensure they only see their mall
         let filteredMalls = response.data;
         if (user && user.role === 'shop_admin' && user.mall_access && user.mall_access.length > 0) {
           filteredMalls = response.data.filter((mall: Mall) => user.mall_access?.includes(Number(mall.id)));

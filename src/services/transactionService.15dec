@@ -116,12 +116,11 @@ class TransactionService {
     console.log('🔄 UPDATE TRANSACTION:', { transactionId, updates, token: token ? 'present' : 'missing' });
 
     const requestData = {
-      path: 'update-transaction', // This tells the Switch node this is an UPDATE request
       transaction_id: transactionId,
       ...updates
     };
 
-    return this.callWebhook('get-transactions', requestData, token);
+    return this.callWebhook('get-transaction', requestData, token);
   }
 
   /**
