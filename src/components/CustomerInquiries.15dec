@@ -140,41 +140,27 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
       }
 
       // Transform the response data to match our interface
-      // N8N returns the data wrapped in a json object: {json: {customer_name: "...", ...}}
+      // N8N returns the data directly as an array like: [{id:1,...}, {id:2,...}, ...]
       let inquiriesData: any[] = [];
       
       console.log('🔍 Analyzing response.data structure:', response.data);
-      console.log('🔍 Full response structure:', JSON.stringify(response, null, 2));
       
-      // Handle N8N json wrapper format: {json: {customer_name: "...", ...}}
-      if (response.data && response.data.json) {
-        if (Array.isArray(response.data.json)) {
-          inquiriesData = response.data.json;
-          console.log('✅ Found array in response.data.json');
-        } else if (response.data.json && typeof response.data.json === 'object' && response.data.json.id) {
-          inquiriesData = [response.data.json];
-          console.log('✅ Found single object in response.data.json, wrapped in array');
-        } else {
-          inquiriesData = [response.data.json];
-          console.log('✅ Found object in response.data.json, wrapped in array');
-        }
-      }
-      // Fallback: Handle direct array format (response.data = [...])
-      else if (Array.isArray(response.data)) {
+      // Direct array from N8N (like the format you showed)
+      if (Array.isArray(response.data)) {
         inquiriesData = response.data;
         console.log('✅ Found direct array in response.data');
       }
-      // Fallback: Handle nested array (response.data.data = [...])
+      // Nested array (response.data.data)
       else if (response.data && Array.isArray(response.data.data)) {
         inquiriesData = response.data.data;
         console.log('✅ Found nested array in response.data.data');
       }
-      // Fallback: Handle single object (response.data = {...})
+      // Single object that needs to be wrapped in array
       else if (response.data && typeof response.data === 'object' && response.data.id) {
         inquiriesData = [response.data];
-        console.log('✅ Found single object in response.data, wrapped in array');
+        console.log('✅ Found single object, wrapped in array');
       }
-      // Response might be the array directly (response = [...])
+      // Response might be the array directly
       else if (Array.isArray(response)) {
         inquiriesData = response;
         console.log('✅ Found array directly in response');
@@ -189,7 +175,6 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
       console.log('🎯 Extracted inquiries data:', inquiriesData.length, 'items');
       console.log('🎯 Sample inquiry data:', inquiriesData[0]);
       console.log('🎯 All inquiry IDs:', inquiriesData.map(item => item.id));
-      console.log('🎯 First inquiry full data:', JSON.stringify(inquiriesData[0], null, 2));
       console.log('🎯 Raw N8N data structure check:', {
         totalRecords: inquiriesData.length,
         sampleRecords: inquiriesData.slice(0, 3).map(item => ({
@@ -239,40 +224,35 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
         console.log(`🎯 Processing inquiry ${index + 1}:`, inquiry.id, inquiry.interaction_type);
         console.log(`🔍 Full inquiry data for debugging:`, JSON.stringify(inquiry, null, 2));
         
-        // The actual customer data is nested in inquiry.json
-        const actualData = inquiry.json || inquiry;
-        
         // Generate a unique customer identifier from available data
-        const customerId = actualData.id?.toString() || `record-${index + 1}`;
-        const sessionId = actualData.session_id || 'unknown';
+        const customerId = inquiry.id?.toString() || `record-${index + 1}`;
+        const sessionId = inquiry.session_id || 'unknown';
         
-        // Use real customer data from the database
-        const customerName = actualData.customer_name || 
-                            (sessionId !== 'unknown' ? `Customer ${sessionId}` : `Customer ${customerId}`);
+        // Create a customer name from session ID or use generic
+        const customerName = sessionId !== 'unknown' ? `Customer ${sessionId}` : `Customer ${customerId}`;
         
-        // Extract message content - use actual customer message
-        const messageContent = actualData.customer_message || 
-                              actualData.message || actualData.content || actualData.text || actualData.body ||
-                              `WhatsApp inquiry about product ${actualData.product_id || 'N/A'}`;
+        // Extract message content - check multiple possible fields
+        const messageContent = inquiry.message || inquiry.content || inquiry.text || inquiry.body || 
+                              inquiry.customer_message || inquiry.inquiry_message || 
+                              `WhatsApp inquiry about product ${inquiry.product_id || 'N/A'}`;
         
         return {
-          ...actualData, // Spread all actual data
-          status: getStatusFromInteraction(actualData),
-          id: customerId,
+          ...inquiry,
+          status: getStatusFromInteraction(inquiry),
+          id: customerId, // Use the unique customer identifier
           // Map N8N timestamp to created_at
-          created_at: actualData.timestamp || actualData.created_at || actualData.date,
-          // Use real customer data from the database
-          customer_name: actualData.customer_name || customerName,
-          customer_phone: actualData.customer_phone || '',
-          customer_email: actualData.customer_email || '',
+          created_at: inquiry.timestamp || inquiry.created_at || inquiry.date,
+          // Generate customer data from available N8N fields
+          customer_name: customerName,
+          customer_phone: inquiry.customer_phone || inquiry.phone || '', // May be available from WhatsApp integration
+          customer_email: inquiry.customer_email || inquiry.email || '', // May be available from WhatsApp integration
           customer_message: messageContent,
-          product_name: actualData.product_name || actualData.product || (actualData.product_id ? `Product ${actualData.product_id}` : undefined)
+          product_name: inquiry.product_name || inquiry.product || (inquiry.product_id ? `Product ${inquiry.product_id}` : undefined)
         };
       });
       
       console.log('✅ Successfully processed inquiries:', inquiriesWithStatus.length);
       console.log('✅ Processed inquiry IDs:', inquiriesWithStatus.map(item => item.id));
-      console.log('✅ First processed inquiry sample:', JSON.stringify(inquiriesWithStatus[0], null, 2));
       console.log('✅ Setting state with inquiries array...');
       
       setInquiries(inquiriesWithStatus);
