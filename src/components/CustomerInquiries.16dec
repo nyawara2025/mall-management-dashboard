@@ -22,7 +22,6 @@ import {
 interface CustomerInquiry {
   id: string;
   shop_id: number;
-  product_id?: number; // Add product_id property
   customer_name?: string;  // May be empty if not provided by N8N
   customer_phone?: string; // May be empty if not provided by N8N
   customer_email?: string; // May be empty if not provided by N8N
@@ -235,17 +234,6 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
       }
       
       console.log('🚀 Starting to process', inquiriesData.length, 'inquiries...');
-      console.log('🔍 Raw N8N data sample (first 2 records):', inquiriesData.slice(0, 2));
-      console.log('🔍 Checking for product name fields in raw data:', inquiriesData.slice(0, 2).map(item => ({
-        id: item.id,
-        hasProductName: !!item.product_name,
-        hasProduct: !!item.product,
-        hasJson: !!item.json,
-        jsonProductName: item.json?.product_name,
-        jsonProduct: item.json?.product,
-        rawProductName: item.product_name,
-        rawProduct: item.product
-      })));
       
       const inquiriesWithStatus = inquiriesData.map((inquiry: any, index: number) => {
         console.log(`🎯 Processing inquiry ${index + 1}:`, inquiry.id, inquiry.interaction_type);
@@ -253,15 +241,6 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
         
         // The actual customer data is nested in inquiry.json
         const actualData = inquiry.json || inquiry;
-        
-        console.log(`🔍 Data structure analysis for inquiry ${index + 1}:`, {
-          inquiry: inquiry,
-          actualData: actualData,
-          hasJson: !!inquiry.json,
-          directProductName: inquiry.product_name,
-          nestedProductName: inquiry.json?.product_name,
-          actualDataProductName: actualData.product_name
-        });
         
         // Generate a unique customer identifier from available data
         const customerId = actualData.id?.toString() || `record-${index + 1}`;
@@ -276,35 +255,7 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
                               actualData.message || actualData.content || actualData.text || actualData.body ||
                               `WhatsApp inquiry about product ${actualData.product_id || 'N/A'}`;
         
-        // Extract product name with comprehensive fallback logic
-        // Check multiple possible locations where product name might be stored
-        const extractedProductName = 
-          // Try actualData first (most common)
-          (actualData.product_name && actualData.product_name.trim() !== '' && actualData.product_name !== 'Product' ? actualData.product_name : null) ||
-          // Try direct inquiry access 
-          (inquiry.product_name && inquiry.product_name.trim() !== '' && inquiry.product_name !== 'Product' ? inquiry.product_name : null) ||
-          // Try other possible field names
-          (actualData.product && actualData.product.trim() !== '' && actualData.product !== 'Product' ? actualData.product : null) ||
-          (actualData.product_name_from_db && actualData.product_name_from_db.trim() !== '' && actualData.product_name_from_db !== 'Product' ? actualData.product_name_from_db : null) ||
-          (actualData.name && actualData.name.trim() !== '' && actualData.name !== 'Product' ? actualData.name : null) ||
-          // Final fallback to product ID
-          (actualData.product_id ? `Product ${actualData.product_id}` : 'Product');
-        
-        console.log(`🔍 Product name extraction for inquiry ${index + 1}:`, {
-          inquiry: inquiry,
-          actualData: actualData,
-          extractedProductName: extractedProductName,
-          availableFields: {
-            actualData_product_name: actualData.product_name,
-            inquiry_product_name: inquiry.product_name,
-            product: actualData.product,
-            product_name_from_db: actualData.product_name_from_db,
-            name: actualData.name,
-            product_id: actualData.product_id
-          }
-        });
-        
-        const finalInquiry = {
+        return {
           ...actualData, // Spread all actual data
           status: getStatusFromInteraction(actualData),
           id: customerId,
@@ -315,16 +266,8 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
           customer_phone: actualData.customer_phone || '',
           customer_email: actualData.customer_email || '',
           customer_message: messageContent,
-          product_name: extractedProductName
+          product_name: actualData.product_name || actualData.product || (actualData.product_id ? `Product ${actualData.product_id}` : undefined)
         };
-
-        console.log(`✅ Final inquiry object for ${index + 1}:`, {
-          id: finalInquiry.id,
-          product_name: finalInquiry.product_name,
-          customer_name: finalInquiry.customer_name
-        });
-
-        return finalInquiry;
       });
       
       console.log('✅ Successfully processed inquiries:', inquiriesWithStatus.length);
@@ -412,20 +355,10 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
         throw new Error('Authentication token not found');
       }
 
-      // Find the inquiry to get complete customer data
-      const inquiry = inquiries.find(inq => inq.id === inquiryId);
-      if (!inquiry) {
-        throw new Error('Inquiry not found in local state');
-      }
-
-      console.log('🔄 Found inquiry data:', inquiry);
-      
-      // Update transaction status only (customer data is already stored)
+      console.log('🔄 Calling transactionService.updateTransaction...');
       const response = await transactionService.updateTransaction(
         inquiryId,
-        { 
-          status: newStatus
-        },
+        { status: newStatus },
         token
       );
 
@@ -818,14 +751,9 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
                             <div>
                               <p className="text-sm font-medium text-gray-900 mb-1">Customer Message:</p>
                               <p className="text-gray-700">{inquiry.customer_message}</p>
-                              {(inquiry.product_name && inquiry.product_name.trim() && inquiry.product_name !== 'Product') && (
+                              {(inquiry.product_name && inquiry.product_name.trim()) && (
                                 <p className="text-sm text-blue-600 mt-2">
                                   Product: {inquiry.product_name}
-                                </p>
-                              )}
-                              {(!inquiry.product_name || !inquiry.product_name.trim() || inquiry.product_name === 'Product') && (
-                                <p className="text-sm text-gray-600 mt-2">
-                                  Product: {inquiry.product_name || `Product ID: ${inquiry.product_id?.toString() || 'Unknown'}`}
                                 </p>
                               )}
                             </div>

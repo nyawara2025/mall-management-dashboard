@@ -28,14 +28,14 @@ export function LoginForm() {
     }
   };
 
-
+  // Note: Individual login - no user credentials exposed for security
+  // Contact your administrator for access credentials
 
   return (
     <div className="min-h-screen bg-page-bg flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-6xl grid lg:grid-cols-2 gap-8 items-center">
         
-        {/* Login Form */}
-        <div className="w-full">
+        <div className="w-full max-w-md mx-auto">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
               <div className="bg-primary-100 p-3 rounded-lg">
@@ -43,10 +43,10 @@ export function LoginForm() {
               </div>
             </div>
             <h1 className="text-2xl font-bold text-text-primary mb-2">
-              TeNEAR
+              Mall Management
             </h1>
             <p className="text-text-secondary">
-              Secure Access to TeNEAR space
+              Secure access to your mall management dashboard
             </p>
           </div>
 
@@ -130,7 +130,67 @@ export function LoginForm() {
           </div>
         </div>
 
+        <div className="hidden lg:block">
+          <div className="text-center space-y-8">
+            <div className="space-y-4">
+              <div className="flex items-center justify-center">
+                <div className="bg-primary-100 p-4 rounded-xl">
+                  <Building2 className="w-12 h-12 text-primary-700" />
+                </div>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-text-primary mb-2">
+                  Secure Authentication
+                </h2>
+                <p className="text-text-secondary text-lg">
+                  Professional Mall Management System
+                </p>
+              </div>
+            </div>
 
+            <div className="bg-surface-bg border border-border-subtle rounded-xl p-6 space-y-4">
+              <h3 className="font-semibold text-text-primary text-center">
+                Role-Based Access Control
+              </h3>
+              <div className="grid gap-4">
+                <div className="flex items-center gap-3 p-3 bg-primary-50 rounded-lg">
+                  <div className="w-2 h-2 bg-primary-500 rounded-full"></div>
+                  <div className="text-left">
+                    <p className="font-medium text-text-primary">Super Admin</p>
+                    <p className="text-sm text-text-secondary">Full system access to all malls and shops</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <div className="text-left">
+                    <p className="font-medium text-text-primary">Mall Admin</p>
+                    <p className="text-sm text-text-secondary">Manage assigned mall and its shops</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <div className="text-left">
+                    <p className="font-medium text-text-primary">Shop Admin</p>
+                    <p className="text-sm text-text-secondary">Manage specific shop operations</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-warning/10 border border-warning/20 rounded-lg p-4">
+              <p className="text-sm text-warning text-center">
+                <strong>Security Notice:</strong> Contact your administrator for access credentials. 
+                This is a secure individual login system - no user information is displayed publicly.
+              </p>
+            </div>
+
+            <div className="text-center">
+              <p className="text-xs text-text-secondary">
+                Protected by role-based authentication and secure session management
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
