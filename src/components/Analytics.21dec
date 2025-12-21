@@ -29,6 +29,16 @@ import {
 
 export default function Analytics() {
   const { user } = useAuth();
+  
+  // 🔧 DEBUG: Check user authentication for all admins
+  console.log('🔍 Analytics - User authentication check:', {
+    user: user,
+    userId: user?.id,
+    userRole: user?.role,
+    shopId: user?.shop_id,
+    isAuthenticated: !!user
+  });
+  
   const [activeTab, setActiveTab] = useState<'campaigns' | 'qr' | 'engagement'>('campaigns');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [loading, setLoading] = useState(false);
@@ -46,129 +56,6 @@ export default function Analytics() {
   // Visitor Engagement State
   const [engagementMetrics, setEngagementMetrics] = useState<any>(null);
   const [engagementWebhookStatus, setEngagementWebhookStatus] = useState<'loading' | 'success' | 'error'>('loading');
-
-  // 🔒 Calculate Engagement Rate Function - CORRECTED
-  const calculateEngagementRate = (metrics: any) => {
-    // CORRECTED: Use claims/scans ratio, not engagements/visitors
-    const totalClaims = metrics?.totalClaims || 0;
-    const totalScans = metrics?.totalScans || 0;
-    const totalEngagements = metrics?.totalEngagements || 0;
-    const uniqueVisitors = metrics?.uniqueVisitors || 0;
-    const activeVisitors = metrics?.activeVisitors || 0;
-    
-    let calculatedRate = 0;
-    
-    if (totalScans > 0 && totalClaims > 0) {
-      // PRIMARY: Use claims rate (claims ÷ scans) - most accurate
-      calculatedRate = Math.round((totalClaims / totalScans) * 100);
-      console.log('📊 Using PRIMARY formula (claims/scans):', {
-        totalClaims,
-        totalScans,
-        calculatedRate,
-        formula: '(Total Claims / Total Scans) × 100'
-      });
-    } else if (totalEngagements > 0 && totalScans > 0) {
-      // SECONDARY: Use engagement rate (engagements ÷ scans)
-      calculatedRate = Math.round((totalEngagements / totalScans) * 100);
-      console.log('📊 Using SECONDARY formula (engagements/scans):', {
-        totalEngagements,
-        totalScans,
-        calculatedRate,
-        formula: '(Total Engagements / Total Scans) × 100'
-      });
-    } else if (activeVisitors > 0 && uniqueVisitors > 0) {
-      // TERTIARY: Use active visitor ratio
-      calculatedRate = Math.round((activeVisitors / uniqueVisitors) * 100);
-      console.log('📊 Using TERTIARY formula (active/total visitors):', {
-        activeVisitors,
-        uniqueVisitors,
-        calculatedRate,
-        formula: '(Active Visitors / Total Visitors) × 100'
-      });
-    }
-    
-    // Log the calculation for debugging
-    console.log('📊 Engagement Rate Calculation - CORRECTED:', {
-      totalClaims,
-      totalScans,
-      totalEngagements,
-      uniqueVisitors,
-      activeVisitors,
-      calculatedRate,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Cap at 100% for realistic data
-    const finalRate = Math.min(calculatedRate, 100);
-    
-    if (finalRate !== calculatedRate) {
-      console.log('🔒 Capped engagement rate to 100%:', finalRate);
-    }
-    
-    return finalRate;
-  };
-
-  // 🔒 Calculate Active Visitors for last 2 hours
-  const calculateActiveVisitors = (metrics: any) => {
-    if (!metrics?.visitorCheckins) return 0;
-    
-    const now = new Date();
-    const twoHoursAgo = new Date(now.getTime() - (2 * 60 * 60 * 1000));
-    
-    const recentCheckins = metrics.visitorCheckins.filter((checkin: any) => {
-      const checkinTime = new Date(checkin.created_at || checkin.checkin_time);
-      return checkinTime >= twoHoursAgo;
-    });
-    
-    // Get unique visitors from recent check-ins
-    const uniqueRecentVisitors = new Set(recentCheckins.map((checkin: any) => 
-      checkin.visitor_phone || checkin.visitor_id
-    ));
-    
-    console.log('📊 Active Visitors Calculation:', {
-      totalCheckins: metrics.visitorCheckins?.length || 0,
-      recentCheckins: recentCheckins.length,
-      uniqueRecentVisitors: uniqueRecentVisitors.size,
-      timeframe: 'Last 2 hours',
-      timestamp: new Date().toISOString()
-    });
-    
-    return uniqueRecentVisitors.size;
-  };
-
-  // 🔒 Calculate Channel Totals from Methods
-  const calculateChannelTotals = (metrics: any) => {
-    const methods = metrics?.topEngagementMethods || [];
-    
-    // Calculate total from all channel methods
-    const totalFromMethods = methods.reduce((sum: number, method: any) => sum + (method.count || 0), 0);
-    
-    // If total engagements doesn't match methods sum, adjust methods
-    const expectedTotal = metrics?.totalEngagements || 0;
-    
-    if (totalFromMethods !== expectedTotal && expectedTotal > 0) {
-      console.warn('📊 Channel total mismatch:', {
-        expectedTotal,
-        totalFromMethods,
-        methods: methods.map((m: any) => ({ method: m.method, count: m.count }))
-      });
-      
-      // Adjust the largest method to match expected total
-      if (methods.length > 0) {
-        const largestMethodIndex = methods.reduce((maxIdx: number, method: any, idx: number) => 
-          (method.count || 0) > (methods[maxIdx]?.count || 0) ? idx : maxIdx, 0
-        );
-        
-        methods[largestMethodIndex].count = expectedTotal - (totalFromMethods - methods[largestMethodIndex].count);
-      }
-    }
-    
-    return {
-      totalFromMethods,
-      adjustedMethods: methods,
-      expectedTotal
-    };
-  };
 
   // Auto-refresh interval for QR analytics
   useEffect(() => {
@@ -194,6 +81,11 @@ export default function Analytics() {
   }, [activeTab, user]);
 
   const fetchCampaignAnalytics = async () => {
+    if (!user) {
+      console.log('❌ User not authenticated - skipping Campaign Analytics fetch');
+      return;
+    }
+    
     setLoading(true);
     setCampaignWebhookStatus('loading');
     try {
@@ -251,6 +143,11 @@ export default function Analytics() {
   };
 
   const fetchQRAnalytics = async () => {
+    if (!user) {
+      console.log('❌ User not authenticated - skipping QR Analytics fetch');
+      return;
+    }
+    
     setRefreshing(true);
     setQrWebhookStatus('loading');
     try {
@@ -276,27 +173,47 @@ export default function Analytics() {
       }
 
       const data = await response.json();
-      
-      if (data.success) {
-        setQrAnalytics(data);
+
+      // 🎯 DEBUG: See what N8N actually sends
+      console.log('🎯 Raw N8N QR Analytics data:', data);
+      console.log('🔍 Available fields:', Object.keys(data));
+      console.log('🔍 Has success field?', 'success' in data);
+      console.log('🔍 total_checkins:', data.total_checkins);
+      console.log('🔍 today_checkins:', data.today_checkins);
+
+      // Transform N8N data to frontend format
+      const qrAnalyticsData = {
+        success: true,
+        totalCheckins: parseInt(data.total_checkins) || 0,
+        todayCheckins: parseInt(data.today_checkins) || 0,
+        peakZone: data.peak_hour || 'N/A',
+        dailyCheckins: parseInt(data.today_checkins) || 0,
+        zonePerformance: data.zone_performance || [],
+        hourlyData: data.hourly_data || [],
+        recentActivity: data.recent_activity || []
+      };
+
+      // Check if we got valid data from N8N
+      if (data && (data.total_checkins !== undefined || data.total_checkins === '0')) {
+        setQrAnalytics(qrAnalyticsData);
         setQrWebhookStatus('success');
         console.log('✅ QR Analytics webhook successful:', {
-          totalCheckins: data.totalCheckins,
-          todayCheckins: data.todayCheckins,
-          peakZone: data.peakZone
+          totalCheckins: qrAnalyticsData.totalCheckins,
+          todayCheckins: qrAnalyticsData.todayCheckins,
+          peakZone: qrAnalyticsData.peakZone
         });
       } else {
-        throw new Error(data.error || 'Unknown webhook error');
+        throw new Error('Invalid data structure from N8N');
       }
 
     } catch (error) {
       console.error('❌ QR Analytics webhook failed:', error);
       setQrWebhookStatus('error');
-      // Set error state instead of mock data
       setQrAnalytics({
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
         totalCheckins: 0,
+        todayCheckins: 0,
         peakZone: 'Error loading',
         dailyCheckins: 0,
         zonePerformance: [],
@@ -308,14 +225,19 @@ export default function Analytics() {
     }
   };
 
+  // 🎯 FIXED: Apply same pattern as QR Analytics to Visitor Engagement
   const fetchVisitorEngagement = async () => {
+    if (!user) {
+      console.log('❌ User not authenticated - skipping Visitor Engagement fetch');
+      return;
+    }
+    
     setEngagementWebhookStatus('loading');
     try {
       console.log('🔍 Fetching Visitor Engagement via webhook...');
       
-      // Include time range and mall_id for more accurate data
       const response = await fetch(
-        `https://n8n.tenear.com/webhook/visitor-engagement-analytics?shop_id=${user?.shop_id}&mall_id=${user?.mall_id}`,
+        `https://n8n.tenear.com/webhook/visitor-engagement-analytics?shop_id=${user?.shop_id}`,
         {
           method: 'POST',
           headers: {
@@ -324,10 +246,7 @@ export default function Analytics() {
           body: JSON.stringify({
             userId: user?.id,
             userType: user?.role,
-            shopId: user?.shop_id || 0,
-            mallId: user?.mall_id || 0,
-            timeRange: '24h', // Get data for last 24 hours for better active visitor calculation
-            includeCheckins: true // Request raw check-in data for accurate calculations
+            shopId: user?.shop_id
           })
         }
       );
@@ -337,36 +256,64 @@ export default function Analytics() {
       }
 
       const data = await response.json();
+
+      // 🎯 DEBUG: See what N8N actually sends (same pattern as QR Analytics)
+      console.log('🎯 Raw N8N Visitor Engagement data:', data);
+      console.log('🔍 Available fields:', Object.keys(data));
+      console.log('🔍 Has success field?', 'success' in data);
+      console.log('🔍 totalUsage:', data.totalUsage);
+      console.log('🔍 totalUniqueVisitors:', data.totalUniqueVisitors);
+      console.log('🔍 engagementMethods:', data.engagementMethods?.length);
+
+      // Transform N8N data to frontend format (same pattern as QR Analytics)
+      const totalEngagements = parseInt(data.totalUsage) || 0;
+      const uniqueVisitors = parseInt(data.totalUniqueVisitors) || 0;
       
-      if (data.success) {
-        // Apply data accuracy fixes
-        const enhancedData = {
-          ...data,
-          // Fix active visitors calculation if needed
-          activeVisitors: data.activeVisitors || calculateActiveVisitors(data),
-          // Fix channel totals if needed
-          channelTotals: calculateChannelTotals(data),
-          // Add timestamp for debugging
-          lastUpdated: new Date().toISOString()
-        };
-        
-        setEngagementMetrics(enhancedData);
+      // Calculate engagement rate properly: (Total Engagements / Unique Visitors) × 100
+      // Use totalEngagements as fallback for unique visitors if not available
+      const engagementRate = uniqueVisitors > 0 
+        ? Math.round((totalEngagements / uniqueVisitors) * 100)
+        : totalEngagements > 0 ? 100 : 0;
+
+      const engagementData = {
+        success: true,
+        totalEngagements,
+        activeVisitors: parseInt(data.todayActiveVisitors) || 0,
+        engagementRate,
+        avgEngagementTime: 0, // N8N doesn't provide this
+        topEngagementMethods: transformEngagementMethods(data.engagementMethods || []),
+        visitorSegmentation: [], // N8N doesn't provide this
+        recentEngagements: transformRecentEngagements(data.engagementMethods || []),
+        totalUniqueVisitors: parseInt(data.totalUniqueVisitors) || 0,
+        last2HoursActive: parseInt(data.last2HoursActive) || 0,
+        last4HoursActive: parseInt(data.last4HoursActive) || 0,
+        qrCodeUsage: parseInt(data.qrCodeUsage) || 0,
+        phoneUsage: parseInt(data.phoneUsage) || 0,
+        emailUsage: parseInt(data.emailUsage) || 0,
+        whatsappUsage: parseInt(data.whatsappUsage) || 0,
+        totalMethods: parseInt(data.totalMethods) || 0
+      };
+
+      // Check if we got valid data from N8N (same pattern as QR Analytics)
+      if (data && (data.totalUsage !== undefined || data.totalUsage === 0)) {
+        setEngagementMetrics(engagementData);
         setEngagementWebhookStatus('success');
-        console.log('✅ Visitor Engagement webhook successful - DATA ACCURACY ENHANCED:', {
-          totalEngagements: enhancedData.totalEngagements,
-          activeVisitors: enhancedData.activeVisitors,
-          engagementRate: calculateEngagementRate(enhancedData),
-          dataAccuracy: 'Enhanced with calculations',
-          timestamp: enhancedData.lastUpdated
+        console.log('✅ Visitor Engagement webhook successful:', {
+          totalEngagements: engagementData.totalEngagements,
+          activeVisitors: engagementData.activeVisitors,
+          engagementRate: engagementData.engagementRate,
+          debug: {
+            calculation: `${totalEngagements} engagements / ${uniqueVisitors} unique visitors = ${engagementRate}%`,
+            n8nRawPercentage: data.totalPercentage
+          }
         });
       } else {
-        throw new Error(data.error || 'Unknown webhook error');
+        throw new Error('Invalid data structure from N8N');
       }
 
     } catch (error) {
       console.error('❌ Visitor Engagement webhook failed:', error);
       setEngagementWebhookStatus('error');
-      // Set error state instead of mock data
       setEngagementMetrics({
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error occurred',
@@ -379,6 +326,30 @@ export default function Analytics() {
         recentEngagements: []
       });
     }
+  };
+
+  // Helper function to transform engagement methods (same pattern as QR Analytics)
+  const transformEngagementMethods = (methods: any[]) => {
+    return methods.map(method => ({
+      method: method.method || method.enagagement_method || 'Unknown',
+      count: parseInt(method.totalUsage) || 0,
+      percentage: parseFloat(method.percentage) || 0,
+      uniqueVisitors: parseInt(method.uniqueVisitors) || 0
+    }));
+  };
+
+  // Helper function to transform recent engagements
+  const transformRecentEngagements = (methods: any[]) => {
+    return methods.slice(0, 10).map((method, index) => ({
+      engagement_method: method.method || method.enagagement_method || 'Unknown',
+      engagement_type: 'Method Analysis',
+      engagement_data: { 
+        visitor: `${method.uniqueVisitors || 0} unique visitors`,
+        method: method.method || method.enagagement_method || 'Unknown'
+      },
+      engagement_timestamp: new Date().toISOString(),
+      created_at: new Date().toISOString()
+    }));
   };
 
   const formatTime = (timestamp: string) => {
@@ -406,48 +377,6 @@ export default function Analytics() {
         return 'Failed';
     }
   };
-
-  // 🔄 Data refresh function for manual updates
-  const refreshData = async () => {
-    console.log('🔄 Refreshing analytics data for active tab:', activeTab);
-    switch (activeTab) {
-      case 'campaigns':
-        await fetchCampaignAnalytics();
-        break;
-      case 'qr':
-        await fetchQRAnalytics();
-        break;
-      case 'engagement':
-        await fetchVisitorEngagement();
-        break;
-      default:
-        console.warn('🔄 Unknown active tab for refresh:', activeTab);
-    }
-  };
-
-  // 🔒 SECURITY: Debug authentication state (don't block execution)
-  if (user) {
-    console.log('🔒 Analytics: User authenticated for shop analytics:', {
-      userId: user.id,
-      shopId: user.shop_id,
-      mallId: user.mall_id,
-      role: user.role
-    });
-  }
-
-  // Early return for unauthenticated users - this was blocking execution
-  if (!user) {
-    console.log('⚠️ Analytics: User not authenticated');
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <AlertCircle className="mx-auto h-8 w-8 text-red-500 mb-2" />
-          <p className="text-gray-600">Authentication required</p>
-          <p className="text-sm text-gray-500">Please log in to access analytics</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className={`space-y-6 ${theme === 'dark' ? 'dark' : ''}`}>
@@ -591,7 +520,6 @@ export default function Analytics() {
           refreshData={fetchVisitorEngagement}
           webhookStatus={engagementWebhookStatus}
           formatTime={formatTime}
-          calculateEngagementRate={calculateEngagementRate}
         />
       )}
     </div>
@@ -713,9 +641,7 @@ function CampaignAnalytics({
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Avg Engagement</p>
-                <p className="text-2xl font-bold text-indigo-600">
-                  {Math.min(analytics.avgEngagement || 0, 100)}%
-                </p>
+                <p className="text-2xl font-bold text-indigo-600">{analytics.avgEngagement || 0}%</p>
               </div>
               <TrendingUp className="h-8 w-8 text-indigo-500" />
             </div>
@@ -739,8 +665,8 @@ function CampaignAnalytics({
                       <h4 className="font-semibold text-gray-900">{campaign.name}</h4>
                       <p className="text-sm text-gray-500">{campaign.type}</p>
                     </div>
-                    <Badge variant={Math.min(campaign.engagementRate || 0, 100) > 70 ? 'default' : 'secondary'}>
-                      {Math.min(campaign.engagementRate || 0, 100)}% engagement
+                    <Badge variant={campaign.engagementRate > 70 ? 'default' : 'secondary'}>
+                      {campaign.engagementRate}% engagement
                     </Badge>
                   </div>
                   
@@ -909,7 +835,7 @@ function QRAnalytics({ qrAnalytics, refreshing, fetchQRAnalytics, webhookStatus 
 }
 
 // Visitor Engagement Analytics Component
-function VisitorEngagementAnalytics({ metrics, loading, refreshData, webhookStatus, formatTime, calculateEngagementRate }: any) {
+function VisitorEngagementAnalytics({ metrics, loading, refreshData, webhookStatus, formatTime }: any) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -962,12 +888,7 @@ function VisitorEngagementAnalytics({ metrics, loading, refreshData, webhookStat
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Engagements</p>
                 <p className="text-2xl font-bold text-purple-600">{metrics.totalEngagements || 0}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {metrics.topEngagementMethods && metrics.topEngagementMethods.length > 1 
-                    ? `${metrics.topEngagementMethods.length} channels active` 
-                    : 'Primary channel only'
-                  }
-                </p>
+                <p className="text-xs text-gray-500 mt-1">All channels</p>
               </div>
               <Target className="h-8 w-8 text-purple-500" />
             </div>
@@ -992,9 +913,7 @@ function VisitorEngagementAnalytics({ metrics, loading, refreshData, webhookStat
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Engagement Rate</p>
-                <p className="text-2xl font-bold text-blue-600">
-                  {calculateEngagementRate(metrics)}%
-                </p>
+                <p className="text-2xl font-bold text-blue-600">{metrics.engagementRate || 0}%</p>
                 <p className="text-xs text-gray-500 mt-1">Visitors engaged</p>
               </div>
               <TrendingUp className="h-8 w-8 text-blue-500" />
@@ -1006,11 +925,62 @@ function VisitorEngagementAnalytics({ metrics, loading, refreshData, webhookStat
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Avg. Engagement</p>
-                <p className="text-2xl font-bold text-orange-600">{metrics.avgEngagementTime || 0}m</p>
-                <p className="text-xs text-gray-500 mt-1">Duration</p>
+                <p className="text-sm font-medium text-gray-600">Unique Visitors</p>
+                <p className="text-2xl font-bold text-orange-600">{metrics.totalUniqueVisitors || 0}</p>
+                <p className="text-xs text-gray-500 mt-1">Total unique</p>
               </div>
-              <Clock className="h-8 w-8 text-orange-500" />
+              <Users className="h-8 w-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Engagement Method Breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">QR Code Usage</p>
+                <p className="text-xl font-bold text-blue-600">{metrics.qrCodeUsage || 0}</p>
+              </div>
+              <QrCode className="h-6 w-6 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Phone Usage</p>
+                <p className="text-xl font-bold text-green-600">{metrics.phoneUsage || 0}</p>
+              </div>
+              <Phone className="h-6 w-6 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Email Usage</p>
+                <p className="text-xl font-bold text-purple-600">{metrics.emailUsage || 0}</p>
+              </div>
+              <Share2 className="h-6 w-6 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">WhatsApp Usage</p>
+                <p className="text-xl font-bold text-green-600">{metrics.whatsappUsage || 0}</p>
+              </div>
+              <Smartphone className="h-6 w-6 text-green-500" />
             </div>
           </CardContent>
         </Card>
@@ -1055,76 +1025,43 @@ function VisitorEngagementAnalytics({ metrics, loading, refreshData, webhookStat
           </CardContent>
         </Card>
 
-        {/* Visitor Segmentation */}
+        {/* Activity Timeline */}
         <Card>
           <CardHeader>
-            <CardTitle>Visitor Segmentation</CardTitle>
-            <CardDescription>Visitor behavior patterns & categories - Real data</CardDescription>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>Latest engagement interactions - Real data</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {metrics.visitorSegmentation && metrics.visitorSegmentation.length > 0 ? (
-                metrics.visitorSegmentation.map((segment: any, index: number) => (
+              {metrics.recentEngagements && metrics.recentEngagements.length > 0 ? (
+                metrics.recentEngagements.map((engagement: any, index: number) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center space-x-3">
-                      <Users className="w-5 h-5 text-gray-500" />
-                      <span className="font-medium">{segment.type}</span>
+                      <Target className="w-4 h-4 text-purple-500" />
+                      <div>
+                        <div className="font-medium text-gray-900">
+                          {engagement.engagement_method}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {engagement.engagement_data?.method || 'Method Analysis'}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-gray-900">{segment.count}</div>
-                      <div className="text-sm text-gray-500">{segment.percentage}%</div>
+                    <div className="text-sm text-gray-500">
+                      {formatTime(engagement.engagement_timestamp || engagement.created_at)}
                     </div>
                   </div>
                 ))
               ) : (
                 <div className="text-center py-4 text-gray-500">
-                  <Users className="mx-auto h-6 w-6 mb-2" />
-                  <p>No visitor segmentation data available</p>
+                  <Activity className="mx-auto h-6 w-6 mb-2" />
+                  <p>No recent activity available</p>
                 </div>
               )}
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Recent Engagement Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Engagement Activity</CardTitle>
-          <CardDescription>Latest visitor engagement interactions - Real data</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {metrics.recentEngagements && metrics.recentEngagements.length > 0 ? (
-            <div className="space-y-3">
-              {metrics.recentEngagements.map((engagement: any, index: number) => (
-                <div key={index} className="flex items-center justify-between py-3 border-b last:border-b-0">
-                  <div className="flex items-center space-x-3">
-                    <Target className="w-4 h-4 text-purple-500" />
-                    <div>
-                      <div className="font-medium text-gray-900">
-                        {engagement.engagement_method || 'Engagement Activity'}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {engagement.engagement_data?.visitor || 'Anonymous Visitor'} • 
-                        {engagement.engagement_type || 'General'}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    {formatTime(engagement.engagement_timestamp || engagement.created_at)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-500">
-              <Target className="mx-auto h-8 w-8 mb-2" />
-              <p>No recent engagement activity</p>
-              <p className="text-sm">Engagement interactions will appear here</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 }
