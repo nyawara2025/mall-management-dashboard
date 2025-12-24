@@ -750,21 +750,7 @@ class MallApiServiceClass implements MallApiServiceInterface {
           updated_at: mall.updated_at
         }));
       } 
-      // Fallback: Handle {success: true, data: {malls: []}} format (N8N management/malls webhook)
-      else if (result.success && result.data && result.data.malls && Array.isArray(result.data.malls)) {
-        mallData = result.data.malls.map((mall: any) => ({
-          id: mall.mall_id || mall.id,
-          name: mall.mall_name || mall.name,
-          latitude: mall.latitude,
-          longitude: mall.longitude,
-          address: mall.mall_address || mall.address,
-          radius_meters: mall.radius_meters || 1000,
-          active: mall.active !== false,
-          created_at: mall.created_at,
-          updated_at: mall.updated_at
-        }));
-      }
-      // Alternative fallback: Handle {success: true, data: []} format
+      // Fallback: Handle {success: true, data: []} format
       else if (result.success && result.data && Array.isArray(result.data)) {
         mallData = result.data.map((mall: any) => ({
           id: mall.mall_id || mall.id,

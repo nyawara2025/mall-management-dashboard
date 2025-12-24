@@ -726,173 +726,45 @@ function CampaignAnalytics({
         </Card>
       </div>
 
-      {/* Multi-Platform Campaign Performance */}
+      {/* Campaign Performance */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <span>🎯</span>
-            <span>Multi-Platform Campaign Performance</span>
-            <Badge variant="secondary" className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-blue-200">
-              Live Data
-            </Badge>
-          </CardTitle>
-          <CardDescription>Campaign performance across all engagement platforms - Real backend data</CardDescription>
+          <CardTitle>Campaign Performance</CardTitle>
+          <CardDescription>How your campaigns are performing - Real data from backend</CardDescription>
         </CardHeader>
         <CardContent>
           {analytics.campaignPerformance && analytics.campaignPerformance.length > 0 ? (
             <div className="space-y-4">
-              {analytics.campaignPerformance.map((campaign: any, index: number) => {
-                // Enhanced platform detection for campaign names
-                const getPlatformConfig = (campaignName: string, campaignType: string) => {
-                  const name = (campaignName + ' ' + campaignType).toLowerCase();
-                  if (name.includes('whatsapp') || name.includes('wa') || name.includes('whats')) {
-                    return { 
-                      icon: '📱', 
-                      color: 'bg-green-100 border-green-200', 
-                      iconBg: 'bg-green-500',
-                      textColor: 'text-green-700',
-                      name: 'WhatsApp',
-                      badgeColor: 'bg-green-50 text-green-700 border-green-200'
-                    };
-                  } else if (name.includes('qr') || name.includes('scan') || name.includes('qr-code')) {
-                    return { 
-                      icon: '🔍', 
-                      color: 'bg-blue-100 border-blue-200', 
-                      iconBg: 'bg-blue-500',
-                      textColor: 'text-blue-700',
-                      name: 'QR Code',
-                      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200'
-                    };
-                  } else if (name.includes('instagram') || name.includes('ig') || name.includes('insta')) {
-                    return { 
-                      icon: '📸', 
-                      color: 'bg-pink-100 border-pink-200', 
-                      iconBg: 'bg-pink-500',
-                      textColor: 'text-pink-700',
-                      name: 'Instagram',
-                      badgeColor: 'bg-pink-50 text-pink-700 border-pink-200'
-                    };
-                  } else if (name.includes('facebook') || name.includes('fb') || name.includes('messenger')) {
-                    return { 
-                      icon: '👍', 
-                      color: 'bg-blue-100 border-blue-200', 
-                      iconBg: 'bg-blue-600',
-                      textColor: 'text-blue-700',
-                      name: 'Facebook',
-                      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200'
-                    };
-                  } else if (name.includes('telegram') || name.includes('tele')) {
-                    return { 
-                      icon: '✈️', 
-                      color: 'bg-cyan-100 border-cyan-200', 
-                      iconBg: 'bg-cyan-500',
-                      textColor: 'text-cyan-700',
-                      name: 'Telegram',
-                      badgeColor: 'bg-cyan-50 text-cyan-700 border-cyan-200'
-                    };
-                  } else if (name.includes('tiktok') || name.includes('tik')) {
-                    return { 
-                      icon: '🎵', 
-                      color: 'bg-black bg-opacity-10 border-gray-200', 
-                      iconBg: 'bg-black',
-                      textColor: 'text-gray-700',
-                      name: 'TikTok',
-                      badgeColor: 'bg-gray-50 text-gray-700 border-gray-200'
-                    };
-                  } else {
-                    return { 
-                      icon: '🌐', 
-                      color: 'bg-gray-100 border-gray-200', 
-                      iconBg: 'bg-gray-500',
-                      textColor: 'text-gray-700',
-                      name: 'Multi-Platform',
-                      badgeColor: 'bg-gray-50 text-gray-700 border-gray-200'
-                    };
-                  }
-                };
-
-                const platform = getPlatformConfig(campaign.name, campaign.type);
-                
-                return (
-                  <div key={index} className={`border-2 rounded-lg p-4 ${platform.color}`}>
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-12 h-12 ${platform.iconBg} rounded-full flex items-center justify-center text-white text-xl`}>
-                          {platform.icon}
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-gray-900 text-lg">{campaign.name}</h4>
-                          <div className="flex items-center space-x-2 mt-1">
-                            <Badge variant="outline" className={platform.badgeColor}>
-                              {platform.name}
-                            </Badge>
-                            <span className="text-sm text-gray-500">•</span>
-                            <span className="text-sm text-gray-600">{campaign.type}</span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Badge variant={Math.min(campaign.engagementRate || 0, 100) > 70 ? 'default' : 'secondary'} className="mb-1">
-                          {Math.min(campaign.engagementRate || 0, 100)}% engagement
-                        </Badge>
-                        {campaign.engagementRate > 100 && (
-                          <div className="text-xs text-amber-600">⚠️ Capped at 100%</div>
-                        )}
-                      </div>
+              {analytics.campaignPerformance.map((campaign: any, index: number) => (
+                <div key={index} className="border rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h4 className="font-semibold text-gray-900">{campaign.name}</h4>
+                      <p className="text-sm text-gray-500">{campaign.type}</p>
                     </div>
-                    
-                    <div className="grid grid-cols-3 gap-4 text-sm">
-                      <div className="text-center p-3 bg-white bg-opacity-50 rounded-lg">
-                        <div className="text-gray-500 text-xs uppercase tracking-wide">Total Scans</div>
-                        <div className="font-bold text-lg text-blue-600">{campaign.scans || 0}</div>
-                      </div>
-                      <div className="text-center p-3 bg-white bg-opacity-50 rounded-lg">
-                        <div className="text-gray-500 text-xs uppercase tracking-wide">Claims/Inquiries</div>
-                        <div className="font-bold text-lg text-green-600">{campaign.claims || 0}</div>
-                      </div>
-                      <div className="text-center p-3 bg-white bg-opacity-50 rounded-lg">
-                        <div className="text-gray-500 text-xs uppercase tracking-wide">Conversion Rate</div>
-                        <div className="font-bold text-lg text-purple-600">
-                          {campaign.scans > 0 ? Math.round(((campaign.claims || 0) / campaign.scans) * 100) : 0}%
-                        </div>
-                      </div>
+                    <Badge variant={Math.min(campaign.engagementRate || 0, 100) > 70 ? 'default' : 'secondary'}>
+                      {Math.min(campaign.engagementRate || 0, 100)}% engagement
+                    </Badge>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="text-gray-500">Scans</div>
+                      <div className="font-semibold text-lg text-blue-600">{campaign.scans}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-500">Claims</div>
+                      <div className="font-semibold text-lg text-green-600">{campaign.claims}</div>
                     </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
-              <BarChart3 className="mx-auto h-12 w-12 mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Multi-Platform Campaign Data</h3>
-              <p className="text-gray-600 mb-4">Your campaigns across all platforms will appear here:</p>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 max-w-lg mx-auto">
-                <div className="flex items-center space-x-2 bg-green-50 p-2 rounded-lg">
-                  <span className="text-lg">📱</span>
-                  <span className="text-sm font-medium text-green-700">WhatsApp</span>
-                </div>
-                <div className="flex items-center space-x-2 bg-blue-50 p-2 rounded-lg">
-                  <span className="text-lg">🔍</span>
-                  <span className="text-sm font-medium text-blue-700">QR Code</span>
-                </div>
-                <div className="flex items-center space-x-2 bg-pink-50 p-2 rounded-lg">
-                  <span className="text-lg">📸</span>
-                  <span className="text-sm font-medium text-pink-700">Instagram</span>
-                </div>
-                <div className="flex items-center space-x-2 bg-blue-50 p-2 rounded-lg">
-                  <span className="text-lg">👍</span>
-                  <span className="text-sm font-medium text-blue-700">Facebook</span>
-                </div>
-                <div className="flex items-center space-x-2 bg-cyan-50 p-2 rounded-lg">
-                  <span className="text-lg">✈️</span>
-                  <span className="text-sm font-medium text-cyan-700">Telegram</span>
-                </div>
-                <div className="flex items-center space-x-2 bg-gray-50 p-2 rounded-lg">
-                  <span className="text-lg">🎵</span>
-                  <span className="text-sm font-medium text-gray-700">TikTok</span>
-                </div>
-              </div>
-              <p className="text-sm text-gray-500 mt-4">Real-time data from your N8N webhook will populate this section</p>
+              <BarChart3 className="mx-auto h-8 w-8 mb-2" />
+              <p>No campaign data available</p>
+              <p className="text-sm">Campaign analytics will appear here when data is available</p>
             </div>
           )}
         </CardContent>
@@ -1085,83 +957,6 @@ function VisitorEngagementAnalytics({ metrics, loading, refreshData, webhookStat
         </Button>
       </div>
 
-      {/* Multi-Platform Overview Summary */}
-      <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <span>🌐</span>
-            <span>Multi-Platform Engagement Summary</span>
-            <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
-              Real-time Data
-            </Badge>
-          </CardTitle>
-          <CardDescription>Combined analytics across all your engagement platforms</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {/* Active Platforms Count */}
-            <div className="text-center">
-              <div className="text-3xl font-bold text-purple-600 mb-1">
-                {metrics.topEngagementMethods?.length || 0}
-              </div>
-              <div className="text-sm text-gray-600">Active Platforms</div>
-              <div className="text-xs text-gray-500 mt-1">
-                {metrics.topEngagementMethods?.length > 0 ? 'Multi-channel active' : 'Single platform'}
-              </div>
-            </div>
-            
-            {/* Total Engagements */}
-            <div className="text-center">
-              <div className="text-3xl font-bold text-blue-600 mb-1">
-                {metrics.totalEngagements || 0}
-              </div>
-              <div className="text-sm text-gray-600">Total Interactions</div>
-              <div className="text-xs text-gray-500 mt-1">Across all channels</div>
-            </div>
-            
-            {/* Engagement Rate */}
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-600 mb-1">
-                {calculateEngagementRate(metrics)}%
-              </div>
-              <div className="text-sm text-gray-600">Avg. Engagement</div>
-              <div className="text-xs text-gray-500 mt-1">Conversion rate</div>
-            </div>
-            
-            {/* Top Platform */}
-            <div className="text-center">
-              <div className="text-3xl font-bold text-orange-600 mb-1">
-                {(() => {
-                  if (!metrics.topEngagementMethods || metrics.topEngagementMethods.length === 0) return 'N/A';
-                  const topMethod = metrics.topEngagementMethods[0];
-                  if (topMethod.method.toLowerCase().includes('whatsapp')) return '📱';
-                  if (topMethod.method.toLowerCase().includes('qr') || topMethod.method.toLowerCase().includes('scan')) return '🔍';
-                  if (topMethod.method.toLowerCase().includes('instagram')) return '📸';
-                  if (topMethod.method.toLowerCase().includes('facebook')) return '👍';
-                  if (topMethod.method.toLowerCase().includes('telegram')) return '✈️';
-                  if (topMethod.method.toLowerCase().includes('tiktok')) return '🎵';
-                  return '🌐';
-                })()}
-              </div>
-              <div className="text-sm text-gray-600">Top Platform</div>
-              <div className="text-xs text-gray-500 mt-1">
-                {(() => {
-                  if (!metrics.topEngagementMethods || metrics.topEngagementMethods.length === 0) return 'No data';
-                  const topMethod = metrics.topEngagementMethods[0];
-                  if (topMethod.method.toLowerCase().includes('whatsapp')) return 'WhatsApp';
-                  if (topMethod.method.toLowerCase().includes('qr') || topMethod.method.toLowerCase().includes('scan')) return 'QR Code';
-                  if (topMethod.method.toLowerCase().includes('instagram')) return 'Instagram';
-                  if (topMethod.method.toLowerCase().includes('facebook')) return 'Facebook';
-                  if (topMethod.method.toLowerCase().includes('telegram')) return 'Telegram';
-                  if (topMethod.method.toLowerCase().includes('tiktok')) return 'TikTok';
-                  return 'Multi-Platform';
-                })()}
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Engagement KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
@@ -1304,63 +1099,26 @@ function VisitorEngagementAnalytics({ metrics, loading, refreshData, webhookStat
                   const percentage = metrics.totalEngagements > 0 ? (method.count / metrics.totalEngagements) * 100 : 0;
                   
                   return (
-                    <div key={index} className={`flex items-center justify-between p-4 rounded-lg border-2 hover:shadow-md transition-all duration-300 ${
-                      platform.name === 'WhatsApp' ? 'bg-green-50 border-green-200 hover:bg-green-100' :
-                      platform.name === 'QR Code' ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' :
-                      platform.name === 'Instagram' ? 'bg-pink-50 border-pink-200 hover:bg-pink-100' :
-                      platform.name === 'Facebook' ? 'bg-blue-50 border-blue-200 hover:bg-blue-100' :
-                      platform.name === 'Telegram' ? 'bg-cyan-50 border-cyan-200 hover:bg-cyan-100' :
-                      platform.name === 'TikTok' ? 'bg-gray-50 border-gray-200 hover:bg-gray-100' :
-                      'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                    }`}>
-                      <div className="flex items-center space-x-4">
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-xl ${
-                          platform.name === 'WhatsApp' ? 'bg-green-500 text-white' :
-                          platform.name === 'QR Code' ? 'bg-blue-500 text-white' :
-                          platform.name === 'Instagram' ? 'bg-pink-500 text-white' :
-                          platform.name === 'Facebook' ? 'bg-blue-600 text-white' :
-                          platform.name === 'Telegram' ? 'bg-cyan-500 text-white' :
-                          platform.name === 'TikTok' ? 'bg-black text-white' :
-                          'bg-gray-500 text-white'
-                        }`}>
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-10 h-10 ${platform.color} rounded-full flex items-center justify-center text-lg`}>
                           {platform.icon}
                         </div>
                         <div>
-                          <div className="flex items-center space-x-2">
-                            <span className="font-bold text-gray-900 text-lg">{platform.name}</span>
-                            <Badge variant="outline" className={`text-xs ${
-                              platform.name === 'WhatsApp' ? 'border-green-300 text-green-700' :
-                              platform.name === 'QR Code' ? 'border-blue-300 text-blue-700' :
-                              platform.name === 'Instagram' ? 'border-pink-300 text-pink-700' :
-                              platform.name === 'Facebook' ? 'border-blue-300 text-blue-700' :
-                              platform.name === 'Telegram' ? 'border-cyan-300 text-cyan-700' :
-                              platform.name === 'TikTok' ? 'border-gray-300 text-gray-700' :
-                              'border-gray-300 text-gray-700'
-                            }`}>
-                              #{index + 1}
-                            </Badge>
-                          </div>
-                          <div className="text-sm text-gray-600 mt-1">{method.method}</div>
+                          <span className="font-semibold text-gray-900">{platform.name}</span>
+                          <div className="text-xs text-gray-500">{method.method}</div>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-4">
-                        <div className="w-24 bg-gray-200 rounded-full h-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-20 bg-gray-200 rounded-full h-2">
                           <div 
-                            className={`h-3 rounded-full transition-all duration-500 ${
-                              platform.name === 'WhatsApp' ? 'bg-green-500' :
-                              platform.name === 'QR Code' ? 'bg-blue-500' :
-                              platform.name === 'Instagram' ? 'bg-pink-500' :
-                              platform.name === 'Facebook' ? 'bg-blue-600' :
-                              platform.name === 'Telegram' ? 'bg-cyan-500' :
-                              platform.name === 'TikTok' ? 'bg-black' :
-                              'bg-gray-500'
-                            }`}
-                            style={{ width: `${Math.max(percentage, 5)}%` }}
+                            className={`${platform.barColor} h-2 rounded-full transition-all duration-300`}
+                            style={{ width: `${percentage}%` }}
                           ></div>
                         </div>
-                        <div className="text-right min-w-[80px]">
-                          <div className="font-bold text-xl text-gray-900">{method.count}</div>
-                          <div className="text-sm text-gray-600">{percentage.toFixed(1)}%</div>
+                        <div className="text-right min-w-[60px]">
+                          <div className="font-bold text-gray-900">{method.count}</div>
+                          <div className="text-xs text-gray-500">{percentage.toFixed(1)}%</div>
                         </div>
                       </div>
                     </div>
