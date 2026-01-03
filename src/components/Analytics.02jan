@@ -47,8 +47,9 @@ export default function Analytics() {
   const [engagementMetrics, setEngagementMetrics] = useState<any>(null);
   const [engagementWebhookStatus, setEngagementWebhookStatus] = useState<'loading' | 'success' | 'error'>('loading');
 
-  // 🔒 Calculate Engagement Rate Function - COMPLETELY REWRITTEN
+  // 🔒 Calculate Engagement Rate Function - CORRECTED
   const calculateEngagementRate = (metrics: any) => {
+    // CORRECTED: Use claims/scans ratio, not engagements/visitors
     const totalClaims = metrics?.totalClaims || 0;
     const totalScans = metrics?.totalScans || 0;
     const totalEngagements = metrics?.totalEngagements || 0;
@@ -57,144 +58,116 @@ export default function Analytics() {
     
     let calculatedRate = 0;
     
-    // PRIMARY: Use claims rate (claims ÷ scans) if both exist
     if (totalScans > 0 && totalClaims > 0) {
+      // PRIMARY: Use claims rate (claims ÷ scans) - most accurate
       calculatedRate = Math.round((totalClaims / totalScans) * 100);
-      console.log('📊 PRIMARY formula (claims/scans):', { totalClaims, totalScans, calculatedRate });
-    } 
-    // SECONDARY: Use engagement rate (engagements ÷ scans)
-    else if (totalScans > 0 && totalEngagements > 0) {
+      console.log('📊 Using PRIMARY formula (claims/scans):', {
+        totalClaims,
+        totalScans,
+        calculatedRate,
+        formula: '(Total Claims / Total Scans) × 100'
+      });
+    } else if (totalEngagements > 0 && totalScans > 0) {
+      // SECONDARY: Use engagement rate (engagements ÷ scans)
       calculatedRate = Math.round((totalEngagements / totalScans) * 100);
-      console.log('📊 SECONDARY formula (engagements/scans):', { totalEngagements, totalScans, calculatedRate });
-    }
-    // TERTIARY: Use visitor engagement ratio
-    else if (uniqueVisitors > 0 && activeVisitors > 0) {
+      console.log('📊 Using SECONDARY formula (engagements/scans):', {
+        totalEngagements,
+        totalScans,
+        calculatedRate,
+        formula: '(Total Engagements / Total Scans) × 100'
+      });
+    } else if (activeVisitors > 0 && uniqueVisitors > 0) {
+      // TERTIARY: Use active visitor ratio
       calculatedRate = Math.round((activeVisitors / uniqueVisitors) * 100);
-      console.log('📊 TERTIARY formula (active/total visitors):', { activeVisitors, uniqueVisitors, calculatedRate });
-    }
-    // QUATERNARY: Use simple engagement count as percentage (cap at 99%)
-    else if (totalEngagements > 0) {
-      // If we have engagements but no baseline, use a default baseline for realistic estimation
-      const estimatedBaseline = Math.max(uniqueVisitors * 2, 10);
-      calculatedRate = Math.round(Math.min((totalEngagements / estimatedBaseline) * 100, 99));
-      console.log('📊 QUATERNARY formula (engagements/estimated baseline):', { totalEngagements, estimatedBaseline, calculatedRate });
+      console.log('📊 Using TERTIARY formula (active/total visitors):', {
+        activeVisitors,
+        uniqueVisitors,
+        calculatedRate,
+        formula: '(Active Visitors / Total Visitors) × 100'
+      });
     }
     
-    console.log('📊 Final Engagement Rate:', { totalClaims, totalScans, totalEngagements, uniqueVisitors, activeVisitors, calculatedRate });
+    // Log the calculation for debugging
+    console.log('📊 Engagement Rate Calculation - CORRECTED:', {
+      totalClaims,
+      totalScans,
+      totalEngagements,
+      uniqueVisitors,
+      activeVisitors,
+      calculatedRate,
+      timestamp: new Date().toISOString()
+    });
     
-    return Math.min(calculatedRate, 100);
+    // Cap at 100% for realistic data
+    const finalRate = Math.min(calculatedRate, 100);
+    
+    if (finalRate !== calculatedRate) {
+      console.log('🔒 Capped engagement rate to 100%:', finalRate);
+    }
+    
+    return finalRate;
   };
 
-  // 🔒 Calculate Active Visitors for last 2 hours - ENHANCED
+  // 🔒 Calculate Active Visitors for last 2 hours
   const calculateActiveVisitors = (metrics: any) => {
-    // Try multiple data sources for visitor check-ins
-    const checkinSources = [
-      metrics?.visitorCheckins,
-      metrics?.recentCheckins,
-      metrics?.recentEngagements,
-      metrics?.engagements,
-      metrics?.checkins
-    ];
-    
-    let checkins: any[] = [];
-    for (const source of checkinSources) {
-      if (source && Array.isArray(source) && source.length > 0) {
-        checkins = source;
-        console.log('📊 Found check-ins from source:', Object.keys(metrics).find(key => metrics[key] === source));
-        break;
-      }
-    }
-    
-    if (checkins.length === 0) {
-      console.log('📊 No check-in data found, returning 0 active visitors');
-      return 0;
-    }
+    if (!metrics?.visitorCheckins) return 0;
     
     const now = new Date();
     const twoHoursAgo = new Date(now.getTime() - (2 * 60 * 60 * 1000));
     
-    const recentCheckins = checkins.filter((checkin: any) => {
-      const timestamp = checkin.created_at || checkin.engagement_timestamp || checkin.timestamp || checkin.checkin_time;
-      if (!timestamp) return false;
-      const checkinTime = new Date(timestamp);
-      return !isNaN(checkinTime.getTime()) && checkinTime >= twoHoursAgo;
+    const recentCheckins = metrics.visitorCheckins.filter((checkin: any) => {
+      const checkinTime = new Date(checkin.created_at || checkin.checkin_time);
+      return checkinTime >= twoHoursAgo;
     });
     
-    // Get unique visitors from recent check-ins using multiple identifiers
+    // Get unique visitors from recent check-ins
     const uniqueRecentVisitors = new Set(recentCheckins.map((checkin: any) => 
-      checkin.visitor_phone || checkin.visitor_id || checkin.session_id || checkin.id || JSON.stringify(checkin)
+      checkin.visitor_phone || checkin.visitor_id
     ));
     
     console.log('📊 Active Visitors Calculation:', {
-      totalCheckins: checkins.length,
+      totalCheckins: metrics.visitorCheckins?.length || 0,
       recentCheckins: recentCheckins.length,
       uniqueRecentVisitors: uniqueRecentVisitors.size,
       timeframe: 'Last 2 hours',
-      sourcesChecked: checkinSources.map(s => s ? 'found' : 'empty')
+      timestamp: new Date().toISOString()
     });
     
-    return uniqueRecentVisitors.size || recentCheckins.length; // Fallback to recent count if no unique identifiers
+    return uniqueRecentVisitors.size;
   };
 
-  // 🔒 Generate Visitor Segmentation from Available Data
-  const generateVisitorSegmentation = (metrics: any) => {
-    // If backend sends segmentation data, use it
-    if (metrics?.visitorSegmentation && metrics.visitorSegmentation.length > 0) {
-      return metrics.visitorSegmentation;
-    }
-    
-    // Otherwise, generate from engagement methods
-    const methods = metrics?.topEngagementMethods || metrics?.engagementMethods || [];
-    const totalEngagements = metrics?.totalEngagements || 0;
-    
-    if (methods.length === 0 && totalEngagements === 0) {
-      return [];
-    }
-    
-    // Generate segmentation from channel data
-    const segmentation = methods.map((method: any) => ({
-      type: method.method || method.channel || 'Unknown',
-      count: method.count || 0,
-      percentage: totalEngagements > 0 ? Math.round((method.count / totalEngagements) * 100) : 0
-    }));
-    
-    // If no methods but have engagements, create basic segmentation
-    if (segmentation.length === 0 && totalEngagements > 0) {
-      segmentation.push({
-        type: 'All Engagements',
-        count: totalEngagements,
-        percentage: 100
-      });
-    }
-    
-    console.log('📊 Generated segmentation:', segmentation);
-    return segmentation;
-  };
-
-  // 🔒 Calculate Channel Totals from Available Data
+  // 🔒 Calculate Channel Totals from Methods
   const calculateChannelTotals = (metrics: any) => {
-    // If backend sends channel totals, use it
-    if (metrics?.channelTotals && Object.keys(metrics.channelTotals).length > 0) {
-      return metrics.channelTotals;
+    const methods = metrics?.topEngagementMethods || [];
+    
+    // Calculate total from all channel methods
+    const totalFromMethods = methods.reduce((sum: number, method: any) => sum + (method.count || 0), 0);
+    
+    // If total engagements doesn't match methods sum, adjust methods
+    const expectedTotal = metrics?.totalEngagements || 0;
+    
+    if (totalFromMethods !== expectedTotal && expectedTotal > 0) {
+      console.warn('📊 Channel total mismatch:', {
+        expectedTotal,
+        totalFromMethods,
+        methods: methods.map((m: any) => ({ method: m.method, count: m.count }))
+      });
+      
+      // Adjust the largest method to match expected total
+      if (methods.length > 0) {
+        const largestMethodIndex = methods.reduce((maxIdx: number, method: any, idx: number) => 
+          (method.count || 0) > (methods[maxIdx]?.count || 0) ? idx : maxIdx, 0
+        );
+        
+        methods[largestMethodIndex].count = expectedTotal - (totalFromMethods - methods[largestMethodIndex].count);
+      }
     }
     
-    // Otherwise, calculate from engagement methods
-    const methods = metrics?.topEngagementMethods || metrics?.engagementMethods || [];
-    const totalEngagements = metrics?.totalEngagements || 0;
-    
-    if (methods.length === 0 && totalEngagements === 0) {
-      return {};
-    }
-    
-    // Calculate channel totals from method data
-    const channelTotals: Record<string, number> = {};
-    methods.forEach((method: any) => {
-      const channelName = method.method || method.channel || 'Unknown';
-      channelTotals[channelName] = (channelTotals[channelName] || 0) + (method.count || 0);
-    });
-    
-    console.log('📊 Calculated channel totals:', channelTotals);
-    return channelTotals;
+    return {
+      totalFromMethods,
+      adjustedMethods: methods,
+      expectedTotal
+    };
   };
 
   // Auto-refresh interval for QR analytics
@@ -888,7 +861,7 @@ function CampaignAnalytics({
                       <div className="text-center p-3 bg-white bg-opacity-50 rounded-lg">
                         <div className="text-gray-500 text-xs uppercase tracking-wide">Conversion Rate</div>
                         <div className="font-bold text-lg text-purple-600">
-                          {campaign.scans > 0 ? Math.min(Math.round(((campaign.claims || 0) / campaign.scans) * 100), 100) : 0}%
+                          {campaign.scans > 0 ? Math.round(((campaign.claims || 0) / campaign.scans) * 100) : 0}%
                         </div>
                       </div>
                     </div>
@@ -1050,11 +1023,11 @@ function QRAnalytics({ qrAnalytics, refreshing, fetchQRAnalytics, webhookStatus 
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold text-blue-600">{Math.min(zone.percentage, 100)}%</div>
+                    <div className="font-semibold text-blue-600">{zone.percentage}%</div>
                     <div className="w-16 h-2 bg-gray-200 rounded mt-1">
                       <div 
                         className="h-2 bg-blue-500 rounded" 
-                        style={{ width: `${Math.min(zone.percentage, 100)}%` }}
+                        style={{ width: `${zone.percentage}%` }}
                       ></div>
                     </div>
                   </div>
@@ -1395,7 +1368,7 @@ function VisitorEngagementAnalytics({ metrics, loading, refreshData, webhookStat
                         </div>
                         <div className="text-right min-w-[80px]">
                           <div className="font-bold text-xl text-gray-900">{method.count}</div>
-                          <div className="text-sm text-gray-600">{Math.min(percentage, 100).toFixed(1)}%</div>
+                          <div className="text-sm text-gray-600">{percentage.toFixed(1)}%</div>
                         </div>
                       </div>
                     </div>
@@ -1434,7 +1407,7 @@ function VisitorEngagementAnalytics({ metrics, loading, refreshData, webhookStat
                     </div>
                     <div className="text-right">
                       <div className="font-semibold text-gray-900">{segment.count}</div>
-                      <div className="text-sm text-gray-500">{Math.min(segment.percentage, 100)}%</div>
+                      <div className="text-sm text-gray-500">{segment.percentage}%</div>
                     </div>
                   </div>
                 ))

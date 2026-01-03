@@ -888,7 +888,7 @@ function CampaignAnalytics({
                       <div className="text-center p-3 bg-white bg-opacity-50 rounded-lg">
                         <div className="text-gray-500 text-xs uppercase tracking-wide">Conversion Rate</div>
                         <div className="font-bold text-lg text-purple-600">
-                          {campaign.scans > 0 ? Math.min(Math.round(((campaign.claims || 0) / campaign.scans) * 100), 100) : 0}%
+                          {campaign.scans > 0 ? Math.round(((campaign.claims || 0) / campaign.scans) * 100) : 0}%
                         </div>
                       </div>
                     </div>
@@ -1050,11 +1050,11 @@ function QRAnalytics({ qrAnalytics, refreshing, fetchQRAnalytics, webhookStatus 
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold text-blue-600">{Math.min(zone.percentage, 100)}%</div>
+                    <div className="font-semibold text-blue-600">{zone.percentage}%</div>
                     <div className="w-16 h-2 bg-gray-200 rounded mt-1">
                       <div 
                         className="h-2 bg-blue-500 rounded" 
-                        style={{ width: `${Math.min(zone.percentage, 100)}%` }}
+                        style={{ width: `${zone.percentage}%` }}
                       ></div>
                     </div>
                   </div>
@@ -1395,7 +1395,7 @@ function VisitorEngagementAnalytics({ metrics, loading, refreshData, webhookStat
                         </div>
                         <div className="text-right min-w-[80px]">
                           <div className="font-bold text-xl text-gray-900">{method.count}</div>
-                          <div className="text-sm text-gray-600">{Math.min(percentage, 100).toFixed(1)}%</div>
+                          <div className="text-sm text-gray-600">{percentage.toFixed(1)}%</div>
                         </div>
                       </div>
                     </div>
@@ -1434,7 +1434,7 @@ function VisitorEngagementAnalytics({ metrics, loading, refreshData, webhookStat
                     </div>
                     <div className="text-right">
                       <div className="font-semibold text-gray-900">{segment.count}</div>
-                      <div className="text-sm text-gray-500">{Math.min(segment.percentage, 100)}%</div>
+                      <div className="text-sm text-gray-500">{segment.percentage}%</div>
                     </div>
                   </div>
                 ))
