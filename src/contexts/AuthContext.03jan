@@ -91,9 +91,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const warningTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
 
   // Session timeout configuration (in milliseconds)
-  // Extended to 24 hours for better user experience - can be adjusted as needed
-  const SESSION_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours
-  const WARNING_TIME = 5 * 60 * 1000; // 5 minutes before timeout (less intrusive)
+  const SESSION_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours
+  const WARNING_TIME = 2 * 60 * 1000; // 2 minutes before timeout
 
   // Reset session timeout
   const resetSessionTimeout = React.useCallback(() => {
@@ -105,17 +104,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
       clearTimeout(warningTimeoutRef.current);
     }
 
-    // Set session timeout - logout after 24 hours of inactivity
+    // Set session timeout
     sessionTimeoutRef.current = setTimeout(() => {
       logout();
-      // Use console log instead of alert - less intrusive
-      console.log('Session expired after 24 hours of inactivity');
+      alert('Your session has expired. Please log in again.');
     }, SESSION_TIMEOUT);
 
-    // Set warning timeout - show console message instead of blocking dialog
+    // Set warning timeout - FIXED: Better user experience with logout option
     warningTimeoutRef.current = setTimeout(() => {
-      console.log('Session will expire in 5 minutes due to inactivity');
-      // Optional: Could show a subtle toast notification here if toast library is available
+      const shouldExtend = window.confirm(
+        'Your session will expire in 2 minutes.\n\nOK = Extend session\nCancel = Logout now'
+      );
+      if (shouldExtend) {
+        resetSessionTimeout();
+      } else {
+        // Auto-logout if user cancels the prompt
+        logout();
+      }
     }, SESSION_TIMEOUT - WARNING_TIME);
   }, []);
 
@@ -138,11 +143,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     dispatch({ type: 'LOGOUT' });
 
     // Redirect to login
-    console.log('🔄 [AuthContext] Session ended, redirecting to login...');
-    // Use a small delay to allow state to update before redirect
-    setTimeout(() => {
-      window.location.href = '/login';
-    }, 100);
+    window.location.href = '/login';
   }, []);
 
   // Manual logout with confirmation
@@ -158,19 +159,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.log('🔄 [AuthContext] Initializing authentication...');
       const token = localStorage.getItem('geofence_auth_token');
       const userStr = localStorage.getItem('geofence_user_data');
-      const timestamp = localStorage.getItem('geofence_user_data_timestamp');
 
       console.log('🔄 [AuthContext] Found stored token:', !!token);
       console.log('🔄 [AuthContext] Found stored user:', !!userStr);
 
       if (token && userStr) {
         try {
-          // Check if session is still valid based on timestamp
-          const now = Date.now();
-          const sessionAge = timestamp ? now - parseInt(timestamp) : SESSION_TIMEOUT + 1;
-          
-          if (sessionAge < SESSION_TIMEOUT) {
-            console.log('🔄 [AuthContext] Session is valid, restoring...');
+          // Verify token is still valid
+          console.log('🔄 [AuthContext] Verifying token...');
+          const decoded = await AuthService.verifyToken(token);
+          if (decoded) {
+            console.log('🔄 [AuthContext] Token valid, parsing user data...');
             const user = JSON.parse(userStr);
             console.log('🔄 [AuthContext] User data:', user.username);
             
@@ -185,21 +184,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
             resetSessionTimeout();
             console.log('🔄 [AuthContext] Session initialization complete');
           } else {
-            console.log('🔄 [AuthContext] Session has expired, keeping user data for convenience...');
-            // Don't logout immediately - allow user to continue with existing session
-            // This prevents the annoying session expiry message
+            console.log('🔄 [AuthContext] Token invalid but keeping existing session for mall filtering...');
+            // Don't clear storage or dispatch AUTH_ERROR - preserve user data including mall info
           }
         } catch (error) {
-          console.log('🔄 [AuthContext] Session data preserved, allowing continued access:', error instanceof Error ? error.message : error);
-          // Don't clear storage - allow user to continue
+          console.log('🔄 [AuthContext] Parse error but preserving existing session for mall filtering:', error instanceof Error ? error.message : error);
+          // Don't clear storage - preserve user data including mall info even with parsing errors
         }
       } else {
         console.log('🔄 [AuthContext] No stored authentication data found - staying in initial state');
+        // Don't dispatch AUTH_ERROR - stay in initial state without clearing anything
       }
     };
 
     initializeAuth();
-  }, []);
+  }, []); // Remove resetSessionTimeout dependency to prevent potential loop
 
   // Login function
   const login = useCallback(async (username: string, password: string): Promise<{ success: boolean; error?: string }> => {
@@ -215,10 +214,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (result.success && result.token && result.user) {
         console.log('✅ [AuthContext] Login successful, storing auth data');
-        // Store in localStorage with timestamp
+        // Store in localStorage
         localStorage.setItem('geofence_auth_token', result.token);
         localStorage.setItem('geofence_user_data', JSON.stringify(result.user));
-        localStorage.setItem('geofence_user_data_timestamp', Date.now().toString());
         console.log('💾 [AuthContext] Data stored in localStorage');
 
         // Update state

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { SessionMonitor, SessionWarning } from './components/SessionMonitor';
 import { Dashboard } from './components/Dashboard';
 import CampaignManagement from './components/CampaignManagement';
 import CampaignTemplateManager from './components/CampaignTemplateManager';
@@ -73,7 +74,9 @@ function AppContent() {
 
   // Main app for authenticated users (ALL routes above handled PUBLIC routes)
   return (
-    <div className="App">
+    <SessionMonitor>
+      <SessionWarning />
+      <div className="App">
         <ProtectedRoute>
           <div className="min-h-screen bg-gray-50">
           {currentView === 'dashboard' && (
@@ -232,6 +235,7 @@ function AppContent() {
         </div>
       </ProtectedRoute>
     </div>
+    </SessionMonitor>
   );
 }
 
