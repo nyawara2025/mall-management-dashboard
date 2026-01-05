@@ -183,17 +183,11 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
     
     // Handle shop_staff role - LIMITED ACCESS (no payment-related screens, but can change password)
     if (user?.role === 'shop_staff') {
-      // Always allow these specific items regardless of their role property
-      // This overrides the role restriction check below
-      if (['Campaign Management', 'Visitor Engagement', 'Customer Inquiries'].includes(item.name)) {
-        return true;
-      }
-      
-      // First check: if item has specific role (other than allowed items above), exclude it
+      // First check: if item has specific role, exclude it
       if (item.role) return false;
       
-      // shop_staff can see: Dashboard, Analytics, Settings (no role restriction)
-      return ['Dashboard', 'Analytics', 'Settings'].includes(item.name);
+      // shop_staff can see: Dashboard, Campaigns, Analytics, Visitor Engagement, Customer Inquiries, Settings (password only)
+      return ['Dashboard', 'Campaign Management', 'Analytics', 'Visitor Engagement', 'Customer Inquiries', 'Settings'].includes(item.name);
     }
     
     console.log('❌ Default filtering out:', item.name);

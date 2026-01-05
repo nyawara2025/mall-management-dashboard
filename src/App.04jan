@@ -19,7 +19,6 @@ import PaymentReceiptMessaging from './components/PaymentReceiptMessaging';
 import { useAuth } from './contexts/AuthContext';
 import { LogOut, User } from 'lucide-react';
 import { CustomerInquiries } from './components/CustomerInquiries';
-import SettingsPage from './pages/SettingsPage';
 import './index.css';
 
 function AppContent() {
@@ -227,21 +226,6 @@ function AppContent() {
               />
               <div className="pt-16">
                 <CustomerInquiries />
-              </div>
-            </div>
-          )}
-          {currentView === 'settings' && (
-            <div className="min-h-screen">
-              <Header 
-                onBack={() => setCurrentView('dashboard')} 
-                title="Settings"
-                user={user}
-                onLogout={logout}
-                showUserMenu={showUserMenu}
-                setShowUserMenu={setShowUserMenu}
-              />
-              <div className="pt-16">
-                <SettingsPage />
               </div>
             </div>
           )}

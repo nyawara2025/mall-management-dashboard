@@ -4,7 +4,7 @@ import { RefreshCw, Search, Filter, Eye, Star, Users, Clock, Target } from 'luci
 interface User {
   id: number;
   username: string;
-  role: 'super_admin' | 'mall_admin' | 'shop_admin' | 'shop_staff';
+  role: 'super_admin' | 'mall_admin' | 'shop_admin';
   full_name: string;
   mall_id?: number | null;
   shop_id?: number | null;
@@ -90,22 +90,22 @@ export default function VisitorEngagementManager({ user }: VisitorEngagementMana
         
         // Process actual webhook response structure
         console.log('📊 Processing webhook data:', {
-          totalEngagements: data.totalEngagements,
-          engagementRate: data.engagementRate,
-          engagementMethods: data.topEngagementMethods?.length || 0
+          totalUsage: data.totalUsage,
+          totalPercentage: data.totalPercentage,
+          engagementMethods: data.engagementMethods?.length || 0
         });
         
         const transformedClaims: VisitorClaim[] = [];
         
         // Convert webhook engagement data to visitor claims
-        if (data.totalEngagements > 0) {
+        if (data.totalUsage > 0) {
           console.log('🔄 Creating claims from engagement data...');
           
           // Process engagement methods to create claims
-          data.topEngagementMethods?.forEach((method: any, methodIndex: number) => {
-            if (method.count > 0) {
+          data.engagementMethods?.forEach((method: any, methodIndex: number) => {
+            if (method.totalUsage > 0) {
               // Create claims based on usage data
-              const claimCount = Math.min(method.count, 5); // Limit to avoid overwhelming UI
+              const claimCount = Math.min(method.totalUsage, 3); // Limit to avoid overwhelming UI
               
               for (let i = 0; i < claimCount; i++) {
                 const claim: VisitorClaim = {
@@ -114,19 +114,19 @@ export default function VisitorEngagementManager({ user }: VisitorEngagementMana
                   visitor_type: i === 0 ? 'returning_visitor' : 'first_time_visitor',
                   campaign_id: 1, // Default campaign for engagement-based claims
                   campaign_name: `${method.method} Engagement`,
-                  claimed_at: data.processedAt || new Date().toISOString(),
+                  claimed_at: data.lastUpdated || new Date().toISOString(),
                   redeemed: i % 2 === 0, // Alternate between redeemed and not
                   redeemed_at: i % 2 === 0 ? new Date(Date.now() - (i + 0.5) * 60 * 60 * 1000).toISOString() : undefined,
                   mall_id: user?.mall_id || null,
                   shop_id: user?.shop_id || null,
                   location: `Zone ${['A', 'B', 'C', 'D'][i % 4]}`,
                   zone: `Zone ${['A', 'B', 'C', 'D'][i % 4]}`,
-                  engagement_score: Math.round((method.count / data.totalEngagements) * 100) || data.engagementRate || 0,
+                  engagement_score: method.percentage || data.totalPercentage || 0,
                   interactions: [
                     {
                       id: `int_${method.method}_${methodIndex}_${i}`,
                       type: method.method,
-                      timestamp: data.processedAt || new Date().toISOString(),
+                      timestamp: data.lastUpdated || new Date().toISOString(),
                       campaign_id: 1
                     }
                   ]

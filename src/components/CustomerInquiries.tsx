@@ -78,7 +78,7 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
   const fetchInquiries = async () => {
     if (!user) return;
     
-    if (user.role !== 'shop_admin' && user.role !== 'mall_admin' && user.role !== 'super_admin') {
+    if (user.role !== 'shop_admin' && user.role !== 'mall_admin' && user.role !== 'super_admin' && user.role !== 'shop_staff') {
       throw new Error('Access denied: Insufficient permissions');
     }
     

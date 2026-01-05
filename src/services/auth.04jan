@@ -5,7 +5,7 @@ interface UserRecord {
   id: number
   username: string
   full_name: string
-  role: 'super_admin' | 'mall_admin' | 'shop_admin' | 'shop_staff'
+  role: 'super_admin' | 'mall_admin' | 'shop_admin'
   mall_id: number | null
   shop_id: number | null
   shop_name?: string // Shop name for shop admins
@@ -235,7 +235,7 @@ function parseToken(tokenStr: string): UserRecord | null {
           id: parseInt(userId, 10),
           username: username,
           full_name: username, // Default full_name to username if not available
-          role: role as 'super_admin' | 'mall_admin' | 'shop_admin' | 'shop_staff', // Cast role to proper type
+          role: role as 'super_admin' | 'mall_admin' | 'shop_admin', // Cast role to proper type
           mall_id: parseInt(mallId, 10),
           shop_id: parseInt(shopId, 10),
           active: true, // Default active to true
@@ -518,25 +518,6 @@ function getCurrentUserMallAndShop(user: User | null): { mall_id: number, shop_i
       mall_id: userMallId || 3, 
       shop_id: userShopId || 3 
     }
-  } else if (userRole === 'shop_staff') {
-    // Shop staff should have the same access as shop_admin
-    // Use direct mall_id and shop_id from user data first
-    const userMallId = userData.mall_id || mallAccess[0]
-    const userShopId = userData.shop_id || shopAccess[0]
-    
-    // Log the shop staff data for debugging
-    console.log('🔑 Shop Staff User Data:', {
-      userData: userData,
-      mallAccess: mallAccess,
-      shopAccess: shopAccess,
-      resolvedMallId: userMallId,
-      resolvedShopId: userShopId
-    })
-    
-    return { 
-      mall_id: userMallId || 3, 
-      shop_id: userShopId || 3 
-    }
   }
   
   console.log('❓ Unknown role or user, using defaults')
@@ -769,7 +750,21 @@ class MallApiServiceClass implements MallApiServiceInterface {
           updated_at: mall.updated_at
         }));
       } 
-      // Fallback: Handle {success: true, data: []} format
+      // Fallback: Handle {success: true, data: {malls: []}} format (N8N management/malls webhook)
+      else if (result.success && result.data && result.data.malls && Array.isArray(result.data.malls)) {
+        mallData = result.data.malls.map((mall: any) => ({
+          id: mall.mall_id || mall.id,
+          name: mall.mall_name || mall.name,
+          latitude: mall.latitude,
+          longitude: mall.longitude,
+          address: mall.mall_address || mall.address,
+          radius_meters: mall.radius_meters || 1000,
+          active: mall.active !== false,
+          created_at: mall.created_at,
+          updated_at: mall.updated_at
+        }));
+      }
+      // Alternative fallback: Handle {success: true, data: []} format
       else if (result.success && result.data && Array.isArray(result.data)) {
         mallData = result.data.map((mall: any) => ({
           id: mall.mall_id || mall.id,

@@ -147,13 +147,6 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
       current: false,
       role: 'super_admin'
     },
-    {
-      name: 'Settings',
-      href: '#',
-      icon: Settings,
-      current: false,
-      role: 'super_admin'
-    },
   ];
 
   // Filter navigation based on user role
@@ -164,12 +157,7 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
       return !item.role || item.role === 'super_admin';
     }
     
-    // Handle mall_admin role
-    if (user?.role === 'mall_admin') {
-      return ['Dashboard', 'Analytics'].includes(item.name);
-    }
-    
-    // Handle shop_admin role - FULL ACCESS
+    // Handle shop_admin role - ALWAYS show Analytics, Customer Inquiries, and Settings
     if (user?.role === 'shop_admin') {
       // First check: if item has specific role, it must match
       if (item.role && item.role !== 'shop_admin') return false;
@@ -178,22 +166,12 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
       if (item.name === 'Analytics' || item.name === 'Customer Inquiries' || item.name === 'Settings') return true;
       
       // Other items must be in the allowed list
-      return ['Dashboard', 'Campaign Management', 'Payments', 'Payment Reception', 'Receipt Messaging', 'Visitor Engagement'].includes(item.name);
+      return ['Dashboard', 'Campaign Management', 'Payment Reception', 'Receipt Messaging', 'Visitor Engagement'].includes(item.name);
     }
     
-    // Handle shop_staff role - LIMITED ACCESS (no payment-related screens, but can change password)
-    if (user?.role === 'shop_staff') {
-      // Always allow these specific items regardless of their role property
-      // This overrides the role restriction check below
-      if (['Campaign Management', 'Visitor Engagement', 'Customer Inquiries'].includes(item.name)) {
-        return true;
-      }
-      
-      // First check: if item has specific role (other than allowed items above), exclude it
-      if (item.role) return false;
-      
-      // shop_staff can see: Dashboard, Analytics, Settings (no role restriction)
-      return ['Dashboard', 'Analytics', 'Settings'].includes(item.name);
+    // Handle mall_admin role
+    if (user?.role === 'mall_admin') {
+      return ['Dashboard', 'Analytics'].includes(item.name);
     }
     
     console.log('❌ Default filtering out:', item.name);
@@ -209,7 +187,7 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
         </div>
         <div>
           <h1 className="text-lg font-bold text-text-primary">
-            TeNEAR Space
+            Mall Management
           </h1>
           <p className="text-xs text-text-secondary">
             System Dashboard
