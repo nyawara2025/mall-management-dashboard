@@ -36,22 +36,24 @@ import RealTimeNotificationCenter from './RealTimeNotificationCenter';
 // Types for orders and payments
 interface OrderItem {
   id: number;
-  product_id?: number;
   product_name: string;
   quantity: number;
   unit_price: number;
-  subtotal: number;
+  total_price: number;
 }
 
 interface Order {
   id: number;
   shop_id: number;
+  shop_name: string;
   customer_phone: string;
   customer_name?: string;
-  status: string;
-  amount: number;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  total_amount: number;
   items: OrderItem[];
   created_at: string;
+  updated_at?: string;
+  payment_status: 'unpaid' | 'paid' | 'failed';
 }
 
 interface PaymentTransaction {
@@ -172,9 +174,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
       console.log('🎯 Dashboard: Orders API response:', data);
       
       if (data.success && data.data) {
-        // Ensure data.data is always an array
-        const ordersData = Array.isArray(data.data) ? data.data : [data.data];
-        setOrders(ordersData);
+        setOrders(data.data);
       } else {
         setOrders([]);
         setOrderError(data.error || 'Failed to load orders');
@@ -221,9 +221,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
       console.log('🎯 Dashboard: Payments API response:', data);
       
       if (data.success && data.data) {
-        // Ensure data.data is always an array
-        const paymentsData = Array.isArray(data.data) ? data.data : [data.data];
-        setPayments(paymentsData);
+        setPayments(data.data);
       } else {
         setPayments([]);
         setPaymentError(data.error || 'Failed to load payments');
@@ -429,6 +427,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
               <th className="pb-3 pr-4">Items</th>
               <th className="pb-3 pr-4">Total</th>
               <th className="pb-3 pr-4">Status</th>
+              <th className="pb-3 pr-4">Payment</th>
               <th className="pb-3">Date</th>
               <th className="pb-3">Action</th>
             </tr>
@@ -449,17 +448,22 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                 </td>
                 <td className="py-3 pr-4">
                   <span className="text-sm text-gray-600">
-                    {(order.items?.length || 0)} item{(order.items?.length || 0) !== 1 ? 's' : ''}
+                    {order.items.length} item{order.items.length !== 1 ? 's' : ''}
                   </span>
                 </td>
                 <td className="py-3 pr-4">
                   <span className="text-sm font-medium text-gray-900">
-                    {formatCurrency(order.amount)}
+                    {formatCurrency(order.total_amount)}
                   </span>
                 </td>
                 <td className="py-3 pr-4">
                   <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
                     {order.status}
+                  </span>
+                </td>
+                <td className="py-3 pr-4">
+                  <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(order.payment_status)}`}>
+                    {order.payment_status}
                   </span>
                 </td>
                 <td className="py-3 pr-4">
@@ -1255,7 +1259,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                           </p>
                         </div>
                         <span className="font-medium text-gray-900">
-                          {formatCurrency(item.subtotal)}
+                          {formatCurrency(item.total_price)}
                         </span>
                       </div>
                     ))}
@@ -1266,7 +1270,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                   <div className="flex items-center justify-between">
                     <span className="text-lg font-semibold text-gray-900">Total</span>
                     <span className="text-xl font-bold text-indigo-600">
-                      {formatCurrency(selectedOrder.amount)}
+                      {formatCurrency(selectedOrder.total_amount)}
                     </span>
                   </div>
                 </div>
