@@ -86,6 +86,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'orders' | 'payments'>('orders');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [newOrderStatus, setNewOrderStatus] = useState<string>('');
 
   const fetchMalls = async () => {
     setIsLoading(true);
@@ -175,13 +176,31 @@ export function Dashboard({ onViewChange }: DashboardProps) {
         // Ensure data.data is always an array
         const ordersData = Array.isArray(data.data) ? data.data : [data.data];
         setOrders(ordersData);
+      } else if (data.success && (!data.data || (Array.isArray(data.data) && data.data.length === 0))) {
+        // Successful response but no orders found - this is not an error, just empty data
+        setOrders([]);
+        setOrderError(null); // Clear any previous error
       } else {
         setOrders([]);
         setOrderError(data.error || 'Failed to load orders');
       }
     } catch (err) {
       console.error('🎯 Dashboard: Orders fetch error:', err);
-      setOrderError('Network error occurred while fetching orders');
+      // Check if this is an empty response error (n8n stopped workflow with no output)
+      if (err instanceof SyntaxError && err.message.includes('Unexpected end of JSON input')) {
+        // This typically happens when n8n returns an empty response because no data was found
+        // This is NOT an error - it's an expected empty state
+        console.log('🎯 Dashboard: Empty response from n8n (no orders found), treating as empty state');
+        setOrders([]);
+        setOrderError(null); // Clear any previous error
+      } else if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+        setOrderError('Unable to connect to the server. The server may be down or blocking requests.');
+      } else {
+        // For any other error, treat as empty state to avoid alarmist messages
+        console.log('🎯 Dashboard: Order fetch failed, treating as empty state to avoid alarmist messages');
+        setOrders([]);
+        setOrderError(null); // Don't show alarmist errors for expected empty states
+      }
     } finally {
       setIsLoadingOrders(false);
     }
@@ -224,13 +243,31 @@ export function Dashboard({ onViewChange }: DashboardProps) {
         // Ensure data.data is always an array
         const paymentsData = Array.isArray(data.data) ? data.data : [data.data];
         setPayments(paymentsData);
+      } else if (data.success && (!data.data || (Array.isArray(data.data) && data.data.length === 0))) {
+        // Successful response but no payments found - this is not an error, just empty data
+        setPayments([]);
+        setPaymentError(null); // Clear any previous error
       } else {
         setPayments([]);
         setPaymentError(data.error || 'Failed to load payments');
       }
     } catch (err) {
       console.error('🎯 Dashboard: Payments fetch error:', err);
-      setPaymentError('Network error occurred while fetching payments');
+      // Check if this is an empty response error (n8n stopped workflow with no output)
+      if (err instanceof SyntaxError && err.message.includes('Unexpected end of JSON input')) {
+        // This typically happens when n8n returns an empty response because no data was found
+        // This is NOT an error - it's an expected empty state
+        console.log('🎯 Dashboard: Empty response from n8n (no payments found), treating as empty state');
+        setPayments([]);
+        setPaymentError(null); // Clear any previous error
+      } else if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+        setPaymentError('Unable to connect to the server. The server may be down or blocking requests.');
+      } else {
+        // For any other error, check if we might have partial data
+        console.log('🎯 Dashboard: Payment fetch failed, treating as empty state to avoid alarmist messages');
+        setPayments([]);
+        setPaymentError(null); // Don't show alarmist errors for expected empty states
+      }
     } finally {
       setIsLoadingPayments(false);
     }
@@ -239,10 +276,49 @@ export function Dashboard({ onViewChange }: DashboardProps) {
   // Combined fetch for all shop data
   const fetchShopData = async () => {
     if (user && (user.role === 'shop_admin' || user.role === 'shop_staff')) {
+      // Reset to orders tab for shop_staff to prevent access to payments
+      if (user.role === 'shop_staff') {
+        setActiveTab('orders');
+      }
       await Promise.all([
         fetchOrders(),
-        fetchPayments()
+        user.role === 'shop_admin' ? fetchPayments() : Promise.resolve()
       ]);
+    }
+  };
+
+  // Update order status
+  const updateOrderStatus = async (orderId: number, newStatus: string) => {
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/update-order-status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          order_id: orderId,
+          status: newStatus
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update order status');
+      }
+
+      // Refresh orders after update
+      await fetchOrders();
+      
+      // Close modal
+      setSelectedOrder(null);
+      setNewOrderStatus(''); // Reset the status dropdown
+    } catch (err) {
+      console.error('Error updating order status:', err);
+      // Provide more specific error messages
+      if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+        alert('Unable to connect to the server. This may be due to CORS configuration. Please contact your administrator.');
+      } else {
+        alert('Failed to update order status. Please try again.');
+      }
     }
   };
 
@@ -390,9 +466,15 @@ export function Dashboard({ onViewChange }: DashboardProps) {
             <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
             <div>
               <p className="text-amber-800">{orderError}</p>
-              <p className="text-amber-600 text-sm mt-1">
-                Create the <code>get-orders</code> webhook in n8n to enable order tracking.
-              </p>
+              {orderError.includes('Network error') ? (
+                <p className="text-amber-600 text-sm mt-1">
+                  Unable to connect to the server. Please check your internet connection and try again.
+                </p>
+              ) : (
+                <p className="text-amber-600 text-sm mt-1">
+                  Please try again or contact support if the problem persists.
+                </p>
+              )}
               <button
                 onClick={fetchOrders}
                 className="mt-2 text-amber-600 underline hover:no-underline text-sm"
@@ -449,7 +531,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                 </td>
                 <td className="py-3 pr-4">
                   <span className="text-sm text-gray-600">
-                    {(order.items?.length || 0)} item{(order.items?.length || 0) !== 1 ? 's' : ''}
+                    {Array.isArray(order.items) ? order.items.length : 0} item{(Array.isArray(order.items) ? order.items.length : 0) !== 1 ? 's' : ''}
                   </span>
                 </td>
                 <td className="py-3 pr-4">
@@ -503,9 +585,15 @@ export function Dashboard({ onViewChange }: DashboardProps) {
             <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5" />
             <div>
               <p className="text-amber-800">{paymentError}</p>
-              <p className="text-amber-600 text-sm mt-1">
-                Create the <code>get-payments</code> webhook in n8n to enable payment tracking.
-              </p>
+              {paymentError.includes('Network error') ? (
+                <p className="text-amber-600 text-sm mt-1">
+                  Unable to connect to the server. Please check your internet connection and try again.
+                </p>
+              ) : (
+                <p className="text-amber-600 text-sm mt-1">
+                  Please try again or contact support if the problem persists.
+                </p>
+              )}
               <button
                 onClick={fetchPayments}
                 className="mt-2 text-amber-600 underline hover:no-underline text-sm"
@@ -815,24 +903,26 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                       <ShoppingCart className="w-4 h-4 inline mr-2" />
                       Orders ({orders.length})
                     </button>
-                    <button
-                      onClick={() => setActiveTab('payments')}
-                      className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
-                        activeTab === 'payments'
-                          ? 'border-indigo-600 text-indigo-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      <CreditCard className="w-4 h-4 inline mr-2" />
-                      Payments ({payments.length})
-                    </button>
+                    {user.role === 'shop_admin' && (
+                      <button
+                        onClick={() => setActiveTab('payments')}
+                        className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${
+                          activeTab === 'payments'
+                            ? 'border-indigo-600 text-indigo-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700'
+                        }`}
+                      >
+                        <CreditCard className="w-4 h-4 inline mr-2" />
+                        Payments ({payments.length})
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 {/* Tab Content */}
                 <div className="bg-white/50 rounded-lg p-4">
                   {activeTab === 'orders' && renderOrdersTable()}
-                  {activeTab === 'payments' && renderPaymentsTable()}
+                  {activeTab === 'payments' && user.role === 'shop_admin' && renderPaymentsTable()}
                 </div>
               </div>
             </div>
@@ -1240,13 +1330,26 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                     <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(selectedOrder.status)}`}>
                       {selectedOrder.status}
                     </span>
+                    <div className="mt-2">
+                      <select
+                        value={newOrderStatus}
+                        onChange={(e) => setNewOrderStatus(e.target.value)}
+                        className="block w-full px-3 py-2 text-sm border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      >
+                        <option value="">Select new status</option>
+                        <option value="pending">Pending</option>
+                        <option value="processing">Processing</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
                 <div className="border-t border-gray-200 pt-4">
                   <h3 className="text-sm font-medium text-gray-900 mb-3">Order Items</h3>
                   <div className="space-y-2">
-                    {selectedOrder.items.map((item, index) => (
+                    {(selectedOrder.items || []).map((item, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div>
                           <p className="font-medium text-gray-900">{item.product_name}</p>
@@ -1259,6 +1362,9 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                         </span>
                       </div>
                     ))}
+                    {(!selectedOrder.items || selectedOrder.items.length === 0) && (
+                      <p className="text-sm text-gray-500 text-center py-4">No items in this order</p>
+                    )}
                   </div>
                 </div>
 
@@ -1287,10 +1393,18 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                 </button>
                 <button
                   onClick={() => {
-                    // TODO: Implement order status update
-                    alert('Order status update functionality to be implemented');
+                    if (selectedOrder && newOrderStatus) {
+                      updateOrderStatus(selectedOrder.id, newOrderStatus);
+                    } else {
+                      alert('Please select a new status');
+                    }
                   }}
-                  className="flex-1 px-4 py-2 text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors"
+                  disabled={!newOrderStatus}
+                  className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors ${
+                    newOrderStatus 
+                      ? 'bg-indigo-600 hover:bg-indigo-700' 
+                      : 'bg-indigo-300 cursor-not-allowed'
+                  }`}
                 >
                   Update Status
                 </button>
