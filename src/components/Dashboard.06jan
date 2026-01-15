@@ -276,6 +276,10 @@ export function Dashboard({ onViewChange }: DashboardProps) {
   // Combined fetch for all shop data
   const fetchShopData = async () => {
     if (user && (user.role === 'shop_admin' || user.role === 'shop_staff')) {
+      // Reset to orders tab for shop_staff to prevent access to payments
+      if (user.role === 'shop_staff') {
+        setActiveTab('orders');
+      }
       await Promise.all([
         fetchOrders(),
         user.role === 'shop_admin' ? fetchPayments() : Promise.resolve()

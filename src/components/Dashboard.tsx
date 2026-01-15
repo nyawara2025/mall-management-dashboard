@@ -816,8 +816,8 @@ export function Dashboard({ onViewChange }: DashboardProps) {
             </div>
           </div>
 
-          {/* Orders & Payments Dashboard - For shop_admin and shop_staff */}
-          {(user.role === 'shop_admin' || user.role === 'shop_staff') && (
+          {/* Orders & Payments Dashboard - For shop_admin ONLY */}
+          {user.role === 'shop_admin' && (
             <div className="mb-8">
               <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -923,6 +923,57 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                 <div className="bg-white/50 rounded-lg p-4">
                   {activeTab === 'orders' && renderOrdersTable()}
                   {activeTab === 'payments' && user.role === 'shop_admin' && renderPaymentsTable()}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Orders Dashboard - For shop_staff ONLY (no payment access) */}
+          {user.role === 'shop_staff' && (
+            <div className="mb-8">
+              <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-indigo-100 p-3 rounded-lg">
+                      <ShoppingCart className="w-6 h-6 text-indigo-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        Orders
+                      </h3>
+                      <p className="text-gray-600 text-sm">
+                        Track customer orders
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={fetchOrders}
+                      disabled={isLoadingOrders}
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${isLoadingOrders ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </button>
+                  </div>
+                </div>
+
+                {/* Simple order count - no payment/revenue data */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                  <div className="bg-white/50 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Total Orders</p>
+                        <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
+                      </div>
+                      <ShoppingCart className="w-8 h-8 text-indigo-600" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Orders Table Only */}
+                <div className="bg-white/50 rounded-lg p-4">
+                  {renderOrdersTable()}
                 </div>
               </div>
             </div>

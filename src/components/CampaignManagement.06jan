@@ -500,23 +500,7 @@ const CampaignManagement: React.FC = () => {
       
     } catch (error) {
       console.error('❌ Error fetching campaigns:', error);
-      
-      // Check if this is an empty response error (n8n stopped workflow with no output)
-      if (error instanceof SyntaxError && error.message.includes('Unexpected end of JSON input')) {
-        // This typically happens when n8n returns an empty response because no campaigns were found
-        // This is NOT an error - it's an expected empty state
-        console.log('🎯 CampaignManagement: Empty response from n8n (no campaigns found), treating as empty state');
-        setCampaigns([]);
-        setError(null); // Clear any previous error
-      } else if (error instanceof Error && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))) {
-        // Only set error for actual network issues
-        setError('Failed to fetch campaigns. Please check your connection and try again.');
-      } else {
-        // For any other non-critical error, treat as empty state to avoid alarmist messages
-        console.log('🎯 CampaignManagement: Non-critical error, setting empty campaigns instead of error state');
-        setCampaigns([]);
-        setError(null); // Don't show alarmist errors for expected empty states
-      }
+      setError('Failed to fetch campaigns');
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 import { transactionService } from '../services/transactionService';
 import { 
   Inbox, 
@@ -16,29 +17,28 @@ import {
   Calendar,
   ExternalLink,
   Plus,
-  MoreVertical
+  MoreVertical,
+  ShoppingCart,
+  X,
+  Image as ImageIcon,
+  Package
 } from 'lucide-react';
 
 interface CustomerInquiry {
   id: string;
   shop_id: number;
-  product_id?: number;
-  customer_name?: string;
-  customer_phone?: string;
-  customer_email?: string;
-  customer_message?: string;
+  customer_name: string;
+  customer_phone: string;
+  customer_email: string;
+  customer_message: string;
   product_name?: string;
+  product_id?: string;
+  product_image?: string;
   interaction_type: string;
-  created_at?: string;
+  created_at: string;
   campaign?: string;
   method?: string;
   status: 'new' | 'contacted' | 'resolved';
-  // Channel Attribution Fields
-  channel?: string;
-  source?: string;
-  post_id?: string;
-  session_id?: string;
-  attribution_data?: any;
 }
 
 interface CustomerInquiriesProps {
@@ -54,29 +54,36 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'new' | 'contacted' | 'resolved'>('all');
   const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'all'>('week');
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Order creation modal state
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [selectedInquiry, setSelectedInquiry] = useState<CustomerInquiry | null>(null);
+  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  const [orderFormData, setOrderFormData] = useState({
+    customer_name: '',
+    customer_phone: '',
+    customer_email: '',
+    product_name: '',
+    product_id: '',
+    product_image: '',
+    quantity: 1,
+    amount: 0,
+    notes: '',
+    order_type: 'standard',
+    shipping_address: '',
+    payment_method: 'cash_on_delivery'
+  });
 
-  // Reply Modal State
-  const [isReplyModalOpen, setIsReplyModalOpen] = useState(false);
-  const [currentInquiryForReply, setCurrentInquiryForReply] = useState<CustomerInquiry | null>(null);
-  const [replyMessage, setReplyMessage] = useState('');
-  const [isSendingReply, setIsSendingReply] = useState(false);
-  const [replyError, setReplyError] = useState<string | null>(null);
-
-  // Fetch customer inquiries via N8N webhook
+  // Fetch customer inquiries using the original transactionService approach
   const fetchInquiries = async () => {
-    if (!user) {
-      setError('User not authenticated');
-      return;
-    }
+    if (!user) return;
     
-    if (user.role !== 'shop_admin' && user.role !== 'mall_admin' && user.role !== 'super_admin') {
-      setError('User does not have permission to view customer inquiries');
-      return;
+    if (user.role !== 'shop_admin' && user.role !== 'mall_admin' && user.role !== 'super_admin' && user.role !== 'shop_staff') {
+      throw new Error('Access denied: Insufficient permissions');
     }
     
     if (!user.shop_id) {
-      setError('User does not have a valid shop_id assigned');
-      return;
+      throw new Error('User shop_id not found');
     }
     
     setIsLoading(true);
@@ -209,57 +216,14 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
         sampleRecords: inquiriesData.slice(0, 3).map(item => ({
           id: item.id,
           shop_id: item.shop_id,
-          timestamp: item.timestamp,
-          method: item.method,
-          // Show available fields that might contain customer data
-          session_id: item.session_id,
-          product_id: item.product_id,
-          campaign: item.campaign,
-          // Check for potential message fields
-          message: item.message,
-          content: item.content,
-          text: item.text,
-          body: item.body,
-          // Show what fields are missing
-          hasCustomerName: !!item.customer_name,
-          hasCustomerPhone: !!item.customer_phone,
-          hasCustomerEmail: !!item.customer_email,
-          hasCustomerMessage: !!item.customer_message,
-          hasCreatedAt: !!item.created_at,
-          // Show all available keys
-          availableKeys: Object.keys(item)
+          customer_name: item.customer_name,
+          customer_message: item.customer_message?.substring(0, 50) + '...',
+          interaction_type: item.interaction_type,
+          created_at: item.created_at
         }))
       });
-      
-      // Handle empty data gracefully
-      if (inquiriesData.length === 0) {
-        console.log('⚠️ No inquiries data found, setting empty array');
-        setInquiries([]);
-        return;
-      }
-      
-      // Warn if we expect more records but got fewer
-      if (inquiriesData.length === 1) {
-        console.log('⚠️ WARNING: Only 1 record found but expected multiple records for shop', shopId);
-        console.log('⚠️ This might indicate:');
-        console.log('  1. N8N query is filtering to only latest record');
-        console.log('  2. N8N workflow is returning only first record');
-        console.log('  3. Database query has LIMIT 1 or similar restriction');
-      }
-      
-      console.log('🚀 Starting to process', inquiriesData.length, 'inquiries...');
-      console.log('🔍 Raw N8N data sample (first 2 records):', inquiriesData.slice(0, 2));
-      console.log('🔍 Checking for product name fields in raw data:', inquiriesData.slice(0, 2).map(item => ({
-        id: item.id,
-        hasProductName: !!item.product_name,
-        hasProduct: !!item.product,
-        hasJson: !!item.json,
-        jsonProductName: item.json?.product_name,
-        jsonProduct: item.json?.product,
-        rawProductName: item.product_name,
-        rawProduct: item.product
-      })));
-      
+
+      // Transform data to match interface - use original working logic
       const inquiriesWithStatus = inquiriesData.map((inquiry: any, index: number) => {
         console.log(`🎯 Processing inquiry ${index + 1}:`, inquiry.id, inquiry.interaction_type);
         console.log(`🔍 Full inquiry data for debugging:`, JSON.stringify(inquiry, null, 2));
@@ -310,52 +274,66 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
           availableFields: {
             actualData_product_name: actualData.product_name,
             inquiry_product_name: inquiry.product_name,
-            product: actualData.product,
-            product_name_from_db: actualData.product_name_from_db,
-            name: actualData.name,
-            product_id: actualData.product_id
-          }
+            actualData_product: actualData.product,
+            actualData_name: actualData.name,
+            actualData_id: actualData.product_id
+          },
+          // Check for image-related fields
+          imageFields: {
+            actualData_product_image: actualData.product_image,
+            inquiry_product_image: inquiry.product_image,
+            actualData_image: actualData.image,
+            inquiry_image: inquiry.image,
+            actualData_thumbnail: actualData.thumbnail,
+            inquiry_thumbnail: inquiry.thumbnail,
+            actualData_image_url: actualData.image_url,
+            inquiry_image_url: inquiry.image_url
+          },
+          // Show all available keys to identify image fields
+          allAvailableKeys: Object.keys(actualData).concat(Object.keys(inquiry)).filter((key, index, arr) => arr.indexOf(key) === index)
         });
         
-        const finalInquiry = {
-          ...actualData, // Spread all actual data
-          status: getStatusFromInteraction(actualData),
+        return {
           id: customerId,
-          // Map N8N timestamp to created_at
-          created_at: actualData.timestamp || actualData.created_at || actualData.date,
-          // Use real customer data from the database
-          customer_name: actualData.customer_name || customerName,
+          shop_id: actualData.shop_id || shopId,
+          customer_name: customerName,
           customer_phone: actualData.customer_phone || '',
           customer_email: actualData.customer_email || '',
           customer_message: messageContent,
           product_name: extractedProductName,
-          // Channel Attribution Fields
-          channel: actualData.channel || actualData.source || 'direct',
-          source: actualData.source || 'direct_visit',
-          post_id: actualData.post_id,
-          session_id: actualData.session_id,
-          attribution_data: actualData.attribution_data || {}
+          product_id: actualData.product_id || '',
+          product_image: 
+            // Try actualData first (most common)
+            (actualData.product_image_url && actualData.product_image_url.trim() !== '' ? actualData.product_image_url : null) ||
+            (actualData.product_image && actualData.product_image.trim() !== '' ? actualData.product_image : null) ||
+            // Try direct inquiry access
+            (inquiry.product_image_url && inquiry.product_image_url.trim() !== '' ? inquiry.product_image_url : null) ||
+            (inquiry.product_image && inquiry.product_image.trim() !== '' ? inquiry.product_image : null) ||
+            // Try other possible image field names
+            (actualData.image && actualData.image.trim() !== '' ? actualData.image : null) ||
+            (inquiry.image && inquiry.image.trim() !== '' ? inquiry.image : null) ||
+            (actualData.thumbnail && actualData.thumbnail.trim() !== '' ? actualData.thumbnail : null) ||
+            (inquiry.thumbnail && inquiry.thumbnail.trim() !== '' ? inquiry.thumbnail : null) ||
+            (actualData.image_url && actualData.image_url.trim() !== '' ? actualData.image_url : null) ||
+            (inquiry.image_url && inquiry.image_url.trim() !== '' ? inquiry.image_url : null) ||
+            // Final fallback to empty string
+            '',
+          interaction_type: actualData.interaction_type || inquiry.interaction_type || 'message',
+          created_at: actualData.created_at || new Date().toISOString(),
+          campaign: actualData.campaign || inquiry.campaign,
+          method: actualData.method || inquiry.method,
+          status: 'new' as const
         };
-
-        console.log(`✅ Final inquiry object for ${index + 1}:`, {
-          id: finalInquiry.id,
-          product_name: finalInquiry.product_name,
-          customer_name: finalInquiry.customer_name
-        });
-
-        return finalInquiry;
       });
-      
-      console.log('✅ Successfully processed inquiries:', inquiriesWithStatus.length);
-      console.log('✅ Processed inquiry IDs:', inquiriesWithStatus.map(item => item.id));
-      console.log('✅ First processed inquiry sample:', JSON.stringify(inquiriesWithStatus[0], null, 2));
-      console.log('✅ Setting state with inquiries array...');
+
+      console.log('🎯 Final inquiries array:', inquiriesWithStatus.length, 'items');
+      console.log('🎯 All inquiry IDs:', inquiriesWithStatus.map(item => item.id));
+      console.log('🎯 Final sample:', inquiriesWithStatus[0]);
       
       setInquiries(inquiriesWithStatus);
-      console.log('✅ State update completed. Check if inquiries array is updated.');
 
     } catch (err) {
-      console.error('🎯 Error fetching inquiries via N8N webhook:', err);
+      console.error('🎯 Error fetching inquiries:', err);
       setError('Failed to load customer inquiries. Please try again.');
     } finally {
       setIsLoading(false);
@@ -368,15 +346,6 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
     fetchInquiries();
   };
 
-  const getStatusFromInteraction = (inquiry: any) => {
-    // Map interaction types to status
-    switch (inquiry.interaction_type) {
-      case 'inquiry_submission': return 'contacted';
-      case 'inquiry_intent': return 'new';
-      default: return 'new';
-    }
-  };
-
   // Load inquiries when component mounts or filters change
   useEffect(() => {
     fetchInquiries();
@@ -385,9 +354,9 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
   // Filter inquiries based on search term and status
   const filteredInquiries = inquiries.filter(inquiry => {
     const matchesSearch = searchTerm === '' || 
-      (inquiry.customer_name && inquiry.customer_name.trim() && inquiry.customer_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (inquiry.customer_message && inquiry.customer_message.trim() && inquiry.customer_message.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (inquiry.product_name && inquiry.product_name.trim() && inquiry.product_name.toLowerCase().includes(searchTerm.toLowerCase()));
+      inquiry.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      inquiry.customer_message.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (inquiry.product_name && inquiry.product_name.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesStatus = statusFilter === 'all' || inquiry.status === statusFilter;
     
@@ -401,154 +370,115 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
     contacted: inquiries.filter(i => i.status === 'contacted').length,
     resolved: inquiries.filter(i => i.status === 'resolved').length,
     today: inquiries.filter(i => {
-      if (!i.created_at) return false;
       const inquiryDate = new Date(i.created_at);
       const today = new Date();
       return inquiryDate.toDateString() === today.toDateString();
     }).length
   };
 
-  const handleCallCustomer = (phone: string | undefined) => {
-    if (!phone) {
-      console.log('⚠️ No phone number available');
-      return;
-    }
+  const handleCallCustomer = (phone: string) => {
     window.open(`tel:${phone}`, '_self');
   };
 
-  const handleEmailCustomer = (email: string | undefined) => {
-    if (!email) {
-      console.log('⚠️ No email address available');
-      return;
-    }
+  const handleEmailCustomer = (email: string) => {
     window.open(`mailto:${email}`, '_self');
   };
 
-  const handleUpdateInquiryStatus = async (inquiryId: string, newStatus: 'new' | 'contacted' | 'resolved') => {
-    console.log('🔄 Starting status update for inquiry:', inquiryId, 'to status:', newStatus);
+  const handleCreateOrder = (inquiry: CustomerInquiry) => {
+    setSelectedInquiry(inquiry);
+    setOrderFormData({
+      customer_name: inquiry.customer_name,
+      customer_phone: inquiry.customer_phone,
+      customer_email: inquiry.customer_email,
+      product_name: inquiry.product_name || '',
+      product_id: inquiry.product_id || '',
+      product_image: inquiry.product_image || '',
+      quantity: 1,
+      amount: 0, // Set default amount, will be entered by admin
+      notes: inquiry.customer_message,
+      order_type: 'standard',
+      shipping_address: '',
+      payment_method: 'cash_on_delivery'
+    });
+    setIsOrderModalOpen(true);
+  };
+
+  const handleCreateOrderSubmit = async () => {
+    if (!selectedInquiry) return;
+
+    setIsCreatingOrder(true);
+    
     try {
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
+      const orderData = {
+        ...orderFormData,
+        shop_id: selectedInquiry.shop_id,
+        inquiry_id: selectedInquiry.id,
+        source: 'customer_inquiry',
+        timestamp: new Date().toISOString()
+      };
 
-      // Find the inquiry to get complete customer data
-      const inquiry = inquiries.find(inq => inq.id === inquiryId);
-      if (!inquiry) {
-        throw new Error('Inquiry not found in local state');
-      }
-
-      console.log('🔄 Found inquiry data:', inquiry);
-      
-      // Update transaction status only (customer data is already stored)
-      const response = await transactionService.updateTransaction(
-        inquiryId,
-        { 
-          status: newStatus
+      const response = await fetch('https://n8n.tenear.com/webhook/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        token
-      );
+        body: JSON.stringify(orderData)
+      });
 
-      console.log('🔄 Update response:', response);
-
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to update inquiry status');
+      if (response.ok) {
+        // Close modal and refresh inquiries
+        setIsOrderModalOpen(false);
+        setSelectedInquiry(null);
+        fetchInquiries();
+        
+        // Show success message (you can replace this with a proper toast notification)
+        alert('Order created successfully!');
+      } else {
+        throw new Error('Failed to create order');
       }
-
-      console.log('🔄 Updating local state...');
-      // Update local state
-      setInquiries(prev => 
-        prev.map(inquiry => 
-          inquiry.id === inquiryId 
-            ? { ...inquiry, status: newStatus }
-            : inquiry
-        )
-      );
-      
-      console.log('✅ Status update completed successfully');
-    } catch (err) {
-      console.error('❌ Error updating inquiry status:', err);
-      setError('Failed to update inquiry status. Please try again.');
-    }
-  };
-
-  const handleRespondToCustomer = (inquiry: CustomerInquiry) => {
-    console.log('💬 Opening reply modal for inquiry:', inquiry.id);
-    setCurrentInquiryForReply(inquiry);
-    setReplyMessage('');
-    setReplyError(null);
-    setIsReplyModalOpen(true);
-  };
-
-  const handleSendReply = async () => {
-    if (!currentInquiryForReply || !replyMessage.trim()) {
-      setReplyError('Please enter a response message');
-      return;
-    }
-
-    setIsSendingReply(true);
-    setReplyError(null);
-
-    try {
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-
-      console.log('📤 Sending reply to inquiry:', currentInquiryForReply.id);
-      console.log('📝 Response message:', replyMessage);
-
-      // Send response via N8N webhook (stored in DB, customer sees in app)
-      const response = await transactionService.sendInquiryResponse(
-        currentInquiryForReply.id,
-        replyMessage.trim(),
-        user.id,
-        user.username || `Shop Owner ${user.shop_id}`,
-        user.shop_id || 0,
-        user.shop_name || 'Shop',
-        token
-      );
-
-      console.log('📡 Send response result:', response);
-
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to save response');
-      }
-
-      console.log('✅ Response saved successfully!');
-
-      // Update inquiry status to "contacted" in local state
-      setInquiries(prev =>
-        prev.map(inquiry =>
-          inquiry.id === currentInquiryForReply.id
-            ? { ...inquiry, status: 'contacted' as const }
-            : inquiry
-        )
-      );
-
-      // Close modal and show success
-      setIsReplyModalOpen(false);
-      setCurrentInquiryForReply(null);
-      setReplyMessage('');
-
-      // Show success message
-      alert(`✅ Response saved!\n\nYour reply will be visible to ${currentInquiryForReply.customer_name || 'the customer'} in the NHC Langata app when they next open it.\n\nMessage: "${replyMessage.trim()}"`);
-
-    } catch (err) {
-      console.error('❌ Error saving response:', err);
-      setReplyError(err instanceof Error ? err.message : 'Failed to save response. Please try again.');
+    } catch (error) {
+      console.error('Error creating order:', error);
+      alert('Failed to create order. Please try again.');
     } finally {
-      setIsSendingReply(false);
+      setIsCreatingOrder(false);
     }
   };
 
-  const handleCloseReplyModal = () => {
-    setIsReplyModalOpen(false);
-    setCurrentInquiryForReply(null);
-    setReplyMessage('');
-    setReplyError(null);
+  const closeOrderModal = () => {
+    setIsOrderModalOpen(false);
+    setSelectedInquiry(null);
+    setOrderFormData({
+      customer_name: '',
+      customer_phone: '',
+      customer_email: '',
+      product_name: '',
+      product_id: '',
+      product_image: '',
+      quantity: 1,
+      amount: 0,
+      notes: '',
+      order_type: 'standard',
+      shipping_address: '',
+      payment_method: 'cash_on_delivery'
+    });
+  };
+
+  const handleRespondToCustomer = async (inquiry: any) => {
+    try {
+      const response = prompt(`Respond to ${inquiry.customer_name}:\n\nCurrent message: "${inquiry.customer_message}"\n\nType your response:`);
+      if (response && response.trim()) {
+        console.log('📱 Sending response to customer:', response);
+        
+        // Update inquiry status to "contacted" and add response
+        await handleUpdateInquiryStatus(inquiry.id, 'contacted');
+        
+        // In a real implementation, you would send this via WhatsApp API
+        alert(`Response sent to ${inquiry.customer_name}!\n\nMessage: "${response}"\n\nNote: This would be sent via WhatsApp in production.`);
+      }
+    } catch (error) {
+      console.error('❌ Error responding to customer:', error);
+      alert('Failed to send response. Please try again.');
+    }
   };
 
   const handleAddNotes = async (inquiry: any) => {
@@ -566,50 +496,56 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
 
   const handleAssignToTeam = async (inquiry: any) => {
     try {
-      const assignee = prompt(`Assign ${inquiry.customer_name} to team member:\n\nAvailable team members:\n- John Doe (Sales)\n- Jane Smith (Support)\n- Mike Johnson (Manager)\n\nEnter assignee name:`);
+      const assignee = prompt(`Assign inquiry from ${inquiry.customer_name} to team member:\n\nEnter team member name or ID:`);
       if (assignee && assignee.trim()) {
-        console.log('👤 Assigning to:', assignee);
-        alert(`${inquiry.customer_name} assigned to ${assignee}!\n\nNote: Assignment would be saved to database in production.`);
+        console.log('👤 Assigning to team:', assignee);
+        alert(`Inquiry assigned to ${assignee}!\n\nNote: This would be saved to database in production.`);
       }
     } catch (error) {
       console.error('❌ Error assigning to team:', error);
-      alert('Failed to assign to team member. Please try again.');
+      alert('Failed to assign inquiry. Please try again.');
     }
   };
 
-  const handleExportData = (inquiry: any) => {
+  const handleExportData = async (inquiry: any) => {
     try {
-      const exportData = {
-        customer_inquiry: {
-          id: inquiry.id,
-          customer_name: inquiry.customer_name,
-          customer_phone: inquiry.customer_phone,
-          customer_email: inquiry.customer_email,
-          message: inquiry.customer_message,
-          product_name: inquiry.product_name,
-          interaction_type: inquiry.interaction_type,
-          method: inquiry.method,
-          campaign: inquiry.campaign,
-          created_at: inquiry.created_at,
-          shop_id: inquiry.shop_id,
-          status: inquiry.status
-        }
+      console.log('📤 Exporting data for inquiry:', inquiry.id);
+      const data = {
+        customer_name: inquiry.customer_name,
+        customer_phone: inquiry.customer_phone,
+        customer_email: inquiry.customer_email,
+        customer_message: inquiry.customer_message,
+        product_name: inquiry.product_name,
+        created_at: inquiry.created_at,
+        status: inquiry.status,
+        method: inquiry.method
       };
       
-      const dataStr = JSON.stringify(exportData, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `customer-inquiry-${inquiry.id}.json`;
-      link.click();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `inquiry-${inquiry.id}-${inquiry.customer_name}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      console.log('📤 Exported inquiry data:', inquiry.id);
-      alert(`Inquiry data exported successfully!\n\nFile: customer-inquiry-${inquiry.id}.json`);
+      alert(`Data exported successfully!\n\nFile: inquiry-${inquiry.id}-${inquiry.customer_name}.json`);
     } catch (error) {
       console.error('❌ Error exporting data:', error);
       alert('Failed to export data. Please try again.');
+    }
+  };
+
+  const handleUpdateInquiryStatus = async (inquiryId: string, newStatus: string) => {
+    try {
+      console.log(`🔄 Updating inquiry ${inquiryId} status to: ${newStatus}`);
+      // In a real implementation, you would update this via API
+      alert(`Inquiry status updated to "${newStatus}"!\n\nNote: This would be saved to database in production.`);
+    } catch (error) {
+      console.error('❌ Error updating inquiry status:', error);
+      alert('Failed to update inquiry status. Please try again.');
     }
   };
 
@@ -639,46 +575,8 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
     }
   };
 
-  const getChannelDisplayName = (channel: string) => {
-    const channelNames: { [key: string]: string } = {
-      'whatsapp': 'WhatsApp',
-      'qr_scan': 'QR Scan',
-      'instagram': 'Instagram',
-      'direct': 'Direct Visit'
-    };
-    return channelNames[channel] || channel;
-  };
-
-  const getChannelColor = (channel: string) => {
-    const channelColors: { [key: string]: string } = {
-      'whatsapp': 'bg-green-100 text-green-800',
-      'qr_scan': 'bg-blue-100 text-blue-800',
-      'instagram': 'bg-pink-100 text-pink-800',
-      'direct': 'bg-gray-100 text-gray-800'
-    };
-    return channelColors[channel] || 'bg-gray-100 text-gray-800';
-  };
-
   const formatDate = (dateString: string) => {
-    try {
-      if (!dateString) {
-        return 'Date not available';
-      }
-      
-      // Handle different date formats
-      const date = new Date(dateString);
-      
-      // Check if date is valid
-      if (isNaN(date.getTime())) {
-        console.log('⚠️ Invalid date format:', dateString);
-        return 'Invalid date format';
-      }
-      
-      return date.toLocaleString();
-    } catch (error) {
-      console.log('⚠️ Date formatting error:', error, 'for date:', dateString);
-      return 'Date formatting error';
-    }
+    return new Date(dateString).toLocaleString();
   };
 
   if (isLoading) {
@@ -889,97 +787,67 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
                         </div>
                         <div>
                           <h3 className="text-lg font-semibold text-gray-900">
-                            {(inquiry.customer_name && inquiry.customer_name.trim()) || `Customer ID: ${inquiry.id}`}
+                            {inquiry.customer_name}
                           </h3>
                           <div className="flex items-center gap-4 text-sm text-gray-600">
-                            {(inquiry.customer_phone && inquiry.customer_phone.trim()) && (
-                              <span className="flex items-center gap-1">
-                                <Phone className="w-3 h-3" />
-                                {inquiry.customer_phone}
-                              </span>
-                            )}
-                            {(inquiry.customer_email && inquiry.customer_email.trim()) && (
-                              <span className="flex items-center gap-1">
-                                <Mail className="w-3 h-3" />
-                                {inquiry.customer_email}
-                              </span>
-                            )}
-                            {(!inquiry.customer_phone || !inquiry.customer_phone.trim()) && (!inquiry.customer_email || !inquiry.customer_email.trim()) && (
-                              <span className="text-gray-400">No contact info provided</span>
-                            )}
+                            <span className="flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              {inquiry.customer_phone}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              {inquiry.customer_email}
+                            </span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Inquiry Message */}
-                      {(inquiry.customer_message && inquiry.customer_message.trim()) && (
-                        <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                          <div className="flex items-start gap-3">
-                            <MessageSquare className="w-4 h-4 text-gray-500 mt-1 flex-shrink-0" />
-                            <div>
-                              <p className="text-sm font-medium text-gray-900 mb-1">Customer Message:</p>
-                              <p className="text-gray-700">{inquiry.customer_message}</p>
-                              {(inquiry.product_name && inquiry.product_name.trim() && inquiry.product_name !== 'Product') && (
-                                <p className="text-sm text-blue-600 mt-2">
-                                  Product: {inquiry.product_name}
-                                </p>
-                              )}
-                              {(!inquiry.product_name || !inquiry.product_name.trim() || inquiry.product_name === 'Product') && (
-                                <p className="text-sm text-gray-600 mt-2">
-                                  Product: {inquiry.product_name || `Product ID: ${inquiry.product_id?.toString() || 'Unknown'}`}
-                                </p>
-                              )}
+                      {/* Product Image and Inquiry Message */}
+                      <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                        <div className="flex items-start gap-4">
+                          {/* Product Image */}
+                          {inquiry.product_image && (
+                            <div className="flex-shrink-0">
+                              <img
+                                src={inquiry.product_image}
+                                alt={inquiry.product_name || 'Product'}
+                                className="w-20 h-20 object-cover rounded-lg border border-gray-200"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik00MCA0MEw0MCA0MEw0MCA0MFpNNDAgNDBMMjAgMjBMNjAgMjBMNDAgNDBaIiBmaWxsPSIjOUI5QjlCIi8+CjxwYXRoIGQ9Ik00MCA0MEw0MCA0MEw0MCA0MFpNNDAgNDBMMzAgMzBMNTAgMzBMNDAgNDBaIiBmaWxsPSIjNkI3MjgwIi8+Cjwvc3ZnPgo=';
+                                }}
+                              />
+                            </div>
+                          )}
+                          
+                          <div className="flex-1">
+                            <div className="flex items-start gap-3">
+                              <MessageSquare className="w-4 h-4 text-gray-500 mt-1 flex-shrink-0" />
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 mb-1">Customer Message:</p>
+                                <p className="text-gray-700">{inquiry.customer_message}</p>
+                                {inquiry.product_name && (
+                                  <p className="text-sm text-blue-600 mt-2">
+                                    Product: {inquiry.product_name}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      )}
-                      {(!inquiry.customer_message || !inquiry.customer_message.trim()) && (
-                        <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                          <div className="flex items-start gap-3">
-                            <MessageSquare className="w-4 h-4 text-gray-400 mt-1 flex-shrink-0" />
-                            <div>
-                              <p className="text-sm font-medium text-gray-500 mb-1">No Message Provided</p>
-                              <p className="text-gray-400 text-sm italic">Customer message not available in N8N data</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
+                      </div>
 
                       {/* Metadata */}
                       <div className="flex items-center gap-6 text-xs text-gray-500">
-                        {inquiry.created_at ? (
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-3 h-3" />
-                            {formatDate(inquiry.created_at)}
-                          </span>
-                        ) : (
-                          <span className="flex items-center gap-1 text-gray-400">
-                            <Calendar className="w-3 h-3" />
-                            Date not available
-                          </span>
-                        )}
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(inquiry.created_at)}
+                        </span>
                         <span>
                           Shop ID: {inquiry.shop_id}
                         </span>
-                        {/* Channel Attribution Display */}
-                        {inquiry.channel && inquiry.channel !== 'direct' && (
-                          <span className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
-                            📱 {getChannelDisplayName(inquiry.channel)}
-                          </span>
-                        )}
                         {inquiry.campaign && (
-                          <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
-                            🎯 {inquiry.campaign}
-                          </span>
-                        )}
-                        {inquiry.post_id && (
-                          <span className="text-xs text-gray-500">
-                            Post: {inquiry.post_id}
-                          </span>
-                        )}
-                        {inquiry.session_id && (
-                          <span className="text-xs text-gray-400">
-                            Session: {inquiry.session_id.slice(-8)}
+                          <span>
+                            Campaign: {inquiry.campaign}
                           </span>
                         )}
                         {inquiry.method && (
@@ -1000,6 +868,16 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
 
                       {/* Action Buttons */}
                       <div className="flex flex-col gap-2">
+                        {/* Create Order Button - Always first */}
+                        <button
+                          onClick={() => handleCreateOrder(inquiry)}
+                          className="flex items-center gap-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium rounded-md transition-colors"
+                        >
+                          <ShoppingCart className="w-3 h-3" />
+                          Create Order
+                        </button>
+                        
+                        {/* Contact Buttons - Show based on available info */}
                         {(inquiry.customer_phone && inquiry.customer_phone.trim()) && (
                           <button
                             onClick={() => {
@@ -1040,7 +918,9 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
                           </button>
                         )}
 
+                        {/* Action Buttons */}
                         <div className="flex flex-col gap-1">
+                          {/* Instant Response for WhatsApp */}
                           {inquiry.method === 'whatsapp' && (
                             <button 
                               onClick={() => handleRespondToCustomer(inquiry)}
@@ -1050,6 +930,7 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
                             </button>
                           )}
                           
+                          {/* Status Management Buttons */}
                           {inquiry.status === 'new' && (
                             <button 
                               onClick={() => {
@@ -1072,6 +953,8 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
                               Mark Resolved
                             </button>
                           )}
+                          
+                          {/* More Actions Dropdown */}
                           <div className="relative group">
                             <button 
                               className="flex items-center gap-2 px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs font-medium rounded-md transition-colors"
@@ -1119,141 +1002,220 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
         </div>
       </main>
 
-      {/* Reply Modal */}
-      {isReplyModalOpen && currentInquiryForReply && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+      {/* Order Creation Modal */}
+      {isOrderModalOpen && selectedInquiry && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="bg-blue-600 px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <MessageSquare className="w-5 h-5 text-white" />
-                  <h2 className="text-lg font-semibold text-white">
-                    Reply to Customer
-                  </h2>
-                </div>
-                <button
-                  onClick={handleCloseReplyModal}
-                  className="text-white/80 hover:text-white transition-colors"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-900">Create Order</h2>
+              <button
+                onClick={closeOrderModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-              {/* Customer Info */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="bg-blue-100 p-2 rounded-full">
-                    <User className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900">
-                      {currentInquiryForReply.customer_name || `Customer ID: ${currentInquiryForReply.id}`}
-                    </h3>
-                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                      {currentInquiryForReply.customer_phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3 h-3" />
-                          {currentInquiryForReply.customer_phone}
-                        </span>
-                      )}
-                      {currentInquiryForReply.customer_email && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="w-3 h-3" />
-                          {currentInquiryForReply.customer_email}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Original Message */}
-                <div className="border-t border-gray-200 pt-3 mt-3">
-                  <p className="text-sm font-medium text-gray-700 mb-1">Original Message:</p>
-                  <div className="bg-white rounded border border-gray-200 p-3">
-                    <p className="text-gray-700">
-                      {currentInquiryForReply.customer_message || 'No message provided'}
-                    </p>
-                    {currentInquiryForReply.product_name && currentInquiryForReply.product_name !== 'Product' && (
-                      <p className="text-sm text-blue-600 mt-2">
-                        Product: {currentInquiryForReply.product_name}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Response Input */}
+            <div className="p-6 space-y-6">
+              {/* Customer Information */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Your Response <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  value={replyMessage}
-                  onChange={(e) => setReplyMessage(e.target.value)}
-                  placeholder="Type your response to the customer... This will be sent via WhatsApp."
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[150px] resize-y"
-                  disabled={isSendingReply}
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  {replyMessage.length}/500 characters
-                </p>
-              </div>
-
-              {/* Error Message */}
-              {replyError && (
-                <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-                    <div>
-                      <h4 className="font-medium text-red-800">Error Sending Response</h4>
-                      <p className="text-red-700 text-sm mt-1">{replyError}</p>
-                    </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Customer Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Customer Name
+                    </label>
+                    <input
+                      type="text"
+                      value={orderFormData.customer_name}
+                      onChange={(e) => setOrderFormData({...orderFormData, customer_name: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      value={orderFormData.customer_phone}
+                      onChange={(e) => setOrderFormData({...orderFormData, customer_phone: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      value={orderFormData.customer_email}
+                      onChange={(e) => setOrderFormData({...orderFormData, customer_email: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      required
+                    />
                   </div>
                 </div>
-              )}
+              </div>
+
+              {/* Product Information */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Product Information</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {orderFormData.product_image && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Product Image
+                      </label>
+                      <img
+                        src={orderFormData.product_image}
+                        alt={orderFormData.product_name}
+                        className="w-full h-32 object-cover rounded-lg border border-gray-200"
+                      />
+                    </div>
+                  )}
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Product Name
+                    </label>
+                    <input
+                      type="text"
+                      value={orderFormData.product_name}
+                      onChange={(e) => setOrderFormData({...orderFormData, product_name: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Quantity
+                    </label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={orderFormData.quantity}
+                      onChange={(e) => setOrderFormData({...orderFormData, quantity: parseInt(e.target.value) || 1})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Amount (KES)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={orderFormData.amount}
+                      onChange={(e) => setOrderFormData({...orderFormData, amount: parseFloat(e.target.value) || 0})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="Enter amount in KES"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Order Type
+                    </label>
+                    <select
+                      value={orderFormData.order_type}
+                      onChange={(e) => setOrderFormData({...orderFormData, order_type: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      <option value="standard">Standard Order</option>
+                      <option value="express">Express Delivery</option>
+                      <option value="pickup">Store Pickup</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Information */}
+              <div>
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Additional Information</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Shipping Address
+                    </label>
+                    <textarea
+                      value={orderFormData.shipping_address}
+                      onChange={(e) => setOrderFormData({...orderFormData, shipping_address: e.target.value})}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="Enter delivery address..."
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Payment Method
+                    </label>
+                    <select
+                      value={orderFormData.payment_method}
+                      onChange={(e) => setOrderFormData({...orderFormData, payment_method: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    >
+                      <option value="cash_on_delivery">Cash on Delivery</option>
+                      <option value="bank_transfer">Bank Transfer</option>
+                      <option value="credit_card">Credit Card</option>
+                      <option value="mobile_payment">Mobile Payment</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Notes
+                    </label>
+                    <textarea
+                      value={orderFormData.notes}
+                      onChange={(e) => setOrderFormData({...orderFormData, notes: e.target.value})}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      placeholder="Additional notes or special instructions..."
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                <span className="text-blue-600 font-medium">✓</span> Response saved to app
-              </div>
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleCloseReplyModal}
-                  disabled={isSendingReply}
-                  className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSendReply}
-                  disabled={isSendingReply || !replyMessage.trim()}
-                  className={`flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md transition-colors ${
-                    isSendingReply || !replyMessage.trim()
-                      ? 'opacity-50 cursor-not-allowed'
-                      : 'hover:bg-blue-700'
-                  }`}
-                >
-                  {isSendingReply ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <MessageSquare className="w-4 h-4" />
-                      Save Response
-                    </>
-                  )}
-                </button>
-              </div>
+            <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200">
+              <button
+                onClick={closeOrderModal}
+                className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                disabled={isCreatingOrder}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateOrderSubmit}
+                disabled={isCreatingOrder || !orderFormData.customer_name || !orderFormData.customer_phone || !orderFormData.product_name || orderFormData.amount <= 0}
+                className="flex items-center gap-2 px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-md transition-colors"
+              >
+                {isCreatingOrder ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Creating Order...
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="w-4 h-4" />
+                    Create Order
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

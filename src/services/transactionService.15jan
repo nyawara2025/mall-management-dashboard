@@ -147,39 +147,6 @@ class TransactionService {
     const testData = { test: true, timestamp: new Date().toISOString() };
     return this.callWebhook(path, testData, '');
   }
-
-  /**
-   * Send a response to a customer inquiry via N8N webhook
-   * Response is stored in database - customer sees it in their app (like broadcast)
-   */
-  async sendInquiryResponse(inquiryId: string, responseMessage: string, shopOwnerId: number, shopOwnerName: string, shopId: number, shopName: string, token: string): Promise<TransactionResponse> {
-    console.log('📤 SENDING INQUIRY RESPONSE:', { inquiryId, responseLength: responseMessage.length, token: token ? 'present' : 'missing' });
-
-    const requestData = {
-      path: 'save-inquiry-response', // This tells the Switch node this is a SAVE RESPONSE request
-      inquiry_id: inquiryId,
-      shop_id: shopId,
-      shop_owner_id: shopOwnerId,
-      shop_owner_name: shopOwnerName,
-      shop_name: shopName,
-      response_message: responseMessage
-    };
-
-    return this.callWebhook('save-inquiry-response', requestData, token);
-  }
-
-  /**
-   * Get responses for a specific inquiry (for dashboard history)
-   */
-  async getInquiryResponses(inquiryId: string, token: string): Promise<TransactionResponse> {
-    console.log('📥 GETTING INQUIRY RESPONSES:', { inquiryId, token: token ? 'present' : 'missing' });
-
-    const requestData = {
-      inquiry_id: inquiryId
-    };
-
-    return this.callWebhook('get-inquiry-responses', requestData, token);
-  }
 }
 
 // Export singleton instance
