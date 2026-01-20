@@ -16,8 +16,7 @@ import {
   Calendar,
   ExternalLink,
   Plus,
-  MoreVertical,
-  MessageCircle
+  MoreVertical
 } from 'lucide-react';
 
 interface CustomerInquiry {
@@ -415,40 +414,6 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
       return;
     }
     window.open(`tel:${phone}`, '_self');
-  };
-
-  const handleReplyOnWhatsApp = (inquiry: CustomerInquiry) => {
-    if (!user) {
-      console.log('⚠️ User not authenticated');
-      alert('Please log in to reply via WhatsApp.');
-      return;
-    }
-
-    const phone = inquiry.customer_phone?.replace(/[^0-9]/g, '');
-    
-    if (!phone) {
-      console.log('⚠️ No phone number available for WhatsApp');
-      alert('No phone number available for this customer.');
-      return;
-    }
-
-    // Format phone number for WhatsApp (remove any non-numeric characters)
-    const cleanPhone = phone.replace(/^0/, '254'); // Convert 07xx to 2547xx format
-    
-    // Create pre-filled message template
-    const shopName = user.shop_name || 'your shop';
-    const defaultMessage = encodeURIComponent(
-      `Hello ${inquiry.customer_name || 'Customer'},\n\n` +
-      `Thank you for your inquiry about ${inquiry.product_name || 'our products'}.\n\n` +
-      `From ${shopName}\n\n` +
-      `---\n\n` +
-      `Reply from: ${user.username || 'Shop Admin'} (${shopName})`
-    );
-
-    // Open WhatsApp Web
-    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${defaultMessage}`;
-    console.log('📱 Opening WhatsApp Web for:', cleanPhone);
-    window.open(whatsappUrl, '_blank');
   };
 
   const handleEmailCustomer = (email: string | undefined) => {
@@ -1076,23 +1041,10 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
                         )}
 
                         <div className="flex flex-col gap-1">
-                          {/* Direct WhatsApp Reply Button */}
-                          {inquiry.customer_phone && inquiry.customer_phone.trim() && (
-                            <button 
-                              onClick={() => handleReplyOnWhatsApp(inquiry)}
-                              className="flex items-center gap-2 px-2 py-1 bg-[#25D366] hover:bg-[#20BD5A] text-white text-xs font-medium rounded-md transition-colors"
-                              title="Reply directly on WhatsApp"
-                            >
-                              <MessageCircle className="w-3 h-3" />
-                              WhatsApp
-                            </button>
-                          )}
-                          
-                          {/* In-App Quick Reply Button */}
                           {inquiry.method === 'whatsapp' && (
                             <button 
                               onClick={() => handleRespondToCustomer(inquiry)}
-                              className="flex items-center gap-2 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
+                              className="flex items-center gap-2 px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-md transition-colors"
                             >
                               📱 Quick Reply
                             </button>
