@@ -16,22 +16,30 @@ import {
   Calendar,
   ExternalLink,
   Plus,
-  MoreVertical
+  MoreVertical,
+  MessageCircle
 } from 'lucide-react';
 
 interface CustomerInquiry {
   id: string;
   shop_id: number;
-  customer_name?: string;  // May be empty if not provided by N8N
-  customer_phone?: string; // May be empty if not provided by N8N
-  customer_email?: string; // May be empty if not provided by N8N
-  customer_message?: string; // May be empty if not provided by N8N
+  product_id?: number;
+  customer_name?: string;
+  customer_phone?: string;
+  customer_email?: string;
+  customer_message?: string;
   product_name?: string;
   interaction_type: string;
-  created_at?: string; // May be undefined if N8N doesn't provide timestamp
+  created_at?: string;
   campaign?: string;
   method?: string;
   status: 'new' | 'contacted' | 'resolved';
+  // Channel Attribution Fields
+  channel?: string;
+  source?: string;
+  post_id?: string;
+  session_id?: string;
+  attribution_data?: any;
 }
 
 interface CustomerInquiriesProps {
@@ -47,6 +55,13 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'new' | 'contacted' | 'resolved'>('all');
   const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'all'>('week');
   const [refreshing, setRefreshing] = useState(false);
+
+  // Reply Modal State
+  const [isReplyModalOpen, setIsReplyModalOpen] = useState(false);
+  const [currentInquiryForReply, setCurrentInquiryForReply] = useState<CustomerInquiry | null>(null);
+  const [replyMessage, setReplyMessage] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
+  const [replyError, setReplyError] = useState<string | null>(null);
 
   // Fetch customer inquiries via N8N webhook
   const fetchInquiries = async () => {
@@ -140,27 +155,41 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
       }
 
       // Transform the response data to match our interface
-      // N8N returns the data directly as an array like: [{id:1,...}, {id:2,...}, ...]
+      // N8N returns the data wrapped in a json object: {json: {customer_name: "...", ...}}
       let inquiriesData: any[] = [];
       
       console.log('🔍 Analyzing response.data structure:', response.data);
+      console.log('🔍 Full response structure:', JSON.stringify(response, null, 2));
       
-      // Direct array from N8N (like the format you showed)
-      if (Array.isArray(response.data)) {
+      // Handle N8N json wrapper format: {json: {customer_name: "...", ...}}
+      if (response.data && response.data.json) {
+        if (Array.isArray(response.data.json)) {
+          inquiriesData = response.data.json;
+          console.log('✅ Found array in response.data.json');
+        } else if (response.data.json && typeof response.data.json === 'object' && response.data.json.id) {
+          inquiriesData = [response.data.json];
+          console.log('✅ Found single object in response.data.json, wrapped in array');
+        } else {
+          inquiriesData = [response.data.json];
+          console.log('✅ Found object in response.data.json, wrapped in array');
+        }
+      }
+      // Fallback: Handle direct array format (response.data = [...])
+      else if (Array.isArray(response.data)) {
         inquiriesData = response.data;
         console.log('✅ Found direct array in response.data');
       }
-      // Nested array (response.data.data)
+      // Fallback: Handle nested array (response.data.data = [...])
       else if (response.data && Array.isArray(response.data.data)) {
         inquiriesData = response.data.data;
         console.log('✅ Found nested array in response.data.data');
       }
-      // Single object that needs to be wrapped in array
+      // Fallback: Handle single object (response.data = {...})
       else if (response.data && typeof response.data === 'object' && response.data.id) {
         inquiriesData = [response.data];
-        console.log('✅ Found single object, wrapped in array');
+        console.log('✅ Found single object in response.data, wrapped in array');
       }
-      // Response might be the array directly
+      // Response might be the array directly (response = [...])
       else if (Array.isArray(response)) {
         inquiriesData = response;
         console.log('✅ Found array directly in response');
@@ -175,6 +204,7 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
       console.log('🎯 Extracted inquiries data:', inquiriesData.length, 'items');
       console.log('🎯 Sample inquiry data:', inquiriesData[0]);
       console.log('🎯 All inquiry IDs:', inquiriesData.map(item => item.id));
+      console.log('🎯 First inquiry full data:', JSON.stringify(inquiriesData[0], null, 2));
       console.log('🎯 Raw N8N data structure check:', {
         totalRecords: inquiriesData.length,
         sampleRecords: inquiriesData.slice(0, 3).map(item => ({
@@ -219,40 +249,107 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
       }
       
       console.log('🚀 Starting to process', inquiriesData.length, 'inquiries...');
+      console.log('🔍 Raw N8N data sample (first 2 records):', inquiriesData.slice(0, 2));
+      console.log('🔍 Checking for product name fields in raw data:', inquiriesData.slice(0, 2).map(item => ({
+        id: item.id,
+        hasProductName: !!item.product_name,
+        hasProduct: !!item.product,
+        hasJson: !!item.json,
+        jsonProductName: item.json?.product_name,
+        jsonProduct: item.json?.product,
+        rawProductName: item.product_name,
+        rawProduct: item.product
+      })));
       
       const inquiriesWithStatus = inquiriesData.map((inquiry: any, index: number) => {
         console.log(`🎯 Processing inquiry ${index + 1}:`, inquiry.id, inquiry.interaction_type);
         console.log(`🔍 Full inquiry data for debugging:`, JSON.stringify(inquiry, null, 2));
         
+        // The actual customer data is nested in inquiry.json
+        const actualData = inquiry.json || inquiry;
+        
+        console.log(`🔍 Data structure analysis for inquiry ${index + 1}:`, {
+          inquiry: inquiry,
+          actualData: actualData,
+          hasJson: !!inquiry.json,
+          directProductName: inquiry.product_name,
+          nestedProductName: inquiry.json?.product_name,
+          actualDataProductName: actualData.product_name
+        });
+        
         // Generate a unique customer identifier from available data
-        const customerId = inquiry.id?.toString() || `record-${index + 1}`;
-        const sessionId = inquiry.session_id || 'unknown';
+        const customerId = actualData.id?.toString() || `record-${index + 1}`;
+        const sessionId = actualData.session_id || 'unknown';
         
-        // Create a customer name from session ID or use generic
-        const customerName = sessionId !== 'unknown' ? `Customer ${sessionId}` : `Customer ${customerId}`;
+        // Use real customer data from the database
+        const customerName = actualData.customer_name || 
+                            (sessionId !== 'unknown' ? `Customer ${sessionId}` : `Customer ${customerId}`);
         
-        // Extract message content - check multiple possible fields
-        const messageContent = inquiry.message || inquiry.content || inquiry.text || inquiry.body || 
-                              inquiry.customer_message || inquiry.inquiry_message || 
-                              `WhatsApp inquiry about product ${inquiry.product_id || 'N/A'}`;
+        // Extract message content - use actual customer message
+        const messageContent = actualData.customer_message || 
+                              actualData.message || actualData.content || actualData.text || actualData.body ||
+                              `WhatsApp inquiry about product ${actualData.product_id || 'N/A'}`;
         
-        return {
-          ...inquiry,
-          status: getStatusFromInteraction(inquiry),
-          id: customerId, // Use the unique customer identifier
+        // Extract product name with comprehensive fallback logic
+        // Check multiple possible locations where product name might be stored
+        const extractedProductName = 
+          // Try actualData first (most common)
+          (actualData.product_name && actualData.product_name.trim() !== '' && actualData.product_name !== 'Product' ? actualData.product_name : null) ||
+          // Try direct inquiry access 
+          (inquiry.product_name && inquiry.product_name.trim() !== '' && inquiry.product_name !== 'Product' ? inquiry.product_name : null) ||
+          // Try other possible field names
+          (actualData.product && actualData.product.trim() !== '' && actualData.product !== 'Product' ? actualData.product : null) ||
+          (actualData.product_name_from_db && actualData.product_name_from_db.trim() !== '' && actualData.product_name_from_db !== 'Product' ? actualData.product_name_from_db : null) ||
+          (actualData.name && actualData.name.trim() !== '' && actualData.name !== 'Product' ? actualData.name : null) ||
+          // Final fallback to product ID
+          (actualData.product_id ? `Product ${actualData.product_id}` : 'Product');
+        
+        console.log(`🔍 Product name extraction for inquiry ${index + 1}:`, {
+          inquiry: inquiry,
+          actualData: actualData,
+          extractedProductName: extractedProductName,
+          availableFields: {
+            actualData_product_name: actualData.product_name,
+            inquiry_product_name: inquiry.product_name,
+            product: actualData.product,
+            product_name_from_db: actualData.product_name_from_db,
+            name: actualData.name,
+            product_id: actualData.product_id
+          }
+        });
+        
+        const finalInquiry = {
+          ...actualData, // Spread all actual data
+          status: getStatusFromInteraction(actualData),
+          id: customerId,
           // Map N8N timestamp to created_at
-          created_at: inquiry.timestamp || inquiry.created_at || inquiry.date,
-          // Generate customer data from available N8N fields
-          customer_name: customerName,
-          customer_phone: inquiry.customer_phone || inquiry.phone || '', // May be available from WhatsApp integration
-          customer_email: inquiry.customer_email || inquiry.email || '', // May be available from WhatsApp integration
+          created_at: actualData.timestamp || actualData.created_at || actualData.date,
+          // Use real customer data from the database
+          customer_name: actualData.customer_name || customerName,
+          customer_phone: actualData.customer_phone || '',
+          customer_email: actualData.customer_email || '',
           customer_message: messageContent,
-          product_name: inquiry.product_name || inquiry.product || (inquiry.product_id ? `Product ${inquiry.product_id}` : undefined)
+          product_name: extractedProductName,
+          // Channel Attribution Fields
+          channel: actualData.channel || actualData.source || 'direct',
+          source: actualData.source || 'direct_visit',
+          post_id: actualData.post_id,
+          session_id: actualData.session_id,
+          attribution_data: actualData.attribution_data || {}
         };
+
+        console.log(`✅ Final inquiry object for ${index + 1}:`, {
+          id: finalInquiry.id,
+          product_name: finalInquiry.product_name,
+          customer_name: finalInquiry.customer_name
+        });
+
+        return finalInquiry;
       });
       
       console.log('✅ Successfully processed inquiries:', inquiriesWithStatus.length);
       console.log('✅ Processed inquiry IDs:', inquiriesWithStatus.map(item => item.id));
+      console.log('✅ First processed inquiry sample:', JSON.stringify(inquiriesWithStatus[0], null, 2));
       console.log('✅ Setting state with inquiries array...');
       
       setInquiries(inquiriesWithStatus);
@@ -320,6 +417,40 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
     window.open(`tel:${phone}`, '_self');
   };
 
+  const handleReplyOnWhatsApp = (inquiry: CustomerInquiry) => {
+    if (!user) {
+      console.log('⚠️ User not authenticated');
+      alert('Please log in to reply via WhatsApp.');
+      return;
+    }
+
+    const phone = inquiry.customer_phone?.replace(/[^0-9]/g, '');
+    
+    if (!phone) {
+      console.log('⚠️ No phone number available for WhatsApp');
+      alert('No phone number available for this customer.');
+      return;
+    }
+
+    // Format phone number for WhatsApp (remove any non-numeric characters)
+    const cleanPhone = phone.replace(/^0/, '254'); // Convert 07xx to 2547xx format
+    
+    // Create pre-filled message template
+    const shopName = user.shop_name || 'your shop';
+    const defaultMessage = encodeURIComponent(
+      `Hello ${inquiry.customer_name || 'Customer'},\n\n` +
+      `Thank you for your inquiry about ${inquiry.product_name || 'our products'}.\n\n` +
+      `From ${shopName}\n\n` +
+      `---\n\n` +
+      `Reply from: ${user.username || 'Shop Admin'} (${shopName})`
+    );
+
+    // Open WhatsApp Web
+    const whatsappUrl = `https://wa.me/${cleanPhone}?text=${defaultMessage}`;
+    console.log('📱 Opening WhatsApp Web for:', cleanPhone);
+    window.open(whatsappUrl, '_blank');
+  };
+
   const handleEmailCustomer = (email: string | undefined) => {
     if (!email) {
       console.log('⚠️ No email address available');
@@ -335,10 +466,20 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
         throw new Error('Authentication token not found');
       }
 
-      console.log('🔄 Calling transactionService.updateTransaction...');
+      // Find the inquiry to get complete customer data
+      const inquiry = inquiries.find(inq => inq.id === inquiryId);
+      if (!inquiry) {
+        throw new Error('Inquiry not found in local state');
+      }
+
+      console.log('🔄 Found inquiry data:', inquiry);
+      
+      // Update transaction status only (customer data is already stored)
       const response = await transactionService.updateTransaction(
         inquiryId,
-        { status: newStatus },
+        { 
+          status: newStatus
+        },
         token
       );
 
@@ -365,22 +506,84 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
     }
   };
 
-  const handleRespondToCustomer = async (inquiry: any) => {
-    try {
-      const response = prompt(`Respond to ${inquiry.customer_name}:\n\nCurrent message: "${inquiry.customer_message}"\n\nType your response:`);
-      if (response && response.trim()) {
-        console.log('📱 Sending response to customer:', response);
-        
-        // Update inquiry status to "contacted" and add response
-        await handleUpdateInquiryStatus(inquiry.id, 'contacted');
-        
-        // In a real implementation, you would send this via WhatsApp API
-        alert(`Response sent to ${inquiry.customer_name}!\n\nMessage: "${response}"\n\nNote: This would be sent via WhatsApp in production.`);
-      }
-    } catch (error) {
-      console.error('❌ Error responding to customer:', error);
-      alert('Failed to send response. Please try again.');
+  const handleRespondToCustomer = (inquiry: CustomerInquiry) => {
+    console.log('💬 Opening reply modal for inquiry:', inquiry.id);
+    setCurrentInquiryForReply(inquiry);
+    setReplyMessage('');
+    setReplyError(null);
+    setIsReplyModalOpen(true);
+  };
+
+  const handleSendReply = async () => {
+    if (!currentInquiryForReply || !replyMessage.trim()) {
+      setReplyError('Please enter a response message');
+      return;
     }
+
+    setIsSendingReply(true);
+    setReplyError(null);
+
+    try {
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      console.log('📤 Sending reply to inquiry:', currentInquiryForReply.id);
+      console.log('📝 Response message:', replyMessage);
+
+      // Send response via N8N webhook (stored in DB, customer sees in app)
+      const response = await transactionService.sendInquiryResponse(
+        currentInquiryForReply.id,
+        replyMessage.trim(),
+        user.id,
+        user.username || `Shop Owner ${user.shop_id}`,
+        user.shop_id || 0,
+        user.shop_name || 'Shop',
+        token
+      );
+
+      console.log('📡 Send response result:', response);
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to save response');
+      }
+
+      console.log('✅ Response saved successfully!');
+
+      // Update inquiry status to "contacted" in local state
+      setInquiries(prev =>
+        prev.map(inquiry =>
+          inquiry.id === currentInquiryForReply.id
+            ? { ...inquiry, status: 'contacted' as const }
+            : inquiry
+        )
+      );
+
+      // Close modal and show success
+      setIsReplyModalOpen(false);
+      setCurrentInquiryForReply(null);
+      setReplyMessage('');
+
+      // Show success message
+      alert(`✅ Response saved!\n\nYour reply will be visible to ${currentInquiryForReply.customer_name || 'the customer'} in the NHC Langata app when they next open it.\n\nMessage: "${replyMessage.trim()}"`);
+
+    } catch (err) {
+      console.error('❌ Error saving response:', err);
+      setReplyError(err instanceof Error ? err.message : 'Failed to save response. Please try again.');
+    } finally {
+      setIsSendingReply(false);
+    }
+  };
+
+  const handleCloseReplyModal = () => {
+    setIsReplyModalOpen(false);
+    setCurrentInquiryForReply(null);
+    setReplyMessage('');
+    setReplyError(null);
   };
 
   const handleAddNotes = async (inquiry: any) => {
@@ -469,6 +672,26 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const getChannelDisplayName = (channel: string) => {
+    const channelNames: { [key: string]: string } = {
+      'whatsapp': 'WhatsApp',
+      'qr_scan': 'QR Scan',
+      'instagram': 'Instagram',
+      'direct': 'Direct Visit'
+    };
+    return channelNames[channel] || channel;
+  };
+
+  const getChannelColor = (channel: string) => {
+    const channelColors: { [key: string]: string } = {
+      'whatsapp': 'bg-green-100 text-green-800',
+      'qr_scan': 'bg-blue-100 text-blue-800',
+      'instagram': 'bg-pink-100 text-pink-800',
+      'direct': 'bg-gray-100 text-gray-800'
+    };
+    return channelColors[channel] || 'bg-gray-100 text-gray-800';
   };
 
   const formatDate = (dateString: string) => {
@@ -731,9 +954,14 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
                             <div>
                               <p className="text-sm font-medium text-gray-900 mb-1">Customer Message:</p>
                               <p className="text-gray-700">{inquiry.customer_message}</p>
-                              {(inquiry.product_name && inquiry.product_name.trim()) && (
+                              {(inquiry.product_name && inquiry.product_name.trim() && inquiry.product_name !== 'Product') && (
                                 <p className="text-sm text-blue-600 mt-2">
                                   Product: {inquiry.product_name}
+                                </p>
+                              )}
+                              {(!inquiry.product_name || !inquiry.product_name.trim() || inquiry.product_name === 'Product') && (
+                                <p className="text-sm text-gray-600 mt-2">
+                                  Product: {inquiry.product_name || `Product ID: ${inquiry.product_id?.toString() || 'Unknown'}`}
                                 </p>
                               )}
                             </div>
@@ -768,9 +996,25 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
                         <span>
                           Shop ID: {inquiry.shop_id}
                         </span>
+                        {/* Channel Attribution Display */}
+                        {inquiry.channel && inquiry.channel !== 'direct' && (
+                          <span className="flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium">
+                            📱 {getChannelDisplayName(inquiry.channel)}
+                          </span>
+                        )}
                         {inquiry.campaign && (
-                          <span>
-                            Campaign: {inquiry.campaign}
+                          <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium">
+                            🎯 {inquiry.campaign}
+                          </span>
+                        )}
+                        {inquiry.post_id && (
+                          <span className="text-xs text-gray-500">
+                            Post: {inquiry.post_id}
+                          </span>
+                        )}
+                        {inquiry.session_id && (
+                          <span className="text-xs text-gray-400">
+                            Session: {inquiry.session_id.slice(-8)}
                           </span>
                         )}
                         {inquiry.method && (
@@ -832,10 +1076,23 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
                         )}
 
                         <div className="flex flex-col gap-1">
+                          {/* Direct WhatsApp Reply Button */}
+                          {inquiry.customer_phone && inquiry.customer_phone.trim() && (
+                            <button 
+                              onClick={() => handleReplyOnWhatsApp(inquiry)}
+                              className="flex items-center gap-2 px-2 py-1 bg-[#25D366] hover:bg-[#20BD5A] text-white text-xs font-medium rounded-md transition-colors"
+                              title="Reply directly on WhatsApp"
+                            >
+                              <MessageCircle className="w-3 h-3" />
+                              WhatsApp
+                            </button>
+                          )}
+                          
+                          {/* In-App Quick Reply Button */}
                           {inquiry.method === 'whatsapp' && (
                             <button 
                               onClick={() => handleRespondToCustomer(inquiry)}
-                              className="flex items-center gap-2 px-2 py-1 bg-green-600 hover:bg-green-700 text-white text-xs font-medium rounded-md transition-colors"
+                              className="flex items-center gap-2 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-md transition-colors"
                             >
                               📱 Quick Reply
                             </button>
@@ -909,6 +1166,146 @@ export function CustomerInquiries({ onBack }: CustomerInquiriesProps) {
           )}
         </div>
       </main>
+
+      {/* Reply Modal */}
+      {isReplyModalOpen && currentInquiryForReply && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-blue-600 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <MessageSquare className="w-5 h-5 text-white" />
+                  <h2 className="text-lg font-semibold text-white">
+                    Reply to Customer
+                  </h2>
+                </div>
+                <button
+                  onClick={handleCloseReplyModal}
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+              {/* Customer Info */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="bg-blue-100 p-2 rounded-full">
+                    <User className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">
+                      {currentInquiryForReply.customer_name || `Customer ID: ${currentInquiryForReply.id}`}
+                    </h3>
+                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                      {currentInquiryForReply.customer_phone && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="w-3 h-3" />
+                          {currentInquiryForReply.customer_phone}
+                        </span>
+                      )}
+                      {currentInquiryForReply.customer_email && (
+                        <span className="flex items-center gap-1">
+                          <Mail className="w-3 h-3" />
+                          {currentInquiryForReply.customer_email}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Original Message */}
+                <div className="border-t border-gray-200 pt-3 mt-3">
+                  <p className="text-sm font-medium text-gray-700 mb-1">Original Message:</p>
+                  <div className="bg-white rounded border border-gray-200 p-3">
+                    <p className="text-gray-700">
+                      {currentInquiryForReply.customer_message || 'No message provided'}
+                    </p>
+                    {currentInquiryForReply.product_name && currentInquiryForReply.product_name !== 'Product' && (
+                      <p className="text-sm text-blue-600 mt-2">
+                        Product: {currentInquiryForReply.product_name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Response Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Response <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={replyMessage}
+                  onChange={(e) => setReplyMessage(e.target.value)}
+                  placeholder="Type your response to the customer... This will be sent via WhatsApp."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[150px] resize-y"
+                  disabled={isSendingReply}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  {replyMessage.length}/500 characters
+                </p>
+              </div>
+
+              {/* Error Message */}
+              {replyError && (
+                <div className="mt-4 bg-red-50 border border-red-200 rounded-md p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-medium text-red-800">Error Sending Response</h4>
+                      <p className="text-red-700 text-sm mt-1">{replyError}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <div className="text-sm text-gray-600">
+                <span className="text-blue-600 font-medium">✓</span> Response saved to app
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleCloseReplyModal}
+                  disabled={isSendingReply}
+                  className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSendReply}
+                  disabled={isSendingReply || !replyMessage.trim()}
+                  className={`flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md transition-colors ${
+                    isSendingReply || !replyMessage.trim()
+                      ? 'opacity-50 cursor-not-allowed'
+                      : 'hover:bg-blue-700'
+                  }`}
+                >
+                  {isSendingReply ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <MessageSquare className="w-4 h-4" />
+                      Save Response
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
