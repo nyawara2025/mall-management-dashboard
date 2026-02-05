@@ -1,0 +1,241 @@
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { 
+  TrendingUp, 
+  Users, 
+  MapPin, 
+  Clock,
+  Eye,
+  Smartphone,
+  BarChart3,
+  Target,
+  QrCode,
+  Heart,
+  Share2,
+  Phone,
+  Activity,
+  PieChart,
+  Sun,
+  Moon,
+  RefreshCw,
+  CheckCircle,
+  AlertCircle,
+  Wifi,
+  WifiOff
+} from 'lucide-react';
+
+export default function Analytics() {
+  const { user } = useAuth();
+  
+  // State initialization (TypeScript types removed for .jsx compatibility)
+  const [activeTab, setActiveTab] = useState('campaigns');
+  const [theme, setTheme] = useState('light');
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Campaign Analytics State
+  const [campaignAnalytics, setCampaignAnalytics] = useState(null);
+  const [timeRange, setTimeRange] = useState('7d');
+  const [campaignWebhookStatus, setCampaignWebhookStatus] = useState('loading');
+  
+  // QR Analytics State  
+  const [qrAnalytics, setQrAnalytics] = useState(null);
+  const [qrWebhookStatus, setQrWebhookStatus] = useState('loading');
+
+  // Visitor Engagement State
+  const [engagementMetrics, setEngagementMetrics] = useState(null);
+  const [engagementWebhookStatus, setEngagementWebhookStatus] = useState('loading');
+
+  // Helper: Trigger Webhook Logic
+  const fetchEngagementData = async () => {
+    setEngagementWebhookStatus('loading');
+    try {
+      const response = await fetch('https://n8n.tenear.com', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id })
+      });
+      const data = await response.json();
+      setEngagementMetrics(data);
+      setEngagementWebhookStatus('success');
+    } catch (error) {
+      console.error('Webhook Error:', error);
+      setEngagementWebhookStatus('error');
+    }
+  };
+
+  const fetchQRAnalytics = async () => {
+    setQrWebhookStatus('loading');
+    try {
+      // Logic for QR Fetching here
+      setQrWebhookStatus('success');
+    } catch (e) {
+      setQrWebhookStatus('error');
+    }
+  };
+
+  // 🔒 Calculate Engagement Rate Function
+  const calculateEngagementRate = (metrics) => {
+    const totalClaims = metrics?.totalClaims || 0;
+    const totalScans = metrics?.totalScans || 0;
+    const totalEngagements = metrics?.totalEngagements || 0;
+    const uniqueVisitors = metrics?.uniqueVisitors || 0;
+    const activeVisitors = metrics?.activeVisitors || 0;
+    
+    let calculatedRate = 0;
+    
+    if (totalScans > 0 && totalClaims > 0) {
+      calculatedRate = Math.round((totalClaims / totalScans) * 100);
+    } 
+    else if (totalScans > 0 && totalEngagements > 0) {
+      calculatedRate = Math.round((totalEngagements / totalScans) * 100);
+    }
+    else if (uniqueVisitors > 0 && activeVisitors > 0) {
+      calculatedRate = Math.round((activeVisitors / uniqueVisitors) * 100);
+    }
+    else if (totalEngagements > 0) {
+      const estimatedBaseline = Math.max(uniqueVisitors * 2, 10);
+      calculatedRate = Math.round(Math.min((totalEngagements / estimatedBaseline) * 100, 99));
+    }
+    
+    return Math.min(calculatedRate, 100);
+  };
+
+  // 🔒 Calculate Active Visitors
+  const calculateActiveVisitors = (metrics) => {
+    const checkinSources = [
+      metrics?.visitorCheckins,
+      metrics?.recentCheckins,
+      metrics?.recentEngagements,
+      metrics?.engagements,
+      metrics?.checkins
+    ];
+    
+    let checkins = [];
+    for (const source of checkinSources) {
+      if (source && Array.isArray(source) && source.length > 0) {
+        checkins = source;
+        break;
+      }
+    }
+    
+    if (checkins.length === 0) return 0;
+    
+    const now = new Date();
+    const twoHoursAgo = new Date(now.getTime() - (2 * 60 * 60 * 1000));
+    
+    const recentCheckins = checkins.filter((checkin) => {
+      const timestamp = checkin.created_at || checkin.engagement_timestamp || checkin.timestamp || checkin.checkin_time;
+      if (!timestamp) return false;
+      const checkinTime = new Date(timestamp);
+      return !isNaN(checkinTime.getTime()) && checkinTime >= twoHoursAgo;
+    });
+    
+    const uniqueRecentVisitors = new Set(recentCheckins.map((checkin) => 
+      checkin.visitor_phone || checkin.visitor_id || checkin.session_id || checkin.id || JSON.stringify(checkin)
+    ));
+    
+    return uniqueRecentVisitors.size || recentCheckins.length;
+  };
+
+  // 🔒 Generate Visitor Segmentation
+  const generateVisitorSegmentation = (metrics) => {
+    if (metrics?.visitorSegmentation && metrics.visitorSegmentation.length > 0) {
+      return metrics.visitorSegmentation;
+    }
+    
+    const methods = metrics?.topEngagementMethods || metrics?.engagementMethods || [];
+    const totalEngagements = metrics?.totalEngagements || 0;
+    
+    if (methods.length === 0 && totalEngagements === 0) return [];
+    
+    const segmentation = methods.map((method) => ({
+      type: method.method || method.channel || 'Unknown',
+      count: method.count || 0,
+      percentage: totalEngagements > 0 ? Math.round((method.count / totalEngagements) * 100) : 0
+    }));
+    
+    if (segmentation.length === 0 && totalEngagements > 0) {
+      segmentation.push({ type: 'All Engagements', count: totalEngagements, percentage: 100 });
+    }
+    
+    return segmentation;
+  };
+
+  // 🔒 Calculate Channel Totals
+  const calculateChannelTotals = (metrics) => {
+    if (metrics?.channelTotals && Object.keys(metrics.channelTotals).length > 0) {
+      return metrics.channelTotals;
+    }
+    
+    const methods = metrics?.topEngagementMethods || metrics?.engagementMethods || [];
+    const channelTotals = {};
+    methods.forEach((method) => {
+      const channelName = method.method || method.channel || 'Unknown';
+      channelTotals[channelName] = (channelTotals[channelName] || 0) + (method.count || 0);
+    });
+    
+    return channelTotals;
+  };
+
+  // Webhook Status Icon Helper
+  const getWebhookStatusIcon = (status) => {
+    switch (status) {
+      case 'loading': return <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />;
+      case 'success': return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case 'error': return <AlertCircle className="h-4 w-4 text-red-500" />;
+      default: return null;
+    }
+  };
+
+  // Auto-refresh and Initial Load
+  useEffect(() => {
+    if (user) {
+      fetchEngagementData();
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (activeTab === 'qr' && user) {
+      fetchQRAnalytics();
+      const interval = setInterval(fetchQRAnalytics, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [activeTab, user]);
+
+  return (
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold tracking-tight">Analytics Dashboard</h1>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            {getWebhookStatusIcon(engagementWebhookStatus)}
+            <span>System Status</span>
+          </div>
+          <Button onClick={() => { setRefreshing(true); fetchEngagementData().then(() => setRefreshing(false)); }} disabled={refreshing}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh Data
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Visitors</CardTitle>
+            <Activity className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{calculateActiveVisitors(engagementMetrics)}</div>
+            <p className="text-xs text-muted-foreground">Last 2 hours</p>
+          </CardContent>
+        </Card>
+        
+        {/* Add more cards for Engagement Rate, Scans, etc. using your helper functions */}
+      </div>
+    </div>
+  );
+}
