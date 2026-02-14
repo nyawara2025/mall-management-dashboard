@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Dashboard } from './components/Dashboard';
 import CampaignManagement from './components/CampaignManagement';
+import { POS } from './components/POS';
 import CampaignTemplateManager from './components/CampaignTemplateManager';
 import CampaignViewer from './components/CampaignViewer';
 import QRCheckInPage from './components/QRCheckInPage';
@@ -95,6 +96,24 @@ function AppContent() {
               </div>
             </div>
           )}
+
+          {currentView === 'pos' && (
+            <div className="min-h-screen">
+              <Header 
+                onBack={() => setCurrentView('dashboard')} 
+                title="Point of Sale (Cash Entry)"
+                user={user}
+                onLogout={logout}
+                showUserMenu={showUserMenu}
+                setShowUserMenu={setShowUserMenu}
+              />
+              <div className="pt-16">
+                {/* We will create this file next */}
+                <POS shopId={user?.shop_id || 0} /> 
+              </div>
+            </div>
+          )}
+
           {currentView === 'templates' && (
             <div className="min-h-screen">
               <Header 

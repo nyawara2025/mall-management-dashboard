@@ -13,7 +13,11 @@ import {
   MapPin,
   UserCheck,
   Megaphone,
-  MessageCircle
+  MessageCircle,
+  CreditCard,
+  Inbox,
+  MessageSquare,
+  Inbox as CustomerInquiriesIcon
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -49,6 +53,38 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
       role: 'shop_admin'
     },
     {
+      name: 'Payments',
+      href: '#',
+      icon: CreditCard,
+      current: currentView === 'payments' || currentView === 'transactions',
+      action: () => {
+        setCurrentView('payments');
+        onViewChange?.('payments');
+      }
+    },
+    {
+      name: 'Payment Reception',
+      href: '#',
+      icon: Inbox,
+      current: currentView === 'payment-reception',
+      action: () => {
+        setCurrentView('payment-reception');
+        onViewChange?.('payment-reception');
+      },
+      role: 'shop_admin'
+    },
+    {
+      name: 'Receipt Messaging',
+      href: '#',
+      icon: MessageSquare,
+      current: currentView === 'receipt-messaging',
+      action: () => {
+        setCurrentView('receipt-messaging');
+        onViewChange?.('receipt-messaging');
+      },
+      role: 'shop_admin'
+    },
+    {
       name: 'Visitor Engagement',
       href: '#',
       icon: MessageCircle,
@@ -58,6 +94,37 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
         onViewChange?.('visitor-engagement');
       },
       role: 'shop_admin'
+    },
+    {
+      name: 'Analytics',
+      href: '#',
+      icon: BarChart3,
+      current: currentView === 'analytics',
+      action: () => {
+        setCurrentView('analytics');
+        onViewChange?.('analytics');
+      },
+    },
+    {
+      name: 'Customer Inquiries',
+      href: '#',
+      icon: CustomerInquiriesIcon,
+      current: currentView === 'customer-inquiries',
+      action: () => {
+        setCurrentView('customer-inquiries');
+        onViewChange?.('customer-inquiries');
+      },
+      role: 'shop_admin'
+    },
+    {
+      name: 'Settings',
+      href: '#',
+      icon: Settings,
+      current: currentView === 'settings',
+      action: () => {
+        setCurrentView('settings');
+        onViewChange?.('settings');
+      }
     },
     {
       name: 'Malls',
@@ -72,16 +139,6 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
       icon: Store,
       current: false,
       role: 'super_admin'
-    },
-    {
-      name: 'Analytics',
-      href: '#',
-      icon: BarChart3,
-      current: currentView === 'analytics',
-      action: () => {
-        setCurrentView('analytics');
-        onViewChange?.('analytics');
-      },
     },
     {
       name: 'Users',
@@ -101,21 +158,45 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
 
   // Filter navigation based on user role
   const filteredNavigation = navigationItems.filter(item => {
-    // If item has specific role requirement
-    if (item.role && item.role !== user?.role) return false;
-    
+    // Handle super_admin role
     if (user?.role === 'super_admin') {
-      // Super admin sees all items except those with specific role restrictions
+      // Super admin sees all items except those with specific role restrictions  
       return !item.role || item.role === 'super_admin';
     }
+    
+    // Handle mall_admin role
     if (user?.role === 'mall_admin') {
-      // Mall admins see Dashboard, Campaign Management (if added), and Analytics
       return ['Dashboard', 'Analytics'].includes(item.name);
     }
+    
+    // Handle shop_admin role - FULL ACCESS
     if (user?.role === 'shop_admin') {
-      // Shop admins see Dashboard, Campaign Management, Visitor Engagement, and Analytics
-      return ['Dashboard', 'Campaign Management', 'Visitor Engagement', 'Analytics'].includes(item.name);
+      // First check: if item has specific role, it must match
+      if (item.role && item.role !== 'shop_admin') return false;
+      
+      // Always include Analytics, Customer Inquiries, and Settings for shop_admin
+      if (item.name === 'Analytics' || item.name === 'Customer Inquiries' || item.name === 'Settings') return true;
+      
+      // Other items must be in the allowed list
+      return ['Dashboard', 'Campaign Management', 'Payments', 'Payment Reception', 'Receipt Messaging', 'Visitor Engagement'].includes(item.name);
     }
+    
+    // Handle shop_staff role - LIMITED ACCESS (no payment-related screens, but can change password)
+    if (user?.role === 'shop_staff') {
+      // Always allow these specific items regardless of their role property
+      // This overrides the role restriction check below
+      if (['Campaign Management', 'Visitor Engagement', 'Customer Inquiries'].includes(item.name)) {
+        return true;
+      }
+      
+      // First check: if item has specific role (other than allowed items above), exclude it
+      if (item.role) return false;
+      
+      // shop_staff can see: Dashboard, Analytics, Settings (no role restriction)
+      return ['Dashboard', 'Analytics', 'Settings'].includes(item.name);
+    }
+    
+    console.log('❌ Default filtering out:', item.name);
     return false;
   });
 
@@ -128,7 +209,7 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
         </div>
         <div>
           <h1 className="text-lg font-bold text-text-primary">
-            Mall Management
+            TeNEAR Space
           </h1>
           <p className="text-xs text-text-secondary">
             System Dashboard
@@ -160,7 +241,7 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-6">
+      <nav className="flex-1 p-6 overflow-y-auto">
         <ul className="space-y-2">
           {filteredNavigation.map((item) => {
             const Icon = item.icon;

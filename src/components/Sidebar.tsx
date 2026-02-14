@@ -16,8 +16,9 @@ import {
   MessageCircle,
   CreditCard,
   Inbox,
+  ShoppingCart,
   MessageSquare,
-  Inbox as CustomerInquiriesIcon
+  Inbox as CustomerInquiriesIcon  
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -41,6 +42,18 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
         onViewChange?.('dashboard');
       }
     },
+
+    {
+      name: 'Point of Sale',
+      href: '#',
+      icon: ShoppingCart,
+      current: currentView === 'pos',
+      action: () => {
+        setCurrentView('pos');
+        onViewChange?.('pos');
+      }
+    },
+
     {
       name: 'Campaign Management',
       href: '#',
@@ -178,14 +191,14 @@ export function Sidebar({ onLogout, onViewChange }: SidebarProps) {
       if (item.name === 'Analytics' || item.name === 'Customer Inquiries' || item.name === 'Settings') return true;
       
       // Other items must be in the allowed list
-      return ['Dashboard', 'Campaign Management', 'Payments', 'Payment Reception', 'Receipt Messaging', 'Visitor Engagement'].includes(item.name);
+      return ['Dashboard', 'Point of Sale', 'Campaign Management', 'Payments', 'Payment Reception', 'Receipt Messaging', 'Visitor Engagement'].includes(item.name);
     }
     
     // Handle shop_staff role - LIMITED ACCESS (no payment-related screens, but can change password)
     if (user?.role === 'shop_staff') {
       // Always allow these specific items regardless of their role property
       // This overrides the role restriction check below
-      if (['Campaign Management', 'Visitor Engagement', 'Customer Inquiries'].includes(item.name)) {
+      if (['Point of Sale', 'Campaign Management', 'Visitor Engagement', 'Customer Inquiries'].includes(item.name)) {
         return true;
       }
       

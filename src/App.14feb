@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { SessionMonitor, SessionWarning } from './components/SessionMonitor';
 import { Dashboard } from './components/Dashboard';
 import CampaignManagement from './components/CampaignManagement';
+import CampaignTemplateManager from './components/CampaignTemplateManager';
 import CampaignViewer from './components/CampaignViewer';
 import QRCheckInPage from './components/QRCheckInPage';
 import QrCheckinPage from './pages/QrCheckinPage';
@@ -18,6 +18,8 @@ import ReceivingPaymentModule from './components/ReceivingPaymentModule';
 import PaymentReceiptMessaging from './components/PaymentReceiptMessaging';
 import { useAuth } from './contexts/AuthContext';
 import { LogOut, User } from 'lucide-react';
+import { CustomerInquiries } from './components/CustomerInquiries';
+import SettingsPage from './pages/SettingsPage';
 import './index.css';
 
 function AppContent() {
@@ -72,9 +74,7 @@ function AppContent() {
 
   // Main app for authenticated users (ALL routes above handled PUBLIC routes)
   return (
-    <SessionMonitor>
-      <SessionWarning />
-      <div className="App">
+    <div className="App">
         <ProtectedRoute>
           <div className="min-h-screen bg-gray-50">
           {currentView === 'dashboard' && (
@@ -92,6 +92,21 @@ function AppContent() {
               />
               <div className="pt-16">
                 <CampaignManagement />
+              </div>
+            </div>
+          )}
+          {currentView === 'templates' && (
+            <div className="min-h-screen">
+              <Header 
+                onBack={() => setCurrentView('dashboard')} 
+                title="Campaign Template Manager"
+                user={user}
+                onLogout={logout}
+                showUserMenu={showUserMenu}
+                setShowUserMenu={setShowUserMenu}
+              />
+              <div className="pt-16">
+                <CampaignTemplateManager />
               </div>
             </div>
           )}
@@ -200,10 +215,39 @@ function AppContent() {
               </div>
             </div>
           )}
+          {currentView === 'customer-inquiries' && (
+            <div className="min-h-screen">
+              <Header 
+                onBack={() => setCurrentView('dashboard')} 
+                title="Customer Inquiries"
+                user={user}
+                onLogout={logout}
+                showUserMenu={showUserMenu}
+                setShowUserMenu={setShowUserMenu}
+              />
+              <div className="pt-16">
+                <CustomerInquiries />
+              </div>
+            </div>
+          )}
+          {currentView === 'settings' && (
+            <div className="min-h-screen">
+              <Header 
+                onBack={() => setCurrentView('dashboard')} 
+                title="Settings"
+                user={user}
+                onLogout={logout}
+                showUserMenu={showUserMenu}
+                setShowUserMenu={setShowUserMenu}
+              />
+              <div className="pt-16">
+                <SettingsPage />
+              </div>
+            </div>
+          )}
         </div>
       </ProtectedRoute>
     </div>
-    </SessionMonitor>
   );
 }
 
