@@ -1,0 +1,260 @@
+import React, { useState, useEffect } from 'react';
+import { ShoppingCart, Search, Trash2, Smartphone, Banknote, X, Printer, CheckCircle } from 'lucide-react';
+
+interface POSProps {
+  shopId: number;
+}
+
+interface Product {
+  product_id: number;
+  product_name: string;
+  base_price: number;
+  product_description?: string;
+  product_category?: string;
+  product_image_url?: string;
+  stock_quantity?: number;
+}
+
+export const POS: React.FC<POSProps> = ({ shopId }) => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [cart, setCart] = useState<(Product & { quantity: number })[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'mpesa'>('cash');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  
+  // Modal State
+  const [showPreview, setShowPreview] = useState<any | null>(null);
+
+  // Webhook URLs
+  const FETCH_PRODUCTS_URL = 'https://n8n.tenear.com/webhook/pos-transaction';
+  const CASH_SALE_URL = 'https://n8n.tenear.com/webhook/pos-sale-cash';
+  const MPESA_PUSH_URL = 'https://n8n.tenear.com/webhook/pos-transaction-push';
+
+  useEffect(() => {
+    async function fetchProducts() {
+      setFetching(true);
+      try {
+        const response = await fetch(FETCH_PRODUCTS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: { shop_id: shopId.toString(), action: "get_products" } })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setProducts(Array.isArray(data) ? data : (data ? [data] : []));
+        }
+      } catch (err) { console.error('Fetch error:', err); }
+      finally { setFetching(false); }
+    }
+    if (shopId) fetchProducts();
+  }, [shopId]);
+
+  const calculateTotal = () => cart.reduce((sum, item) => sum + ((item.base_price ?? 0) * item.quantity), 0);
+
+  const generateReceipt = (saleData: any) => {
+    const receiptWindow = window.open('', '_blank', 'width=300,height=600');
+    if (!receiptWindow) return;
+
+    const itemsHtml = saleData.items.map((item: any) => `
+      <div style="display:flex; justify-content:space-between; margin-bottom: 2px;">
+        <span>${item.product_name} x${item.quantity}</span>
+        <span>${((item.base_price ?? 0) * item.quantity).toLocaleString()}</span>
+      </div>`).join('');
+
+    receiptWindow.document.write(`
+      <html>
+        <body style="font-family:'Courier New', monospace; width:72mm; padding:5mm; font-size:12px;">
+          <div style="text-align:center; border-bottom:1px dashed #000; padding-bottom:10px; margin-bottom:10px;">
+            <h3 style="margin:0;">TENEAR SHOP #${shopId}</h3>
+            <p style="font-size:10px; margin:2px 0;">${new Date().toLocaleString()}</p>
+          </div>
+          ${itemsHtml}
+          <div style="border-top:1px solid #000; margin-top:10px; padding-top:5px; font-weight:bold; display:flex; justify-content:space-between; font-size:14px;">
+            <span>TOTAL</span><span>KES ${saleData.total.toLocaleString()}</span>
+          </div>
+          <p style="font-size:10px; margin-top:10px;">Method: ${saleData.payment_method.toUpperCase()}</p>
+          <div style="text-align:center; margin-top:20px; font-size:10px;">*** THANK YOU ***</div>
+          <script>window.print(); window.close();</script>
+        </body>
+      </html>`);
+    receiptWindow.document.close();
+  };
+
+  // Step 1: Trigger the Preview Modal
+  const initiateCheckout = () => {
+    if (cart.length === 0) return;
+    if (paymentMethod === 'mpesa' && !phoneNumber.match(/^(254|0)\d{8,9}$/)) {
+      alert('Valid M-PESA number required.');
+      return;
+    }
+
+    const previewData = {
+      shop_id: shopId,
+      items: cart,
+      total: calculateTotal(),
+      payment_method: paymentMethod,
+      phone_number: paymentMethod === 'mpesa' ? phoneNumber : null,
+      timestamp: new Date().toISOString()
+    };
+    setShowPreview(previewData);
+  };
+
+  // Step 2: Execute the actual API call
+  const executeFinalSale = async () => {
+    if (!showPreview) return;
+    setLoading(true);
+    const targetUrl = showPreview.payment_method === 'mpesa' ? MPESA_PUSH_URL : CASH_SALE_URL;
+
+    try {
+      const response = await fetch(targetUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(showPreview)
+      });
+
+      if (response.ok) {
+        generateReceipt(showPreview);
+        setCart([]);
+        setPhoneNumber('');
+        setShowPreview(null);
+        alert(showPreview.payment_method === 'mpesa' ? 'STK Push Sent!' : 'Cash Sale Recorded!');
+      } else {
+        alert('Error communicating with server.');
+      }
+    } catch (err) {
+      alert('Transaction failed. Check connection.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addToCart = (product: Product) => {
+    setCart(prev => {
+      const exists = prev.find(i => i.product_id === product.product_id);
+      return exists 
+        ? prev.map(i => i.product_id === product.product_id ? {...i, quantity: i.quantity + 1} : i)
+        : [...prev, { ...product, quantity: 1 }];
+    });
+  };
+
+  return (
+    <div className="flex flex-col md:flex-row h-screen gap-4 p-4 bg-gray-50 text-gray-800">
+      {/* Product Grid */}
+      <div className="flex-1 bg-white rounded-xl shadow-sm border p-4 flex flex-col overflow-hidden">
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+          <input 
+            type="text" placeholder="Search products..."
+            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="flex-1 overflow-y-auto grid grid-cols-2 lg:grid-cols-3 gap-3">
+          {fetching ? <div className="col-span-full text-center py-10 text-gray-500 italic">Fetching products...</div> : 
+            products.filter(p => (p.product_name || '').toLowerCase().includes(searchTerm.toLowerCase())).map(product => (
+              <button key={product.product_id} onClick={() => addToCart(product)}
+                className="p-3 text-left border rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all group">
+                <div className="font-bold group-hover:text-blue-700">{product.product_name}</div>
+                <div className="text-blue-600 text-sm">KES {(product.base_price ?? 0).toLocaleString()}</div>
+              </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Cart & Checkout */}
+      <div className="w-full md:w-96 bg-white rounded-xl shadow-sm border p-4 flex flex-col">
+        <h2 className="text-lg font-bold mb-4 flex items-center gap-2 border-b pb-2"><ShoppingCart size={20}/> Cart Items</h2>
+        <div className="flex-1 overflow-y-auto space-y-3 mb-4">
+          {cart.length === 0 ? <div className="text-center text-gray-400 mt-10">Empty Cart</div> : 
+            cart.map(item => (
+              <div key={item.product_id} className="flex justify-between items-center text-sm border-b pb-2">
+                <div>
+                  <div className="font-medium">{item.product_name}</div>
+                  <div className="text-gray-500">KES {item.base_price} x {item.quantity}</div>
+                </div>
+                <button onClick={() => setCart(cart.filter(i => i.product_id !== item.product_id))}>
+                  <Trash2 size={16} className="text-red-400 hover:text-red-600" />
+                </button>
+              </div>
+          ))}
+        </div>
+
+        <div className="border-t pt-4 space-y-4">
+          <div className="flex justify-between font-bold text-xl">
+            <span>Total</span><span>KES {calculateTotal().toLocaleString()}</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => setPaymentMethod('cash')} 
+              className={`flex items-center justify-center gap-2 py-3 rounded-lg border transition-all ${paymentMethod === 'cash' ? 'bg-green-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>
+              <Banknote size={18} /> Cash
+            </button>
+            <button onClick={() => setPaymentMethod('mpesa')} 
+              className={`flex items-center justify-center gap-2 py-3 rounded-lg border transition-all ${paymentMethod === 'mpesa' ? 'bg-purple-600 text-white shadow-md' : 'bg-white text-gray-600 hover:bg-gray-100'}`}>
+              <Smartphone size={18} /> M-PESA
+            </button>
+          </div>
+
+          {paymentMethod === 'mpesa' && (
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-500">M-PESA NUMBER</label>
+              <input type="text" placeholder="07XXXXXXXX" className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
+            </div>
+          )}
+
+          <button disabled={cart.length === 0} onClick={initiateCheckout}
+            className={`w-full py-4 rounded-xl font-bold text-white shadow-lg active:scale-95 transition-all ${paymentMethod === 'mpesa' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-green-600 hover:bg-green-700'} disabled:bg-gray-300`}>
+            Checkout Order
+          </button>
+        </div>
+      </div>
+
+      {/* --- PREVIEW MODAL --- */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold flex items-center gap-2 text-gray-700">
+                <Printer size={20} className="text-blue-500" /> Confirm Sale
+              </h3>
+              <button onClick={() => setShowPreview(null)} className="text-gray-400 hover:text-gray-600">
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-4 font-mono text-sm border-2 border-dashed border-gray-200 mb-6">
+              <div className="text-center font-bold mb-4 border-b border-gray-200 pb-2">RECEIPT PREVIEW</div>
+              {showPreview.items.map((item: any) => (
+                <div key={item.product_id} className="flex justify-between mb-1">
+                  <span className="truncate pr-4">{item.product_name} x{item.quantity}</span>
+                  <span className="shrink-0">{((item.base_price ?? 0) * item.quantity).toLocaleString()}</span>
+                </div>
+              ))}
+              <div className="border-t border-gray-300 mt-3 pt-3 flex justify-between font-bold text-lg">
+                <span>TOTAL</span>
+                <span className="text-blue-600">KES {showPreview.total.toLocaleString()}</span>
+              </div>
+              <div className="mt-4 pt-2 border-t border-gray-200 text-xs text-gray-500">
+                METHOD: <span className="font-bold text-gray-700">{showPreview.payment_method.toUpperCase()}</span>
+                {showPreview.phone_number && <p>PHONE: <span className="font-bold text-gray-700">{showPreview.phone_number}</span></p>}
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <button onClick={() => setShowPreview(null)} className="flex-1 py-3 border border-gray-200 rounded-xl hover:bg-gray-50 font-semibold transition-colors">
+                Cancel
+              </button>
+              <button onClick={executeFinalSale} disabled={loading}
+                className="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg flex items-center justify-center gap-2 transition-all">
+                {loading ? 'Processing...' : <><CheckCircle size={18} /> Finalize Sale</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
