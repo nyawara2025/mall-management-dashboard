@@ -1132,6 +1132,78 @@ export function Dashboard({ onViewChange }: DashboardProps) {
             </div>
           )}
 
+          {/* Visitor Engagement Module - For Shop Admin and Shop Staff */}
+          {(user.role === 'shop_admin' || user.role === 'shop_staff') && (
+            <div className="mb-8">
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-amber-100 p-3 rounded-lg">
+                      <MessageCircle className="w-6 h-6 text-amber-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                        Visitor Engagement
+                      </h3>
+                      <p className="text-gray-600 text-sm">
+                        Monitor visitor interactions, track engagement metrics, and manage visitor claims and redemptions
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => onViewChange?.('visitor-engagement')}
+                    className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                    View Engagement
+                  </button>
+                </div>
+                
+                {/* Quick Stats */}
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-white/50 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Total Visitors</p>
+                        <p className="text-2xl font-bold text-gray-900">156</p>
+                      </div>
+                      <Users className="w-8 h-8 text-amber-600" />
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white/50 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Engaged Today</p>
+                        <p className="text-2xl font-bold text-gray-900">42</p>
+                      </div>
+                      <MessageCircle className="w-8 h-8 text-amber-600" />
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white/50 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Claims</p>
+                        <p className="text-2xl font-bold text-gray-900">28</p>
+                      </div>
+                      <CheckCircle className="w-8 h-8 text-green-600" />
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white/50 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-600">Avg. Score</p>
+                        <p className="text-2xl font-bold text-gray-900">78%</p>
+                      </div>
+                      <Clock className="w-8 h-8 text-blue-600" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Customer Inquiries Module - For Shop Admin and Shop Staff */}
           {(user.role === 'shop_admin' || user.role === 'shop_staff') && (
