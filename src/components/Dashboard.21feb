@@ -621,54 +621,6 @@ export function Dashboard({ onViewChange }: DashboardProps) {
       );
     }
 
-    // Render Sales Management View
-    const renderSalesManagement = () => {
-      return (
-        <div className="space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Sales Data Extraction</h2>
-              <p className="text-sm text-gray-500">Filter and export your shop's sales records</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">From:</span>
-                <input type="date" className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">To:</span>
-                <input type="date" className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-              </div>
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" /> Generate Report
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4">Report History</h3>
-              <div className="text-center py-8 text-gray-500">
-                <Clock className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                <p className="text-sm">No recently generated reports</p>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4">Database Queries</h3>
-              <button className="w-full flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 mb-2">
-                <span className="text-sm">Daily Totals Query</span>
-                <Eye className="w-4 h-4 text-gray-400" />
-              </button>
-              <button className="w-full flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                <span className="text-sm">Top Selling Products</span>
-                <Eye className="w-4 h-4 text-gray-400" />
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    };
-    
     return (
       <div className="overflow-x-auto">
         <table className="w-full">

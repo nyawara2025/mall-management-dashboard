@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { MallApiService } from '../services/auth';
 import { Mall } from '../types/auth';
-import {
-  Building2,
-  Users,
-  MapPin,
+import { 
+  Building2, 
+  Users, 
+  MapPin, 
   Calendar,
   RefreshCw,
   AlertCircle,
@@ -26,8 +26,7 @@ import {
   MessageCircle,
   ShoppingCart,
   Eye,
-  X,
-  BarChart3 // Added here once
+  X
 } from 'lucide-react';
 import { MallCard } from './MallCard';
 import { Sidebar } from './Sidebar';
@@ -621,54 +620,6 @@ export function Dashboard({ onViewChange }: DashboardProps) {
       );
     }
 
-    // Render Sales Management View
-    const renderSalesManagement = () => {
-      return (
-        <div className="space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">Sales Data Extraction</h2>
-              <p className="text-sm text-gray-500">Filter and export your shop's sales records</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">From:</span>
-                <input type="date" className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">To:</span>
-                <input type="date" className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
-              </div>
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" /> Generate Report
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4">Report History</h3>
-              <div className="text-center py-8 text-gray-500">
-                <Clock className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                <p className="text-sm">No recently generated reports</p>
-              </div>
-            </div>
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-              <h3 className="text-lg font-semibold mb-4">Database Queries</h3>
-              <button className="w-full flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 mb-2">
-                <span className="text-sm">Daily Totals Query</span>
-                <Eye className="w-4 h-4 text-gray-400" />
-              </button>
-              <button className="w-full flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                <span className="text-sm">Top Selling Products</span>
-                <Eye className="w-4 h-4 text-gray-400" />
-              </button>
-            </div>
-          </div>
-        </div>
-      );
-    };
-    
     return (
       <div className="overflow-x-auto">
         <table className="w-full">
@@ -1094,31 +1045,6 @@ export function Dashboard({ onViewChange }: DashboardProps) {
             </div>
           )}
 
-          {/* Sales Management Card */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="bg-blue-100 p-3 rounded-lg">
-                  <BarChart3 className="w-6 h-6 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Sales Management</h3>
-                  <p className="text-gray-600 text-sm">
-                    Extract periodic sales data, print reports, and query your sales databases.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => onViewChange?.('sales-management')}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
-              >
-                <BarChart3 className="w-5 h-5" />
-                Manage Sales
-              </button>
-            </div>
-          </div>
-
-
           {/* Payment Modules for Shop Admins */}
           {user.role === 'shop_admin' && (
             <div className="mb-8">
@@ -1145,6 +1071,32 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                     >
                       <Inbox className="w-5 h-5" />
                       View Dashboard
+                    </button>
+                  </div>
+                </div>
+
+                {/* Receipt Messaging Module */}
+                <div className="bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-200 rounded-lg p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-purple-100 p-3 rounded-lg">
+                        <MessageSquare className="w-6 h-6 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                          Receipt Messaging
+                        </h3>
+                        <p className="text-gray-600 text-sm">
+                          Manage message templates, automate receipt delivery, and track message analytics
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => onViewChange?.('receipt-messaging')}
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+                    >
+                      <MessageSquare className="w-5 h-5" />
+                      Manage Templates
                     </button>
                   </div>
                 </div>
