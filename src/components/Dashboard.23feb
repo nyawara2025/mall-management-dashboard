@@ -1071,7 +1071,6 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                      {/* ... Your existing Sales Management Card ... */}
                      <button onClick={() => {
                        setCurrentView('sales'); // 2. Change state to 'sales'
-                
                        // ... your fetch logic
                      }}>
                        Manage Sales

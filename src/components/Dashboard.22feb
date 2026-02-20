@@ -79,9 +79,6 @@ export function Dashboard({ onViewChange }: DashboardProps) {
   const [error, setError] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   
-  const [currentView, setCurrentView] = useState('main'); // Manage state
-
-  
   // Orders and Payments State
   const [orders, setOrders] = useState<Order[]>([]);
   const [payments, setPayments] = useState<PaymentTransaction[]>([]);
@@ -1064,28 +1061,23 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                   </p>
                 </div>
               </div>
+              <button
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+                onClick={() => {
+                  onViewChange?.('sales');
+                  fetch('https://n8n.tenear.com/webhook/manage-sales', {
+                    method: 'POST', // Added missing comma here
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                      action: 'initialize_view',
+                      shop_id: getShopId
+                    })
+                  });
+                }}
+              >
 
-              <div className="layout">
-                {currentView === 'main' ? (
-                  <div className="dashboard-grid">
-                     {/* ... Your existing Sales Management Card ... */}
-                     <button onClick={() => {
-                       setCurrentView('sales'); // 2. Change state to 'sales'
-                
-                       // ... your fetch logic
-                     }}>
-                       Manage Sales
-                     </button>
-                  </div>
-                ) : currentView === 'sales' ? (
-                  <SalesManagement 
-                    shopId={String(getShopId)} // 3. Pass the props required
-                    onBack={() => setCurrentView('main')} 
-                  />
-                ) : null}
-              </div>
-
-
+                Manage Sales
+              </button>
             </div>
           </div>
 
