@@ -690,6 +690,65 @@ export function Dashboard({ onViewChange }: DashboardProps) {
       <Sidebar onLogout={logout} onViewChange={onViewChange} />
       
       {/* Main Content */}
+
+    <div className="p-6"> {/* Main container */}  
+      {currentView === 'main' ? (
+      <>
+        {/* Orders Dashboard */}
+        {user.role === 'shop_staff' && (
+          <div className="mb-8">
+             {/* ... your Orders Dashboard code ... */}
+             {renderOrdersTable()}
+          </div>
+        )}
+
+        {/* QR Code Generation */}
+        <div className="mb-8">
+           {/* ... your QR Code code ... */}
+        </div>
+
+        {/* Campaign Management */}
+        {(user.role === 'shop_admin' || user.role === 'shop_staff') && (
+          <div className="mb-8">
+             {/* ... your Campaign code ... */}
+          </div>
+        )}
+
+        {/* Sales Management Card */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="bg-blue-100 p-3 rounded-lg">
+                <BarChart3 className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Sales Management</h3>
+                <p className="text-gray-600 text-sm">Extract periodic sales data and reports.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setCurrentView('sales')}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
+              <BarChart3 className="w-5 h-5" />
+              Manage Sales
+            </button>
+          </div>
+        </div>
+      </>
+    ) : (
+      /* This section shows ONLY when currentView is NOT 'main' */
+      currentView === 'sales' && (
+        <SalesManagement 
+          shopId={getShopId()} 
+          onBack={() => setCurrentView('main')} 
+        />
+      )
+    )}
+
+  </div>
+);
+
       <div className="flex-1 lg:ml-64">
         {/* Header */}
         <header className="bg-surface-bg border-b border-border-subtle">
