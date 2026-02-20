@@ -1,15 +1,39 @@
-import React, { useState } from 'react';
-import { BarChart3, Printer, Database, Calendar, Filter, ChevronDown } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Printer, Database, Calendar, Filter, Send, MessageSquare, Trash2, ArrowLeft, Copy, Check } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { supabase } from '../lib/supabase';
 
 interface SalesManagementProps {
-  shopId: string;
+  shopId: number;
   onBack: () => void;
 }
 
 const SalesManagement: React.FC<SalesManagementProps> = ({ shopId, onBack }) => {
   const [activeTab, setActiveTab] = useState<'extract' | 'reports' | 'query'>('extract');
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Helper to trigger n8n workflows
+  useEffect(() => {
+    const fetchHistory = async () => {
+      const { data, error } = await supabase
+        .from('chat_history')
+        .select('role, content')
+        .eq('shop_id', shopId)
+        .order('created_at', { ascending: true })
+        .limit(50);
+      if (!error && data) setMessages(data as any);
+    };
+    if (activeTab === 'query') fetchHistory();
+  }, [activeTab, shopId]);
+
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages, isTyping]);
+
   const triggerN8n = async (action: string, data: any) => {
     try {
       const response = await fetch('https://n8n.tenear.com/webhook/manage-sales', {
@@ -17,105 +41,135 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ shopId, onBack }) => 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, shop_id: shopId, ...data })
       });
-      // Handle response (e.g., download CSV, show toast)
+      const result = await response.json();
+      const finalData = Array.isArray(result) ? result[0] : result;
+
+      if (action === 'chat_query') return finalData?.output;
+      if (finalData?.downloadUrl) window.open(finalData.downloadUrl, '_blank');
     } catch (error) {
       console.error("Workflow failed:", error);
+      return "Connection error: Could not reach the data assistant.";
     }
   };
 
+  const handleSendMessage = async () => {
+    if (!chatInput.trim() || isTyping) return;
+    const userMsg = chatInput;
+    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setChatInput("");
+    setIsTyping(true);
+
+    const aiResponse = await triggerN8n('chat_query', { prompt: userMsg });
+    setMessages(prev => [...prev, { role: 'assistant', content: aiResponse || "I couldn't process that query." }]);
+    setIsTyping(false);
+  };
+
+  const copyToClipboard = (text: string, index: number) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(index);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   return (
-    <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100">
-      {/* Header */}
+    <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100 max-w-6xl mx-auto min-h-[700px]">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Sales Management</h2>
-          <p className="text-gray-500">Manage data, reports, and database queries for Shop ID: {shopId}</p>
+          <p className="text-gray-500 text-sm">Shop ID: <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 rounded">{shopId}</span></p>
         </div>
-        <button onClick={onBack} className="text-blue-600 hover:underline font-medium">
-          ← Back to Dashboard
+        <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-blue-600 font-medium transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back
         </button>
       </div>
 
-      {/* Sub-Navigation */}
-      <div className="flex gap-4 border-b border-gray-200 mb-8">
+      <div className="flex gap-8 border-b border-gray-100 mb-8">
         {(['extract', 'reports', 'query'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`pb-4 px-2 capitalize font-medium transition-colors ${
-              activeTab === tab ? 'border-b-2 border-blue-600 text-blue-600' : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
+          <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-4 px-2 capitalize font-semibold text-sm relative ${activeTab === tab ? 'text-blue-600' : 'text-gray-400'}`}>
             {tab}
+            {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />}
           </button>
         ))}
       </div>
 
-      {/* Tab Content */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
         {activeTab === 'extract' && (
-          <>
-            <ActionCard 
-              title="Periodic Extraction" 
-              desc="Download CSV for Daily, Weekly, or Monthly sales."
-              icon={<Calendar className="w-5 h-5" />}
-              onClick={() => triggerN8n('extract_periodic', { period: 'monthly' })}
-              options={['Daily', 'Weekly', 'Monthly']}
-            />
-            <ActionCard 
-              title="Location-Based" 
-              desc="Filter by Online Store vs. Physical PoS."
-              icon={<Filter className="w-5 h-5" />}
-              onClick={() => triggerN8n('extract_location', { type: 'pos' })}
-              options={['Online', 'PoS', 'All']}
-            />
-          </>
-        )}
-
-        {activeTab === 'reports' && (
-          <ActionCard 
-            title="Print Reports" 
-            desc="Generate PDF receipts or summary reports."
-            icon={<Printer className="w-5 h-5" />}
-            onClick={() => window.print()}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <ActionCard title="Periodic Extraction" desc="Download CSV sales data." icon={<Calendar className="w-6 h-6" />} onClick={(data: any) => triggerN8n('extract_periodic', data)} options={['Daily', 'Weekly', 'Monthly', 'Annual']} />
+            <ActionCard title="Location-Based" desc="Filter by Online vs. PoS." icon={<Filter className="w-6 h-6" />} onClick={(data: any) => triggerN8n('extract_location', data)} options={['Online', 'PoS', 'All']} />
+          </div>
         )}
 
         {activeTab === 'query' && (
-          <ActionCard 
-            title="Database Query" 
-            desc="Run advanced queries on sales & payments."
-            icon={<Database className="w-5 h-5" />}
-            onClick={() => triggerN8n('run_query', {})}
-          />
+          <div className="flex flex-col h-[650px] border border-gray-200 rounded-2xl bg-gray-50 overflow-hidden relative">
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6">
+              {messages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`group relative max-w-[90%] px-5 py-3 rounded-2xl text-sm shadow-sm ${msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none prose prose-sm max-w-none'}`}>
+                    {msg.role === 'assistant' && (
+                      <button onClick={() => copyToClipboard(msg.content, i)} className="absolute -top-2 -right-2 p-1.5 bg-white border rounded-md opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:text-blue-600">
+                        {copiedId === i ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                    )}
+                    {msg.role === 'user' ? msg.content : <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="p-4 bg-white border-t flex gap-3">
+              <input value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()} placeholder="Ask the data assistant..." className="flex-1 bg-gray-50 border-none rounded-xl px-5 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
+              <button onClick={handleSendMessage} disabled={isTyping} className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 text-white p-3 rounded-xl transition-all"><Send className="w-5 h-5" /></button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'reports' && (
+          <div className="flex flex-col items-center justify-center h-[400px] border-2 border-dashed border-gray-100 rounded-2xl text-gray-400">
+             <Printer className="w-16 h-16 mb-4 opacity-10" />
+             <p>Reporting module coming soon.</p>
+          </div>
         )}
       </div>
     </div>
   );
 };
 
-// Simple reusable card component
-const ActionCard = ({ title, desc, icon, onClick, options }: any) => (
-  <div className="border border-gray-200 rounded-lg p-5 hover:border-blue-300 transition-all group">
-    <div className="flex items-start justify-between mb-4">
-      <div className="bg-blue-50 p-2 rounded-lg text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-        {icon}
+const ActionCard = ({ title, desc, icon, onClick, options }: any) => {
+  // FIX: Check if options exists before using it. Use the first item as default.
+  const [mainSelection, setMainSelection] = useState(options && options.length > 0 ? options[0].toLowerCase() : '');
+  const [subSelection, setSubSelection] = useState(mainSelection === 'monthly' ? 'january' : new Date().getFullYear().toString());
+
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const years = Array.from({length: 5}, (_, i) => new Date().getFullYear() - i);
+
+  return (
+    <div className="border border-gray-200 rounded-2xl p-6 hover:shadow-lg transition-all bg-white flex flex-col justify-between group">
+      <div>
+        <div className="flex items-start justify-between mb-6">
+          <div className="bg-blue-50 p-3 rounded-xl text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">{icon}</div>
+          {options && (
+            <div className="flex flex-col gap-2 items-end">
+              <select value={mainSelection} onChange={(e) => setMainSelection(e.target.value)} className="text-xs font-bold bg-gray-100 rounded-lg px-3 py-2 outline-none cursor-pointer">
+                {options.map((opt: string) => <option key={opt} value={opt.toLowerCase()}>{opt}</option>)}
+              </select>
+              {mainSelection === 'monthly' && (
+                <select value={subSelection} onChange={(e) => setSubSelection(e.target.value)} className="text-[10px] border border-blue-100 rounded-md px-2 py-1 bg-blue-50">
+                  {months.map(m => <option key={m} value={m.toLowerCase()}>{m}</option>)}
+                </select>
+              )}
+              {mainSelection === 'annual' && (
+                <select value={subSelection} onChange={(e) => setSubSelection(e.target.value)} className="text-[10px] border border-blue-100 rounded-md px-2 py-1 bg-blue-50">
+                  {years.map(y => <option key={y} value={y.toString()}>{y}</option>)}
+                </select>
+              )}
+            </div>
+          )}
+        </div>
+        <h4 className="font-bold text-gray-900 mb-2 text-lg">{title}</h4>
+        <p className="text-sm text-gray-500 mb-6">{desc}</p>
       </div>
-      {options && (
-        <select className="text-xs border rounded p-1 bg-gray-50 outline-none">
-          {options.map((opt: string) => <option key={opt}>{opt}</option>)}
-        </select>
-      )}
+      <button onClick={() => onClick({ period: mainSelection, month: subSelection, year: subSelection })} className="w-full py-3 bg-gray-900 hover:bg-blue-600 text-white text-sm font-bold rounded-xl shadow-md transition-all">Generate</button>
     </div>
-    <h4 className="font-semibold text-gray-900 mb-1">{title}</h4>
-    <p className="text-sm text-gray-500 mb-4">{desc}</p>
-    <button 
-      onClick={onClick}
-      className="w-full py-2 bg-gray-50 hover:bg-blue-50 text-blue-600 text-sm font-medium rounded-md transition-colors"
-    >
-      Run Action
-    </button>
-  </div>
-);
+  );
+};
 
 export default SalesManagement;

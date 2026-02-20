@@ -79,7 +79,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
   const [error, setError] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   
-  const [currentView, setCurrentView] = useState<'main' | 'sales'>('main');
+  const [currentView, setCurrentView] = useState('main'); // Manage state
 
   
   // Orders and Payments State
@@ -1071,18 +1071,18 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                      {/* ... Sales Management Card ... */}
                      <button onClick={() => {
                        setCurrentView('sales');
-                                       
+                
                        // ... your fetch logic
                      }}>
                        Manage Sales
                      </button>
                   </div>
-                ) : currentView === 'sales' && (
+                ) : currentView === 'sales' ? (
                   <SalesManagement 
                     shopId={getShopId()} // 3. Pass the props required
                     onBack={() => setCurrentView('main')} 
                   />
-                )}
+                ) : null}
               </div>
 
 

@@ -1,0 +1,169 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Printer, Database, Calendar, Filter, Send, MessageSquare, Trash2 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { supabase } from '../lib/supabase'; // Adjust this path to your supabase client
+
+interface SalesManagementProps {
+  shopId: number;
+  onBack: () => void;
+}
+
+const SalesManagement: React.FC<SalesManagementProps> = ({ shopId, onBack }) => {
+  const [activeTab, setActiveTab] = useState<'extract' | 'reports' | 'query'>('extract');
+  const [messages, setMessages] = useState<{role: 'user' | 'assistant', content: string}[]>([]);
+  const [chatInput, setChatInput] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // 1. Fetch History from Supabase on Load
+  useEffect(() => {
+    const fetchHistory = async () => {
+      const { data, error } = await supabase
+        .from('chat_history')
+        .select('role, content')
+        .eq('shop_id', shopId)
+        .order('created_at', { ascending: true })
+        .limit(50);
+      
+      if (!error && data) setMessages(data as any);
+    };
+
+    if (activeTab === 'query') fetchHistory();
+  }, [activeTab, shopId]);
+
+  // Auto-scroll
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [messages, isTyping]);
+
+  const triggerN8n = async (action: string, data: any) => {
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/manage-sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, shop_id: shopId, ...data })
+      });
+      const result = await response.json();
+      if (result.downloadUrl) window.open(result.downloadUrl, '_blank');
+      return result.output;
+    } catch (error) {
+      console.error("Workflow failed:", error);
+    }
+  };
+
+  const handleSendMessage = async () => {
+    if (!chatInput.trim() || isTyping) return;
+    const userMsg = chatInput;
+    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setChatInput("");
+    setIsTyping(true);
+
+    // n8n will handle saving to Supabase on the backend
+    const aiResponse = await triggerN8n('chat_query', { prompt: userMsg });
+    
+    setMessages(prev => [...prev, { role: 'assistant', content: aiResponse || "I couldn't process that query." }]);
+    setIsTyping(false);
+  };
+
+  const clearHistory = async () => {
+    if (!confirm("Clear all chat history?")) return;
+    const { error } = await supabase.from('chat_history').delete().eq('shop_id', shopId);
+    if (!error) setMessages([]);
+  };
+
+  return (
+    <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100 max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Sales Management</h2>
+          <p className="text-gray-500 text-sm">Shop Database ID: <span className="font-mono font-bold text-blue-600">{shopId}</span></p>
+        </div>
+        <button onClick={onBack} className="text-blue-600 hover:text-blue-800 font-medium">← Back</button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-6 border-b border-gray-100 mb-8">
+        {(['extract', 'reports', 'query'] as const).map((tab) => (
+          <button key={tab} onClick={() => setActiveTab(tab)} className={`pb-4 px-2 capitalize font-semibold text-sm relative ${activeTab === tab ? 'text-blue-600' : 'text-gray-400'}`}>
+            {tab}
+            {activeTab === tab && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-full" />}
+          </button>
+        ))}
+      </div>
+
+      <div className="min-h-[450px]">
+        {activeTab === 'query' && (
+          <div className="flex flex-col h-[600px] border border-gray-200 rounded-xl bg-gray-50 overflow-hidden shadow-inner relative">
+            <button onClick={clearHistory} className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-500 transition-colors z-10" title="Clear History">
+              <Trash2 className="w-4 h-4" />
+            </button>
+
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6">
+              {messages.map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[90%] px-4 py-3 rounded-2xl text-sm shadow-sm ${
+                    msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none prose prose-sm max-w-none'
+                  }`}>
+                    {msg.role === 'user' ? (
+                      msg.content
+                    ) : (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.content}
+                      </ReactMarkdown>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {isTyping && <div className="flex justify-start"><div className="bg-white border p-3 rounded-2xl animate-pulse text-xs text-gray-400 italic">AI is analyzing data...</div></div>}
+            </div>
+
+            <div className="p-4 bg-white border-t flex gap-2">
+              <input 
+                value={chatInput} 
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                placeholder="Ask e.g. 'Generate a table of sales by category for last week'..." 
+                className="flex-1 bg-gray-50 border-none rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+              <button onClick={handleSendMessage} disabled={isTyping} className="bg-blue-600 hover:bg-blue-700 text-white p-2.5 rounded-lg transition-all">
+                <Send className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'extract' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <ActionCard title="Periodic Extraction" desc="Export CSV based on time ranges." icon={<Calendar className="w-5 h-5" />} onClick={(data: any) => triggerN8n('extract_periodic', data)} options={['Daily', 'Weekly', 'Monthly', 'Annual']} />
+            <ActionCard title="Location-Based" desc="Filter by Online vs. Physical PoS." icon={<Filter className="w-5 h-5" />} onClick={(data: any) => triggerN8n('extract_location', data)} options={['Online', 'PoS', 'All']} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const ActionCard = ({ title, desc, icon, onClick, options }: any) => {
+  const [mainSelection, setMainSelection] = useState(options ? options[0].toLowerCase() : '');
+  const [subSelection, setSubSelection] = useState(mainSelection === 'monthly' ? 'january' : new Date().getFullYear().toString());
+
+  return (
+    <div className="border border-gray-200 rounded-xl p-5 hover:shadow-md transition-all bg-white flex flex-col justify-between">
+      <div className="flex items-start justify-between mb-4">
+        <div className="bg-blue-50 p-2.5 rounded-lg text-blue-600">{icon}</div>
+        {options && (
+          <select value={mainSelection} onChange={(e) => setMainSelection(e.target.value)} className="text-xs font-semibold bg-gray-100 rounded-lg px-2 py-1 outline-none">
+            {options.map((opt: string) => <option key={opt} value={opt.toLowerCase()}>{opt}</option>)}
+          </select>
+        )}
+      </div>
+      <h4 className="font-bold text-gray-900 mb-1">{title}</h4>
+      <p className="text-xs text-gray-500 mb-4">{desc}</p>
+      <button onClick={() => onClick({ period: mainSelection, month: subSelection })} className="w-full py-2.5 bg-gray-900 hover:bg-blue-600 text-white text-xs font-bold rounded-lg transition-all">Generate</button>
+    </div>
+  );
+};
+
+export default SalesManagement;
