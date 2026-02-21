@@ -57,7 +57,7 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ shopId, onBack }) => 
 
       if (action === 'chat_query') return payload?.output;
 
-      const signedPath = payload?.downloadUrl || payload?.signedURL || payload?.body?.signedURL;
+      const signedPath = payload?.signedURL || payload?.body?.signedURL;
       
       if (signedPath) {
         const SUPABASE_BASE = "https://ufrrlfcxuovxgizxuowh.supabase.co";

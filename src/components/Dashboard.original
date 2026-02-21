@@ -690,38 +690,6 @@ export function Dashboard({ onViewChange }: DashboardProps) {
       <Sidebar onLogout={logout} onViewChange={onViewChange} />
       
       {/* Main Content */}
-
-    <div className="p-6"> {/* Main container */}  
-      {currentView === 'main' ? (
-      <>
-        {/* Orders Dashboard */}
-        {user.role === 'shop_staff' && (
-          <div className="mb-8">
-             {/* ... your Orders Dashboard code ... */}
-             {renderOrdersTable()}
-          </div>
-        )}
-
-        {/* QR Code Generation */}
-        <div className="mb-8">
-           {/* ... your QR Code code ... */}
-        </div>
-
-        {/* Campaign Management */}
-        {(user.role === 'shop_admin' || user.role === 'shop_staff') && (
-          <div className="mb-8">
-             {/* ... your Campaign code ... */}
-          </div>
-        )}
-       
-
-      </>
-    ) : null} 
-  </div>
-);
-
-
-
       <div className="flex-1 lg:ml-64">
         {/* Header */}
         <header className="bg-surface-bg border-b border-border-subtle">
