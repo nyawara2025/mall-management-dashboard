@@ -17,7 +17,7 @@ interface TransactionResponse {
 }
 
 class TransactionService {
-  private readonly N8N_WEBHOOK_BASE = 'https://n8n.tenear.com/webhook';
+  private readonly N8N_WEBHOOK_BASE = 'https://primary-production-08bc.up.railway.app/webhook';
   private readonly DEFAULT_TIMEOUT = 30000; // 30 seconds
 
   /**
