@@ -75,7 +75,8 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
 🤖 Available at Shop${shopId}
 #${(product.product_category || 'General').replace(/\s+/g, '')} #Shop${shopId} #QualityProducts`;
 
-    if (navigator.share) {
+    // 1. MOBILE NATIVE WAY (WhatsApp, Instagram, TikTok, etc.)
+    if (navigator.canShare && navigator.canShare({ files: [] })) {
       try {
         const response = await fetch(product.product_image_url);
         const blob = await response.blob();
@@ -84,17 +85,19 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
         await navigator.share({
           title: product.product_name,
           text: shareText,
-          files: [file] // This sends the specific Tilapia image
+          files: [file] // This triggers the image sharing in WhatsApp/Instagram/TikTok
         });
+        return; // Exit if successful
       } catch (error) {
-        // Fallback for mobile browser cancels or errors
-        window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
-      }
-    } else {
-      // Desktop fallback
-      window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+        console.log("Native share failed, using fallback:", error);
     }
-  };
+  }
+
+  // 2. DESKTOP/BROWSER FALLBACK (Direct to WhatsApp)
+  // Since Desktop browsers don't support file sharing, we go straight to WhatsApp Web
+  const waUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+  window.open(waUrl, '_blank');
+};
  
 
   const handleDelete = async (id: number) => {
