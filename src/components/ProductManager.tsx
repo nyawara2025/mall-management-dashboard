@@ -59,7 +59,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
 
   const handleShare = async (product: any) => {
     // UPDATED: URL now only points to the main Shop ID
-    const shareUrl = `https://tenearwhatsappcheckins.pages.dev{shopId}&campaign=General%20Campaign`;
+    const shareUrl = `https://tenearwhatsappcheckins.pages.dev/?shop_id=${shopId}&campaign=General%20Campaign`;
     
     // Exact text structure from your screenshot
     const shareText = 
