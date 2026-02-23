@@ -48,23 +48,58 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
 
    // --- ADD HANDLER STUBS HERE ---
   const handleEdit = (product: any) => {
-    console.log("Edit product:", product.product_id);
+    console.log("Editing:", product.product_id);
     // Future: Open a modal or navigate to edit page
   };
 
   const handleCopy = (product: any) => {
-    console.log("Duplicate product:", product.product_id);
+    console.log("Copying:", product.product_id);
     // Future: Trigger n8n webhook with 'duplicate' action
   };
 
-  const handleShare = (product: any) => {
-    console.log("Share product:", product.product_id);
-    // Future: Copy link to clipboard or open Web Share API
-  };
+  const handleShare = async (product: any) => {
+    // UPDATED: URL now only points to the main Shop ID
+    const shareUrl = `https://tenearwhatsappcheckins.pages.dev{shopId}&campaign=General%20Campaign`;
+    
+    // Exact text structure from your screenshot
+    const shareText = 
+`🤖 NEW PRODUCT ALERT!
 
-  const handleDelete = async (productId: string | number) => {
+📦 ${product.product_name}
+💰 KShs ${product.base_price}
+📁 ${product.product_category || 'General'}
+📝 ${product.product_description || ''}
+
+🔗 View online: ${shareUrl}
+
+🤖 Available at Shop${shopId}
+#${(product.product_category || 'General').replace(/\s+/g, '')} #Shop${shopId} #QualityProducts`;
+
+    if (navigator.share) {
+      try {
+        const response = await fetch(product.product_image_url);
+        const blob = await response.blob();
+        const file = new File([blob], 'product.jpg', { type: blob.type });
+
+        await navigator.share({
+          title: product.product_name,
+          text: shareText,
+          files: [file] // This sends the specific Tilapia image
+        });
+      } catch (error) {
+        // Fallback for mobile browser cancels or errors
+        window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+      }
+    } else {
+      // Desktop fallback
+      window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+    }
+  };
+ 
+
+  const handleDelete = async (id: number) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
-      console.log("Delete product:", productId);
+      console.log("Delete product:", id);
       // Future: fetch('https://n8n.tenear.com...', { method: 'POST', body: { action: 'delete', id: productId }})
     }
   };
