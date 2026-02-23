@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { LogOut, User, ArrowLeft } from 'lucide-react';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Dashboard } from './components/Dashboard';
@@ -10,6 +11,7 @@ import QRCheckInPage from './components/QRCheckInPage';
 import QrCheckinPage from './pages/QrCheckinPage';
 import QRSuccessPage from './pages/QRSuccessPage';
 import MultiMallQrCheckinPage from './pages/MultiMallQrCheckinPage';
+import ProductManager from './components/ProductManager';
 // import SimpleQrTestPage from './pages/SimpleQrTestPage'; // Removed - file doesn't exist
 import QRGeneration from './components/QRGeneration';
 import Analytics from './components/Analytics';
@@ -18,7 +20,6 @@ import PaymentManagement from './components/PaymentManagement';
 import ReceivingPaymentModule from './components/ReceivingPaymentModule';
 import PaymentReceiptMessaging from './components/PaymentReceiptMessaging';
 import { useAuth } from './contexts/AuthContext';
-import { LogOut, User } from 'lucide-react';
 import { CustomerInquiries } from './components/CustomerInquiries';
 import SettingsPage from './pages/SettingsPage';
 import './index.css';
@@ -171,6 +172,25 @@ function AppContent() {
               />
               <div className="pt-16">
                 <VisitorEngagementManager user={user!} />
+              </div>
+            </div>
+          )}
+          {currentView === 'products' && (
+            <div className="min-h-screen">
+              <Header 
+                onBack={() => setCurrentView('dashboard')} 
+                title="Product Management"
+                user={user}
+                onLogout={logout}
+                showUserMenu={showUserMenu}
+                setShowUserMenu={setShowUserMenu}
+              />
+              <div className="pt-16">
+                {/* This renders your new component */}
+                <ProductManager 
+                  shopId={user?.shop_id || 0} 
+                  onBack={() => setCurrentView('dashboard')}
+                /> 
               </div>
             </div>
           )}

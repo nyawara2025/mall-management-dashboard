@@ -69,7 +69,7 @@ interface PaymentTransaction {
 }
 
 interface DashboardProps {
-  onViewChange?: (view: string) => void;
+  onViewChange: (view: string) => void;
 }
 
 export function Dashboard({ onViewChange }: DashboardProps) {
@@ -326,6 +326,7 @@ export function Dashboard({ onViewChange }: DashboardProps) {
       }
     }
   };
+
 
   useEffect(() => {
     if (user) {
@@ -1158,6 +1159,33 @@ export function Dashboard({ onViewChange }: DashboardProps) {
             </div>
           )}
                   
+
+      {/* Product Management Card */}
+      <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 flex justify-between items-center">
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-500 p-2 rounded-lg">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-gray-800">Product Management</h3>
+          </div>
+          <p className="text-gray-600 max-w-md">
+            Upload new products, manage inventory, and track customer interactions (Inquire, Purchase, Book).
+          </p>
+        </div>
+        <button 
+          onClick={() => {
+            console.log("!!! CLICKED PRODUCT MGMT !!!");
+            onViewChange('products');
+          }} 
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors flex items-center gap-2"
+        >
+          Manage Products
+        </button>
+      </div>
+
  
 
           </main>       

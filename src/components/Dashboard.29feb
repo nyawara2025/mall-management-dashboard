@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { MallApiService } from '../services/auth';
 import { Mall } from '../types/auth';
-import { 
-  Building2, 
-  Users, 
-  MapPin, 
+import {
+  Building2,
+  Users,
+  MapPin,
   Calendar,
   RefreshCw,
   AlertCircle,
@@ -26,12 +26,14 @@ import {
   MessageCircle,
   ShoppingCart,
   Eye,
-  X
+  X,
+  BarChart3 // Added here once
 } from 'lucide-react';
 import { MallCard } from './MallCard';
 import { Sidebar } from './Sidebar';
 import NotificationCenter from './NotificationCenter';
 import RealTimeNotificationCenter from './RealTimeNotificationCenter';
+import SalesManagement from './SalesManagement';
 
 // Types for orders and payments
 interface OrderItem {
@@ -76,6 +78,9 @@ export function Dashboard({ onViewChange }: DashboardProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  
+  const [currentView, setCurrentView] = useState<'main' | 'sales'>('main');
+
   
   // Orders and Payments State
   const [orders, setOrders] = useState<Order[]>([]);
@@ -685,6 +690,38 @@ export function Dashboard({ onViewChange }: DashboardProps) {
       <Sidebar onLogout={logout} onViewChange={onViewChange} />
       
       {/* Main Content */}
+
+    <div className="p-6"> {/* Main container */}  
+      {currentView === 'main' ? (
+      <>
+        {/* Orders Dashboard */}
+        {user.role === 'shop_staff' && (
+          <div className="mb-8">
+             {/* ... your Orders Dashboard code ... */}
+             {renderOrdersTable()}
+          </div>
+        )}
+
+        {/* QR Code Generation */}
+        <div className="mb-8">
+           {/* ... your QR Code code ... */}
+        </div>
+
+        {/* Campaign Management */}
+        {(user.role === 'shop_admin' || user.role === 'shop_staff') && (
+          <div className="mb-8">
+             {/* ... your Campaign code ... */}
+          </div>
+        )}
+       
+
+      </>
+    ) : null} 
+  </div>
+);
+
+
+
       <div className="flex-1 lg:ml-64">
         {/* Header */}
         <header className="bg-surface-bg border-b border-border-subtle">
@@ -694,7 +731,8 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                 <h1 className="text-2xl font-bold text-text-primary">
                   Dashboard
                 </h1>
-                <p className="text-text-secondary mt-1">
+ 
+               <p className="text-text-secondary mt-1">
                   Welcome back, {user.full_name}
                 </p>
               </div>
@@ -1039,39 +1077,53 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                     </button>
                   </div>
                 </div>
-
-                {/* Campaign Template Manager - NEW */}
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-purple-100 p-3 rounded-lg">
-                        <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                          Template Manager
-                        </h3>
-                        <p className="text-gray-600 text-sm">
-                          Create templates for personalized visitor experiences and enhanced QR content
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => onViewChange?.('templates')}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      Manage Templates
-                    </button>
-                  </div>
-                </div>
+                       
               </div>
             </div>
           )}
+
+          {/* Sales Management Card */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="bg-blue-100 p-3 rounded-lg">
+                  <BarChart3 className="w-6 h-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Sales Management</h3>
+                  <p className="text-gray-600 text-sm">
+                    Extract periodic sales data, print reports, and query your sales databases.
+                  </p>
+                </div>
+              </div>
+
+              <div className="layout">
+                {currentView === 'main' ? (
+                  <div className="dashboard-grid">
+                     {/* ... Sales Management Card ... */}
+                     <button 
+                       onClick={() => {
+                         setCurrentView('sales');
+                                  
+                       }}
+                       className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+                     >
+                       <BarChart3 className="w-5 h-5" />
+                       Manage Sales
+                     </button>
+                  </div>
+                ) : currentView === 'sales' && (
+                  <SalesManagement 
+                    shopId={getShopId()} // 3. Pass the props required
+                    onBack={() => setCurrentView('main')} 
+                  />
+                )}
+              </div>
+
+
+            </div>
+          </div>
+
 
           {/* Payment Modules for Shop Admins */}
           {user.role === 'shop_admin' && (
@@ -1102,253 +1154,14 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                     </button>
                   </div>
                 </div>
-
-                {/* Receipt Messaging Module */}
-                <div className="bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-purple-100 p-3 rounded-lg">
-                        <MessageSquare className="w-6 h-6 text-purple-600" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                          Receipt Messaging
-                        </h3>
-                        <p className="text-gray-600 text-sm">
-                          Manage message templates, automate receipt delivery, and track message analytics
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => onViewChange?.('receipt-messaging')}
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
-                    >
-                      <MessageSquare className="w-5 h-5" />
-                      Manage Templates
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
           )}
-
-          {/* Visitor Engagement Module - For Shop Admin and Shop Staff */}
-          {(user.role === 'shop_admin' || user.role === 'shop_staff') && (
-            <div className="mb-8">
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-amber-100 p-3 rounded-lg">
-                      <MessageCircle className="w-6 h-6 text-amber-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        Visitor Engagement
-                      </h3>
-                      <p className="text-gray-600 text-sm">
-                        Monitor visitor interactions, track engagement metrics, and manage visitor claims and redemptions
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => onViewChange?.('visitor-engagement')}
-                    className="bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
-                  >
-                    <MessageCircle className="w-5 h-5" />
-                    View Engagement
-                  </button>
-                </div>
-                
-                {/* Quick Stats */}
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="bg-white/50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Total Visitors</p>
-                        <p className="text-2xl font-bold text-gray-900">156</p>
-                      </div>
-                      <Users className="w-8 h-8 text-amber-600" />
-                    </div>
-                  </div>
                   
-                  <div className="bg-white/50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Engaged Today</p>
-                        <p className="text-2xl font-bold text-gray-900">42</p>
-                      </div>
-                      <MessageCircle className="w-8 h-8 text-amber-600" />
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white/50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Claims</p>
-                        <p className="text-2xl font-bold text-gray-900">28</p>
-                      </div>
-                      <CheckCircle className="w-8 h-8 text-green-600" />
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white/50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Avg. Score</p>
-                        <p className="text-2xl font-bold text-gray-900">78%</p>
-                      </div>
-                      <Clock className="w-8 h-8 text-blue-600" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+ 
 
-          {/* Customer Inquiries Module - For Shop Admin and Shop Staff */}
-          {(user.role === 'shop_admin' || user.role === 'shop_staff') && (
-            <div className="mb-8">
-              <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-cyan-100 p-3 rounded-lg">
-                      <Inbox className="w-6 h-6 text-cyan-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-1">
-                        Customer Inquiries
-                      </h3>
-                      <p className="text-gray-600 text-sm">
-                        Manage customer questions, track inquiry status, and provide timely responses
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => onViewChange?.('customer-inquiries')}
-                    className="bg-cyan-600 hover:bg-cyan-700 text-white px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
-                  >
-                    <Inbox className="w-5 h-5" />
-                    View Inquiries
-                  </button>
-                </div>
-                
-                {/* Quick Stats */}
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="bg-white/50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Total Inquiries</p>
-                        <p className="text-2xl font-bold text-gray-900">89</p>
-                      </div>
-                      <Inbox className="w-8 h-8 text-cyan-600" />
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white/50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Pending</p>
-                        <p className="text-2xl font-bold text-yellow-600">12</p>
-                      </div>
-                      <Clock className="w-8 h-8 text-yellow-600" />
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white/50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Resolved</p>
-                        <p className="text-2xl font-bold text-green-600">72</p>
-                      </div>
-                      <CheckCircle className="w-8 h-8 text-green-600" />
-                    </div>
-                  </div>
-                  
-                  <div className="bg-white/50 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-gray-600">Avg. Response</p>
-                        <p className="text-2xl font-bold text-gray-900">2.4h</p>
-                      </div>
-                      <Phone className="w-8 h-8 text-blue-600" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Malls Grid */}
-          <div>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-text-primary">
-                {user.role === 'super_admin' ? 'All Malls' : 'Your Mall'}
-                <span className="text-text-secondary font-normal ml-2">
-                  ({malls.length} {malls.length === 1 ? 'location' : 'locations'})
-                </span>
-              </h2>
-            </div>
-
-            {/* Loading State */}
-            {isLoading && (
-              <div className="flex items-center justify-center py-12">
-                <div className="flex items-center gap-3 text-text-secondary">
-                  <RefreshCw className="w-5 h-5 animate-spin" />
-                  <span>Loading malls...</span>
-                </div>
-              </div>
-            )}
-
-            {/* Error State */}
-            {error && (
-              <div className="bg-error/10 border border-error/20 rounded-md p-6 mb-6">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-error mt-0.5 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-medium text-error mb-1">Error Loading Malls</h3>
-                    <p className="text-error text-sm">{error}</p>
-                    <button
-                      onClick={handleRefresh}
-                      className="mt-3 text-error underline hover:no-underline text-sm"
-                    >
-                      Try again
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Malls Grid */}
-            {!isLoading && !error && (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {malls.map((mall) => (
-                  <MallCard
-                    key={mall.id}
-                    mall={mall}
-                    userRole={user.role}
-                    userMallId={user.mall_access && user.mall_access.length > 0 ? user.mall_access[0] : null}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Empty State */}
-            {!isLoading && !error && malls.length === 0 && (
-              <div className="text-center py-12">
-                <Building2 className="w-12 h-12 text-text-secondary mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-text-primary mb-2">
-                  No malls found
-                </h3>
-                <p className="text-text-secondary">
-                  {user.role === 'super_admin' 
-                    ? 'There are no malls in the system yet.'
-                    : 'Your account is not assigned to any mall.'}
-                </p>
-              </div>
-            )}
-          </div>
-        </main>
-      </div>
+          </main>       
+        </div>
 
       {/* Order Details Modal */}
       {selectedOrder && (
