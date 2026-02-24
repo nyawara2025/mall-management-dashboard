@@ -158,7 +158,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
 
   // --- RESTORED SHARE LOGIC ---
   const handleShare = async (product: any) => {
-    const shareUrl = `https://tenearwhatsappcheckins.pages.dev?/text=${shopId}&campaign=General%20Campaign`;
+    const shareUrl = `https://tenearwhatsappcheckins.pages.dev/?shop_id=${shopId}&campaign=General%20Campaign`;
     const shareText = `🤖 NEW PRODUCT ALERT!\n\n📦 ${product.product_name}\n💰 KShs ${product.base_price}\n📁 ${product.product_category || 'General'}\n📝 ${product.product_description || ''}\n\n🔗 View online: ${shareUrl}\n\n🤖 Available at Shop${shopId}\n#${(product.product_category || 'General').replace(/\s+/g, '')} #Shop${shopId}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
   };
