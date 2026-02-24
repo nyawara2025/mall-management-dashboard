@@ -102,12 +102,6 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
       });
       const result = await response.json();
       
-      if (Array.isArray(result) && result.length > 0) {
-        setShopName(result[0].shop_name || '');
-      } else if (result.products && result.products.length > 0) {
-        setShopName(result.products[0].shop_name || '');
-      } 
-
       // FIX: Type assertion to bypass TS2339 error
       let productsArray = Array.isArray(result) 
         ? result 
@@ -166,7 +160,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
   // --- RESTORED SHARE LOGIC ---
   const handleShare = async (product: any) => {
     const shareUrl = `https://tenearwhatsappcheckins.pages.dev/?shop_id=${shopId}&campaign=General%20Campaign`;
-    const shareText = `🤖 NEW PRODUCT ALERT!\n\n📦 ${product.product_name}\n💰 KShs ${product.base_price}\n📁 ${product.product_category || 'General'}\n📝 ${product.product_description || ''}\n\n🔗 View online: ${shareUrl}\n\n🤖 Available at Shop${shopName}\n#${(product.product_category || 'General').replace(/\s+/g, '')} #Shop${shopId}`;
+    const shareText = `🤖 NEW PRODUCT ALERT!\n\n📦 ${product.product_name}\n💰 KShs ${product.base_price}\n📁 ${product.product_category || 'General'}\n📝 ${product.product_description || ''}\n\n🔗 View online: ${shareUrl}\n\n🤖 Available at Shop${shopId}\n#${(product.product_category || 'General').replace(/\s+/g, '')} #Shop${shopId}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
@@ -186,11 +180,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
       <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Product Management</h2>
-          <p className="text-gray-500 text-sm">
-            Shop: <span className="font-bold text-blue-600 bg-blue-50 px-2 rounded">
-              {shopName || `ID: ${shopId}`}
-            </span>
-          </p>
+          <p className="text-gray-500 text-sm">Shop ID: <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 rounded">{shopId}</span></p>
         </div>
         <div className="flex gap-3">
           {!showAddForm && (
