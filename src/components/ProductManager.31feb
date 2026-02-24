@@ -1,0 +1,253 @@
+import React, { useState, useEffect } from 'react';
+import { Package, Plus, Copy, Share2, Search, Trash2, Edit, ArrowLeft, Loader2, X, Save, AlertCircle } from 'lucide-react';
+
+interface ProductManagerProps {
+  shopId: number;
+  onBack: () => void;
+}
+
+export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }) => {
+  const [products, setProducts] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+
+  // Form State matching your legacy HTML fields
+  const [newProduct, setNewProduct] = useState({
+    product_name: '',
+    product_category: '',
+    product_description: '',
+    base_price: '',
+    product_image_url: ''
+  });
+
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/shop-products-management', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get_products', shop_id: shopId })
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch');
+      
+      const result = await response.json();
+      let productsArray = [];
+      if (Array.isArray(result)) {
+        productsArray = result[0]?.products || result;
+      } else if (result.products) {
+        productsArray = result.products;
+      }
+
+      setProducts(Array.isArray(productsArray) ? productsArray : []);
+    } catch (error) {
+      console.error("Fetch failed:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (shopId) fetchProducts();
+  }, [shopId]);
+
+  const handleAddProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/shop-products-management', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_product',
+          shop_id: shopId,
+          ...newProduct,
+          base_price: parseFloat(newProduct.base_price) || 0
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to save product');
+
+      // Reset form and refresh list
+      setNewProduct({
+        product_name: '',
+        product_category: '',
+        product_description: '',
+        base_price: '',
+        product_image_url: ''
+      });
+      setShowAddForm(false);
+      fetchProducts();
+    } catch (error) {
+      console.error("Save failed:", error);
+      alert("Failed to save product. Check your n8n workflow.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleShare = async (product: any) => {
+    const shareUrl = `https://tenearwhatsappcheckins.pages.dev/?shop_id=${shopId}&campaign=General%20Campaign`;
+    const shareText = `🤖 NEW PRODUCT ALERT!\n\n📦 ${product.product_name}\n💰 KShs ${product.base_price}\n📁 ${product.product_category || 'General'}\n📝 ${product.product_description || ''}\n\n🔗 View online: ${shareUrl}\n\n🤖 Available at Shop${shopId}\n#${(product.product_category || 'General').replace(/\s+/g, '')} #Shop${shopId}`;
+
+    if (navigator.share) {
+      try {
+        const response = await fetch(product.product_image_url);
+        const blob = await response.blob();
+        const file = new File([blob], 'product.jpg', { type: blob.type });
+        await navigator.share({ title: product.product_name, text: shareText, files: [file] });
+      } catch (error) {
+        window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+      }
+    } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm("Are you sure you want to delete this product?")) {
+      try {
+        await fetch('https://n8n.tenear.com/webhook/shop-products-management', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete_product', product_id: id })
+        });
+        fetchProducts();
+      } catch (error) {
+        console.error("Delete failed");
+      }
+    }
+  };
+
+  return (
+    <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100 max-w-6xl mx-auto min-h-[700px]">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Product Management</h2>
+          <p className="text-gray-500 text-sm">Shop ID: <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 rounded">{shopId}</span></p>
+        </div>
+        <div className="flex gap-3">
+          {!showAddForm && (
+            <button 
+              onClick={() => setShowAddForm(true)}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all shadow-md"
+            >
+              <Plus className="w-4 h-4" /> Add New Product
+            </button>
+          )}
+          <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-blue-600 font-medium transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+        </div>
+      </div>
+
+      {showAddForm && (
+        <div className="mb-10 bg-gray-50 p-8 rounded-2xl border border-gray-200 shadow-inner animate-in fade-in slide-in-from-top-4">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-bold text-gray-800">Add New Product/Service</h3>
+            <button onClick={() => setShowAddForm(false)} className="text-gray-400 hover:text-red-500 p-1 hover:bg-red-50 rounded-full transition-all">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+          
+          <form onSubmit={handleAddProduct} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Product/Service Name *</label>
+                  <input required type="text" className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={newProduct.product_name} onChange={e => setNewProduct({...newProduct, product_name: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Category *</label>
+                  <select required className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={newProduct.product_category} onChange={e => setNewProduct({...newProduct, product_category: e.target.value})}>
+                    <option value="">Select Category</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Fashion">Fashion</option>
+                    <option value="Food & Groceries">Food & Groceries</option>
+                    <option value="Services">Services</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Base Price (KShs)</label>
+                  <input type="number" className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={newProduct.base_price} onChange={e => setNewProduct({...newProduct, base_price: e.target.value})} />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Description *</label>
+                  <textarea required rows={4} className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none resize-none" value={newProduct.product_description} onChange={e => setNewProduct({...newProduct, product_description: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Product Image URL</label>
+                  <input type="url" placeholder="https://example.com/image.jpg" className="w-full p-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" value={newProduct.product_image_url} onChange={e => setNewProduct({...newProduct, product_image_url: e.target.value})} />
+                  <div className="mt-2 flex items-start gap-2 text-[11px] text-gray-500 bg-blue-50 p-2 rounded border border-blue-100">
+                    <AlertCircle className="w-3.5 h-3.5 text-blue-600 mt-0.5 shrink-0" />
+                    <p><strong>Recommendation:</strong> For best results, use image URLs. File uploads may encounter payload size limits. Only use upload for original images not available online.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <button type="button" onClick={() => setShowAddForm(false)} className="px-6 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-lg transition-all">Cancel</button>
+              <button disabled={isSubmitting} type="submit" className="px-8 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg flex items-center gap-2 transition-all shadow-md disabled:bg-gray-400">
+                {isSubmitting ? <Loader2 className="animate-spin w-5 h-5" /> : <Save className="w-5 h-5" />}
+                {isSubmitting ? 'Saving...' : 'Save Product'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center h-[400px]">
+          <Loader2 className="w-10 h-10 text-blue-600 animate-spin mb-4" />
+          <p className="text-gray-500">Fetching products...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map((product) => (
+            <div key={product.product_id} className="group relative bg-white border border-gray-200 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col">
+              <div className="relative h-48 w-full bg-gray-100 overflow-hidden">
+                {product.product_image_url ? (
+                  <img src={product.product_image_url} alt={product.product_name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <Package className="w-12 h-12 opacity-20" />
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                  <button onClick={() => console.log('Edit', product.product_id)} className="p-2 bg-white rounded-full text-blue-600 hover:bg-blue-50 shadow-sm transition-colors" title="Edit">
+                    <Edit className="w-5 h-5" />
+                  </button>
+                  <button onClick={() => handleShare(product)} className="p-2 bg-white rounded-full text-green-600 hover:bg-green-50 shadow-sm transition-colors" title="Share">
+                    <Share2 className="w-5 h-5" />
+                  </button>
+                  <button onClick={() => handleDelete(product.product_id)} className="p-2 bg-white rounded-full text-red-600 hover:bg-red-50 shadow-sm transition-colors" title="Delete">
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-4 flex flex-col flex-grow">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-bold text-gray-900 truncate flex-grow mr-2">{product.product_name}</h3>
+                  <span className="text-sm font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">KSh {product.base_price}</span>
+                </div>
+                <p className="text-sm text-gray-500 line-clamp-2 mb-4 h-10">{product.product_description}</p>
+                <div className="mt-auto pt-3 border-t border-gray-50 flex items-center justify-between text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <span>{product.product_category || 'Uncategorized'}</span>
+                  <span className="bg-gray-100 px-2 py-0.5 rounded">ID: {product.product_id}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ProductManager;
