@@ -166,30 +166,9 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
   // --- RESTORED SHARE LOGIC ---
   const handleShare = async (product: any) => {
     const shareUrl = `https://tenearwhatsappcheckins.pages.dev/?shop_id=${shopId}&campaign=General%20Campaign`;
-   
-    // 1. Define the text first so it's available for both methods
-    const shareText = `🤖 NEW PRODUCT ALERT!\n\n📦 ${product.product_name}\n💰 KShs ${product.base_price}\n📁 ${product.product_category || 'General'}\n📝 ${product.product_description || ''}\n\n🔗 View our online shop: ${shareUrl}\n\n🤖 Available at ${shopName}\n#${(product.product_category || 'General').replace(/\s+/g, '')} #Shop${shopId}`
-
-    // 2. Fix TS2774: Check if the function exists on the navigator object
-    // We use 'typeof' or optional chaining to satisfy strict TS rules
-    if (typeof navigator.share !== 'undefined') {
-    try {
-      await navigator.share({
-        title: product.product_name,
-        text: shareText,
-        url: shareUrl,
-      });
-      return; // Exit if share was successful
-    } catch (err) {
-      // If user cancels the share sheet, we don't necessarily want to trigger the fallback
-      if ((err as Error).name === 'AbortError') return;
-      console.error("Error sharing:", err);
-    }
-  }
-
-  // 3. Fallback: Fix TS2304 by ensuring shareText is in scope
-  window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
-};
+    const shareText = `🤖 NEW PRODUCT ALERT!\n\n📦 ${product.product_name}\n💰 KShs ${product.base_price}\n📁 ${product.product_category || 'General'}\n📝 ${product.product_description || ''}\n\n🔗 View our online shop: ${shareUrl}\n\n🤖 Available at ${shopName}\n#${(product.product_category || 'General').replace(/\s+/g, '')} #Shop${shopId}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+  };
 
   const handleDelete = async (id: number) => {
     if (window.confirm("Delete this product?")) {
