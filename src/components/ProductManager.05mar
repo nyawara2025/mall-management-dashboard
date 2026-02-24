@@ -165,39 +165,31 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
 
   // --- RESTORED SHARE LOGIC ---
   const handleShare = async (product: any) => {
-    const shareUrl = `https://tenearwhatsappcheckins.pages.dev/?shop_id=${shopId}`;
-    const shareText = `🤖 *${product.product_name}*\n💰 KShs ${product.base_price}\n\n🔗 Shop here: ${shareUrl}`;
+    const shareUrl = `https://tenearwhatsappcheckins.pages.dev/?shop_id=${shopId}&campaign=General%20Campaign`;
+   
+    // 1. Define the text first so it's available for both methods
+    const shareText = `🤖 NEW PRODUCT ALERT!\n\n📦 ${product.product_name}\n💰 KShs ${product.base_price}\n📁 ${product.product_category || 'General'}\n📝 ${product.product_description || ''}\n\n🔗 View our online shop: ${shareUrl}\n\n🤖 Available at ${shopName}\n#${(product.product_category || 'General').replace(/\s+/g, '')} #Shop${shopId}`
 
-    if (navigator.share && navigator.canShare) {
-      try {
-        const filesArray: File[] = [];
-      
-        // If the product has a valid image URL, try to attach it as a file
-        if (product.product_image_url) {
-          const response = await fetch(product.product_image_url);
-          const blob = await response.blob();
-          const file = new File([blob], 'product.jpg', { type: blob.type });
-        
-          if (navigator.canShare({ files: [file] })) {
-            filesArray.push(file);
-          }
-        }
-
-        await navigator.share({
-          title: product.product_name,
-          text: shareText,
-          files: filesArray.length > 0 ? filesArray : undefined,
-        });
-        return;
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') console.error(error);
-      }
+    // 2. Fix TS2774: Check if the function exists on the navigator object
+    // We use 'typeof' or optional chaining to satisfy strict TS rules
+    if (typeof navigator.share !== 'undefined') {
+    try {
+      await navigator.share({
+        title: product.product_name,
+        text: shareText,
+        url: shareUrl,
+      });
+      return; // Exit if share was successful
+    } catch (err) {
+      // If user cancels the share sheet, we don't necessarily want to trigger the fallback
+      if ((err as Error).name === 'AbortError') return;
+      console.error("Error sharing:", err);
     }
+  }
 
-    // Fallback for Desktop/Unsupported Browsers     
-
-    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
-  };
+  // 3. Fallback: Fix TS2304 by ensuring shareText is in scope
+  window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+};
 
   const handleDelete = async (id: number) => {
     if (window.confirm("Delete this product?")) {
