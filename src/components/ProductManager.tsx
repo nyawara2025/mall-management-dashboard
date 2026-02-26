@@ -250,7 +250,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
   };
 
   const handleShare = async (product: any) => {
-    const shareUrl = `https://tenearwhatsappcheckins.pages.dev/?shop_id=${shopId}&campaign=General%20Campaign`;
+    const shareUrl = `https://tenearsocialmedia.pages.dev/?shop_id=${shopId}&campaign=General%20Campaign`;
     const shareText = `🤖 NEW PRODUCT ALERT!\n\n📦 ${product.product_name}\n💰 KShs ${product.base_price}\n🔗 View our online shop: ${shareUrl}`;
     
     // 1. Prepare Share Data
