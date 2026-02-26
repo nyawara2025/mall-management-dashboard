@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Package, Plus, Share2, Trash2, ArrowLeft, Loader2, X, Save, Image as ImageIcon, ChevronDown, AlertTriangle, Search } from 'lucide-react';
+import { Package, Plus, Share2, Trash2, ArrowLeft, Loader2, X, Save, Image as ImageIcon, ChevronDown, AlertTriangle } from 'lucide-react';
 
 interface ProductManagerProps {
   shopId: number;
@@ -9,10 +9,10 @@ interface ProductManagerProps {
 
 interface Variant {
   id: string;
-  variant_name: string;
+  name: string;
   value: string;
   price_impact: number;
-  variant_stock: number;
+  stock_count: number;
   variant_image_url?: string | null;
 }
 
@@ -23,16 +23,14 @@ const ProductCard = ({ product, handleShare, handleDelete }: { product: any, han
   // Find the selected variant object
   const selectedVariant = product.variants?.find((v: any) => v.id === selectedVariantId);
 
-
-  // 1. DYNAMIC PRICE CALCULATION (Prevents NaN)
-  const basePrice = Number(product.base_price) || product.basePrice || 0;
-  const impact = Number(selectedVariant?.price_impact) || selectedVariant?.priceImpact || 0;
-  const displayPrice = basePrice + impact;
+  // Calculate dynamic display values
+  const displayPrice = selectedVariant 
+    ? Number(product.base_price) + Number(selectedVariant.price_impact || 0)
+    : product.base_price;
     
-  // 2. DYNAMIC STOCK CALCULATION (Prevents Fixed 0)
   const displayStock = selectedVariant 
-    ? (Number(selectedVariant.variant_stock) || selectedVariant.stock || 0) 
-    : Number(product.stock_quantity || product.stock || product.quality || 0);
+    ? (selectedVariant.stock_count || 0) 
+    : (product.stock_quantity || 0);
 
   const isLowStock = displayStock > 0 && displayStock <= 5;
   const isOutOfStock = displayStock <= 0;
@@ -78,17 +76,23 @@ const ProductCard = ({ product, handleShare, handleDelete }: { product: any, han
               className="w-full pl-3 pr-10 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold appearance-none cursor-pointer hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-300 outline-none shadow-md"
             >
               <option value="base" className="bg-white text-gray-800 font-medium">
-                Standard - KShs {basePrice} ({Number(product.stock_quantity) || 0} in stock)
+                Standard - KShs {product.base_price} ({product.stock_quantity || 0} in stock)
               </option>
               {product.variants?.map((v: any) => {
-                const vImpact = Number(v.price_impact || v.priceImpact || 0);
-                const vStock = Number(v.variant_stock || v.stock || 0);
+                // Defensive check: only render if the variant actually has data
+                if (!v.name && !v.value) return null;
+
+                const base = Number(product.base_price) || 0;
+                const impact = Number(v.price_impact) || 0;
+                const stock = Number(v.stock_count) || 0;
+
                 return (
                   <option key={v.id} value={v.id} className="bg-white text-gray-800 font-medium">
-                    {v.variant_name || 'Option'}: {v.value || ''} - KShs {basePrice + vImpact} ({vStock} in stock)
+                    {v.name}{v.value ? `: ${v.value}` : ''} - KShs {base + impact} ({stock} in stock)
                   </option>
                 );
               })}
+
 
             </select>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white pointer-events-none" />
@@ -114,7 +118,6 @@ const ProductCard = ({ product, handleShare, handleDelete }: { product: any, han
 
 export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }) => {
   const [products, setProducts] = useState<any[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [shopName, setShopName] = useState<string>('');
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
@@ -136,9 +139,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
     base_price: '',
     stock_quantity: '0',
     product_image_url: ''
-
-  
- });
+  });
 
   // --- IMAGE LOGIC ---
   const handleFile = (file: File) => {
@@ -170,7 +171,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
   // --- VARIANT LOGIC ---
   const addVariantRow = () => {
     const id = Date.now().toString(36) + Math.random().toString(36).substring(2);
-    setVariants([...variants, { id, variant_name: '', value: '', price_impact: 0, variant_stock: 0 }]);
+    setVariants([...variants, { id, name: '', value: '', price_impact: 0, stock_count: 0 }]);
   };
 
   const removeVariantRow = (id: string) => setVariants(variants.filter(v => v.id !== id));
@@ -204,12 +205,6 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
     return () => { if(imagePreview) URL.revokeObjectURL(imagePreview); }
   }, [shopId]);
 
-  // Make sure this is AFTER your useState hooks but BEFORE the return statement
-  const filteredProducts = (products || []).filter(p => 
-    p.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.product_category?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -227,7 +222,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
         image_file: imageData,
         variants: hasVariants ? variants.map(v => ({
           ...v, 
-          variant_stock: parseInt(v.variant_stock.toString()) || 0,
+          stock_count: parseInt(v.stock_count.toString()) || 0,
           variant_image_url: null 
         })) : []
       };
@@ -337,10 +332,10 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
                 <div className="space-y-3 bg-white p-4 rounded-xl border">
                   {variants.map((variant) => (
                     <div key={variant.id} className="flex gap-3 items-center">
-                      <input placeholder="Name" className="flex-1 p-2 border rounded-lg" value={variant.variant_name} onChange={(e) => updateVariant(variant.id, 'variant_name', e.target.value)} />
+                      <input placeholder="Name" className="flex-1 p-2 border rounded-lg" value={variant.name} onChange={(e) => updateVariant(variant.id, 'name', e.target.value)} />
                       <input placeholder="Value" className="flex-1 p-2 border rounded-lg" value={variant.value} onChange={(e) => updateVariant(variant.id, 'value', e.target.value)} />
                       <input type="number" placeholder="+/- Price" className="w-24 p-2 border rounded-lg" value={variant.price_impact} onChange={(e) => updateVariant(variant.id, 'price_impact', parseFloat(e.target.value) || 0)} />
-                      <input type="number" placeholder="Stock" className="w-24 p-2 border rounded-lg" value={variant.variant_stock} onChange={(e) => updateVariant(variant.id, 'variant_stock', parseInt(e.target.value) || 0)} />
+                      <input type="number" placeholder="Stock" className="w-24 p-2 border rounded-lg" value={variant.stock_count} onChange={(e) => updateVariant(variant.id, 'stock_count', parseInt(e.target.value) || 0)} />
                       <button type="button" onClick={() => removeVariantRow(variant.id)} className="p-2 text-red-500"><X className="w-4 h-4" /></button>
                     </div>
                   ))}
@@ -371,37 +366,15 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
           <h3 className="text-lg font-bold text-gray-900">No products found</h3>
         </div>
       ) : (
-        <div className="space-y-6">
-          {/* Search Bar - Positioned above the grid */}
-          <div className="relative max-w-md w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input 
-              type="text" 
-              placeholder="Search name or category..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map((product) => (
+            <ProductCard 
+              key={product.product_id} 
+              product={product} 
+              handleShare={handleShare} 
+              handleDelete={handleDelete} 
             />
-          </div>
-
-          {/* Product Grid - Using filteredProducts and passing actual functions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((product) => (
-              <ProductCard
-                key={product.product_id}
-                product={product}
-                handleShare={handleShare}
-                handleDelete={handleDelete}
-              />
-            ))}
-          </div>
-
-          {/* Empty Search State */}
-          {filteredProducts.length === 0 && (
-            <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed">
-              <p className="text-gray-400 italic">No products match your search "{searchTerm}"</p>
-            </div>
-          )}
+          ))}
         </div>
       )}
     </div>
