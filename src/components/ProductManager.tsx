@@ -250,39 +250,33 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
   };
 
   const handleShare = async (product: any) => {
-    const shareUrl = `https://tenearsocialmedia.pages.dev/?shop_id=${shopId}&campaign=General%20Campaign`;
-    const shareText = `🤖 NEW PRODUCT ALERT!\n\n📦 ${product.product_name}\n💰 KShs ${product.base_price}\n🔗 View our online shop: ${shareUrl}`;
-    
-    // 1. Prepare Share Data
-    const shareData: any = {
-      title: product.product_name,
-      text: shareText,
-      url: shareUrl,
-    };
 
+    // --- NEW: Send payload to n8n ---
     try {
-      // 2. Handle Image Sharing for Web Share API
-      if (product.product_image_url && navigator.canShare && navigator.canShare({ files: [] })) {
-        try {
-          const response = await fetch(product.product_image_url);
-          const blob = await response.blob();
-          const file = new File([blob], 'product.jpg', { type: blob.type });
-        
-          if (navigator.canShare({ files: [file] })) {
-            shareData.files = [file];
-          }
-        } catch (err) {
-          console.error("Image processing failed, sharing text only", err);
-        }
-      }
-
-      if (typeof navigator.share !== 'undefined') {
-        await navigator.share(shareData);
-        return;
-      }
-    } catch (err) {
-      console.log("Share failed or cancelled");
+      await fetch('https://n8n.tenear.com/webhook/shop-products-management', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'share_product', 
+          shop_id: shopId, 
+          product_id: product.product_id,
+          timestamp: new Date().toISOString()
+        })
+      });
+    } catch (error) {
+      console.error("Failed to log share to n8n:", error);
     }
+
+    const shareUrl = `https://tenear.com/?shop_id=${shopId}&product_id=${product.product_id}`;
+    const shareText = `🤖 NEW PRODUCT ALERT!\n\n📦 ${product.product_name}\n💰 KShs ${product.base_price}\n🔗 View our online shop\n🔗 ${shopName}: ${shareUrl}`;
+    
+    if (typeof navigator.share !== 'undefined') {
+      try {
+        await navigator.share({ title: product.product_name, text: shareText, url: shareUrl });
+        return;
+      } catch (err) { /* fallback */ }
+    }
+ 
 
     // 3. Fallback for Desktop (Text only, image relies on Open Graph tags at shareUrl)
     window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
