@@ -53,11 +53,6 @@ const ProductCard = ({ product, handleShare, handleDelete }: { product: any, han
             <AlertTriangle className="w-3 h-3" /> LOW STOCK
           </div>
         )}
-        {isOutOfStock && (
-          <div className="absolute top-3 right-3 bg-red-600 text-white px-2 py-1 rounded-lg text-[10px] font-black shadow-lg">
-            OUT OF STOCK
-          </div>
-        )}
       </div>
       
       <div className="p-5 flex-1 flex flex-col">
