@@ -2,6 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Package, Plus, Share2, Trash2, ArrowLeft, Loader2, X, Save, Image as ImageIcon, ChevronDown, AlertTriangle, Search } from 'lucide-react';
 
+import ShopAnalytics from './ShopAnalytics'; 
+import { BarChart3 } from 'lucide-react'; // Add this for the analytics icon
+
 interface ProductManagerProps {
   shopId: number;
   onBack: () => void;
@@ -116,6 +119,8 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   
+  const [showAnalytics, setShowAnalytics] = useState(false); // 2. Add toggle state
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -335,16 +340,40 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
           <h2 className="text-2xl font-bold text-gray-900">Product Inventory</h2>
           <p className="text-gray-500 text-sm">Managing: <span className="font-bold text-blue-600 bg-blue-50 px-2 rounded">{shopName || `Shop ID: ${shopId}`}</span></p>
         </div>
+
+        {/* 3. NEW: Centered Toggle Button & Right Actions */}
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setShowAnalytics(!showAnalytics)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all border ${
+              showAnalytics 
+                ? "bg-blue-50 border-blue-200 text-blue-600" 
+                : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            <BarChart3 className="w-4 h-4" />
+            {showAnalytics ? "Close Analytics" : "View Analytics"}
+          </button>
+
         <div className="flex gap-3">
           {!showAddForm && (
             <button onClick={() => setShowAddForm(true)} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all shadow-md">
               <Plus className="w-4 h-4" /> Add Product
             </button>
           )}
-          <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-blue-600 font-medium transition-colors"><ArrowLeft className="w-4 h-4" /> Back</button>
+          <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-blue-600 font-medium transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
         </div>
       </div>
 
+      {/* 4. NEW: Conditionally render the Analytics Dashboard */}
+      {showAnalytics && (
+        <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-300">
+           <ShopAnalytics shopId={shopId} />
+        </div>
+      )}
+      </div>
       {/* Create Product Form */}
       {showAddForm && (
         <div className="mb-10 bg-gray-50 p-8 rounded-2xl border border-gray-200 shadow-inner">
