@@ -333,23 +333,21 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
   };
 
   return (
-    <div className="p-4 md:p-6 bg-white rounded-xl shadow-sm border border-gray-100 max-w-6xl mx-auto min-h-[700px]">
+    <div className="p-6 bg-white rounded-xl shadow-sm border border-gray-100 max-w-6xl mx-auto min-h-[700px]">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+      <div className="flex items-center justify-between mb-8">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Product Inventory</h2>
-          <p className="text-gray-500 text-sm">
-            Managing: <span className="font-bold text-blue-600 bg-blue-50 px-2 rounded">{shopName || `Shop ID: ${shopId}`}</span>
-          </p>
+          <p className="text-gray-500 text-sm">Managing: <span className="font-bold text-blue-600 bg-blue-50 px-2 rounded">{shopName || `Shop ID: ${shopId}`}</span></p>
         </div>
 
-        {/* Action Buttons Wrap */}
-        <div className="flex flex-wrap items-center gap-3">
-          <button
+        {/* 3. NEW: Centered Toggle Button & Right Actions */}
+        <div className="flex items-center gap-3">
+          <button 
             onClick={() => setShowAnalytics(!showAnalytics)}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all border ${
-              showAnalytics
-                ? "bg-blue-50 border-blue-200 text-blue-600"
+              showAnalytics 
+                ? "bg-blue-50 border-blue-200 text-blue-600" 
                 : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
             }`}
           >
@@ -357,32 +355,31 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
             {showAnalytics ? "Close Analytics" : "View Analytics"}
           </button>
 
-          <div className="flex gap-3">
-            {!showAddForm && (
-              <button onClick={() => setShowAddForm(true)} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all shadow-md">
-                <Plus className="w-4 h-4" /> Add Product
-              </button>
-            )}
-            <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-blue-600 font-medium transition-colors">
-              <ArrowLeft className="w-4 h-4" /> Back
+        <div className="flex gap-3">
+          {!showAddForm && (
+            <button onClick={() => setShowAddForm(true)} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-all shadow-md">
+              <Plus className="w-4 h-4" /> Add Product
             </button>
-          </div>
+          )}
+          <button onClick={onBack} className="flex items-center gap-2 text-gray-500 hover:text-blue-600 font-medium transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
         </div>
       </div>
 
-      {/* Analytics Dashboard - Fixed Height for Mobile */}
+      {/* 4. NEW: Conditionally render the Analytics Dashboard */}
       {showAnalytics && (
-        <div className="mb-10 w-full min-h-[350px] md:min-h-[450px] animate-in fade-in slide-in-from-top-4 duration-300">
-          <div className="h-[300px] md:h-[400px]">
-             <ShopAnalytics shopId={shopId} />
-          </div>
+        <div className="mb-10 animate-in fade-in slide-in-from-top-4 duration-300">
+           <ShopAnalytics shopId={shopId} />
         </div>
       )}
-
+      </div>
       {/* Create Product Form */}
       {showAddForm && (
-        <div className="mb-10 bg-gray-50 p-4 md:p-8 rounded-2xl border border-gray-200 shadow-inner">
+        <div className="mb-10 bg-gray-50 p-8 rounded-2xl border border-gray-200 shadow-inner">
           <form onSubmit={handleAddProduct} className="space-y-6">
+            {/* Image Upload Area */}
+            
             <div className="space-y-2">
               <label className="block text-sm font-bold text-gray-700">Upload Product Image</label>
               <div 
@@ -390,11 +387,11 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
                 onDragLeave={handleDrag} 
                 onDragOver={handleDrag} 
                 onDrop={handleDrop} 
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => fileInputRef.current?.click()} // Triggers the hidden input
                 className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all ${
                   dragActive ? "border-blue-500 bg-blue-50" : "border-gray-300 hover:border-blue-400"
                 }`}
-              >
+             >
                 {imagePreview ? (
                   <div className="relative w-full aspect-video">
                     <img src={imagePreview} className="w-full h-full object-cover rounded-lg" alt="Preview" />
@@ -409,9 +406,11 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
                 ) : (
                   <>
                     <ImageIcon className="w-12 h-12 text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-500 text-center">Drag & drop or click to upload .jpg</p>
+                    <p className="text-sm text-gray-500">Drag & drop or click to upload .jpg</p>
                   </>
                 )}
+    
+                {/* Hidden Input */}
                 <input 
                   type="file" 
                   ref={fileInputRef} 
@@ -421,6 +420,8 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
                 />
               </div>
             </div>
+             
+
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <input required placeholder="Product Name" className="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none" value={newProduct.product_name} onChange={(e) => setNewProduct({...newProduct, product_name: e.target.value})} />
@@ -437,38 +438,84 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
               <input required type="number" placeholder="Initial Stock Quantity" className="w-full px-4 py-3 rounded-xl border border-gray-300 outline-none" value={newProduct.stock_quantity} onChange={(e) => setNewProduct({...newProduct, stock_quantity: e.target.value})} />
             </div>
 
-            {hasVariants && (
+            {/* Variant Switch */}
+            <div className="pt-4 border-t">
+              <label className="flex items-center gap-2 cursor-pointer mb-4">
+                <input type="checkbox" checked={hasVariants} onChange={(e) => setHasVariants(e.target.checked)} className="w-5 h-5 rounded text-blue-600" />
+                <span className="text-sm font-bold text-gray-700">Add variations (Size, Color, etc.)</span>
+              </label>
+
+              {hasVariants && (
                 <div className="space-y-3 bg-white p-4 rounded-xl border">
                   {variants.map((variant) => (
-                    <div key={variant.id} className="flex flex-wrap md:flex-nowrap gap-3 items-center">
-                      <input placeholder="Name" className="flex-1 min-w-[120px] p-2 border rounded-lg" value={variant.variant_name} onChange={(e) => updateVariant(variant.id, 'variant_name', e.target.value)} />
-                      <input placeholder="Value" className="flex-1 min-w-[120px] p-2 border rounded-lg" value={variant.value} onChange={(e) => updateVariant(variant.id, 'value', e.target.value)} />
-                      <input type="number" placeholder="+/- Price" className="w-full md:w-24 p-2 border rounded-lg" value={variant.price_impact} onChange={(e) => updateVariant(variant.id, 'price_impact', parseFloat(e.target.value) || 0)} />
+                    <div key={variant.id} className="flex gap-3 items-center">
+                      <input placeholder="Name" className="flex-1 p-2 border rounded-lg" value={variant.variant_name} onChange={(e) => updateVariant(variant.id, 'variant_name', e.target.value)} />
+                      <input placeholder="Value" className="flex-1 p-2 border rounded-lg" value={variant.value} onChange={(e) => updateVariant(variant.id, 'value', e.target.value)} />
+                      <input type="number" placeholder="+/- Price" className="w-24 p-2 border rounded-lg" value={variant.price_impact} onChange={(e) => updateVariant(variant.id, 'price_impact', parseFloat(e.target.value) || 0)} />
+                      <input type="number" placeholder="Stock" className="w-24 p-2 border rounded-lg" value={variant.variant_stock} onChange={(e) => updateVariant(variant.id, 'variant_stock', parseInt(e.target.value) || 0)} />
                       <button type="button" onClick={() => removeVariantRow(variant.id)} className="p-2 text-red-500"><X className="w-4 h-4" /></button>
                     </div>
                   ))}
                   <button type="button" onClick={addVariantRow} className="text-sm text-blue-600 font-bold">+ Add Variant</button>
                 </div>
-            )}
+              )}
+            </div>
 
             <div className="flex gap-3">
               <button type="submit" disabled={isSubmitting} className="flex-1 bg-blue-600 text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2">
                 {isSubmitting ? <Loader2 className="animate-spin" /> : <Save />} Save & List Product
               </button>
-              <button type="button" onClick={() => setShowAddForm(false)} className="px-6 py-4 border border-gray-300 rounded-xl font-bold text-gray-600">Cancel</button>
+              <button type="button" onClick={() => setShowAddForm(false)} className="px-6 py-4 rounded-xl border font-bold text-gray-600">Cancel</button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Product List Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {products
-          .filter(p => p.product_name.toLowerCase().includes(searchTerm.toLowerCase()))
-          .map(product => (
-            <ProductCard key={product.product_id} product={product} handleShare={handleShare} handleDelete={handleDelete} />
-          ))}
-      </div>
+      {/* Main Inventory Display Grid */}
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-4">
+          <Loader2 className="w-10 h-10 text-blue-600 animate-spin" />
+          <p className="text-gray-500">Syncing with warehouse...</p>
+        </div>
+      ) : products.length === 0 ? (
+        <div className="text-center py-20 bg-gray-50 rounded-2xl border border-dashed border-gray-300">
+          <Package className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-gray-900">No products found</h3>
+        </div>
+      ) : (
+        <div className="space-y-6">
+          {/* Search Bar - Positioned above the grid */}
+          <div className="relative max-w-md w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Search name or category..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
+            />
+          </div>
+
+          {/* Product Grid - Using filteredProducts and passing actual functions */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredProducts.map((product) => (
+              <ProductCard
+                key={product.product_id}
+                product={product}
+                handleShare={handleShare}
+                handleDelete={handleDelete}
+              />
+            ))}
+          </div>
+
+          {/* Empty Search State */}
+          {filteredProducts.length === 0 && (
+            <div className="text-center py-10 bg-gray-50 rounded-xl border border-dashed">
+              <p className="text-gray-400 italic">No products match your search "{searchTerm}"</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
