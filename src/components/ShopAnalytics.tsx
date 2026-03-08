@@ -17,6 +17,7 @@ const ShopAnalytics = ({ shopId }: { shopId: number }) => {
         });
         const result = await response.json();
         
+        // Ensure we store the actual object rather than the array wrapper
         if (Array.isArray(result) && result.length > 0) {
           setAnalytics(result[0]); 
         } else {
@@ -40,7 +41,7 @@ const ShopAnalytics = ({ shopId }: { shopId: number }) => {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-      {/* Metrics Cards */}
+      {/* Card 1: Total Engagement */}
       <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
         <div className="flex items-center gap-2 text-blue-600 mb-2">
           <Share2 size={20} />
@@ -51,14 +52,17 @@ const ShopAnalytics = ({ shopId }: { shopId: number }) => {
         </div>
       </div>
 
+      {/* Card 2: Top Platform */}
       <div className="p-4 bg-purple-50 rounded-xl border border-purple-100">
         <div className="flex items-center gap-2 text-purple-600 mb-2">
           <Smartphone size={20} />
           <span className="font-bold">Top Platform</span>
         </div>
         <div className="text-2xl font-black capitalize">{analytics.mostPopular || 'N/A'}</div>
+        <p className="text-[10px] text-purple-400 font-bold uppercase mt-1">Most views source</p>
       </div>
 
+      {/* Card 3: WhatsApp vs Others */}
       <div className="p-4 bg-green-50 rounded-xl border border-green-100">
         <div className="flex items-center gap-2 text-green-600 mb-2">
           <Globe size={20} />
@@ -69,30 +73,18 @@ const ShopAnalytics = ({ shopId }: { shopId: number }) => {
         </div>
       </div>
 
-      {/* Chart Section - Responsive Fixes */}
-      <div className="md:col-span-3 bg-white p-4 md:p-6 rounded-xl border border-gray-100 shadow-sm">
-        <h3 className="font-bold mb-6 text-gray-800">Product Performance</h3>
+      {/* Chart Section */}
+      <div className="md:col-span-3 h-80 bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+        <h3 className="font-bold mb-4 text-gray-800">Product Performance</h3>
         {analytics?.chartData?.length > 0 ? (
-          /* Use min-height and aspect ratio for mobile scaling */
-          <div className="w-full h-[300px] md:h-[400px]"> 
+          <div className="h-64 w-full"> 
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
-                data={analytics.chartData}
-                margin={{ top: 10, right: 10, left: -20, bottom: 40 }} // Extra bottom margin for rotated labels
-              >
+              <BarChart data={analytics.chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                <XAxis 
-                  dataKey="product_name" 
-                  fontSize={10} 
-                  tickLine={false} 
-                  axisLine={false}
-                  interval={0} // Force all labels to show
-                  angle={-45}  // Rotate for mobile readability
-                  textAnchor="end"
-                />
+                <XAxis dataKey="product_name" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis hide />
                 <Tooltip cursor={{ fill: '#f9fafb' }} />
-                <Legend verticalAlign="top" height={36} iconType="circle" />
+                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
           
                 {analytics.availablePlatforms?.map((platform: string, index: number) => (
                   <Bar 
@@ -100,7 +92,8 @@ const ShopAnalytics = ({ shopId }: { shopId: number }) => {
                     dataKey={platform} 
                     stackId="a" 
                     fill={["#3b82f6", "#8b5cf6", "#10b981", "#f59e0b", "#ec4899"][index % 5]} 
-                    radius={[4, 4, 0, 0]}
+                    radius={[4, 4, 0, 0]} 
+                    barSize={40}
                   />
                 ))}
               </BarChart>
