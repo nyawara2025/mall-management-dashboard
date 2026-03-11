@@ -152,26 +152,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await loginWithN8N(username, password);
       
       if (result.success && result.token && result.user) {
+        console.log('📦 Raw n8n User Data:', result.user);
+        // Ensure normalization: map 'business_category' to 'category' if it exists
         const rawUser = result.user as any;
-        
-        // Robust normalization to capture 'medical' category
+
+        // Look for category in the root OR inside a nested user object
         const detectedCategory = 
           rawUser.category || 
           rawUser.business_category || 
-          (rawUser.user && rawUser.user.category) || 
-          (rawUser.user && rawUser.user.business_category) || 
-          'retail';
+          rawUser.shop._category ||
+          rawUser.user && rawUser.user.category);
+          rawUser.user?.category || 
+          rawUser.user?.business_category;
 
         const normalizedUser: User = {
           ...rawUser,
-          category: detectedCategory
+          category: detectedCategory 
         };
-
-        // Debug log to verify normalization
-        console.log('🩺 TeNEAR Medical Mapping:', {
-          received: rawUser.business_category || rawUser.category,
-          mapped: normalizedUser.category
-        });
 
         localStorage.setItem('geofence_auth_token', result.token);
         localStorage.setItem('geofence_user_data', JSON.stringify(normalizedUser));

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef, ReactNode } from 'react';
 import { AuthContextType, User } from '../types/auth';
-import { login as loginWithN8N } from '../services/auth';
+import { AuthService, login as loginWithN8N } from '../services/auth';
 
 // Auth State
 interface AuthState {
@@ -152,34 +152,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await loginWithN8N(username, password);
       
       if (result.success && result.token && result.user) {
-        const rawUser = result.user as any;
-        
-        // Robust normalization to capture 'medical' category
-        const detectedCategory = 
-          rawUser.category || 
-          rawUser.business_category || 
-          (rawUser.user && rawUser.user.category) || 
-          (rawUser.user && rawUser.user.business_category) || 
-          'retail';
-
-        const normalizedUser: User = {
-          ...rawUser,
-          category: detectedCategory
-        };
-
-        // Debug log to verify normalization
-        console.log('🩺 TeNEAR Medical Mapping:', {
-          received: rawUser.business_category || rawUser.category,
-          mapped: normalizedUser.category
-        });
-
+        // Ensure result.user contains 'business_category' from your n8n response
         localStorage.setItem('geofence_auth_token', result.token);
-        localStorage.setItem('geofence_user_data', JSON.stringify(normalizedUser));
+        localStorage.setItem('geofence_user_data', JSON.stringify(result.user));
         localStorage.setItem('geofence_user_data_timestamp', Date.now().toString());
 
         dispatch({
           type: 'AUTH_SUCCESS',
-          payload: { user: normalizedUser, token: result.token }
+          payload: { user: result.user, token: result.token }
         });
 
         resetSessionTimeout();

@@ -27,6 +27,161 @@ function hashPassword(password: string): string {
   return '$2b$10$' + btoa(password + 'salt').replace(/=/g, '').substring(0, 22)
 }
 
+// Initialize users database with ONLY backend users from your database
+// All users use 'demo123' as password
+
+// Super Admin
+REAL_USERS.set('bosco', { 
+  password_hash: hashPassword('demo123'), 
+  user: { 
+    id: 100, 
+    username: 'bosco', 
+    full_name: 'Bosco Developer', 
+    role: 'super_admin', 
+    mall_id: null, 
+    mall_name: 'All Malls',
+    shop_id: null, 
+    shop_name: 'All Shops',
+    mall_access: [3, 6, 7],
+    shop_access: [3, 4, 6, 7, 8, 9, 10, 11],
+    active: true 
+  } 
+})
+
+// Mall Admins
+REAL_USERS.set('jane', { 
+  password_hash: hashPassword('demo123'), 
+  user: { 
+    id: 5, 
+    username: 'jane', 
+    full_name: 'Jane Mkenya', 
+    role: 'mall_admin', 
+    mall_id: 3, 
+    mall_name: 'China Square Mall',
+    shop_id: null, 
+    mall_access: [3],
+    shop_access: [3, 4],
+    active: true 
+  } 
+})
+
+REAL_USERS.set('faith', { 
+  password_hash: hashPassword('demo123'), 
+  user: { 
+    id: 10, 
+    username: 'faith', 
+    full_name: 'Faith WaKenya', 
+    role: 'mall_admin', 
+    mall_id: 6, 
+    mall_name: 'Langata Mall',
+    shop_id: null, 
+    mall_access: [6],
+    shop_access: [6, 7, 8],
+    active: true 
+  } 
+})
+
+REAL_USERS.set('ngina', { 
+  password_hash: hashPassword('demo123'), 
+  user: { 
+    id: 11, 
+    username: 'ngina', 
+    full_name: 'Ngina Pia Mkenya', 
+    role: 'mall_admin', 
+    mall_id: 7, 
+    mall_name: 'NHC Mall',
+    shop_id: null, 
+    mall_access: [7],
+    shop_access: [9, 10, 11],
+    active: true 
+  } 
+})
+
+// Shop Admins
+REAL_USERS.set('ben', { 
+  password_hash: hashPassword('demo123'), 
+  user: { 
+    id: 6, 
+    username: 'ben', 
+    full_name: 'Ben Agina', 
+    role: 'shop_admin', 
+    mall_id: 3, 
+    mall_name: 'China Square Mall',
+    shop_id: 3, 
+    shop_name: 'Spatial Barbershop & Spa',
+    mall_access: [3],
+    shop_access: [3],
+    active: true 
+  } 
+})
+
+REAL_USERS.set('sandra', { 
+  password_hash: hashPassword('demo123'), 
+  user: { 
+    id: 12, 
+    username: 'sandra', 
+    full_name: 'Sandra Sawe', 
+    role: 'shop_admin', 
+    mall_id: 6, 
+    mall_name: 'Langata Mall',
+    shop_id: 6, 
+    shop_name: 'Kika Wines & Spirits',
+    mall_access: [6],
+    shop_access: [6],
+    active: true 
+  } 
+})
+
+REAL_USERS.set('andrew', { 
+  password_hash: hashPassword('demo123'), 
+  user: { 
+    id: 13, 
+    username: 'andrew', 
+    full_name: 'Andrew - The Phone Shop', 
+    role: 'shop_admin', 
+    mall_id: 6, 
+    mall_name: 'Langata Mall',
+    shop_id: 7, 
+    shop_name: 'The Phone Shop',
+    mall_access: [6],
+    shop_access: [7],
+    active: true 
+  } 
+})
+
+REAL_USERS.set('fred', { 
+  password_hash: hashPassword('demo123'), 
+  user: { 
+    id: 14, 
+    username: 'fred', 
+    full_name: 'Fred - Cleanshelf SupaMarket', 
+    role: 'shop_admin', 
+    mall_id: 6, 
+    mall_name: 'Langata Mall',
+    shop_id: 8, 
+    shop_name: 'Cleanshelf SupaMarket',
+    mall_access: [6],
+    shop_access: [8],
+    active: true 
+  } 
+})
+
+REAL_USERS.set('ibrahim', { 
+  password_hash: hashPassword('demo123'), 
+  user: { 
+    id: 15, 
+    username: 'ibrahim', 
+    full_name: 'Ibrahim - Maliet Salon & Spa', 
+    role: 'shop_admin', 
+    mall_id: 7, 
+    mall_name: 'NHC Mall',
+    shop_id: 9, 
+    shop_name: 'Maliet Salon & Spa',
+    mall_access: [7],
+    shop_access: [9],
+    active: true 
+  } 
+})
 
 // TeNEAR Tech User (Neo One) - MPESA Testing - SECURE PASSWORD
 REAL_USERS.set('neo', { 
@@ -202,7 +357,6 @@ export async function login(username: string, password: string): Promise<{ succe
         username: result.username,
         full_name: result.full_name || result.username,
         role: result.role,
-        category: result.category,
         mall_id: result.mall_id,
         shop_id: result.shop_id,
         active: result.active !== false,

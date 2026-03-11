@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Package, Plus, Pencil, Share2, Trash2, ArrowLeft, Loader2, X, Save, Image as ImageIcon, ChevronDown, AlertTriangle, Search } from 'lucide-react';
+import { Package, Plus, Share2, Trash2, ArrowLeft, Loader2, X, Save, Image as ImageIcon, ChevronDown, AlertTriangle, Search } from 'lucide-react';
 
 import ShopAnalytics from './ShopAnalytics'; 
 import { BarChart3 } from 'lucide-react'; // Add this for the analytics icon
@@ -20,7 +20,7 @@ interface Variant {
 }
 
 // Sub-component for individual product cards to handle local "selected variant" state
-const ProductCard = ({ product, handleShare, handleDelete, handleAmend }: { product: any, handleShare: any, handleDelete: any, handleAmend: any }) => {
+const ProductCard = ({ product, handleShare, handleDelete }: { product: any, handleShare: any, handleDelete: any }) => {
   const [selectedVariantId, setSelectedVariantId] = useState<string>('base');
 
   // Find the selected variant object
@@ -100,20 +100,9 @@ const ProductCard = ({ product, handleShare, handleDelete, handleAmend }: { prod
               {displayStock} Units Available
             </span>
           </div>
-
-          
           <div className="flex gap-1">
-            <button 
-              onClick={() => handleAmend(product)} 
-              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-              title="Amend Product"
-            >
-              <Plus className="w-4 h-4" /> {/* You can change Plus to Pencil if imported */}
-            </button>
-
             <button onClick={() => handleShare(product)} className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all"><Share2 className="w-4 h-4" /></button>
             <button onClick={() => handleDelete(product.product_id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"><Trash2 className="w-4 h-4" /></button>
-
           </div>
         </div>
       </div>
@@ -231,13 +220,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
       const formData = new FormData();
 
       // 2. Append text fields
-      formData.append('action', isEditingProductId ? 'update_product' : 'add_product');
-
-      // If updating, include the ID so Supabase knows which row to change
-      if (isEditingProductId) {
-        formData.append('product_id', isEditingProductId.toString());
-      }
-
+      formData.append('action', 'add_product');
       formData.append('shop_id', shopId.toString());
       formData.append('shop_admin', user?.username || 'Admin');
       formData.append('product_name', newProduct.product_name);
@@ -267,9 +250,6 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
 
     if (response.ok) {
       setShowAddForm(false);
-
-      setIsEditingProductId(null); // IMPORTANT: Reset after success
-
       setSelectedFile(null);
       setImagePreview(null);
       setNewProduct({ product_name: '', product_category: '', product_description: '', base_price: '', stock_quantity: '0', product_image_url: '' });
@@ -282,38 +262,6 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
   }
 };
   
-  const [isEditingProductId, setIsEditingProductId] = useState<number | null>(null);
-
-
-  // ADD THIS FUNCTION
-  const handleAmend = (product: any) => {
-    console.log("Amending product:", product);
-
-    // Set the ID first so the form knows it's an update
-    setIsEditingProductId(product.product_id);
-
-    // Your logic to open an edit modal or populate the form
-    setNewProduct({
-      product_name: product.product_name || '',
-      product_category: product.product_category || '',
-      product_description: product.product_description || '',
-      base_price: (product.base_price ?? '').toString(),
-      stock_quantity: (product.stock_quantity ?? '0').toString(),
-      product_image_url: product.product_image_url || ''
-    });
-
-    // Populate variants if they exist
-    if (product.variants && product.variants.length > 0) {
-      setHasVariants(true);
-      setVariants(product.variants);
-    } else {
-      setHasVariants(false);
-      setVariants([]);
-    }
-
-    setShowAddForm(true);
-  };
-
 
   const handleShare = async (product: any) => {
     // 1. Determine the source based on device capability
@@ -556,7 +504,6 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
                 product={product}
                 handleShare={handleShare}
                 handleDelete={handleDelete}
-                handleAmend={handleAmend}
               />
             ))}
           </div>
