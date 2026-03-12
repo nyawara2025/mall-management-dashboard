@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Calendar, Clock, BarChart3, Plus, MessageSquare, ClipboardList } from 'lucide-react';
+import { Users, Calendar, Clock, BarChart3, Plus, MessageSquare, ClipboardList, Reply, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface Appointment {
@@ -21,14 +21,24 @@ interface Interaction {
 export const MedicalDashboard = () => {
   const { token, user } = useAuth();
   
-  // State
+  // Dashboard State
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [interactions, setInteractions] = useState<Interaction[]>([]);
   const [stats, setStats] = useState({ total: 0, today: 0, waitTime: '0m', views: 0 });
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'appointments' | 'inquiries'>('appointments');
+  
+  // Modal States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [replyModal, setReplyModal] = useState<{isOpen: boolean, inquiryId: string | null, phone: string | null}>({ 
+    isOpen: false, 
+    inquiryId: null,
+    phone: null
+  });
+  
+  // Form States
   const [newService, setNewService] = useState({ name: '', price: '', description: '' });
+  const [replyMessage, setReplyMessage] = useState('');
 
   const statsCards = [
     { label: 'TOTAL PATIENTS', value: stats.total, icon: Users, color: 'text-blue-600' },
@@ -37,9 +47,10 @@ export const MedicalDashboard = () => {
     { label: 'VIEWS', value: stats.views, icon: BarChart3, color: 'text-purple-600' }
   ];
 
+
   const fetchData = async () => {
     try {
-      // Fetch Appointments and Stats
+      // 1. Fetch Appointments and Stats
       const medicalRes = await fetch('https://n8n.tenear.com/webhook/get-medical-records', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -57,21 +68,28 @@ export const MedicalDashboard = () => {
       }));
       setAppointments(formattedApts);
 
-      // Fetch Product Interactions (Inquiries)
+      // 2. Fetch Inquiries with correct Supabase Mapping
       const interactRes = await fetch('https://n8n.tenear.com/webhook/get-medical-inquiries', {
-        method: 'POST', // Changed from GET to POST
+        method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` 
         },
-        body: JSON.stringify({ 
-          shop_id: user?.shop_id // Sending as a distinct data object
-        })
+        body: JSON.stringify({ shop_id: user?.shop_id })
       });
 
-      const interactData = await interactRes.json();
-      setInteractions(interactData || []);
+      const rawInteractData = await interactRes.json();
+      
+      // Fix: Map 'customer_message' and 'customer_phone' from Supabase output
+      const formattedInteractions: Interaction[] = (rawInteractData || []).map((item: any) => ({
+        id: String(item.id),
+        customer_phone: item.customer_phone || 'No Phone',
+        message: item.customer_message || 'No Message Content',
+        interaction_type: item.interaction_type || 'General',
+        created_at: item.created_at
+      }));
 
+      setInteractions(formattedInteractions);
 
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -84,17 +102,31 @@ export const MedicalDashboard = () => {
     fetchData();
   }, [token]);
 
-  const updateStatus = async (appointmentId: string, newStatus: 'Confirmed' | 'Cancelled') => {
+  const handleSendReply = async () => {
+    if (!replyMessage.trim()) return;
     try {
-      const response = await fetch('https://n8n.tenear.com/webhook/update-appointment-status', {
+      const response = await fetch('https://n8n.tenear.com/webhook/send-reply', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ appointmentId, status: newStatus.toLowerCase() })
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${token}` 
+        },
+        body: JSON.stringify({
+          inquiry_id: replyModal.inquiryId,
+          patient_phone: replyModal.phone,
+          message: replyMessage,
+          shop_id: user?.shop_id
+        })
       });
+
       if (response.ok) {
-        setAppointments(prev => prev.map(apt => apt.id === appointmentId ? { ...apt, status: newStatus } : apt));
+        alert("Reply sent successfully!");
+        setReplyModal({ isOpen: false, inquiryId: null, phone: null });
+        setReplyMessage('');
       }
-    } catch (error) { console.error('Update failed:', error); }
+    } catch (err) {
+      console.error("Failed to send reply:", err);
+    }
   };
 
   const handleAddService = async (e: React.FormEvent) => {
@@ -167,8 +199,7 @@ export const MedicalDashboard = () => {
                   <th className="px-6 py-4">Time</th>
                   <th className="px-6 py-4">Patient</th>
                   <th className="px-6 py-4">Service Requested</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
+                  <th className="px-6 py-4 text-right">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -177,17 +208,10 @@ export const MedicalDashboard = () => {
                     <td className="px-6 py-4 text-sm font-medium text-gray-600">{apt.time}</td>
                     <td className="px-6 py-4 font-bold text-gray-900">{apt.patient_name}</td>
                     <td className="px-6 py-4 text-sm text-gray-500">{apt.service}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${
-                        apt.status === 'Confirmed' ? 'bg-green-100 text-green-700' :
-                        apt.status === 'Cancelled' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'
-                      }`}>
+                    <td className="px-6 py-4 text-right">
+                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${apt.status === 'Confirmed' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
                         {apt.status}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 text-right flex justify-end gap-3">
-                      <button onClick={() => updateStatus(apt.id, 'Confirmed')} className="text-green-600 hover:text-green-800 text-xs font-black">APPROVE</button>
-                      <button onClick={() => updateStatus(apt.id, 'Cancelled')} className="text-red-400 hover:text-red-600 text-xs font-black">REJECT</button>
                     </td>
                   </tr>
                 ))}
@@ -197,67 +221,88 @@ export const MedicalDashboard = () => {
             <table className="w-full text-left">
               <thead className="bg-gray-50 text-xs font-bold text-gray-400 uppercase">
                 <tr>
-                  <th className="px-6 py-4">Received</th>
-                  <th className="px-6 py-4">Patient Contact</th>
-                  <th className="px-6 py-4">Message / Inquiry</th>
-                  <th className="px-6 py-4">Platform</th>
-                  <th className="px-6 py-4 text-right">Direct Response</th>
+                  <th className="px-6 py-4">Patient Phone</th>
+                  <th className="px-6 py-4">Message</th>
+                  <th className="px-6 py-4">Date</th>
+                  <th className="px-6 py-4 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {interactions.length > 0 ? interactions.map((item) => (
-                  <tr key={item.id} className="hover:bg-blue-50/30 transition-colors">
+                {interactions.map((item) => (
+                  <tr key={item.id} className="hover:bg-gray-50/80 transition-colors">
+                    <td className="px-6 py-4 font-bold text-gray-900">{item.customer_phone}</td>
+                    <td className="px-6 py-4 text-sm text-gray-600">{item.message}</td>
                     <td className="px-6 py-4 text-xs text-gray-400">{new Date(item.created_at).toLocaleDateString()}</td>
-                    <td className="px-6 py-4 font-bold text-blue-600">{item.customer_phone}</td>
-                    <td className="px-6 py-4 text-sm italic text-gray-600">"{item.message}"</td>
-                    <td className="px-6 py-4 text-[10px] font-bold text-gray-400 uppercase">{item.interaction_type.replace('_', ' ')}</td>
                     <td className="px-6 py-4 text-right">
-                      <a 
-                        href={`https://wa.me{item.customer_phone.replace(/\D/g, '')}`} 
-                        target="_blank" 
-                        rel="noreferrer"
-                        className="bg-green-500 hover:bg-green-600 text-white px-4 py-1.5 rounded-lg text-xs font-bold transition-all inline-block"
+                      <button 
+                        onClick={() => setReplyModal({ isOpen: true, inquiryId: item.id, phone: item.customer_phone })}
+                        className="bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 ml-auto transition-all"
                       >
-                        REPLY ON WHATSAPP
-                      </a>
+                        <Reply className="w-3.5 h-3.5" /> REPLY
+                      </button>
                     </td>
                   </tr>
-                )) : (
-                  <tr><td colSpan={5} className="px-6 py-10 text-center text-gray-400 italic">No inquiries from the Residential App yet.</td></tr>
-                )}
+                ))}
               </tbody>
             </table>
           )}
         </div>
       </div>
 
+      {/* Reply Modal */}
+      {replyModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-gray-100">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-black text-gray-800 uppercase tracking-tight">Send Medical Reply</h3>
+              <button onClick={() => setReplyModal({ isOpen: false, inquiryId: null, phone: null })} className="text-gray-400 hover:text-gray-600">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+            <p className="text-xs font-bold text-blue-600 mb-4 tracking-wide uppercase">Replying to: {replyModal.phone}</p>
+            <textarea 
+              className="w-full border-2 border-gray-100 rounded-xl p-4 h-40 mb-4 focus:border-blue-500 focus:ring-0 outline-none text-gray-700 transition-all resize-none"
+              placeholder="Provide medical guidance or follow-up instructions..."
+              value={replyMessage}
+              onChange={(e) => setReplyMessage(e.target.value)}
+            />
+            <button 
+              onClick={handleSendReply}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-extrabold shadow-lg shadow-blue-200 transition-all flex justify-center items-center gap-2"
+            >
+              SEND RESPONSE <Reply className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Add Service Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden border border-white">
-            <div className="p-6 border-b bg-gray-50">
-              <h3 className="text-xl font-black text-gray-800">New Medical Listing</h3>
-              <p className="text-xs text-gray-500 font-bold">This will appear in the Neighborhood Sokoni App</p>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <form onSubmit={handleAddService} className="bg-white rounded-xl p-6 w-full max-w-md">
+            <h2 className="text-xl font-bold mb-4 uppercase">Add New Service</h2>
+            <input 
+              className="w-full border p-2 rounded mb-3" 
+              placeholder="Service Name" 
+              onChange={e => setNewService({...newService, name: e.target.value})}
+              required
+            />
+            <input 
+              className="w-full border p-2 rounded mb-3" 
+              placeholder="Price" 
+              onChange={e => setNewService({...newService, price: e.target.value})}
+              required
+            />
+            <textarea 
+              className="w-full border p-2 rounded mb-4" 
+              placeholder="Description"
+              onChange={e => setNewService({...newService, description: e.target.value})}
+            />
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setIsModalOpen(false)} className="px-4 py-2 font-bold text-gray-500">CANCEL</button>
+              <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded font-bold">SAVE SERVICE</button>
             </div>
-            <form onSubmit={handleAddService} className="p-6 space-y-4">
-              <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Service Name (e.g. Dental Checkup)</label>
-                <input type="text" required className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold" value={newService.name} onChange={e => setNewService({...newService, name: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Fee (Kshs)</label>
-                <input type="number" required className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold" value={newService.price} onChange={e => setNewService({...newService, price: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-[10px] font-black text-gray-400 uppercase mb-1">Description for Patients</label>
-                <textarea required rows={3} className="w-full p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold" value={newService.description} onChange={e => setNewService({...newService, description: e.target.value})} />
-              </div>
-              <div className="flex gap-3 pt-4">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 px-4 py-3 border-2 border-gray-100 rounded-xl font-black text-gray-400 hover:bg-gray-50 transition-all text-xs">CANCEL</button>
-                <button type="submit" className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-black hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 text-xs">LIST SERVICE</button>
-              </div>
-            </form>
-          </div>
+          </form>
         </div>
       )}
     </div>
