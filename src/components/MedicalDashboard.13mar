@@ -152,74 +152,13 @@ export const MedicalDashboard = () => {
   };
 
   // 3. Social Sharing Logic
-
-
-  const handleShare = async (product: any) => {
-    // 1. Determine the source based on device capability
-    // We'll default to 'whatsapp' for the desktop window.open,
-    // or 'system_share' for mobile.
-    let source = "whatsapp";
-
-    const trackShare = async (platform: string) => {
-      try {
-        await fetch('https://n8n.tenear.com/webhook/shop-products-management', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'share_product',
-          shop_id: user?.shop_id,
-          product_id: product.product_id,
-          utm_source: platform, // Added tracking source
-          timestamp: new Date().toISOString()
-        })
-      });
-    } catch (error) {
-      console.error("Failed to log share to n8n:", error);
-    }
-  };
-
-
-  // 2. Construct URLs with the tracking parameter
-  // This helps your Cloudflare Worker track clicks later too!
-  const getShareUrl = (platform: string) =>
-    `https://tenear.com/?shop_id=${user?.shop_id}&product_id=${product.product_id}&utm_source=${platform}`;
-
-  const shareText = (url: string) =>
-    `🤖 NEW PRODUCT ALERT!\n\n📦 ${product.product_name}\n💰 KShs ${product.base_price}\n🔗 View our online clinic\n🔗 ${user?.shop_name}: ${url}`;
-
-  // 3. Attempt Native Share (Mobile)
-  if (typeof navigator.share !== 'undefined') {
-    source = "mobile_native";
-    const finalUrl = getShareUrl(source);
-    try {
-      await navigator.share({
-        title: product.product_name,
-        text: shareText(finalUrl),
-        url: finalUrl
-      });
-      await trackShare(source);
-      return;
-    } catch (err) {
-      // If user cancels or it fails, fallback to WhatsApp
-    }
-  }
-
-  // 4. Fallback for Desktop/WhatsApp
-  source = "whatsapp_direct";
-  const finalUrl = getShareUrl(source);
-  await trackShare(source);
-  window.open(`https://wa.me/?text=${encodeURIComponent(shareText(finalUrl))}`, '_blank');
-};
-  
-
-
-  // const handleShare = (service: any) => {
+  const handleShare = (service: any) => {
     // Use your Cloudflare Pages domain here
-    // const shopUrl = `https://medical-shop.pages.dev{service.id}?shop=${user?.shop_id}`;
-    // const shareText = `🏥 *${service.name}*\n${service.description}\n\nBook here: ${shopUrl}`;
+    const shopUrl = `https://medical-shop.pages.dev{service.id}?shop=${user?.shop_id}`;
+    const shareText = `🏥 *${service.name}*\n${service.description}\n\nBook here: ${shopUrl}`;
   
-    // window.open(`https://wa.me{encodeURIComponent(shareText)}`, '_blank');
-  // };
+    window.open(`https://wa.me{encodeURIComponent(shareText)}`, '_blank');
+  };
 
   useEffect(() => {
     fetchData();
