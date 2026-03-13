@@ -52,6 +52,8 @@ export const MedicalDashboard = () => {
     { label: 'VIEWS', value: stats.views, icon: BarChart3, color: 'text-purple-600' }
   ];
 
+  const shop_name = localStorage.getItem('shop');
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -292,6 +294,14 @@ export const MedicalDashboard = () => {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Page Title and Shop ID */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Good Doctor</h1>
+        <p className="text-sm text-gray-500 font-medium">
+          Shop Name: <span className="text-blue-600 font-bold">{shop_name}</span>
+        </p>
+      </div>
+
       {/* Header Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         {statsCards.map((card, i) => (
