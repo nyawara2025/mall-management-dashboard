@@ -26,7 +26,7 @@ export const MedicalDashboard = () => {
   const [interactions, setInteractions] = useState<Interaction[]>([]);
   const [stats, setStats] = useState({ total: 0, today: 0, waitTime: '0m', views: 0 });
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'appointments' | 'inquiries' | 'services'>('appointments');
+  const [activeTab, setActiveTab] = useState<'appointments' | 'inquiries' | 'services' | 'query'>('appointments');
   const [services, setServices] = useState<any[]>([]);
 
 
@@ -44,6 +44,11 @@ export const MedicalDashboard = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [replyMessage, setReplyMessage] = useState('');
+
+  // Add AI Query States
+  const [aiQuery, setAiQuery] = useState('');
+  const [chatHistory, setChatHistory] = useState<{role: 'user' | 'ai', message: string}[]>([]);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const statsCards = [
     { label: 'TOTAL PATIENTS', value: stats.total, icon: Users, color: 'text-blue-600' },
@@ -290,6 +295,39 @@ export const MedicalDashboard = () => {
     }
   };
 
+  const handleAiQuery = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiQuery.trim()) return;
+
+    const userMessage = aiQuery;
+    setChatHistory(prev => [...prev, { role: 'user', message: userMessage }]);
+    setAiQuery('');
+    setIsAiLoading(true);
+
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/query-clinic', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          query: userMessage,
+          shop_id: user?.shop_id,
+          shop_name: shop_name
+        })
+      });
+
+      const data = await response.json();
+      setChatHistory(prev => [...prev, { role: 'ai', message: data.output || data.message || "I couldn't process that." }]);
+    } catch (err) {
+      console.error("AI Error:", err);
+      setChatHistory(prev => [...prev, { role: 'ai', message: "Sorry, I'm having trouble connecting to the brain." }]);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
   if (loading) return <div className="p-8 text-center text-gray-500 font-bold">Initializing TeNEAR Medical Space...</div>;
 
   return (
@@ -335,6 +373,14 @@ export const MedicalDashboard = () => {
         >
           Services
         </button>
+
+        <button
+          onClick={() => setActiveTab('query')}
+          className={`flex items-center gap-2 px-6 py-2.5 rounded-lg text-sm font-bold transition-all ${activeTab === 'query' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:bg-gray-100'}`}
+        >
+          <MessageSquare className="w-4 h-4" /> AI QUERY
+        </button>
+
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -451,6 +497,49 @@ export const MedicalDashboard = () => {
             ))}
           </div>
         )}
+
+        {/* 4. AI QUERY */}
+          {activeTab === 'query' && (
+            <div className="bg-white rounded-xl shadow-sm border p-6 min-h-[400px] flex flex-col">
+              <div className="flex-1 overflow-y-auto mb-4 space-y-4 max-h-[500px]">
+                {chatHistory.length === 0 && (
+                  <div className="text-center text-gray-400 mt-10">
+                    <MessageSquare className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                    <p>Ask me anything about your clinic's data or medical services.</p>
+                  </div>
+                )}
+                {chatHistory.map((chat, i) => (
+                  <div key={i} className={`flex ${chat.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[80%] p-3 rounded-lg ${
+                      chat.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {chat.message}
+                    </div>
+                  </div>
+                ))}
+                {isAiLoading && <div className="text-sm text-gray-400 animate-pulse">AI is thinking...</div>}
+              </div>
+
+              <form onSubmit={handleAiQuery} className="flex gap-2 border-t pt-4">
+                <input
+                  type="text"
+                  value={aiQuery}
+                  onChange={(e) => setAiQuery(e.target.value)}
+                  placeholder="How many patients did we see today?"
+                  className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  type="submit"
+                  disabled={isAiLoading}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Send
+                </button>
+              </form>
+            </div>
+          )}
+
+
       </div> {/* Closes overflow-x-auto */}
     </div> {/* Closes bg-white rounded-xl... */}
 
