@@ -9,6 +9,7 @@ import {
   BarChart3,
   Share2
 } from 'lucide-react';
+import { CampaignLinkGenerator } from './CampaignLinkGenerator';
 
 interface PoliticalDashboardProps {
   onViewChange: (view: string) => void;
@@ -86,6 +87,17 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
                 </div>
               </button>
             ))}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <CampaignLinkGenerator shopId={(Users as any)?.shop_id} />
+  
+          <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+               <MapPin className="w-5 h-5 text-primary-600" /> Constituency Hotspots
+            </h3>
+            {/* Map code here */}
           </div>
         </div>
 
