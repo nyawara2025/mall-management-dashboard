@@ -16,6 +16,7 @@ import QrCheckinPage from './pages/QrCheckinPage';
 import QRSuccessPage from './pages/QRSuccessPage';
 import MultiMallQrCheckinPage from './pages/MultiMallQrCheckinPage';
 import ProductManager from './components/ProductManager';
+import { DiasporaManager } from './components/DiasporaManager';
 import QRGeneration from './components/QRGeneration';
 import Analytics from './components/Analytics';
 import VisitorEngagementManager from './components/VisitorEngagementManager';
@@ -240,6 +241,22 @@ function AppContent() {
               />
               <div className="pt-16">
                 <ManifestoManager />
+              </div>
+            </div>
+          )}
+
+          {currentView === 'diaspora-hub' && (
+            <div className="min-h-screen">
+              <Header 
+                onBack={() => setCurrentView('dashboard')} 
+                title="Diaspora Engagement Hub" 
+                user={user} 
+                onLogout={logout} 
+                showUserMenu={showUserMenu} 
+                setShowUserMenu={setShowUserMenu} 
+              />
+              <div className="pt-16">
+                <DiasporaManager shopId={(user as any)?.shop_id?.toString() || ""} />
               </div>
             </div>
           )}

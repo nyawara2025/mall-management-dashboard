@@ -16,11 +16,21 @@ export const HeatmapLayer = ({ points }: HeatmapLayerProps) => {
     // Create the heat layer
     // @ts-ignore - L.heatLayer might not be recognized by tsc without full types
     const heatLayer = (L as any).heatLayer(points, {
-      radius: 35,
+      radius: 25,
       blur: 15,
       maxZoom: 10,
       minOpacity: 0.5, // Ensure it's not transparent
-      zIndex: 1000     // Force it to the top
+      zIndex: 1000,     // Force it to the top
+    
+      // This gradient makes it look like a "hot" thermal map
+      gradient: {
+        0.4: 'blue',
+        0.6: 'cyan',
+        0.7: 'lime',
+        0.8: 'yellow',
+        1.0: 'red'
+      }
+
     }).addTo(map);
 
     // Cleanup: remove the layer when component unmounts

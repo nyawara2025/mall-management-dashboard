@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
+import { Globe } from 'lucide-react';
 import { HeatmapLayer } from './HeatmapLayer'; 
 import 'leaflet/dist/leaflet.css';
 import { 
@@ -34,6 +35,12 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
     { id: 'analytics', title: 'Voter Insights', icon: BarChart3, desc: 'Demographic breakdown' },
     { id: 'visitor-engagement', title: 'Town Hall Chats', icon: MessageSquare, desc: 'Respond to voters' },
     { id: 'qr-generation', title: 'Rally QR Codes', icon: Share2, desc: 'Check-in at events' },
+    { 
+      id: 'diaspora-hub', 
+      title: 'Diaspora Connect', 
+      icon: Globe, // Import Globe from lucide-react
+      desc: 'Fundraising & US Town Halls' 
+    },
   ];
 
   return (
@@ -151,8 +158,15 @@ export const ConstituencyHotspots = ({ shopId }: { shopId: string }) => {
   };
 
   const onEachConstituency = (feature: any, layer: any) => {
-    if (feature.properties && feature.properties.CONSTITUEN) {
-      layer.bindPopup(`Constituency: ${feature.properties.CONSTITUEN}`);
+    if (feature.properties && feature.properties.shapeName) {
+      layer.bindPopup(`<strong>Constituency:</strong> ${feature.properties.shapeName}`);
+    
+      // Optional: Add a tooltip so the name appears on hover without clicking
+      layer.bindTooltip(feature.properties.shapeName, {
+        permanent: false, 
+        direction: "center",
+        className: "constituency-tooltip"
+      });
     }
   };
 
@@ -161,7 +175,7 @@ export const ConstituencyHotspots = ({ shopId }: { shopId: string }) => {
   return (
     <div style={{ height: '500px', width: '100%' }}>
       <MapContainer 
-        center={[-1.286, 36.817]} 
+        center={[0.0236, 37.9062]} 
         zoom={6} 
         style={{ height: '100%', width: '100%' }}
       >
