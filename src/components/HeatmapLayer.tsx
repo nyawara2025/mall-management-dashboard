@@ -15,10 +15,12 @@ export const HeatmapLayer = ({ points }: HeatmapLayerProps) => {
 
     // Create the heat layer
     // @ts-ignore - L.heatLayer might not be recognized by tsc without full types
-    const heatLayer = L.heatLayer(points, {
-      radius: 25,
+    const heatLayer = (L as any).heatLayer(points, {
+      radius: 35,
       blur: 15,
-      maxZoom: 17,
+      maxZoom: 10,
+      minOpacity: 0.5, // Ensure it's not transparent
+      zIndex: 1000     // Force it to the top
     }).addTo(map);
 
     // Cleanup: remove the layer when component unmounts
