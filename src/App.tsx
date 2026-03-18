@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import 'leaflet/dist/leaflet.css';
 import { LogOut, User, ArrowLeft } from 'lucide-react';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';

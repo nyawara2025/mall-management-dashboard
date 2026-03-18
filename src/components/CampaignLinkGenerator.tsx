@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Share2, Copy, Check, ExternalLink, Globe, MessageSquare, Facebook, Twitter } from 'lucide-react';
+import { Share2, Copy, Check, ExternalLink, Globe, MessageSquare, Facebook, Twitter, Loader2 } from 'lucide-react';
 
 interface LinkGeneratorProps {
   shopId: string | number;
@@ -9,16 +9,74 @@ export function CampaignLinkGenerator({ shopId }: LinkGeneratorProps) {
   const [target, setTarget] = useState('manifesto');
   const [platform, setPlatform] = useState('whatsapp');
   const [copied, setCopied] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
-  // Replace with your actual Cloudflare Worker URL
-  const WORKER_BASE_URL = "https://campaign-tracker.tenear.com.workers.dev";
+  const WORKER_BASE_URL = "https://tenear.com"; 
+  // Explicitly define your n8n or Worker trigger endpoint
+  const WEBHOOK_URL = "https://n8n.tenear.com/webhook/political-campaign-interactions";
 
-  const generatedUrl = `${WORKER_BASE_URL}/?shop_id=${shopId}&target=${target}&platform=${platform}`;
+  const campaignId = `camp_${target}_${platform}_${Date.now().toString(36)}`;
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(generatedUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const generatedUrl = `${WORKER_BASE_URL}/?shop_id=${shopId}&business_category=political&target=${target}&platform=${platform}&campaign_id=${campaignId}`;
+
+  const triggerWebhook = async () => {
+    setIsSyncing(true);
+    try {
+      // This sends the interaction data to your n8n instance
+      await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: shopId,
+          category: 'political',
+          target: target,
+          platform: platform,
+          timestamp: new Date().toISOString(),
+          action: 'link_generated'
+        }),
+      });
+      console.log('✅ Webhook triggered successfully');
+    } catch (err) {
+      console.error('❌ Webhook trigger failed:', err);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleShareAction = async () => {
+    await triggerWebhook();
+    await copyToClipboard();
+  };
+
+  const copyToClipboard = async () => {
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(generatedUrl);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+        return;
+      } catch (err) {
+        console.error("Clipboard API failed", err);
+      }
+    }
+
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = generatedUrl;
+      textArea.style.position = "fixed"; 
+      textArea.style.left = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      if (successful) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+    } catch (err) {
+      console.error("Fallback copy failed", err);
+    }
   };
 
   const platforms = [
@@ -38,13 +96,13 @@ export function CampaignLinkGenerator({ shopId }: LinkGeneratorProps) {
     <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm space-y-6">
       <div>
         <h3 className="text-lg font-semibold flex items-center gap-2">
-          <Share2 className="w-5 h-5 text-primary-600" /> Share Your Campaign
+          <Share2 className={`w-5 h-5 ${isSyncing ? 'animate-spin text-blue-500' : 'text-primary-600'}`} /> 
+          Share Your Campaign
         </h3>
         <p className="text-sm text-gray-500">Generate tracking links to see which platform brings more votes.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 1. Select Destination */}
         <div>
           <label className="block text-xs font-medium text-gray-700 uppercase mb-2">Destination</label>
           <select 
@@ -56,7 +114,6 @@ export function CampaignLinkGenerator({ shopId }: LinkGeneratorProps) {
           </select>
         </div>
 
-        {/* 2. Select Platform */}
         <div>
           <label className="block text-xs font-medium text-gray-700 uppercase mb-2">Sharing Platform</label>
           <div className="flex gap-2">
@@ -74,7 +131,6 @@ export function CampaignLinkGenerator({ shopId }: LinkGeneratorProps) {
         </div>
       </div>
 
-      {/* 3. Generated URL Display */}
       <div className="bg-gray-900 rounded-lg p-4 relative group">
         <p className="text-xs text-gray-400 mb-1 font-mono uppercase">Tracking Link</p>
         <div className="flex items-center justify-between gap-4">
@@ -82,25 +138,28 @@ export function CampaignLinkGenerator({ shopId }: LinkGeneratorProps) {
             {generatedUrl}
           </code>
           <button 
-            onClick={copyToClipboard}
+            onClick={handleShareAction}
             className="text-white hover:text-primary-400 transition-colors"
           >
-            {copied ? <Check className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />}
+            {isSyncing ? <Loader2 className="w-5 h-5 animate-spin" /> : (copied ? <Check className="w-5 h-5 text-green-400" /> : <Copy className="w-5 h-5" />)}
           </button>
         </div>
       </div>
 
       <div className="flex gap-3">
         <button 
-          onClick={copyToClipboard}
-          className="flex-1 bg-primary-600 text-white py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors"
+          onClick={handleShareAction}
+          disabled={isSyncing}
+          className="flex-1 bg-primary-600 text-white py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors flex justify-center items-center gap-2"
         >
-          {copied ? 'Link Copied!' : 'Copy Link to Share'}
+          {isSyncing && <Loader2 className="w-4 h-4 animate-spin" />}
+          {copied ? 'Link Copied & Tracked!' : 'Copy Link to Share'}
         </button>
         <a 
           href={generatedUrl} 
           target="_blank" 
           rel="noreferrer"
+          onClick={triggerWebhook}
           className="p-2 border rounded-lg hover:bg-gray-50 text-gray-600"
         >
           <ExternalLink className="w-5 h-5" />

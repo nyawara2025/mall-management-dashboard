@@ -154,12 +154,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (result.success && result.token && result.user) {
         const rawUser = result.user as any;
         
-        // Robust normalization to capture 'medical' category
+        // Improved normalization to explicitly handle 'political', 'medical', and 'retail'
         const detectedCategory = 
           rawUser.category || 
           rawUser.business_category || 
-          (rawUser.user && rawUser.user.category) || 
-          (rawUser.user && rawUser.user.business_category) || 
+          rawUser.user?.category || 
+          rawUser.user?.business_category || 
           'retail';
 
         const normalizedUser: User = {
@@ -167,10 +167,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
           category: detectedCategory
         };
 
-        // Debug log to verify normalization
-        console.log('🩺 TeNEAR Medical Mapping:', {
-          received: rawUser.business_category || rawUser.category,
-          mapped: normalizedUser.category
+        // Category-agnostic debug log
+        console.log(`🚀 TeNEAR ${detectedCategory.toUpperCase()} Logic Initialized:`, {
+          received_raw: rawUser.business_category || rawUser.category,
+          mapped_to: normalizedUser.category,
+          shop_id: normalizedUser.shop_id
         });
 
         localStorage.setItem('geofence_auth_token', result.token);
