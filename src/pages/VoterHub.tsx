@@ -11,7 +11,8 @@ export default function VoterHub({ shopId, candidateName = "Campaign 2027" }: Vo
   
   const trackVoterAction = async (action: string, materialId: string) => {
     try {
-      await fetch('https://n8n.tenear.com', {
+
+      await fetch('https://n8n.tenear.com/webhook/get-political-campaign-material', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

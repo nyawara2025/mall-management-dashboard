@@ -11,7 +11,7 @@ export function CampaignLinkGenerator({ shopId }: LinkGeneratorProps) {
   const [copied, setCopied] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const WORKER_BASE_URL = "https://tenear.com"; 
+  const WORKER_BASE_URL = "https://tenearpolitical.pages.dev"; 
   const WEBHOOK_URL = "https://n8n.tenear.com/webhook/political-campaign-interactions";
 
   const targets = [
