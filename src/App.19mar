@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import 'leaflet/dist/leaflet.css';
-import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom';
-import { CampaignHub } from './pages/CampaignHub'; // Your existing page
-import VoterHub from './pages/VoterHub';      // The component we built
 import { LogOut, User, ArrowLeft } from 'lucide-react';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -62,16 +59,6 @@ function AppContent() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [searchParams] = useSearchParams(); // Add this hook
-
-  const bizCategory = searchParams.get('business_category');
-  const shopId = searchParams.get('shop_id');
-
-  // 2. VISITOR REDIRECT LOGIC (Before Auth/Protected Routes)
-  // If a voter arrives with the political category, show them the campaign hub
-  if (bizCategory?.startsWith('politic')) {
-    return <VoterHub shopId={shopId ?? ""} />; 
-  }
 
   // Monitor routing and login status
   useEffect(() => {
@@ -289,10 +276,8 @@ function AppContent() {
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
-    </BrowserRouter>
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
