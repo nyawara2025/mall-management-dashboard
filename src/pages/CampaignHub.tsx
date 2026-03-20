@@ -1,64 +1,81 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, MessageSquare, Calendar, Award, Share2, MessageCircle, HelpCircle } from 'lucide-react';
+import { BookOpen, MessageSquare, Calendar, Award, Share2, MessageCircle } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
 
 export function CampaignHub() {
   const queryParams = new URLSearchParams(window.location.search);
   const shopId = queryParams.get('shop_id');
+  const target = queryParams.get('target') || 'manifesto';
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [candidateData, setCandidateData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. Fetch Candidate Metadata (Photo & Name)
+  // 1. Initial View Tracker & Metadata Loader
   useEffect(() => {
-    async function loadMetadata() {
+    async function initHub() {
+      if (!shopId) return;
+
       try {
+        // A. Track Initial View (Mimicking the static HTML behavior)
+        fetch("https://n8n.tenear.com/webhook/political-campaign-interactions", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            action: 'track_campaign_view', 
+            shop_id: shopId, 
+            target: target,
+            business_category: 'political' 
+          })
+        });
+
+        // B. Fetch Candidate Metadata
         const response = await fetch("https://n8n.tenear.com/webhook/get-political-campaign-material", {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'get_metadata', shop_id: shopId, target: 'manifesto' })
+          body: JSON.stringify({ action: 'get_metadata', shop_id: shopId, target: target })
         });
+        
         const result = await response.json();
-        // Handle n8n array response safely
         const data = Array.isArray(result) ? result[0] : result;
         setCandidateData(data);
       } catch (e) {
-        console.error("Failed to load candidate metadata", e);
+        console.error("Hub initialization failed", e);
       } finally {
         setIsLoading(false);
       }
     }
-    if (shopId) loadMetadata();
-  }, [shopId]);
 
-  // 2. Define Campaign Sections with proper IDs for TypeScript
+    initHub();
+  }, [shopId, target]);
+
+  // 2. Define Campaign Sections
   const sections = [
     {
       id: 'manifesto',
       title: candidateData?.pillar_title || "Official Manifesto",
-      desc: candidateData?.policy_details,
+      desc: candidateData?.policy_details || "Accessing campaign vision...",
       icon: BookOpen,
       color: "bg-blue-100 text-blue-600"
     },
     {
       id: 'feedback',
       title: "Critique / Feedback",
-      desc: "Share your thoughts directly",
+      desc: "Share your thoughts directly with the candidate's team.",
       icon: MessageSquare,
       color: "bg-red-100 text-red-600"
     },
     {
       id: 'townhall',
       title: "Town Hall",
-      desc: "Join our next virtual meeting",
+      desc: "Join our next virtual meeting and view the schedule.",
       icon: Calendar,
       color: "bg-green-100 text-green-600"
     },
     {
       id: 'volunteer',
       title: "Volunteer",
-      desc: "Join the movement today",
+      desc: "Join the movement and support the 2027 vision.",
       icon: Award,
       color: "bg-orange-100 text-orange-600"
     }
@@ -66,7 +83,6 @@ export function CampaignHub() {
 
   // 3. Action Handlers
   const handleAction = async (type: string, sectionId: string) => {
-    // Log to n8n for analytics
     try {
       await fetch('https://n8n.tenear.com/webhook/political-campaign-interactions', {
         method: 'POST',
@@ -82,7 +98,6 @@ export function CampaignHub() {
       console.error("Analytics log failed", e);
     }
 
-    // Trigger the Modal for 'query' or the 'feedback' section
     if (type === 'query' || sectionId === 'feedback') {
       setIsModalOpen(true);
     }
@@ -138,11 +153,12 @@ export function CampaignHub() {
               </div>
               <div className="flex-1">
                 <h3 className="font-bold text-gray-900 text-lg leading-none">{section.title}</h3>
-                <p className="text-sm text-gray-500 mt-2 leading-tight">{section.desc}</p>
+                <p className="text-sm text-gray-500 mt-2 leading-tight whitespace-pre-line">
+                    {section.desc}
+                </p>
               </div>
             </div>
             
-            {/* Sub-Actions Footer */}
             <div className="flex border-t border-gray-50 bg-gray-50/50">
               <button 
                 onClick={() => handleAction('query', section.id)}
@@ -169,12 +185,11 @@ export function CampaignHub() {
         ))}
       </div>
 
-      {/* The Feedback Modal */}
       <FeedbackModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         onSubmit={handleFeedbackSubmit}
-        candidateName={candidateData?.name || "Hon. Dr. James Wambura Nyikal"}
+        candidateName={candidateData?.name || "the Candidate"}
       />
 
       <div className="mt-8 mb-4 text-center">
