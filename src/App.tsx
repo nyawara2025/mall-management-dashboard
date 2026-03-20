@@ -70,7 +70,7 @@ function AppContent() {
   // 2. VISITOR REDIRECT LOGIC (Before Auth/Protected Routes)
   // If a voter arrives with the political category, show them the campaign hub
   if (bizCategory?.startsWith('politic')) {
-    return <VoterHub shopId={shopId ?? ""} />; 
+    return <CampaignHub />; 
   }
 
   // Monitor routing and login status
