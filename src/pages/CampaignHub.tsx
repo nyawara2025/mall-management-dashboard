@@ -1,23 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, MessageSquare, Calendar, Award, Share2, MessageCircle } from 'lucide-react';
+import { BookOpen, MessageSquare, Calendar, Award, Share2 } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
 
 export function CampaignHub() {
-  const queryParams = new URLSearchParams(window.location.search);
-  const shopId = queryParams.get('shop_id');
-  const target = queryParams.get('target') || 'manifesto';
+  // Use a state-based initializer for searchParams to ensure stability
+  const [searchParams] = useState(() => new URLSearchParams(window.location.search));
+  const shopId = searchParams.get('shop_id');
+  const target = searchParams.get('target') || 'manifesto';
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [candidateData, setCandidateData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. Initial View Tracker & Metadata Loader
+  // 1. Unified Hub Initialization
   useEffect(() => {
     async function initHub() {
-      if (!shopId) return;
+      console.log("--- Campaign Hub Mounting ---");
+      console.log("Detected ShopID:", shopId);
+      console.log("Detected Target:", target);
+
+      if (!shopId) {
+        console.error("Initialization aborted: No shop_id found in URL.");
+        setIsLoading(false);
+        return;
+      }
 
       try {
-        // A. Track Initial View (Mimicking the static HTML behavior)
+        // A. Track Initial View
+        console.log("Sending track_campaign_view to n8n...");
         fetch("https://n8n.tenear.com/webhook/political-campaign-interactions", {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -27,9 +37,10 @@ export function CampaignHub() {
             target: target,
             business_category: 'political' 
           })
-        });
+        }).then(() => console.log("n8n: Tracking webhook fired successfully."));
 
         // B. Fetch Candidate Metadata
+        console.log("Fetching candidate metadata from n8n...");
         const response = await fetch("https://n8n.tenear.com/webhook/get-political-campaign-material", {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -37,10 +48,19 @@ export function CampaignHub() {
         });
         
         const result = await response.json();
+        console.log("n8n metadata raw result:", result);
+
+        // n8n returns an array [{...}], so we extract the first object
         const data = Array.isArray(result) ? result[0] : result;
-        setCandidateData(data);
+        
+        if (data) {
+          console.log("Success: Candidate data mapped for", data.name);
+          setCandidateData(data);
+        } else {
+          console.warn("Metadata request succeeded but returned no data.");
+        }
       } catch (e) {
-        console.error("Hub initialization failed", e);
+        console.error("Hub initialization failed:", e);
       } finally {
         setIsLoading(false);
       }
@@ -52,37 +72,38 @@ export function CampaignHub() {
   // 2. Define Campaign Sections
   const sections = [
     {
-      id: 'manifesto',
-      title: candidateData?.pillar_title || "Official Manifesto",
-      desc: candidateData?.policy_details || "Accessing campaign vision...",
-      icon: BookOpen,
-      color: "bg-blue-100 text-blue-600"
+    id: 'manifesto',
+    title: candidateData?.pillar_title || "Official Manifesto",
+    desc: candidateData?.policy_details || "Accessing campaign vision...",
+    icon: BookOpen,
+    color: "bg-blue-100 text-blue-600"
     },
     {
-      id: 'feedback',
-      title: "Critique / Feedback",
-      desc: "Share your thoughts directly with the candidate's team.",
-      icon: MessageSquare,
-      color: "bg-red-100 text-red-600"
+    id: 'feedback',
+    title: "Critique / Feedback",
+    desc: "Share your thoughts directly with the candidate's team.",
+    icon: MessageSquare,
+    color: "bg-red-100 text-red-600"
     },
     {
-      id: 'townhall',
-      title: "Town Hall",
-      desc: "Join our next virtual meeting and view the schedule.",
-      icon: Calendar,
-      color: "bg-green-100 text-green-600"
+    id: 'townhall',
+    title: "Town Hall",
+    desc: "Join our next virtual meeting and view the schedule.",
+    icon: Calendar,
+    color: "bg-green-100 text-green-600"
     },
     {
-      id: 'volunteer',
-      title: "Volunteer",
-      desc: "Join the movement and support the 2027 vision.",
-      icon: Award,
-      color: "bg-orange-100 text-orange-600"
+    id: 'volunteer',
+    title: "Volunteer",
+    desc: "Join the movement and support the 2027 vision.",
+    icon: Award,
+    color: "bg-orange-100 text-orange-600"
     }
   ];
 
   // 3. Action Handlers
   const handleAction = async (type: string, sectionId: string) => {
+    console.log(`Action triggered: ${type} on section ${sectionId}`);
     try {
       await fetch('https://n8n.tenear.com/webhook/political-campaign-interactions', {
         method: 'POST',
@@ -139,7 +160,7 @@ export function CampaignHub() {
         <h1 className="text-3xl font-black text-gray-900 mt-4 tracking-tight">Campaign 2027</h1>
         <p className="text-gray-500 font-medium">Official Campaign Hub</p>
         {candidateData?.name && (
-          <p className="text-blue-600 font-bold text-sm mt-1 uppercase tracking-widest">{candidateData.name}</p>
+          <p className="text-blue-600 font-bold text-sm mt-1 uppercase tracking-widest leading-none mt-2">{candidateData.name}</p>
         )}
       </div>
 
