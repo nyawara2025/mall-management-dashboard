@@ -70,36 +70,61 @@ export function CampaignHub() {
   }, [shopId, target]);
 
   // 2. Define Campaign Sections
+  // 1. Updated Sections Array
   const sections = [
     {
     id: 'manifesto',
     title: candidateData?.pillar_title || "Official Manifesto",
-    desc: candidateData?.policy_details || "Accessing campaign vision...",
+    desc: candidateData?.policy_details || "Loading vision...",
     icon: BookOpen,
-    color: "bg-blue-100 text-blue-600"
+    color: "bg-blue-100 text-blue-600",
+    actions: [
+    { label: 'Read', type: 'link', url: candidateData?.manifesto_pdf_url || '#' },
+    { label: 'Query', type: 'ai' },
+    { label: 'Share', type: 'share' }
+    ]
     },
     {
-    id: 'feedback',
+    id: 'critique',
     title: "Critique / Feedback",
-    desc: "Share your thoughts directly with the candidate's team.",
-    icon: MessageSquare,
-    color: "bg-red-100 text-red-600"
-    },
-    {
-    id: 'townhall',
-    title: "Town Hall",
-    desc: "Join our next virtual meeting and view the schedule.",
-    icon: Calendar,
-    color: "bg-green-100 text-green-600"
-    },
-    {
-    id: 'volunteer',
-    title: "Volunteer",
-    desc: "Join the movement and support the 2027 vision.",
-    icon: Award,
-    color: "bg-orange-100 text-orange-600"
+    desc: "Share your thoughts directly with the aspirant's team.",
+    icon: MessageCircle,
+    color: "bg-red-100 text-red-600",
+    actions: [
+    { label: 'Provide Feedback', type: 'critique' }
+    ]
     }
   ];
+
+
+
+  // 2. Specialized Action Handler
+  const handleAction = async (actionType: string, sectionId: string, url?: string) => {
+    // Analytics Log for Aspirant's Dashboard/Heatmap
+    await fetch('https://n8n.tenear.com/webhook/political-campaign-interactions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: actionType,
+        target: sectionId,
+        shop_id: shopId,
+        business_category: 'political',
+        location_data: true // Ensure your React code captures GPS if available
+      })
+    });
+
+    if (actionType === 'link') {
+      window.open(url, '_blank');
+    } else if (actionType === 'ai' || actionType === 'feedback') {
+      // Both open the modal, but handleFeedbackSubmit will branch based on state
+      setModalType(actionType); // You'll need: const [modalType, setModalType] = useState('ai');
+      setIsModalOpen(true);
+    } else if (actionType === 'share') {
+      if (navigator.share) {
+        navigator.share({ title: 'Manifesto', url: window.location.href });
+      }
+    }
+  };
 
   // 3. Action Handlers
   const handleAction = async (type: string, sectionId: string) => {
@@ -124,21 +149,26 @@ export function CampaignHub() {
     }
   };
 
-  const handleFeedbackSubmit = async (feedbackText: string) => {
+  const handleFeedbackSubmit = async (text: string) => {
+    const endpoint = modalType === 'ai' 
+      ? 'https://n8n.tenear.com/webhook/political-AI' 
+      : 'https://n8n.tenear.com';
+
     try {
-      await fetch('https://n8n.tenear.com/webhook/get-political-campaign-material', {
+      await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'submit_feedback',
+          action: modalType === 'ai' ? 'query_rag' : 'submit_critique',
           shop_id: shopId,
-          feedback: feedbackText,
+          content: text,
+          voter_phone: "captured_from_auth_or_input", // Evolution API needs a target
           business_category: 'political'
         })
       });
-      alert("Feedback received! Thank you for engaging.");
-    } catch (error) {
-      console.error("Feedback failed", error);
+      alert(modalType === 'ai' ? "AI is processing... check your WhatsApp for the response!" : "Team notified!");
+    } catch (e) {
+      console.error("Submission failed", e);
     }
   };
 
