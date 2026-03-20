@@ -36,8 +36,8 @@ export function CampaignHub() {
   const sections = [
     {
       id: 'manifesto',
-      title: "Manifesto",
-      desc: "Read our vision for the future",
+      title: candidateData?.pillar_title || "Official Manifesto",
+      desc: candidateData?.policy_details,
       icon: BookOpen,
       color: "bg-blue-100 text-blue-600"
     },
