@@ -99,7 +99,7 @@ export function CampaignHub() {
       const shareText = `🗳️ Check out the official Campaign Hub for ${candidateData?.name || 'our candidate'}!\n\n📜 ${candidateData?.pillar_title || 'Manifesto'}\n🔗 ${window.location.href}`;
       
       // Force WhatsApp to open
-      const waUrl = `https://wa.me{encodeURIComponent(shareText)}`;
+      const waUrl = `https://wa.me/?text=$x{encodeURIComponent(shareText)}`;
       window.open(waUrl, '_blank');
       
     }
