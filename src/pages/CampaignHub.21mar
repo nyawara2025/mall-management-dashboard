@@ -72,59 +72,54 @@ export function CampaignHub() {
   ];
 
   // 3. Consolidated Action Handler
-  // Updated handleAction to use 'fetch_manifesto'
   const handleAction = async (actionType: string, sectionId: string, url?: string) => {
-    try {
-      await fetch('https://n8n.tenear.com/webhook/get-political-campaign-material', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          // Change 'link' type to 'fetch_manifesto' for the Read button
-          action: actionType === 'link' ? 'fetch_manifesto' : actionType,
-          target: sectionId,
-          shop_id: shopId,
-          business_category: 'political'
-        })
-      });
-    } catch (e) {
-      console.error("Interaction log failed", e);
-    }
+    // Log interaction for Analytics Dashboard
+    fetch('https://n8n.tenear.com/webhook/political-campaign-interactions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: actionType,
+        target: sectionId,
+        shop_id: shopId,
+        business_category: 'political'
+      })
+    });
 
     if (actionType === 'link' && url) {
       window.open(url, '_blank');
     } else if (actionType === 'ai' || actionType === 'critique') {
       setModalMode(actionType === 'ai' ? 'ai' : 'critique');
       setIsModalOpen(true);
+    } else if (actionType === 'share') {
+      if (navigator.share) {
+        navigator.share({ title: 'Campaign Hub', url: window.location.href });
+      } else {
+        await navigator.clipboard.writeText(window.location.href);
+        alert("Link copied to clipboard!");
+      }
     }
-
-
-
   };
 
-  // 2. Updated handleFeedbackSubmit to use 'critique' action
   const handleFeedbackSubmit = async (text: string, phone: string) => {
-    // Determine the correct endpoint and action string
-    const isAI = modalMode === 'ai';
-    const endpoint = isAI 
+    const endpoint = modalMode === 'ai' 
       ? "https://n8n.tenear.com/webhook/political-AI" 
-      : "https://n8n.tenear.com/webhook/get-political-campaign-material";
+      : "https://n8n.tenear.com";
 
     try {
       await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // Ensure the action is 'critique' for feedback submissions
-          action: isAI ? 'query_rag' : 'critique', 
+          action: modalMode === 'ai' ? 'query_rag' : 'submit_critique',
           shop_id: shopId,
           content: text,
           voter_phone: phone,
           business_category: 'political'
         })
       });
-      alert(isAI ? "AI is processing! Check WhatsApp soon." : "Your feedback has been sent to the team!");
+      alert(modalMode === 'ai' ? "AI is processing! Check WhatsApp soon." : "Team notified! Thank you.");
     } catch (e) {
-      console.error("Submission failed", e);
+      console.error("Submit failed", e);
     }
   };
 
