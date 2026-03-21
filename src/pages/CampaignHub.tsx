@@ -64,6 +64,7 @@ export function CampaignHub() {
       window.open(url, '_blank');
     } else if (actionType === 'ai' || actionType === 'critique') {
       setModalMode(actionType === 'ai' ? 'ai' : 'critique');
+      setAiResponse(null); // Reset response when opening
       setIsModalOpen(true);
     } else if (actionType === 'share') {
       const shareText = `🗳️ Check out the official Campaign Hub for ${candidateData?.name || 'our candidate'}!\n\n📜 ${candidateData?.pillar_title || 'Manifesto'}\n🔗 ${window.location.href}`;
@@ -94,22 +95,17 @@ export function CampaignHub() {
 
       if (isAI && response.ok) {
         const data = await response.json();
-
-
-        // FIX: Check if data is an array or an object
+        // Handle n8n returning an array or single object
         const result = Array.isArray(data) ? data[0] : data;
       
         if (result && result.output) {
           setAiResponse(result.output);
-          // Pro-Tip: You might want to show the response in the modal 
-          // rather than an alert now that you have the data!
-         
+          // Note: We do NOT call setIsModalOpen(false) here so the user can read the response
         } else {
-
           alert("AI responded, but no content was found.");
           setIsModalOpen(false);
         }
-      } else {
+      } else if (!isAI) {
         alert("Feedback sent successfully!");
         setIsModalOpen(false);
       }
@@ -119,7 +115,6 @@ export function CampaignHub() {
     }
   };
 
-  // Explicitly defining sections as a simple array variable
   const manifestoSection = {
     id: 'manifesto',
     title: candidateData?.pillar_title || "Official Manifesto",
@@ -148,6 +143,7 @@ export function CampaignHub() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4">
+      {/* Header Profile Section */}
       <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center mb-6 mt-8">
         <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 mx-auto border-4 border-white shadow-md">
           {candidateData?.photo_url ? (
@@ -162,6 +158,7 @@ export function CampaignHub() {
         )}
       </div>
 
+      {/* Content Cards */}
       <div className="w-full max-w-md space-y-4">
         {sections.map((section) => (
           <div key={section.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -198,6 +195,7 @@ export function CampaignHub() {
         onSubmit={handleFeedbackSubmit}
         candidateName={candidateData?.name || "the Candidate"}
         mode={modalMode}
+        aiResponse={aiResponse}
       />
 
       <div className="mt-8 mb-4 text-center">
