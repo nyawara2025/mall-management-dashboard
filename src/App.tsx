@@ -144,7 +144,7 @@ function AppContent() {
                 <div className="min-h-screen">
                   <Header 
                     onBack={() => setCurrentView('dashboard')} 
-                    title="TeNEAR Political Campaign Portal" 
+                    title="WAJIBIKA!" 
                     user={user} 
                     onLogout={logout} 
                     showUserMenu={showUserMenu} 
