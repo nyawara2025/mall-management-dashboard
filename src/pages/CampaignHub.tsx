@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, MessageSquare, Calendar, Award, Share2, MessageCircle, HelpCircle } from 'lucide-react';
+import { BookOpen, MessageCircle } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
 
 export function CampaignHub() {
@@ -11,13 +11,12 @@ export function CampaignHub() {
   const [modalMode, setModalMode] = useState<'ai' | 'critique'>('ai');
   const [candidateData, setCandidateData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [aiResponse, setAiResponse] = useState<string | null>(null);
 
-  // 1. Initialize Hub & Metadata
   useEffect(() => {
     async function initHub() {
       if (!shopId) return;
       try {
-        // Track Initial View for Dashboard Heatmap
         fetch("https://n8n.tenear.com/webhook/political-campaign-interactions", {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -45,41 +44,12 @@ export function CampaignHub() {
     initHub();
   }, [shopId, target]);
 
-  // 2. Define Sections (Read, Query, Share)
-  const sections = [
-  {
-  id: 'manifesto',
-  title: candidateData?.pillar_title || "Official Manifesto",
-  desc: candidateData?.policy_details || "Accessing vision...",
-  icon: BookOpen,
-  color: "bg-blue-100 text-blue-600",
-  actions: [
-  { label: 'Read', type: 'link', url: candidateData?.manifesto_pdf_url || '#' },
-  { label: 'Query', type: 'ai' },
-  { label: 'Share', type: 'share' }
-  ]
-  },
-  { 
-  id: 'critique',
-  title: "Critique / Feedback",
-  desc: "Share your thoughts directly with the aspirant's team.",
-  icon: MessageCircle,
-  color: "bg-red-100 text-red-600",
-  actions: [
-  { label: 'Feedback', type: 'critique' }
-  ]
-  } 
-  ];
-
-  // 3. Consolidated Action Handler
-  // Updated handleAction to use 'fetch_manifesto'
   const handleAction = async (actionType: string, sectionId: string, url?: string) => {
     try {
       await fetch('https://n8n.tenear.com/webhook/get-political-campaign-material', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // Change 'link' type to 'fetch_manifesto' for the Read button
           action: actionType === 'link' ? 'fetch_manifesto' : actionType,
           target: sectionId,
           shop_id: shopId,
@@ -97,44 +67,72 @@ export function CampaignHub() {
       setIsModalOpen(true);
     } else if (actionType === 'share') {
       const shareText = `🗳️ Check out the official Campaign Hub for ${candidateData?.name || 'our candidate'}!\n\n📜 ${candidateData?.pillar_title || 'Manifesto'}\n🔗 ${window.location.href}`;
-      
-      // Force WhatsApp to open
-      const waUrl = `https://wa.me/?text=$x{encodeURIComponent(shareText)}`;
+      const waUrl = `https://wa.me{encodeURIComponent(shareText)}`;
       window.open(waUrl, '_blank');
-      
     }
   };
 
-  // 2. Updated handleFeedbackSubmit to use 'critique' action
   const handleFeedbackSubmit = async (text: string, phone: string) => {
-    // Determine the correct endpoint and action string
     const isAI = modalMode === 'ai';
     const endpoint = isAI 
       ? "https://n8n.tenear.com/webhook/political-AI" 
       : "https://n8n.tenear.com/webhook/get-political-campaign-material";
 
     try {
-      await fetch(endpoint, {
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          // Ensure the action is 'critique' for feedback submissions
           action: isAI ? 'query_rag' : 'critique', 
           shop_id: shopId,
           content: text,
           voter_phone: phone,
-          business_category: 'political'
+          business_category: 'political',
+          candidate_name: candidateData?.name
         })
       });
-      alert(isAI ? "AI is processing! Check WhatsApp soon." : "Your feedback has been sent to the team!");
+
+      if (isAI && response.ok) {
+        const data = await response.json();
+        if (data.output) setAiResponse(data.output);
+        alert("AI is processing! Check your WhatsApp for the full response soon.");
+      } else if (response.ok) {
+        alert("Your feedback has been sent to the team!");
+      }
     } catch (e) {
       console.error("Submission failed", e);
     }
   };
 
+  // Explicitly defining sections as a simple array variable
+  const manifestoSection = {
+    id: 'manifesto',
+    title: candidateData?.pillar_title || "Official Manifesto",
+    desc: candidateData?.policy_details || "Accessing vision...",
+    icon: BookOpen,
+    color: "bg-blue-100 text-blue-600",
+    actions: [
+      { label: 'Read', type: 'link', url: candidateData?.manifesto_pdf_url || '#' },
+      { label: 'Query', type: 'ai' },
+      { label: 'Share', type: 'share' }
+    ]
+  };
+
+  const critiqueSection = {
+    id: 'critique',
+    title: "Critique / Feedback",
+    desc: "Share your thoughts directly with the aspirant's team.",
+    icon: MessageCircle,
+    color: "bg-red-100 text-red-600",
+    actions: [
+      { label: 'Feedback', type: 'critique' }
+    ]
+  };
+
+  const sections = [manifestoSection, critiqueSection];
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center p-4">
-      {/* Profile Header */}
       <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-sm border border-gray-100 text-center mb-6 mt-8">
         <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 mx-auto border-4 border-white shadow-md">
           {candidateData?.photo_url ? (
@@ -149,7 +147,6 @@ export function CampaignHub() {
         )}
       </div>
 
-      {/* Dynamic Action Cards */}
       <div className="w-full max-w-md space-y-4">
         {sections.map((section) => (
           <div key={section.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -165,9 +162,9 @@ export function CampaignHub() {
             
             <div className="flex border-t border-gray-50 bg-gray-50/50">
               {section.actions.map((btn, bIdx) => (
-                <React.Fragment key={bIdx}>
+                <React.Fragment key={`${section.id}-btn-${bIdx}`}>
                   <button 
-                    onClick={() => handleAction(btn.type, section.id, btn.url)}
+                    onClick={() => handleAction(btn.type, section.id, (btn as any).url)}
                     className="flex-1 py-3 text-sm font-bold text-gray-700 hover:bg-gray-100 transition"
                   >
                     {btn.label}
@@ -182,7 +179,7 @@ export function CampaignHub() {
 
       <FeedbackModal 
         isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
+        onClose={() => { setIsModalOpen(false); setAiResponse(null); }} 
         onSubmit={handleFeedbackSubmit}
         candidateName={candidateData?.name || "the Candidate"}
         mode={modalMode}
