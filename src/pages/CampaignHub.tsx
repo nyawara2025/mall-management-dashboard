@@ -94,8 +94,20 @@ export function CampaignHub() {
 
       if (isAI && response.ok) {
         const data = await response.json();
-        if (data.output) setAiResponse(data.output);
-        alert("AI is processing! Check your WhatsApp for the full response soon.");
+
+
+        // FIX: Check if data is an array or an object
+        const result = Array.isArray(data) ? data[0] : data;
+      
+        if (result && result.output) {
+          setAiResponse(result.output);
+          // Pro-Tip: You might want to show the response in the modal 
+          // rather than an alert now that you have the data!
+          alert("Response received! View the details on your screen or WhatsApp.");
+        } else {
+
+          alert("AI is processing! Check your WhatsApp for the full response soon.");
+        }
       } else if (response.ok) {
         alert("Your feedback has been sent to the team!");
       }
