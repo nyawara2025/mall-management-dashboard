@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Save, Loader2, BookOpen, Upload, CheckCircle, FileText } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
 
 export default function ManifestoManager() {
   const { user } = useAuth();
@@ -25,42 +24,26 @@ export default function ManifestoManager() {
     setLoading(true);
     setStatus('idle');
 
+    // 1. Create FormData to bundle text and files
+    const formData = new FormData();
+    formData.append('shop_id', (user as any)?.shop_id || "");
+    formData.append('category', 'political');
+    formData.append('pillar_title', pillar);
+    formData.append('policy_details', content);
+    formData.append('timestamp', new Date().toISOString());
+    
+    if (selectedFile) {
+      setStatus('uploading');
+      // Append the actual PDF file
+      formData.append('manifesto_pdf', selectedFile);
+    }
+
     try {
-      let finalPdfUrl = '';
-      
-      // 1. Handle PDF Upload to Supabase Storage if a file is selected
-      if (selectedFile) {
-        setStatus('uploading');
-        const fileExt = selectedFile.name.split('.').pop();
-        const fileName = `manifesto_${(user as any)?.shop_id}_${Date.now()}.${fileExt}`;
-        const filePath = `manifestos/${fileName}`;
-
-        // Using (supabase as any) to bypass the TypeScript 'storage' property error
-        const { error: uploadError } = await (supabase as any).storage
-          .from('product_images')
-          .upload(filePath, selectedFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data } = (supabase as any).storage
-          .from('product_images')
-          .getPublicUrl(filePath);
-          
-        finalPdfUrl = data.publicUrl;
-      }
-
-      // 2. Submit all data to n8n backend
+      // 2. Submit to n8n (Production URL recommended)
       const response = await fetch('https://n8n.tenear.com/webhook/manage-manifesto', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          shop_id: (user as any)?.shop_id,
-          category: 'political',
-          pillar_title: pillar,
-          policy_details: content,
-          manifesto_pdf_url: finalPdfUrl,
-          timestamp: new Date().toISOString()
-        }),
+        // IMPORTANT: Do NOT set 'Content-Type' header when sending FormData
+        body: formData,
       });
 
       if (response.ok) {
@@ -70,10 +53,11 @@ export default function ManifestoManager() {
         setSelectedFile(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
       } else {
+        console.error("Server responded with error status:", response.status);
         setStatus('error');
       }
     } catch (err) {
-      console.error("Submission error:", err);
+      console.error("Submission failed:", err);
       setStatus('error');
     } finally {
       setLoading(false);
@@ -164,4 +148,3 @@ export default function ManifestoManager() {
     </div>
   );
 }
-
