@@ -95,10 +95,14 @@ export function CampaignHub() {
     } else if (actionType === 'ai' || actionType === 'critique') {
       setModalMode(actionType === 'ai' ? 'ai' : 'critique');
       setIsModalOpen(true);
+    } else if (actionType === 'share') {
+      const shareText = `🗳️ Check out the official Campaign Hub for ${candidateData?.name || 'our candidate'}!\n\n📜 ${candidateData?.pillar_title || 'Manifesto'}\n🔗 ${window.location.href}`;
+      
+      // Force WhatsApp to open
+      const waUrl = `https://wa.me{encodeURIComponent(shareText)}`;
+      window.open(waUrl, '_blank');
+      
     }
-
-
-
   };
 
   // 2. Updated handleFeedbackSubmit to use 'critique' action
