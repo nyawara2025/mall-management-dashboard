@@ -103,16 +103,19 @@ export function CampaignHub() {
           setAiResponse(result.output);
           // Pro-Tip: You might want to show the response in the modal 
           // rather than an alert now that you have the data!
-          alert("Response received! View the details on your screen or WhatsApp.");
+         
         } else {
 
-          alert("AI is processing! Check your WhatsApp for the full response soon.");
+          alert("AI responded, but no content was found.");
+          setIsModalOpen(false);
         }
-      } else if (response.ok) {
-        alert("Your feedback has been sent to the team!");
+      } else {
+        alert("Feedback sent successfully!");
+        setIsModalOpen(false);
       }
     } catch (e) {
       console.error("Submission failed", e);
+      setIsModalOpen(false);
     }
   };
 
