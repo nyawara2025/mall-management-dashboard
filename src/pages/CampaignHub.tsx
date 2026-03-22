@@ -33,8 +33,18 @@ export function CampaignHub() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'get_metadata', shop_id: shopId, target: target })
         });
+        
+        if (!response.ok) throw new Error("Network response was not ok");
+        
         const result = await response.json();
-        setCandidateData(Array.isArray(result) ? result[0] : result);
+        
+        // n8n often sends an array [ {...} ]. This ensures we get the object.
+        const actualData = Array.isArray(result) ? result[0] : result;
+        
+        if (actualData) {
+          setCandidateData(actualData);
+        }
+
       } catch (e) {
         console.error("Init failed", e);
       } finally {
