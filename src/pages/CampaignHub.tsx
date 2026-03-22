@@ -82,8 +82,7 @@ export function CampaignHub() {
       setIsModalOpen(true);
     } else if (actionType === 'share') {
       const shareText = `🗳️ Check out the official Campaign Hub for ${candidateData?.name || 'our candidate'}!\n\n📜 ${candidateData?.pillar_title || 'Manifesto'}\n🔗 ${window.location.href}`;
-      const waUrl = `https://wa.me{encodeURIComponent(shareText)}`;
-      window.open(waUrl, '_blank');
+      window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
     }
   };
 
