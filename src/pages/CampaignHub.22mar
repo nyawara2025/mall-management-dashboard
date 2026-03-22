@@ -60,12 +60,8 @@ export function CampaignHub() {
       console.error("Interaction log failed", e);
     }
 
-    if (actionType === 'link') {
-      if (url && url !== '#') {
-        window.open(url, '_blank', 'noopener,noreferrer');
-      } else {
-        alert("The manifesto document is currently being updated. Please try again in a moment.");
-      }
+    if (actionType === 'link' && url) {
+      window.open(url, '_blank');
     } else if (actionType === 'ai' || actionType === 'critique') {
       setModalMode(actionType === 'ai' ? 'ai' : 'critique');
       setAiResponse(null); // Reset response when opening
@@ -208,4 +204,3 @@ export function CampaignHub() {
     </div>
   );
 }
-
