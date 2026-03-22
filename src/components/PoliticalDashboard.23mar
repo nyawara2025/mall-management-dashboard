@@ -88,16 +88,6 @@ function ProjectModal({ isOpen, onClose, shopId }: { isOpen: boolean, onClose: (
             value={project.title}
             onChange={(e) => setProject({ ...project, title: e.target.value })}
           />
-
-          {/* NEW: Location Field */}
-          <input
-            required
-            className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Location (e.g., Sub-County, Ward, or Village)"
-            value={project.location}
-            onChange={(e) => setProject({ ...project, location: e.target.value })}
-          />
-
           <textarea
             required
             className="w-full h-32 p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -105,25 +95,6 @@ function ProjectModal({ isOpen, onClose, shopId }: { isOpen: boolean, onClose: (
             value={project.description}
             onChange={(e) => setProject({ ...project, description: e.target.value })}
           />
-
-          {/* NEW: File Upload Field */}
-          <div className="relative">
-            <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl p-4 cursor-pointer hover:bg-gray-50 transition-colors">
-              <div className="flex items-center gap-3">
-                <Camera className="text-gray-400" size={20} />
-                <span className="text-sm text-gray-500">
-                  {file ? <span className="text-blue-600 font-bold">{file.name}</span> : "Upload Photo or PDF Evidence"}
-                </span>
-              </div>
-              <input 
-                type="file" 
-                className="hidden" 
-                accept="image/*,.pdf"
-                onChange={(e) => setFile(e.target.files?.[0] || null)} 
-              />
-            </label>
-          </div>
-
           <button
             type="submit"
             disabled={isUploading}
