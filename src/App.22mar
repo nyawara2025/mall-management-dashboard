@@ -66,20 +66,12 @@ function AppContent() {
 
   const bizCategory = searchParams.get('business_category');
   const shopId = searchParams.get('shop_id');
-  const [isDiscoveryModalOpen, setIsDiscoveryModalOpen] = useState(false);
+
   // 2. VISITOR REDIRECT LOGIC (Before Auth/Protected Routes)
   // If a voter arrives with the political category, show them the campaign hub
   if (bizCategory?.startsWith('politic')) {
     return <CampaignHub />; 
   }
-
-  useEffect(() => {
-    // If no candidate is selected, open the discovery modal immediately
-    if (!shopId) {
-      setIsDiscoveryModalOpen(true);
-    }
-    }, [shopId]);
-
 
   // Monitor routing and login status
   useEffect(() => {
