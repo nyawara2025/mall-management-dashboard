@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, Check } from 'lucide-react';
+import { X, ChevronRight, Check, Loader2 } from 'lucide-react';
 
 interface DiscoveryModalProps {
   isOpen: boolean;
@@ -8,73 +8,118 @@ interface DiscoveryModalProps {
 }
 
 export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onClose, onSelectCandidate }) => {
-  const [step, setStep] = useState(1); // 1: Constituency, 2: Position, 3: Candidates
-  const [locationData, setLocationData] = useState<any[]>([]);
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  
+  // Data options from n8n
+  const [counties, setCounties] = useState<string[]>([]);
+  const [constituencies, setConstituencies] = useState<string[]>([]);
+  const [wards, setWards] = useState<string[]>([]);
+  
+  // Selections
   const [filters, setFilters] = useState({
+    county: '',
     constituency: '',
+    ward: '',
     level: ''
   });
   const [candidates, setCandidates] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
 
-  // 1. Load the GeoJSON Data on Mount
-  useEffect(() => {
-    const loadLocations = async () => {
-      try {
-        const response = await fetch('/data/kenya_constituencies.json');
-        const data = await response.json();
-        
-        if (data.features) {
-          // Sort alphabetically by shapeName
-          const sorted = data.features.sort((a: any, b: any) =>
-            a.properties.shapeName.localeCompare(b.properties.shapeName)
-          );
-          setLocationData(sorted);
-        }
-      } catch (error) {
-        console.error("Failed to load location data:", error);
-      }
-    };
-    loadLocations();
-  }, []);
-
-  if (!isOpen) return null;
-
-  // 2. Handle the Search Webhook
-  const handleSearch = async () => {
-    setLoading(true);
-    setStep(3);
-    
-    // Ensure we only send active filters
-    const payload = {
-      constituency: filters.constituency,
-      level: filters.level
+  // Generic helper for n8n administrative data fetching
+  const fetchUnits = async (type: 'counties' | 'constituencies' | 'wards', parentValue?: string) => {
+    const actionMap = {
+      counties: 'fetch_county',
+      constituencies: 'fetch_constituency',
+      wards: 'fetch_ward'
     };
 
     try {
       const res = await fetch('https://n8n.tenear.com/webhook/search-aspirants', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ 
+          action: actionMap[type], 
+          type, 
+          parent: parentValue 
+        })
+      });
+      
+      const rawData = await res.json();
+      console.log(`[VoterDiscovery] Raw response for ${type}:`, rawData);
+
+      // FIX: Force data into an array if n8n returns a single object
+      const data = Array.isArray(rawData) ? rawData : (rawData ? [rawData] : []);
+
+      if (data.length > 0) {
+        let uniqueNames: string[] = [];
+        
+        if (type === 'counties') {
+          uniqueNames = [...new Set(data.map((item: any) => item?.county_name))].filter(Boolean) as string[];
+        } else if (type === 'constituencies') {
+          uniqueNames = [...new Set(data.map((item: any) => item?.constituency_name))].filter(Boolean) as string[];
+        } else if (type === 'wards') {
+          uniqueNames = [...new Set(data.map((item: any) => item?.ward_name))].filter(Boolean) as string[];
+        }
+
+        console.log(`[VoterDiscovery] Processed ${type}:`, uniqueNames);
+        return uniqueNames.sort();
+      }
+      return [];
+    } catch (e) {
+      console.error(`[VoterDiscovery] Fetch error for ${type}:`, e);
+      return [];
+    }
+  };
+
+  // 1. Fetch initial Counties
+  useEffect(() => {
+    if (isOpen) {
+      fetchUnits('counties').then(setCounties);
+    }
+  }, [isOpen]);
+
+  // 2. Fetch Constituencies when County changes
+  useEffect(() => {
+    if (filters.county) {
+      fetchUnits('constituencies', filters.county).then(setConstituencies);
+      setFilters(prev => ({ ...prev, constituency: '', ward: '' }));
+    }
+  }, [filters.county]);
+
+  // 3. Fetch Wards when Constituency changes
+  useEffect(() => {
+    if (filters.constituency) {
+      fetchUnits('wards', filters.constituency).then(setWards);
+      setFilters(prev => ({ ...prev, ward: '' }));
+    }
+  }, [filters.constituency]);
+
+  const handleSearch = async () => {
+    setLoading(true);
+    setStep(3);
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/search-aspirants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'search_candidates',
+          ...filters
+        })
       });
       const data = await res.json();
-      
-      // Normalize data: ensure we have an array of objects with shop_id
-      const results = Array.isArray(data) ? data : (data ? [data] : []);
-      const validResults = results.filter(c => c && c.shop_id);
-      
-      setCandidates(validResults);
+      setCandidates(Array.isArray(data) ? data : (data ? [data] : []));
     } catch (e) {
       console.error("Search failed", e);
-      setCandidates([]);
     } finally {
       setLoading(false);
     }
   };
 
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white w-full max-w-lg rounded-3xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="p-6 border-b flex justify-between items-center bg-gray-50">
           <div>
@@ -85,40 +130,56 @@ export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onC
         </div>
 
         <div className="p-6 overflow-y-auto flex-1">
-          {/* STEP 1: CONSTITUENCY SELECTION */}
+          {/* STEP 1: LOCATION */}
           {step === 1 && (
             <div className="space-y-4">
               <h3 className="font-bold text-lg">Where do you vote?</h3>
-              <p className="text-sm text-gray-500 mb-2">Select your Constituency to find matching candidates.</p>
-              
-              <select 
-                className="w-full p-4 bg-gray-100 rounded-xl border-none focus:ring-2 focus:ring-blue-600 font-bold appearance-none"
-                value={filters.constituency}
-                onChange={(e) => setFilters({...filters, constituency: e.target.value})}
-              >
-                <option value="">Select Constituency...</option>
-                {locationData.map((f: any, index: number) => (
-                  <option key={index} value={f.properties.shapeName}>
-                    {f.properties.shapeName}
-                  </option>
-                ))}
-              </select>
+              <div className="space-y-3">
+                <select 
+                  className="w-full p-4 bg-gray-100 rounded-xl font-bold border-2 border-transparent focus:border-blue-600 outline-none"
+                  value={filters.county}
+                  onChange={(e) => setFilters({...filters, county: e.target.value})}
+                >
+                  <option value="">Select County...</option>
+                  {counties.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+
+                <select 
+                  disabled={!filters.county}
+                  className="w-full p-4 bg-gray-100 rounded-xl font-bold border-2 border-transparent focus:border-blue-600 outline-none disabled:opacity-50"
+                  value={filters.constituency}
+                  onChange={(e) => setFilters({...filters, constituency: e.target.value})}
+                >
+                  <option value="">Select Constituency...</option>
+                  {constituencies.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+
+                <select 
+                  disabled={!filters.constituency}
+                  className="w-full p-4 bg-gray-100 rounded-xl font-bold border-2 border-transparent focus:border-blue-600 outline-none disabled:opacity-50"
+                  value={filters.ward}
+                  onChange={(e) => setFilters({...filters, ward: e.target.value})}
+                >
+                  <option value="">Select Ward...</option>
+                  {wards.map(w => <option key={w} value={w}>{w}</option>)}
+                </select>
+              </div>
 
               <button 
-                disabled={!filters.constituency}
+                disabled={!filters.county}
                 onClick={() => setStep(2)}
-                className="w-full py-4 bg-blue-600 text-white font-black rounded-xl shadow-lg disabled:opacity-50 mt-4 transition-all active:scale-95"
+                className="w-full py-4 bg-blue-600 text-white font-black rounded-xl shadow-lg mt-4 disabled:opacity-50 active:scale-95 transition-all"
               >
                 Next: Select Position
               </button>
             </div>
           )}
 
-          {/* STEP 2: POSITION SELECTION */}
+          {/* STEP 2: POSITION */}
           {step === 2 && (
             <div className="space-y-3">
               <h3 className="font-bold text-lg mb-2">Which seat are you interested in?</h3>
-              {['Presidential', 'Governor', 'Senator', 'MP', 'MCA'].map((pos) => (
+              {['President', 'Governor', 'Senator', 'Women Rep', 'MP', 'MCA'].map((pos) => (
                 <button
                   key={pos}
                   onClick={() => setFilters({...filters, level: pos})}
@@ -131,11 +192,11 @@ export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onC
                 </button>
               ))}
               <div className="flex gap-3 mt-6">
-                <button onClick={() => setStep(1)} className="flex-1 py-4 font-bold text-gray-500">Back</button>
+                <button onClick={() => setStep(1)} className="flex-1 py-4 font-bold text-gray-500 hover:text-gray-700">Back</button>
                 <button 
                   onClick={handleSearch}
                   disabled={!filters.level}
-                  className="flex-[2] py-4 bg-blue-600 text-white font-black rounded-xl shadow-lg"
+                  className="flex-[2] py-4 bg-blue-600 text-white font-black rounded-xl shadow-lg disabled:opacity-50"
                 >
                   Find Candidates
                 </button>
@@ -147,9 +208,12 @@ export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onC
           {step === 3 && (
             <div className="space-y-4">
               {loading ? (
-                <div className="py-20 text-center font-bold text-gray-400 animate-pulse">Searching Aspirants...</div>
-              ) : (candidates.length > 0) ? (
-                candidates.map((c: any) => (
+                <div className="flex flex-col items-center py-20 text-gray-400">
+                   <Loader2 className="animate-spin mb-2" />
+                   <p className="font-bold">Searching Aspirants...</p>
+                </div>
+              ) : candidates.length > 0 ? (
+                candidates.map((c) => (
                   <button
                     key={c.shop_id}
                     onClick={() => onSelectCandidate(c.shop_id)}
@@ -163,7 +227,7 @@ export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onC
                     <div>
                       <p className="font-black text-gray-900 group-hover:text-blue-600 transition">{c.full_name}</p>
                       <p className="text-xs font-bold text-gray-400 uppercase">
-                        {c.post_vying_for || 'Candidate'} {c.county ? `• ${c.county}` : ''}
+                        {c.post_vying_for || 'Candidate'} {c.county_name ? `• ${c.county_name}` : ''}
                       </p>
                     </div>
                     <ChevronRight className="ml-auto text-gray-300" />
@@ -171,9 +235,8 @@ export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onC
                 ))
               ) : (
                 <div className="text-center py-10">
-                  <p className="font-bold text-gray-400 text-lg">No candidates found.</p>
-                  <p className="text-sm text-gray-400 px-6">We couldn't find a {filters.level} candidate matching your selection yet.</p>
-                  <button onClick={() => setStep(1)} className="text-blue-600 font-bold mt-4 underline">Try different location</button>
+                  <p className="font-bold text-gray-500">No candidates found.</p>
+                  <button onClick={() => setStep(1)} className="text-blue-600 font-bold mt-2 underline">Start over</button>
                 </div>
               )}
             </div>
