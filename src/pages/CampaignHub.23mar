@@ -1,17 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, MessageCircle } from 'lucide-react';
 import FeedbackModal from '../components/FeedbackModal';
-import { useSearchParams } from 'react-router-dom';
 
 export function CampaignHub() {
-  // 1. Hook declarations first
-  const [searchParams] = useSearchParams();
-
-  // 2. Variable assignments from hooks
-  const target = searchParams.get('target') || 'manifesto';
-  const shopId = searchParams.get('shop_id');
-
-  // 3. Component state
+  const queryParams = new URLSearchParams(window.location.search);
+  const shopId = queryParams.get('shop_id');
+  const target = queryParams.get('target') || 'manifesto';
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'ai' | 'critique'>('ai');
   const [candidateData, setCandidateData] = useState<any>(null);
@@ -20,12 +15,8 @@ export function CampaignHub() {
 
   useEffect(() => {
     async function initHub() {
-      if (!shopId || shopId === 'undefined') {
-        setIsLoading(false);
-        return;
-      }
+      if (!shopId) return;
       try {
-        // Track the view
         fetch("https://n8n.tenear.com/webhook/political-campaign-interactions", {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -37,26 +28,23 @@ export function CampaignHub() {
           })
         });
 
-        // Get candidate metadata
         const response = await fetch("https://n8n.tenear.com/webhook/get-political-campaign-material", {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ action: 'get_metadata', shop_id: shopId, target: target })
         });
         
-        // Check if response has content before parsing JSON
-        const text = await response.text();
-        if (!text) {
-          console.warn("n8n returned an empty body");
-          return;
-        }
+        if (!response.ok) throw new Error("Network response was not ok");
         
-        const result = JSON.parse(text);
+        const result = await response.json();
+        
+        // n8n often sends an array [ {...} ]. This ensures we get the object.
         const actualData = Array.isArray(result) ? result[0] : result;
         
         if (actualData) {
           setCandidateData(actualData);
         }
+
       } catch (e) {
         console.error("Init failed", e);
       } finally {
@@ -90,7 +78,7 @@ export function CampaignHub() {
       }
     } else if (actionType === 'ai' || actionType === 'critique') {
       setModalMode(actionType === 'ai' ? 'ai' : 'critique');
-      setAiResponse(null);
+      setAiResponse(null); // Reset response when opening
       setIsModalOpen(true);
     } else if (actionType === 'share') {
       const shareText = `🗳️ Check out the official Campaign Hub for ${candidateData?.name || 'our candidate'}!\n\n📜 ${candidateData?.pillar_title || 'Manifesto'}\n🔗 ${window.location.href}`;
@@ -120,10 +108,12 @@ export function CampaignHub() {
 
       if (isAI && response.ok) {
         const data = await response.json();
+        // Handle n8n returning an array or single object
         const result = Array.isArray(data) ? data[0] : data;
       
         if (result && result.output) {
           setAiResponse(result.output);
+          // Note: We do NOT call setIsModalOpen(false) here so the user can read the response
         } else {
           alert("AI responded, but no content was found.");
           setIsModalOpen(false);
@@ -191,31 +181,34 @@ export function CampaignHub() {
               </div>
               <div className="flex-1">
                 <h3 className="font-bold text-gray-900 text-lg leading-none">{section.title}</h3>
-                <p className="text-gray-500 text-sm mt-1">{section.desc}</p>
+                <p className="text-sm text-gray-500 mt-2 leading-tight whitespace-pre-line">{section.desc}</p>
               </div>
             </div>
-            <div className="bg-gray-50 px-5 py-3 flex gap-2">
-              {section.actions.map((action) => (
-                <button
-                  key={action.label}
-                  onClick={() => handleAction(action.type, section.id, (action as any).url)}
-                  className="flex-1 bg-white border border-gray-200 py-2 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-100 transition"
-                >
-                  {action.label}
-                </button>
+            
+            <div className="flex border-t border-gray-50 bg-gray-50/50">
+              {section.actions.map((btn, bIdx) => (
+                <React.Fragment key={`${section.id}-btn-${bIdx}`}>
+                  <button 
+                    onClick={() => handleAction(btn.type, section.id, (btn as any).url)}
+                    className="flex-1 py-3 text-sm font-bold text-gray-700 hover:bg-gray-100 transition"
+                  >
+                    {btn.label}
+                  </button>
+                  {bIdx < section.actions.length - 1 && <div className="w-px bg-gray-200 my-3" />}
+                </React.Fragment>
               ))}
             </div>
           </div>
         ))}
       </div>
 
-      <FeedbackModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+      <FeedbackModal 
+        isOpen={isModalOpen} 
+        onClose={() => { setIsModalOpen(false); setAiResponse(null); }} 
         onSubmit={handleFeedbackSubmit}
+        candidateName={candidateData?.name || "the Candidate"}
         mode={modalMode}
         aiResponse={aiResponse}
-        candidateName={candidateData?.name || 'the candidate'}
       />
 
       <div className="mt-8 mb-4 text-center">
@@ -224,3 +217,4 @@ export function CampaignHub() {
     </div>
   );
 }
+

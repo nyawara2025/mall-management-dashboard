@@ -3,7 +3,6 @@ import 'leaflet/dist/leaflet.css';
 import { BrowserRouter, Routes, Route, useSearchParams } from 'react-router-dom';
 import { CampaignHub } from './pages/CampaignHub'; // Your existing page
 import VoterHub from './pages/VoterHub';      // The component we built
-import { VoterDiscoveryModal } from './components/VoterDiscoveryModal';
 import { LogOut, User, ArrowLeft } from 'lucide-react';
 import { AuthProvider } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -63,38 +62,16 @@ function AppContent() {
   const [currentView, setCurrentView] = useState('dashboard');
   const [campaignId, setCampaignId] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [searchParams, setSearchParams] = useSearchParams(); // Add this hook
+  const [searchParams] = useSearchParams(); // Add this hook
 
   const bizCategory = searchParams.get('business_category');
   const shopId = searchParams.get('shop_id');
   const [isDiscoveryModalOpen, setIsDiscoveryModalOpen] = useState(false);
-
-  const handleSelectCandidate = (shopId: string) => {
-    // Update the URL parameters without a page reload
-    // We keep 'business_category=political' to ensure the Hub stays active
-    setSearchParams({
-      business_category: 'political',
-      shop_id: shopId
-    });
-
-    setIsDiscoveryModalOpen(false);
-  };
-
   // 2. VISITOR REDIRECT LOGIC (Before Auth/Protected Routes)
   // If a voter arrives with the political category, show them the campaign hub
   if (bizCategory?.startsWith('politic')) {
-    return (
-      <>
-        <CampaignHub /> 
-        <VoterDiscoveryModal 
-          isOpen={!shopId || isDiscoveryModalOpen} // Open if no candidate selected
-          onClose={() => setIsDiscoveryModalOpen(false)}
-          onSelectCandidate={(id) => setSearchParams({ business_category: 'political', shop_id: id })}
-        />
-      </>
-    );
+    return <CampaignHub />; 
   }
-
 
   useEffect(() => {
     // If no candidate is selected, open the discovery modal immediately
