@@ -1,0 +1,31 @@
+import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { VoterDiscoveryModal } from './components/VoterDiscoveryModal';
+import { CampaignHub } from './pages/CampaignHub';
+
+export default function VoterApp() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const shopId = searchParams.get('shop_id');
+
+  // If a candidate is selected (shop_id exists), show their Hub
+  if (shopId) {
+    return <CampaignHub />;
+  }
+
+  // Otherwise, show the Discovery Modal immediately
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <VoterDiscoveryModal 
+        isOpen={true} 
+        onClose={() => {}} // Voters stay on this page
+        onSelectCandidate={(id) => {
+          setSearchParams({ shop_id: id, business_category: 'political' });
+        }} 
+      />
+      <div className="text-center p-8">
+        <h1 className="text-2xl font-black text-gray-900 mb-2">TeNEAR Election 2027</h1>
+        <p className="text-gray-500">Loading candidate discovery...</p>
+      </div>
+    </div>
+  );
+}
