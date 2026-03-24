@@ -26,6 +26,7 @@ function ProjectModal({ isOpen, onClose, shopId }: { isOpen: boolean, onClose: (
   const [isUploading, setIsUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [project, setProject] = useState({ title: '', description: '', type: 'planned', location: '' });
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,6 +88,16 @@ function ProjectModal({ isOpen, onClose, shopId }: { isOpen: boolean, onClose: (
             value={project.title}
             onChange={(e) => setProject({ ...project, title: e.target.value })}
           />
+
+          {/* NEW: Location Field */}
+          <input
+            required
+            className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Location (e.g., Sub-County, Ward, or Village)"
+            value={project.location}
+            onChange={(e) => setProject({ ...project, location: e.target.value })}
+          />
+
           <textarea
             required
             className="w-full h-32 p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 resize-none"
@@ -94,6 +105,25 @@ function ProjectModal({ isOpen, onClose, shopId }: { isOpen: boolean, onClose: (
             value={project.description}
             onChange={(e) => setProject({ ...project, description: e.target.value })}
           />
+
+          {/* NEW: File Upload Field */}
+          <div className="relative">
+            <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl p-4 cursor-pointer hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-3">
+                <Camera className="text-gray-400" size={20} />
+                <span className="text-sm text-gray-500">
+                  {file ? <span className="text-blue-600 font-bold">{file.name}</span> : "Upload Photo or PDF Evidence"}
+                </span>
+              </div>
+              <input 
+                type="file" 
+                className="hidden" 
+                accept="image/*,.pdf"
+                onChange={(e) => setFile(e.target.files?.[0] || null)} 
+              />
+            </label>
+          </div>
+
           <button
             type="submit"
             disabled={isUploading}
@@ -116,7 +146,6 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [branding, setBranding] = useState({ name: '', photo: null as File | null });
-  const [isBrandingModalOpen, setIsBrandingModalOpen] = useState(false);
   const [profile, setProfile] = useState({ name: '', photo_url: '', primary_color: '#2563eb' });
 
   const stats = [
@@ -240,15 +269,7 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
               {quickActions.map((action) => (
                 <button
                   key={action.id}
-                  onClick={() => {
-                    if (action.id === 'projects') {
-                      setIsProjectModalOpen(true);
-                    } else if (action.id === 'branding') {
-                      setIsBrandingModalOpen(true);
-                    } else {
-                      onViewChange(action.id);
-                    }
-                  }}
+                  onClick={() => action.id === 'projects' ? setIsProjectModalOpen(true) : onViewChange(action.id)}
                   className="flex items-start gap-3 p-4 rounded-lg border border-gray-100 hover:border-primary-200 hover:bg-primary-50 transition-all text-left group"
                 >
                   <action.icon className="w-5 h-5 text-gray-400 group-hover:text-primary-600" />
@@ -291,11 +312,6 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
         <CampaignLinkGenerator shopId={user?.shop_id?.toString() ?? ""} />
       </div>
 
-      {/* 3. Campaign Links */}
-      <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
-        <CampaignLinkGenerator shopId={user?.shop_id?.toString() ?? ""} />
-      </div>
-
       {/* 4. Geographical Reach */}
       <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -306,63 +322,15 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
         </div>
       </div>
 
-      {/* --- MODALS SECTION --- */}
-      
-      {/* Project Modal */}
+      {/* Modals */}
       <ProjectModal 
         isOpen={isProjectModalOpen} 
         onClose={() => setIsProjectModalOpen(false)} 
         shopId={shopId} 
       />
-
-      {/* Branding Modal */}
-      {isBrandingModalOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-900">Candidate Branding</h2>
-              <button onClick={() => setIsBrandingModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                <X />
-              </button>
-            </div>
-          
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Display Name</label>
-                <input 
-                  type="text"
-                  placeholder="e.g. Hon. Jane Doe"
-                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-blue-500"
-                  onChange={(e) => setBranding({...branding, name: e.target.value})}
-                />
-              </div>
-            
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Profile Photo</label>
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  onChange={(e) => setBranding({...branding, photo: e.target.files?.[0] || null})}
-                />
-              </div>
-
-              <button 
-                onClick={handleBrandingSave}
-                disabled={isUploading}
-                className="w-full py-4 bg-blue-600 text-white font-bold rounded-xl flex justify-center items-center gap-2 hover:bg-blue-700 disabled:opacity-50 shadow-lg"
-              >
-                {isUploading ? <><Loader2 className="animate-spin" /> Saving...</> : 'Update Profile'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div> // This closes the main dashboard container
-  ); // This ends the return statement
-} // This ends the PoliticalDashboard function   
-
-    
+    </div>
+  );
+}
 
 // --- CONSTITUENCY HOTSPOTS COMPONENT ---
 const ConstituencyHotspots = ({ shopId }: { shopId: string }) => {

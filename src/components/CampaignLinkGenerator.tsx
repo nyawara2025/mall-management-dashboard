@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Share2, Copy, Check, ExternalLink, Globe, MessageSquare, Facebook, Twitter, Loader2 } from 'lucide-react';
 
 interface LinkGeneratorProps {
-  shopId: string | number;
+  shopId: string | number
 }
 
 export function CampaignLinkGenerator({ shopId }: LinkGeneratorProps) {
