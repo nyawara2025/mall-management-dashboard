@@ -58,7 +58,6 @@ function ProjectModal({ isOpen, onClose, shopId }: { isOpen: boolean, onClose: (
     }
   };
 
-
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
@@ -119,57 +118,6 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
   const [branding, setBranding] = useState({ name: '', photo: null as File | null });
   const [isBrandingModalOpen, setIsBrandingModalOpen] = useState(false);
   const [profile, setProfile] = useState({ name: '', photo_url: '', primary_color: '#2563eb' });
-  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
-  const [conversations, setConversations] = useState([]);
-  const [replies, setReplies] = useState<{ [key: string]: string }>({});
-
-
-  const fetchVoterMessages = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch('https://n8n.tenear.com/webhook/fetch-voter-messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shop_id: shopId })
-      });
-      const data = await response.json();
-      setConversations(data); // Set the fetched messages to state
-      setIsChatModalOpen(true); // Open the chat modal
-    } catch (error) {
-      console.error("Failed to fetch messages:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-
-  const handleReply = async (msgId: string, voterPhone: string) => {
-    const replyText = replies[msgId];
-    if (!replyText) return alert("Please enter a reply");
-
-    try {
-      const res = await fetch('https://n8n.tenear.com/webhook/respond-to-voter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: msgId,
-          voter_phone: voterPhone,
-          reply: replyText,
-          shop_id: shopId
-        })
-      });
-
-      if (res.ok) {
-        alert("Reply sent!");
-        // Clear the input for this specific message
-        setReplies(prev => ({ ...prev, [msgId]: '' }));
-        // Optional: Close modal after reply
-        // setIsChatModalOpen(false); 
-      }
-    } catch (err) {
-      console.error("Reply error:", err);
-    }
-  };
 
   const stats = [
     { label: 'Voter Reach', value: '45.2k', icon: Users, color: 'text-blue-600', trend: '+12%' },
@@ -297,8 +245,6 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
                       setIsProjectModalOpen(true);
                     } else if (action.id === 'branding') {
                       setIsBrandingModalOpen(true);
-                    } else if (action.id === 'visitor-engagement') {
-                      fetchVoterMessages();
                     } else {
                       onViewChange(action.id);
                     }
@@ -412,69 +358,6 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
           </div>
         </div>
       )}
-
-      {/* --- TOWN HALL MODAL OVERLAY --- */}
-      {isChatModalOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-      
-            {/* Modal Header */}
-            <div className="p-6 border-b flex justify-between items-center bg-gray-50">
-              <h2 className="text-xl font-bold text-gray-900">Voter Town Hall Chats</h2>
-              <button 
-                onClick={() => setIsChatModalOpen(false)} 
-                className="p-2 hover:bg-gray-200 rounded-full transition-colors"
-              >
-                <X className="w-6 h-6 text-gray-500" />
-              </button>
-            </div>
-
-            {/* Modal Content (Scrollable) */}
-            <div className="p-6 overflow-y-auto space-y-4">
-              {conversations.length > 0 ? (
-                conversations.map((msg: any) => (
-                  <div key={msg.id} className="p-4 border rounded-xl bg-gray-50">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
-                        Feedback from {msg.voter_phone}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {new Date(msg.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-
-                    <p className="text-gray-900 font-medium mb-4">
-                      "{msg.incoming_message}"
-                    </p>
-
-                    <div className="flex gap-2">
-                      <input
-                        className="flex-1 p-2 border rounded-lg text-sm"
-                        placeholder="Type WhatsApp reply..."
-                        value={replies[msg.id] || ''}
-                        onChange={(e) => setReplies({ ...replies, [msg.id]: e.target.value })}
-                      />
-                      <button 
-                        onClick={() => handleReply(msg.id, msg.voter_phone)} 
-                        className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-green-700"
-                      >
-                        Reply
-                      </button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="text-center py-12">
-                  <MessageSquare className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">No voter messages found.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-
     </div> // This closes the main dashboard container
   ); // This ends the return statement
 } // This ends the PoliticalDashboard function   
