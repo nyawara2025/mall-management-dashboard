@@ -12,10 +12,19 @@ import {
   Heart,
   BarChart3,
   Share2,
-  UserCircle
+  UserCircle,
+  QrCode
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext'; 
 import { CampaignLinkGenerator } from './CampaignLinkGenerator';
+
+interface Conversation {
+  id: string;
+  voter_phone: string;
+  status: 'pending' | 'replied'; // or whatever statuses you use
+  // add other properties that come from your API here
+  [key: string]: any; 
+}
 
 interface PoliticalDashboardProps {
   onViewChange: (view: string) => void;
@@ -120,8 +129,11 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
   const [isBrandingModalOpen, setIsBrandingModalOpen] = useState(false);
   const [profile, setProfile] = useState({ name: '', photo_url: '', primary_color: '#2563eb' });
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
-  const [conversations, setConversations] = useState([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [replies, setReplies] = useState<{ [key: string]: string }>({});
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [qrCodeBase64, setQrCodeBase64] = useState<string | null>(null);
+  const [isConnecting, setIsConnecting] = useState(false);
 
 
   const fetchVoterMessages = async () => {
@@ -145,7 +157,7 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
 
   const handleReply = async (msgId: string, voterPhone: string) => {
     const replyText = replies[msgId];
-    if (!replyText) return alert("Please enter a reply");
+    if (!replyText) return;
 
     try {
       const res = await fetch('https://n8n.tenear.com/webhook/respond-to-voter', {
@@ -160,14 +172,56 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
       });
 
       if (res.ok) {
-        alert("Reply sent!");
+        // 1. Update the local state to show 'replied' status immediately
+        setConversations(prev => 
+          prev.map(msg => msg.id === msgId ? { ...msg, status: 'replied' } : msg)
+        );
+
+        
         // Clear the input for this specific message
         setReplies(prev => ({ ...prev, [msgId]: '' }));
         // Optional: Close modal after reply
         // setIsChatModalOpen(false); 
+
+        // 3. Close the modal after a short delay so they see the change
+        setTimeout(() => {
+          setIsChatModalOpen(false);
+        }, 500);
+
       }
     } catch (err) {
       console.error("Reply error:", err);
+    }
+  };
+
+
+  const handleConnectWhatsApp = async () => {
+    setIsConnecting(true);
+    setIsQRModalOpen(true);
+    setQrCodeBase64(null); // Clear old QR
+
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/fetch-evolution-qrcode', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          shop_id: shopId, 
+          user_id: user // Ensure you have userId available in your component scope
+        })
+      });
+
+      const data = await response.json();
+
+      // Assuming n8n returns { "qrCode": "base64_string_here" }
+      if (data && data.qrCode) {
+        setQrCodeBase64(data.qrCode);
+      } else {
+        console.error("QR Code not found in response", data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch QR via n8n:", error);
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -187,6 +241,7 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
     { id: 'visitor-engagement', title: 'Town Hall Chats', icon: MessageSquare, desc: 'Respond to voters' },
     { id: 'qr-generation', title: 'Rally QR Codes', icon: Share2, desc: 'Check-in at events' },
     { id: 'diaspora-hub', title: 'Diaspora Connect', icon: Globe, desc: 'Fundraising & US Town Halls' },
+    { id: 'link-whatsapp', title: 'Link WhatsApp', icon: QrCode, desc: 'Scan Evolution API QR' },
   ];
 
   const fetchMetadata = async () => {
@@ -299,6 +354,8 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
                       setIsBrandingModalOpen(true);
                     } else if (action.id === 'visitor-engagement') {
                       fetchVoterMessages();
+                    } else if (action.id === 'link-whatsapp') {
+                      handleConnectWhatsApp();
                     } else {
                       onViewChange(action.id);
                     }
@@ -470,6 +527,36 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {isQRModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full shadow-2xl text-center">
+            <h3 className="text-2xl font-bold mb-2">Link WhatsApp</h3>
+            <p className="text-gray-500 mb-6 text-sm">
+              Scan this code with your WhatsApp "Linked Devices" to start responding to voters.
+            </p>
+      
+            <div className="bg-gray-50 p-4 rounded-xl border-2 border-dashed border-gray-200 inline-block">
+              {isConnecting ? (
+                <div className="w-64 h-64 flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                </div>
+              ) : qrCodeBase64 ? (
+                <img src={qrCodeBase64} alt="WhatsApp QR Code" className="w-64 h-64" />
+              ) : (
+                <p className="text-red-500">Failed to load QR. Try again.</p>
+              )}
+            </div>
+
+            <button 
+              onClick={() => setIsQRModalOpen(false)}
+              className="mt-8 w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-colors"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
