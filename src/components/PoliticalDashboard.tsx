@@ -605,7 +605,7 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
 
       {isAIModalOpen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-2xl h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+          <div className="bg-white rounded-2xl w-full max-w-2xl h-[85vh] sm:h-[80vh] flex flex-col shadow-2xl overflow-hidden mb-auto sm:mb-0">
             {/* Modal Header */}
             <div className="p-4 border-b bg-blue-600 text-white flex justify-between items-center">
               <div className="flex items-center gap-2">
@@ -616,7 +616,7 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
             </div>
 
             {/* Chat Area - UPDATED FOR SAFETY */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gray-50">
               {(!chatHistory || chatHistory.length === 0) && (
                 <div className="text-center py-10 text-gray-400">
                   <Bot className="w-12 h-12 mx-auto mb-2 opacity-20" />

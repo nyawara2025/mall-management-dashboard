@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
-import { Globe, Camera, Save, Loader2, X, Plus } from 'lucide-react';
+import { Globe, Camera, Save, Loader2, X, Plus, Bot, PieChart } from 'lucide-react';
 import { HeatmapLayer } from './HeatmapLayer'; 
 import 'leaflet/dist/leaflet.css';
 import { 
@@ -13,7 +13,8 @@ import {
   BarChart3,
   Share2,
   UserCircle,
-  QrCode
+  QrCode,
+  Send
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext'; 
 import { CampaignLinkGenerator } from './CampaignLinkGenerator';
@@ -134,7 +135,12 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [qrCodeBase64, setQrCodeBase64] = useState<string | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [aiQuery, setAiQuery] = useState('');
+  const [chatHistory, setChatHistory] = useState<{role: 'user' | 'ai', content: string}[]>([]);
+  const [isAiThinking, setIsAiThinking] = useState(false);
 
+  const [voterStats, setVoterStats] = useState({engagement: 0, topRegion: 'N/A', activeChannels: 0, chartData: []});
 
   const fetchVoterMessages = async () => {
     setIsLoading(true);
@@ -154,6 +160,36 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
     }
   };
 
+
+  const handleAskAI = async () => {
+    if (!aiQuery.trim()) return;
+
+    const userMessage = aiQuery;
+    setChatHistory(prev => [...prev, { role: 'user', content: userMessage }]);
+    setAiQuery('');
+    setIsAiThinking(true);
+
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/political-aspirant-AI', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          query: userMessage, 
+          shop_id: shopId,
+          category: 'political' 
+        })
+      });
+
+      const data = await response.json();
+      // Assuming n8n returns { output: "The response text..." }
+      setChatHistory(prev => [...prev, { role: 'ai', content: data.output || "I couldn't process that. Try again." }]);
+    } catch (error) {
+      console.error("AI Agent error:", error);
+      setChatHistory(prev => [...prev, { role: 'ai', content: "Connection to AI lost. Check your network." }]);
+    } finally {
+      setIsAiThinking(false);
+    }
+  };
 
   const handleReply = async (msgId: string, voterPhone: string) => {
     const replyText = replies[msgId];
@@ -242,6 +278,10 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
     { id: 'qr-generation', title: 'Rally QR Codes', icon: Share2, desc: 'Check-in at events' },
     { id: 'diaspora-hub', title: 'Diaspora Connect', icon: Globe, desc: 'Fundraising & US Town Halls' },
     { id: 'link-whatsapp', title: 'Link WhatsApp', icon: QrCode, desc: 'Scan Evolution API QR' },
+
+    { id: 'ai-analyst', title: 'Campaign AI', icon: Bot, desc: 'Ask about voter sentiment & trends' },
+    { id: 'demographics', title: 'Voter Analytics', icon: PieChart, desc: 'Regional & demographic breakdown' },
+
   ];
 
   const fetchMetadata = async () => {
@@ -356,6 +396,8 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
                       fetchVoterMessages();
                     } else if (action.id === 'link-whatsapp') {
                       handleConnectWhatsApp();
+                    } else if (action.id === 'ai-analyst') {
+                      setIsAIModalOpen(true);
                     } else {
                       onViewChange(action.id);
                     }
@@ -557,6 +599,68 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {isAIModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Modal Header */}
+            <div className="p-4 border-b bg-blue-600 text-white flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <Bot className="w-6 h-6" />
+                <h3 className="font-bold">Campaign Strategy AI</h3>
+              </div>
+              <button onClick={() => setIsAIModalOpen(false)} className="hover:bg-blue-700 p-1 rounded">✕</button>
+            </div>
+
+            {/* Chat Area - UPDATED FOR SAFETY */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
+              {(!chatHistory || chatHistory.length === 0) && (
+                <div className="text-center py-10 text-gray-400">
+                  <Bot className="w-12 h-12 mx-auto mb-2 opacity-20" />
+                  <p>Ask me about voter engagement or 2027 trends.</p>
+                </div>
+              )}
+  
+              {/* Add the '?' after chatHistory */}
+              {chatHistory?.map((msg, i) => (
+                <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[85%] p-3 rounded-2xl text-sm ${
+                    msg.role === 'user' ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white border shadow-sm rounded-tl-none'
+                  }`}>
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+  
+              {isAiThinking && (
+                <div className="flex justify-start">
+                  <div className="bg-white border p-3 rounded-2xl animate-pulse text-gray-400 text-xs">
+                    AI is analyzing data...
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Input Bar */}
+            <div className="p-4 border-t bg-white flex gap-2">
+              <input 
+                type="text" 
+                value={aiQuery}
+                onChange={(e) => setAiQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAskAI()}
+                placeholder="Ask about voter sentiment..."
+                className="flex-1 border rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+              <button 
+                onClick={handleAskAI}
+                className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                <Send size={20} />
+              </button>
+            </div>
           </div>
         </div>
       )}
