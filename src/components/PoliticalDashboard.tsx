@@ -645,7 +645,7 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
             </div>
 
             {/* Input Bar */}
-            <div className="p-4 border-t bg-white flex gap-2">
+            <div className="flex-none p-4 bg-white border-t">
               <input 
                 type="text" 
                 value={aiQuery}
