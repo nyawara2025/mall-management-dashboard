@@ -312,16 +312,6 @@ function AppContent() {
             </div>
           )}
 
-          {/* ADD THIS AT THE END */}
-          {!['campaigns', 'pos', 'templates', 'qr-generation', 'analytics', 'visitor-engagement', 'products', 'payments', 'payment-reception', 'messaging', 'inquiries', 'manifestos', 'diaspora-hub', 'settings', 'dashboard'].includes(currentView) && (
-            <div className="pt-20 text-center">
-              <p>View "{currentView}" not found. Returning to dashboard...</p>
-              <button onClick={() => setCurrentView('dashboard')} className="text-blue-600 underline">
-                Go Back
-              </button>
-            </div>
-          )}
-
         </div>
       </ProtectedRoute>
     </div>
