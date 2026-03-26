@@ -167,7 +167,7 @@ function Analytics({ webhookUrl, businessCategory, shopId }: { webhookUrl: strin
     <div className="space-y-8">
       <div className="h-80 flex items-end gap-4 px-4 overflow-x-auto pb-4">
         {chartData.length > 0 ? chartData.map((item: any, i: number) => (
-          <div key={i} className="flex-1 min-w-[80px] flex flex-col items-center gap-3 group">
+          <div key={i} className="flex-1 min-w-[80px] max-w-[120px] flex flex-col items-center gap-3 group">
             {/* Bar Container - Added a fixed h-64 to ensure percentage heights work */}
             <div className="w-full h-64 flex flex-col-reverse rounded-xl overflow-hidden relative bg-gray-100 shadow-inner">
               {/* Supportive (Green) */}
