@@ -119,9 +119,8 @@ function ProjectModal({ isOpen, onClose, shopId }: { isOpen: boolean, onClose: (
 }
 
 // --- ANALYTICS COMPONENT ---
-function Analytics({ webhookUrl, businessCategory, shopId }: { webhookUrl: string, businessCategory: string, shopId: any }) {
-  const [isAnalyticsModalOpen, setIsAnalyticsModalOpen] = useState(false);
-  const [chartData, setChartData] = useState<any[]>([]);
+function Analytics({ webhookUrl, businessCategory, shopId }: any) {
+  const [data, setData] = useState<{ chartData: any[], summary: any }>({ chartData: [], summary: {} });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -133,70 +132,85 @@ function Analytics({ webhookUrl, businessCategory, shopId }: { webhookUrl: strin
           body: JSON.stringify({ category: businessCategory, shop_id: shopId })
         });
         const result = await response.json();
-        const rawData = Array.isArray(result) ? result : (result.data || []);
+        
+        // If n8n sends { chartData: [...], summary: {...} }
+        if (result.chartData) {
+          setData({
+            chartData: Array.isArray(result.chartData) ? result.chartData : [result.chartData],
+            summary: result.summary || { totalReached: 0, trend: "0%", isPositive: true }
+          });
+        } else {
+          // Fallback if n8n just sends the raw array
+          setData({ 
+            chartData: Array.isArray(result) ? result : [result], 
+            summary: { totalReached: result.length || 0, trend: "0%", isPositive: true } 
+          });
+        }
 
-        // TRANSFORM THE DATA HERE
-        const processedData = rawData.map((item: any) => ({
-          ward_name: item.city || "Unknown",
-          // Map sentiment_score to the bar heights
-          // If score is 1, let's call it 100% supportive for now
-          supportive: item.sentiment_score >= 1 ? 100 : 0,
-          undecided: item.sentiment_score === 0 ? 100 : 0,
-          opposed: item.sentiment_score < 0 ? 100 : 0
-        }));
 
-        setChartData(processedData);
-      } catch (error) {
-        console.error("Analytics fetch failed:", error);
       } finally {
         setLoading(false);
       }
     };
-
-
-    if (shopId) fetchMetrics();
-  }, [shopId, webhookUrl, businessCategory]);
-
-  if (loading) return (
-    <div className="flex flex-col items-center justify-center h-64 gap-4">
-      <Loader2 className="animate-spin text-blue-600" size={40} />
-      <p className="text-gray-500 animate-pulse">Fetching latest voter metrics...</p>
-    </div>
-  );
+    fetchMetrics();
+  }, [shopId]);
 
   return (
-    <div className="space-y-8">
-      <div className="h-80 flex items-end gap-4 px-4 overflow-x-auto pb-4">
-        {chartData.length > 0 ? chartData.map((item: any, i: number) => (
-          <div key={i} className="flex-1 min-w-[80px] flex flex-col items-center gap-3 group">
-            <div className="w-full flex flex-col-reverse rounded-xl overflow-hidden relative h-full bg-gray-50 shadow-inner">
-              {/* Supportive (Green) */}
-              <div 
-                className="bg-emerald-500 w-full transition-all duration-700 ease-out hover:brightness-110" 
-                style={{ height: `${item.supportive || 0}%` }}
-              />
-              {/* Undecided (Orange) */}
-              <div 
-                className="bg-amber-400 w-full transition-all duration-700 ease-out hover:brightness-110" 
-                style={{ height: `${item.undecided || 0}%` }}
-              />
-              {/* Opposed (Purple) */}
-              <div 
-                className="bg-indigo-600 w-full transition-all duration-700 ease-out hover:brightness-110" 
-                style={{ height: `${item.opposed || 0}%` }}
-              />
-            </div>
-            <span className="text-[11px] font-bold text-gray-600 truncate w-full text-center">
-              {item.ward_name || `Ward ${i+1}`}
+    <div className="space-y-6">
+
+      {/* --- NEW: Summary Badges --- */}
+      <div className="flex gap-4 mb-4">
+        <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex-1">
+          <p className="text-xs font-bold text-blue-600 uppercase tracking-wider">Total Voters Reached</p>
+          <div className="flex items-baseline gap-2">
+            <h4 className="text-3xl font-black text-blue-900">{data.summary.totalReached || 0}</h4>
+            <span className={`text-xs font-bold flex items-center gap-1 ${data.summary.isPositive ? 'text-emerald-600' : 'text-red-500'}`}>
+              <TrendingUp size={14} /> {data.summary.trend}
             </span>
           </div>
-        )) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-100 rounded-2xl">
+        </div>
+      </div>
+      <div className="h-72 flex items-end gap-4 overflow-x-auto pb-6">
+        {/* FIX: Ensure the condition is at the start of the curly brace */}
+        {data.chartData && data.chartData.length > 0 ? (
+          data.chartData.map((item: any, i: number) => (
+            <div key={i} className="flex-1 min-w-[80px] max-w-[120px] flex flex-col items-center gap-3 group">
+        
+              {/* Bar Container - Reduced to h-48 so labels fit in the h-72 parent */}
+              <div className="w-full h-48 flex flex-col-reverse rounded-xl overflow-hidden relative bg-gray-100 shadow-inner">
+                {/* Supportive (Green) */}
+                <div 
+                  className="bg-emerald-500 w-full transition-all duration-700 ease-out hover:brightness-110" 
+                  style={{ height: `${Number(item.supportive || 0)}%` }}
+                />
+                {/* Undecided (Orange) */}
+                <div 
+                  className="bg-amber-400 w-full transition-all duration-700 ease-out hover:brightness-110 border-t border-white/20" 
+                  style={{ height: `${Number(item.undecided || 0)}%` }}
+                />
+                {/* Opposed (Purple) */}
+                <div 
+                  className="bg-indigo-600 w-full transition-all duration-700 ease-out hover:brightness-110 border-t border-white/20" 
+                  style={{ height: `${Number(item.opposed || 0)}%` }}
+                />
+              </div>
+
+              {/* Label */}
+              <span className="text-[11px] font-bold text-gray-600 truncate w-full text-center">
+                {item.ward_name}
+              </span>
+            </div>
+          )) 
+        ) : (
+          <div className="w-full h-48 flex flex-col items-center justify-center text-gray-400 border-2 border-dashed border-gray-100 rounded-2xl">
             <BarChart3 size={48} className="mb-2 opacity-20" />
             <p className="italic">No voter data received for this jurisdiction...</p>
           </div>
         )}
       </div>
+  
+
+
 
       {/* Legend */}
       <div className="flex flex-wrap gap-6 justify-center border-t border-gray-100 pt-6">

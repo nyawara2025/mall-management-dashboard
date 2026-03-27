@@ -10,6 +10,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Dashboard } from './components/Dashboard';
 import { MedicalDashboard } from './components/MedicalDashboard';
 import { PoliticalDashboard } from './components/PoliticalDashboard';
+import { EducationalDashboard } from './components/EducationalDashboard';
+import { ChurchDashboard } from './components/ChurchDashboard';
 import CampaignManagement from './components/CampaignManagement';
 import { POS } from './components/POS';
 import CampaignTemplateManager from './components/CampaignTemplateManager';
@@ -184,6 +186,44 @@ function AppContent() {
                   <div className="pt-16">
                     {/* Added the missing prop here to fix the build error */}
                     <PoliticalDashboard onViewChange={setCurrentView} />
+                  </div>
+                </div>
+              );
+            }
+
+            if (category === 'educational') {
+              return (
+                <div className="min-h-screen">
+                  <Header 
+                    onBack={() => setCurrentView('dashboard')} 
+                    title="TeNEAR Education" 
+                    user={user} 
+                    onLogout={logout} 
+                    showUserMenu={showUserMenu} 
+                    setShowUserMenu={setShowUserMenu} 
+                  />
+                  <div className="pt-16">
+                    {/* Create this component next */}
+                    <EducationalDashboard onViewChange={setCurrentView} /> 
+                  </div>
+                </div>
+              );
+            }
+
+            if (category === 'church') {
+              return (
+                <div className="min-h-screen">
+                  <Header 
+                    onBack={() => setCurrentView('dashboard')} 
+                    title="TeNEAR Church Connect" 
+                    user={user} 
+                    onLogout={logout} 
+                    showUserMenu={showUserMenu} 
+                    setShowUserMenu={setShowUserMenu} 
+                  />
+                  <div className="pt-16">
+                    {/* Create this component next */}
+                    <ChurchDashboard onViewChange={setCurrentView} />
                   </div>
                 </div>
               );

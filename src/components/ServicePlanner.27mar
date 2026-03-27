@@ -1,0 +1,107 @@
+import React, { useState } from 'react';
+import { Calendar, Clock, Save, Plus, Trash2 } from 'lucide-react';
+
+interface Service {
+  name: string;
+  startTime: string;
+  endTime: string;
+  orderOfService: { id: number; activity: string }[];
+}
+
+export const ServicePlanner = ({ shopId }: { shopId: string }) => {
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [services, setServices] = useState<Service[]>([
+    { name: 'Youth Service', startTime: '08:00', endTime: '10:00', orderOfService: [] },
+    { name: 'English Service', startTime: '10:00', endTime: '12:00', orderOfService: [] },
+    { name: 'Kiswahili Service', startTime: '12:00', endTime: '13:00', orderOfService: [] }
+  ]);
+
+  const handleSave = async () => {
+    const payload = {
+      shop_id: shopId,
+      date,
+      business_category: 'church',
+      services
+    };
+
+    try {
+      // Replace with your actual n8n production webhook URL
+      const response = await fetch('https://n8n.tenear.com/webhook/church-service-planner', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) alert('Service Plan Published Successfully!');
+    } catch (error) {
+      console.error('Error saving plan:', error);
+    }
+  };
+
+  const addActivity = (serviceIndex: number) => {
+    const newServices = [...services];
+    newServices[serviceIndex].orderOfService.push({
+      id: Date.now(),
+      activity: ''
+    });
+    setServices(newServices);
+  };
+
+  return (
+    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mt-6">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Calendar className="text-blue-600" /> Sunday Service Planner
+        </h2>
+        <input 
+          type="date" 
+          value={date} 
+          onChange={(e) => setDate(e.target.value)}
+          className="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+        />
+      </div>
+
+      <div className="space-y-6">
+        {services.map((service, sIdx) => (
+          <div key={service.name} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex justify-between items-center mb-3">
+              <span className="font-semibold text-gray-700">{service.name}</span>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Clock size={14} /> {service.startTime} - {service.endTime}
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              {service.orderOfService.map((item, iIdx) => (
+                <input
+                  key={item.id}
+                  placeholder={`Activity ${iIdx + 1} (e.g. Worship, Sermon)`}
+                  className="w-full p-2 text-sm border rounded bg-white"
+                  value={item.activity}
+                  onChange={(e) => {
+                    const newServices = [...services];
+                    newServices[sIdx].orderOfService[iIdx].activity = e.target.value;
+                    setServices(newServices);
+                  }}
+                />
+              ))}
+              <button 
+                onClick={() => addActivity(sIdx)}
+                className="text-xs text-blue-600 flex items-center gap-1 hover:underline mt-2"
+              >
+                <Plus size={12} /> Add Activity
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <button 
+        onClick={handleSave}
+        className="w-full mt-8 bg-blue-600 text-white py-3 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition"
+      >
+        <Save size={18} /> Publish to Member Hub & WhatsApp
+      </button>
+    </div>
+  );
+};

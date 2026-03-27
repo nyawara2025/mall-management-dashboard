@@ -1,0 +1,109 @@
+import React, { useEffect, useState } from 'react';
+import { Share2, MapPin, Phone } from 'lucide-react';
+
+interface ServiceActivity {
+  activity_name: string;
+  description: string;
+  sort_order: number;
+}
+
+interface ChurchService {
+  id: string;
+  service_name: string;
+  service_date: string;
+  start_time: string;
+  service_activities: ServiceActivity[];
+}
+
+export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
+  const [church, setChurch] = useState<any>(null);
+  const [services, setServices] = useState<ChurchService[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchHubData() {
+      // 1. Fetch Church Profile
+      const { data: churchData } = await supabase
+        .from('churches')
+        .select('*')
+        .eq('shop_id', shopId)
+        .single();
+
+      // 2. Fetch Services and their Activities
+      const { data: serviceData } = await supabase
+        .from('church_services')
+        .select(`
+          id, service_name, service_date, start_time,
+          service_activities (activity_name, description, sort_order)
+        `)
+        .eq('shop_id', shopId)
+        .order('service_date', { ascending: false })
+        .limit(3);
+
+      setChurch(churchData);
+      setServices(serviceData as any || []);
+      setLoading(false);
+    }
+    fetchHubData();
+  }, [shopId]);
+
+  const handleWhatsAppShare = (service: ChurchService) => {
+    const activities = service.service_activities
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map(a => `• *${a.activity_name}*: ${a.description}`)
+      .join('\n\n');
+
+    const text = `⛪ *${church?.church_name}*\n_${service.service_name}_\n\n${activities}\n\nView more at: ${window.location.href}`;
+    window.open(`https://wa.me{encodeURIComponent(text)}`, '_blank');
+  };
+
+  if (loading) return <div className="p-10 text-center animate-pulse">Loading Church Hub...</div>;
+
+  return (
+    <div className="max-w-xl mx-auto bg-gray-50 min-h-screen pb-10">
+      {/* Church Header */}
+      <div className="bg-white p-6 text-center border-b shadow-sm">
+        {church?.logo_url && (
+          <img src={`${process.env.REACT_APP_SUPABASE_URL}/storage/v1/object/public/church-logos/${church.logo_url}`} 
+               className="w-20 h-20 mx-auto rounded-full mb-4 object-cover border-2 border-blue-100" alt="Logo" />
+        )}
+        <h1 className="text-xl font-bold text-gray-900">{church?.church_name}</h1>
+        <div className="flex justify-center gap-4 mt-2 text-sm text-gray-500">
+          <span className="flex items-center gap-1"><MapPin size={14}/> {church?.location}</span>
+          <span className="flex items-center gap-1"><Phone size={14}/> {church?.contact_phone}</span>
+        </div>
+      </div>
+
+      {/* Service List */}
+      <div className="p-4 space-y-6">
+        {services.map((service) => (
+          <div key={service.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-4 bg-blue-600 text-white flex justify-between items-center">
+              <div>
+                <h2 className="font-bold text-lg">{service.service_name}</h2>
+                <p className="text-xs opacity-80">{new Date(service.service_date).toDateString()} @ {service.start_time}</p>
+              </div>
+              <button 
+                onClick={() => handleWhatsAppShare(service)}
+                className="p-2 bg-white/20 hover:bg-white/30 rounded-full transition"
+              >
+                <Share2 size={20} />
+              </button>
+            </div>
+
+            <div className="p-4 divide-y divide-gray-50">
+              {service.service_activities
+                ?.sort((a, b) => a.sort_order - b.sort_order)
+                .map((activity, idx) => (
+                <div key={idx} className="py-3">
+                  <h3 className="font-bold text-blue-900 text-sm">{activity.activity_name}</h3>
+                  <p className="text-gray-600 text-sm mt-1">{activity.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
