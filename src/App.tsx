@@ -31,6 +31,7 @@ import ReceivingPaymentModule from './components/ReceivingPaymentModule';
 import PaymentReceiptMessaging from './components/PaymentReceiptMessaging';
 import { useAuth } from './contexts/AuthContext';
 import { CustomerInquiries } from './components/CustomerInquiries';
+import { PublicChurchHub } from './components/PublicChurchHub';
 import SettingsPage from './pages/SettingsPage';
 import './index.css';
 
@@ -97,6 +98,16 @@ function AppContent() {
     );
   }
 
+  // 2b. CHURCH VISITOR REDIRECT LOGIC (Public Access)
+  // If a user arrives with the church category, show them the public hub
+  if (bizCategory === 'church') {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Import and use your new PublicChurchHub component here */}
+        <PublicChurchHub shopId={Number(shopId) || 0} />
+      </div>
+    );
+  }
 
   useEffect(() => {
     // If no candidate is selected, open the discovery modal immediately
