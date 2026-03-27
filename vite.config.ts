@@ -17,7 +17,8 @@ export default defineConfig({
         // Your existing Admin App
         main: resolve(__dirname, 'index.html'), 
         // Your new independent Voter App
-        voter: resolve(__dirname, 'voter.html') 
+        voter: resolve(__dirname, 'voter.html'),
+        church: resolve(__dirname, 'church.html') 
       }
     }
   }
