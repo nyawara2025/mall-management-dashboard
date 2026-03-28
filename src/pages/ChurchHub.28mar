@@ -12,11 +12,7 @@ export function ChurchHub() {
 
   useEffect(() => {
     async function initHub() {
-      if (!shopId) {
-        console.error("No shop_id provided in URL");
-        setIsLoading(false);
-        return; 
-      }
+      if (!shopId) return;
 
       try {
         // 1. Track Visit & Fetch Data (Mirroring your Political logic)
