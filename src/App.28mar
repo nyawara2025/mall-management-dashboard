@@ -72,7 +72,7 @@ function AppContent() {
   const bizCategory = searchParams.get('business_category');
   const shopId = searchParams.get('shop_id');
   const [isDiscoveryModalOpen, setIsDiscoveryModalOpen] = useState(false);
-  const isChurchPath = window.location.pathname.includes('/church');
+
 
   const handleSelectCandidate = (shopId: string) => {
     // Update the URL parameters without a page reload
@@ -102,7 +102,7 @@ function AppContent() {
 
   // 2b. CHURCH VISITOR REDIRECT LOGIC (Public Access)
   // If a user arrives with the church category, show them the public hub
-  if (bizCategory === 'church' || isChurchPath) {
+  if (bizCategory === 'church') {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Import and use your new PublicChurchHub component here */}
