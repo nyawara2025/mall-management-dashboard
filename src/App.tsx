@@ -104,7 +104,7 @@ function AppContent() {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Import and use your new PublicChurchHub component here */}
-        <PublicChurchHub shopId={Number(shopId) || 0} />
+        <PublicChurchHub shopId={Number(shopId) || 68} />
       </div>
     );
   }
