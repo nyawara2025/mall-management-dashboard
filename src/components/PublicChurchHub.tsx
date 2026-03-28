@@ -52,7 +52,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         }
 
         // 2. Fetch Service Orders from n8n Webhook
-        const response = await fetch('https://n8n.tenear.com/webhook/public-service-order', {
+        const response = await fetch('https://n8n.tenear.com/webhook/fetch-public-service-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ shop_id: activeShopId }),
