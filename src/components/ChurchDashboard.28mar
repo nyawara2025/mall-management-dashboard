@@ -31,7 +31,7 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
         <h1 className="text-2xl font-bold text-gray-800">Church Administration</h1>
         {user?.shop_id && (
           <img 
-            src={`https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/st_barnabas_logo.jpg`}
+            src={`https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/${user.shop_id}.jpg`} 
             alt="Church Logo" 
             className="h-12 w-12 rounded-full border shadow-sm object-cover"
             onError={(e) => (e.currentTarget.src = "/default-church.png")}

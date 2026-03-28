@@ -188,4 +188,30 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
       </nav>
     </div>
   );
+
+  const MemberWelfareStatus = ({ memberId }: { memberId: string }) => {
+    return (
+      <div className="bg-white p-6 rounded-2xl shadow-md border-t-4 border-red-500">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Personal Welfare Status</p>
+            <h3 className="text-2xl font-bold text-gray-800">March 2026</h3>
+          </div>
+          <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-medium">
+            Paid
+          </div>
+        </div>
+      
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">Total Contributed (YTD):</span>
+          <span className="font-bold text-gray-900">KES 12,000</span>
+        </div>
+      
+        <button className="w-full mt-4 bg-gray-900 text-white py-3 rounded-xl font-medium active:scale-95 transition-transform">
+          View Contribution History
+        </button>
+      </div>
+    );
+  };
+
 };
