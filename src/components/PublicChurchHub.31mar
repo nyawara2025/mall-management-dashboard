@@ -26,26 +26,38 @@ export const ChurchHubLogin = () => {
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
   const [loading, setLoading] = useState(false);
-
-  const handleSendOtp = async () => {
-    setLoading(true);
-    const { error } = await (supabase as any).auth.signInWithOtp({ phone });
-    if (error) alert(error.message);
-    else setStep('OTP');
-    setLoading(false);
+  const [password, setPassword] = useState('');
+  const handleSignUp = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await (supabase as any).auth.signUp({
+        phone: phone.startsWith('+') ? phone : `+${phone}`,
+        password: password, // You'll need to add a password state
+      });
+      if (error) throw error;
+      alert("Signup successful! You can now log in.");
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleVerifyOtp = async () => {
-    setLoading(true);
-    const { data: { session }, error } = await (supabase as any).auth.verifyOtp({
-      phone,
-      token: otp,
-      type: 'sms'
-    });
-  
-    if (error) alert("Invalid Code");
-    else console.log("Logged in!", session?.user);
-    setLoading(false);
+  const handleLogin = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await (supabase as any).auth.signInWithPassword({
+        phone: phone.startsWith('+') ? phone : `+${phone}`,
+        password: password,
+      });
+
+      if (error) throw error;
+      console.log("Logged in successfully!");
+    } catch (error: any) {
+      alert(error.message || "Invalid phone or password");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -67,9 +79,9 @@ export const ChurchHubLogin = () => {
          <div className="space-y-4">
             <input 
               className="w-full border p-3 rounded-xl" 
-              placeholder="Enter OTP" 
-              value={otp} 
-              onChange={(e) => setOtp(e.target.value)} 
+              placeholder="Enter your password" 
+              className="w-full p-4 border rounded-xl"
+              onChange={(e) => setPassword(e.target.value)} 
             />
             <button onClick={handleVerifyOtp} disabled={loading} className="w-full bg-green-600 text-white p-3 rounded-xl">
               {loading ? 'Verifying...' : 'Login'}

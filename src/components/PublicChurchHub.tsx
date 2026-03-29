@@ -20,62 +20,78 @@ interface ChurchService {
   service_activities: ServiceActivity[];
 }
 
-// --- COMPONENT 1: Login ---
+// --- COMPONENT 1: Login (Phone + Password Based) ---
 export const ChurchHubLogin = () => {
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
 
-  const handleSendOtp = async () => {
+  const handleAuth = async () => {
     setLoading(true);
-    const { error } = await (supabase as any).auth.signInWithOtp({ phone });
-    if (error) alert(error.message);
-    else setStep('OTP');
-    setLoading(false);
-  };
-
-  const handleVerifyOtp = async () => {
-    setLoading(true);
-    const { data: { session }, error } = await (supabase as any).auth.verifyOtp({
-      phone,
-      token: otp,
-      type: 'sms'
-    });
-  
-    if (error) alert("Invalid Code");
-    else console.log("Logged in!", session?.user);
-    setLoading(false);
+    const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
+    
+    try {
+      if (isSignUp) {
+        const { error } = await (supabase as any).auth.signUp({
+          phone: formattedPhone,
+          password: password,
+        });
+        if (error) throw error;
+        alert("Signup successful! You can now log in.");
+        setIsSignUp(false);
+      } else {
+        const { error } = await (supabase as any).auth.signInWithPassword({
+          phone: formattedPhone,
+          password: password,
+        });
+        if (error) throw error;
+        alert("Logged in successfully!");
+      }
+    } catch (error: any) {
+      alert(error.message || "An error occurred during authentication");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="max-w-md mx-auto p-8 bg-white rounded-3xl shadow-xl">
-       <h2 className="text-xl font-bold mb-4">Member Login</h2>
-       {step === 'PHONE' ? (
-         <div className="space-y-4">
-            <input 
-              className="w-full border p-3 rounded-xl" 
-              placeholder="Phone Number" 
-              value={phone} 
-              onChange={(e) => setPhone(e.target.value)} 
-            />
-            <button onClick={handleSendOtp} disabled={loading} className="w-full bg-blue-600 text-white p-3 rounded-xl">
-              {loading ? 'Sending...' : 'Send OTP'}
-            </button>
-         </div>
-       ) : (
-         <div className="space-y-4">
-            <input 
-              className="w-full border p-3 rounded-xl" 
-              placeholder="Enter OTP" 
-              value={otp} 
-              onChange={(e) => setOtp(e.target.value)} 
-            />
-            <button onClick={handleVerifyOtp} disabled={loading} className="w-full bg-green-600 text-white p-3 rounded-xl">
-              {loading ? 'Verifying...' : 'Login'}
-            </button>
-         </div>
-       )}
+      <h2 className="text-xl font-bold mb-4">
+        {isSignUp ? 'Create Member Account' : 'Member Login'}
+      </h2>
+      <div className="space-y-4">
+        <input 
+          className="w-full border p-3 rounded-xl" 
+          placeholder="Phone Number (e.g. +254...)" 
+          value={phone} 
+          onChange={(e) => setPhone(e.target.value)} 
+        />
+        <input 
+          type="password"
+          className="w-full border p-3 rounded-xl" 
+          placeholder="Enter your password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)} 
+        />
+        
+        <button 
+          onClick={handleAuth} 
+          disabled={loading} 
+          className={`w-full text-white p-3 rounded-xl font-bold transition-colors ${
+            isSignUp ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
+          }`}
+        >
+          {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Login')}
+        </button>
+
+        <button 
+          onClick={() => setIsSignUp(!isSignUp)}
+          className="w-full text-sm text-gray-500 hover:underline"
+        >
+          {isSignUp ? 'Already have an account? Login' : 'Need an account? Sign Up'}
+        </button>
+      </div>
     </div>
   );
 };
@@ -139,7 +155,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      {/* App Header */}
       <header className="bg-white border-b sticky top-0 z-10 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black uppercase">
@@ -155,7 +170,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
       </header>
 
       <main className="p-6 max-w-2xl mx-auto space-y-6">
-        {/* Quick Action Grid */}
         <section className="grid grid-cols-2 gap-4">
           <button className="bg-white p-4 rounded-2xl border shadow-sm flex flex-col items-center gap-2 group active:scale-95 transition-all">
             <div className="w-12 h-12 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
@@ -171,7 +185,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
           </button>
         </section>
 
-        {/* Dynamic Services Timeline */}
         <div className="space-y-6">
           <h2 className="text-xl font-black flex items-center gap-2 px-2">
             <CalendarDays className="text-blue-600" /> Upcoming Services
@@ -214,10 +227,9 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
           ))}
         </div>
 
-        {/* Login section at the bottom of main */}
-        <section className="mt-12">
-            <ChurchHubLogin />
-        </section>
+        <div className="pt-8">
+          <ChurchHubLogin />
+        </div>
       </main>
     </div>
   );
