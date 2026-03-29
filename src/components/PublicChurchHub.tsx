@@ -75,7 +75,9 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
           .limit(1);
 
         if (error) throw error;
-        if (data?.[0]) setChurch(data[0]);
+        if (data && data.length > 0) {
+          setChurch(data[0]); 
+        }
 
         const response = await fetch('https://n8n.tenear.com/webhook/fetch-public-service-order', {
           method: 'POST',
