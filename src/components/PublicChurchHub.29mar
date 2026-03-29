@@ -25,6 +25,81 @@ interface ChurchService {
   service_activities: ServiceActivity[];
 }
 
+export const ChurchHubLogin = () => {
+    const [phone, setPhone] = useState('');
+    const [otp, setOtp] = useState('');
+    const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
+    const [loading, setLoading] = useState(false);
+
+    // Step 1: Send OTP to User's Phone
+    const handleSendOtp = async () => {
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithOtp({ phone });
+      if (error) alert(error.message);
+      else setStep('OTP');
+      setLoading(false);
+    };
+
+    // Step 2: Verify OTP and Login
+    const handleVerifyOtp = async () => {
+      setLoading(true);
+      const { data: { session }, error } = await supabase.auth.verifyOtp({
+        phone,
+        token: otp,
+        type: 'sms'
+      });
+    
+      if (error) alert("Invalid Code");
+      else console.log("Logged in!", session?.user);
+      setLoading(false);
+    };
+
+    return (
+      <div className="max-w-md mx-auto p-8 bg-white rounded-3xl shadow-xl">
+        <h2 className="text-2xl font-bold mb-6 text-center">Member Access</h2>
+      
+        {step === 'PHONE' ? (
+          <div className="space-y-4">
+            <input 
+              type="tel" 
+              placeholder="+254..." 
+              className="w-full p-4 border rounded-xl"
+              onChange={(e) => setPhone(e.target.value)}
+            />
+            <button 
+              onClick={handleSendOtp}
+              className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold"
+              disabled={loading}
+            >
+              {loading ? 'Sending...' : 'Get Access Code'}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-500 text-center">Enter the code sent to {phone}</p>
+            <input 
+              type="text" 
+              placeholder="6-digit code" 
+              className="w-full p-4 border rounded-xl text-center text-2xl tracking-widest"
+              onChange={(e) => setOtp(e.target.value)}
+            />
+            <button 
+              onClick={handleVerifyOtp}
+              className="w-full bg-green-600 text-white py-4 rounded-xl font-bold"
+              disabled={loading}
+            >
+              {loading ? 'Verifying...' : 'Login to Church Hub'}
+            </button>
+            <button onClick={() => setStep('PHONE')} className="w-full text-sm text-gray-400">
+              Change phone number
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+
 export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [church, setChurch] = useState<any>(null);
   const [services, setServices] = useState<ChurchService[]>([]);
@@ -95,6 +170,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
       </div>
     );
   }
+
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
