@@ -23,6 +23,7 @@ interface ChurchService {
 
 // --- COMPONENT 1: Login (n8n Webhook Based with Redirect) ---
 export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
+
   const navigate = useNavigate();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -70,8 +71,18 @@ export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
 
         // Only redirect standard members; Treasurers stay on the current dashboard
         if (result.user?.role === 'member') {
+
           alert("Login successful! Redirecting to your account...");
-          navigate(`/member-profile/${result.user.id}`);
+
+          const path = `/member-profile/${result.user.id}`;
+      
+          if (navigate) {
+            navigate(path);
+          } else {
+            // Fallback for when Router context is missing
+            window.location.href = path;
+          }
+
         } else {
           alert(`Logged in as ${result.user?.role || 'user'}. Use the dashboard cards to manage records.`);
         }
