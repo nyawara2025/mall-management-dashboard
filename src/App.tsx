@@ -32,6 +32,7 @@ import PaymentReceiptMessaging from './components/PaymentReceiptMessaging';
 import { useAuth } from './contexts/AuthContext';
 import { CustomerInquiries } from './components/CustomerInquiries';
 import { PublicChurchHub } from './components/PublicChurchHub';
+import { PublicSchoolHub } from './components/PublicSchoolHub';
 import { MemberLogin } from './components/MemberLogin';
 import SettingsPage from './pages/SettingsPage';
 import './index.css';
@@ -73,7 +74,7 @@ function AppContent() {
   const shopId = searchParams.get('shop_id');
   const [isDiscoveryModalOpen, setIsDiscoveryModalOpen] = useState(false);
   const isChurchPath = window.location.pathname.includes('/church');
-
+  const isSchoolPath = window.location.pathname.includes('/school');
   const handleSelectCandidate = (shopId: string) => {
     // Update the URL parameters without a page reload
     // We keep 'business_category=political' to ensure the Hub stays active
@@ -107,6 +108,14 @@ function AppContent() {
       <div className="min-h-screen bg-gray-50">
         {/* Import and use your new PublicChurchHub component here */}
         <PublicChurchHub shopId={Number(shopId) || 68} />
+      </div>
+    );
+  }
+
+  if (bizCategory === 'educational' || isSchoolPath) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <PublicSchoolHub shopId={Number(shopId) || 1} /> 
       </div>
     );
   }
@@ -217,7 +226,7 @@ function AppContent() {
                   />
                   <div className="pt-16">
                     {/* Create this component next */}
-                    <EducationalDashboard onViewChange={setCurrentView} /> 
+                    <EducationalDashboard shopId={69} /> 
                   </div>
                 </div>
               );

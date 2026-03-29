@@ -1,0 +1,81 @@
+import React, { useEffect, useState } from 'react';
+import { BookOpen, Calendar, Award, MessageSquare } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+
+interface Homework {
+  id: string;
+  subject: string;
+  title: string;
+  description: string;
+  due_date: string;
+}
+
+export const PublicSchoolHub = ({ shopId }: { shopId: number }) => {
+  const [school, setSchool] = useState<any>(null);
+  const [homework, setHomework] = useState<Homework[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchSchoolData() {
+      try {
+        // 1. Fetch School Profile
+        const { data: schoolData } = await supabase
+          .from('schools') // Ensure this table exists
+          .select('*')
+          .eq('shop_id', shopId)
+          .single();
+        
+        setSchool(schoolData);
+
+        // 2. Fetch Homework via n8n (similar to your church service fetch)
+        const response = await fetch('https://n8n.tenear.com/webhook/fetch-school-homework', {
+          method: 'POST',
+          body: JSON.stringify({ shop_id: shopId }),
+        });
+        const data = await response.json();
+        setHomework(data.homework || []);
+      } catch (error) {
+        console.error("Error loading hub:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchSchoolData();
+  }, [shopId]);
+
+  if (loading) return <div className="p-10 text-center">Loading School Hub...</div>;
+
+  return (
+    <div className="max-w-2xl mx-auto p-6 space-y-6 bg-white min-h-screen">
+      {/* Header */}
+      <header className="flex items-center gap-4 border-b pb-4">
+        <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
+          {school?.name?.charAt(0) || 'E'}
+        </div>
+        <div>
+          <h1 className="text-2xl font-black">{school?.name || "Education Hub"}</h1>
+          <p className="text-gray-500 text-sm">Student & Parent Portal</p>
+        </div>
+      </header>
+
+      {/* Homework Section */}
+      <section>
+        <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+          <BookOpen className="text-purple-600" /> Latest Homework
+        </h2>
+        <div className="space-y-3">
+          {homework.map((item) => (
+            <div key={item.id} className="p-4 border rounded-2xl hover:shadow-md transition-shadow">
+              <div className="flex justify-between items-start">
+                <span className="text-xs font-bold text-purple-600 uppercase tracking-wider">{item.subject}</span>
+                <span className="text-xs text-gray-400">{item.due_date}</span>
+              </div>
+              <h3 className="font-bold text-gray-800">{item.title}</h3>
+              <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+};

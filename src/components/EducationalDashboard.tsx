@@ -1,49 +1,61 @@
-import React from 'react';
-import { BookOpen, Users, Calendar, GraduationCap, ClipboardCheck, TrendingUp, LucideIcon, Milestone, Heart, UserPlus, Church } from 'lucide-react';
+import React, { useState, Dispatch, SetStateAction } from 'react';
+import { BookOpen, Send, Users, Milestone, Heart, UserPlus } from 'lucide-react';
 
-interface StatItem {
-  label: string;
-  value: string;
-  change: string;
-  changeType: 'increase' | 'decrease' | 'neutral';
-  icon: LucideIcon; // This tells TS to expect a component
-  color: string;
+// Update the interface to accept both props
+interface DashboardProps {
+  shopId: number;
+  onViewChange?: Dispatch<SetStateAction<string>>; // Added this line
 }
 
-export const EducationalDashboard = ({ onViewChange }: { onViewChange: (view: string) => void }) => {
-  const stats: StatItem[] = [
-  { label: 'Total Students', value: '2,100', change: '+3%', changeType: 'increase', icon: Users, color: 'text-blue-600' },
-  { label: 'Average GPA', value: '3.4', change: '+0.2', changeType: 'increase', icon: Milestone, color: 'text-green-600' },
-  { label: 'Attendance Rate', value: '94%', change: '+1%', changeType: 'increase', icon: Heart, color: 'text-indigo-600' },
-  { label: 'Staff/Faculty', value: '142', change: '0%', changeType: 'neutral', icon: UserPlus, color: 'text-orange-600' },
-  { label: 'Retention Rate', value: '88%', change: '-2%', changeType: 'decrease', icon: Church, color: 'text-red-600' }
-];
+export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
+  const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({ subject: '', title: '', description: '', due_date: '' });
+
+  const handlePostHomework = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    try {
+      // REPLACE with your actual n8n "Save Homework" Webhook URL
+      const response = await fetch('https://n8n.tenear.com/webhook/fetch-school-homework', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, shop_id: shopId }),
+      });
+
+      if (response.ok) {
+        alert("Homework posted & WhatsApp notifications triggered!");
+        setFormData({ subject: '', title: '', description: '', due_date: '' });
+      }
+    } catch (error) {
+      console.error("Failed to post homework:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        {stats.map((stat) => (
-          <div key={stat.label} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-500">{stat.label}</p>
-                <p className="text-2xl font-bold mt-1">{stat.value}</p>
-              </div>
-              <stat.icon className={`w-8 h-8 ${stat.color}`} />
-            </div>
-          </div>
-        ))}
-      </div>
+    <div className="p-6 max-w-7xl mx-auto space-y-8">
+      {/* Existing Stats Grid... */}
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="font-bold mb-4">Upcoming Academic Schedule</h3>
-          <p className="text-gray-500 text-sm italic">Connect your Supabase 'events' table here...</p>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+          <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
+            <BookOpen className="text-blue-600" /> Post Daily Homework
+          </h3>
+          <form onSubmit={handlePostHomework} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <input className="p-3 border rounded-xl" placeholder="Subject" value={formData.subject} onChange={e => setFormData({...formData, subject: e.target.value})} required />
+              <input type="date" className="p-3 border rounded-xl" value={formData.due_date} onChange={e => setFormData({...formData, due_date: e.target.value})} required />
+            </div>
+            <input className="w-full p-3 border rounded-xl" placeholder="Topic Title" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required />
+            <textarea className="w-full p-3 border rounded-xl" placeholder="Homework instructions..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+            <button disabled={loading} className="w-full bg-blue-600 text-white p-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-all">
+              <Send size={18} /> {loading ? 'Processing...' : 'Post & Notify Parents'}
+            </button>
+          </form>
         </div>
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="font-bold mb-4">Recent Student Registrations</h3>
-          <p className="text-gray-500 text-sm italic">Connect your Supabase 'students' table here...</p>
-        </div>
+        {/* Placeholder for Schedule/Registrations... */}
       </div>
     </div>
   );
