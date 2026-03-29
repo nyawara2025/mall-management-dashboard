@@ -32,24 +32,22 @@ export const ChurchHubLogin = () => {
     const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
     
     try {
-      if (isSignUp) {
-        const { error } = await (supabase as any).auth.signUp({
-          phone: formattedPhone,
+      const response = await fetch('https://n8n.tenear.com/webhook/church-user-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: phone,
           password: password,
-        });
-        if (error) throw error;
-        alert("Signup successful! You can now log in.");
-        setIsSignUp(false);
-      } else {
-        const { error } = await (supabase as any).auth.signInWithPassword({
-          phone: formattedPhone,
-          password: password,
-        });
-        if (error) throw error;
-        alert("Logged in successfully!");
-      }
+          isSignUp: isSignUp // Tell n8n whether to sign up or login
+        }),
+      });
+
+      if (!response.ok) throw new Error("Authentication failed via webhook");
+    
+      const result = await response.json();
+      alert(isSignUp ? "Account requested!" : "Logged in!");
     } catch (error: any) {
-      alert(error.message || "An error occurred during authentication");
+      alert(error.message);
     } finally {
       setLoading(false);
     }
