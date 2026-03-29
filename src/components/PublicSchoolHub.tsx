@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { BookOpen, CalendarDays, GraduationCap } from 'lucide-react';
 
-export const PublicSchoolHub = ({ shopId }: { shopId: number }) => {
+import { useParams } from 'react-router-dom'; // Add this import
+
+export const PublicSchoolHub = ({ shopId }: { shopId: number}) => {
+
+
   const [homework, setHomework] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 

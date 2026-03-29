@@ -34,6 +34,7 @@ import { CustomerInquiries } from './components/CustomerInquiries';
 import { PublicChurchHub } from './components/PublicChurchHub';
 import { PublicSchoolHub } from './components/PublicSchoolHub';
 import { MemberLogin } from './components/MemberLogin';
+import { PublicHubRouter } from './components/PublicHubRouter';
 import SettingsPage from './pages/SettingsPage';
 import './index.css';
 
@@ -100,6 +101,10 @@ function AppContent() {
       </>
     );
   }
+
+
+  <Route path="/hub/:id" element={<PublicHubRouter />} />
+
 
   // 2b. CHURCH VISITOR REDIRECT LOGIC (Public Access)
   // If a user arrives with the church category, show them the public hub
