@@ -45,21 +45,29 @@ export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
+      // Get the response text first to avoid "Unexpected end of JSON"
+      const responseText = await response.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        result = { message: responseText };
       }
 
-      const result = await response.json();
-      
+      if (!response.ok) {
+        // This will display "User already exists" if n8n sends that message
+        throw new Error(result.message || `Error: ${response.status}`);
+      }
+
       if (isSignUp) {
-        alert("Signup request sent! Please wait for approval or check your SMS.");
+        alert(result.message || "Signup request sent successfully!");
         setIsSignUp(false);
       } else {
         alert("Login successful!");
-        // Add logic here to store session if your n8n returns a token
       }
     } catch (error: any) {
-      alert(`Connection Error: ${error.message}`);
+      // This catch block now handles the "User already exists" alert
+      alert(error.message);
     } finally {
       setLoading(false);
     }
