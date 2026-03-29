@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { 
   Share2, MapPin, CalendarDays, BookOpen, 
   Heart
@@ -21,10 +20,8 @@ interface ChurchService {
   service_activities: ServiceActivity[];
 }
 
-// --- COMPONENT 1: Login (n8n Webhook Based with Redirect) ---
+// --- COMPONENT 1: Login (n8n Webhook Based) ---
 export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
-
-  const navigate = useNavigate();
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -32,6 +29,8 @@ export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
 
   const handleAuth = async () => {
     setLoading(true);
+    
+    // Ensure phone is formatted for your database/n8n logic
     const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
     
     try {
@@ -42,10 +41,11 @@ export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
           phone: formattedPhone,
           password: password,
           isSignUp: isSignUp,
-          shop_id: shopId
+          shop_id: shopId // Now included in the payload
         }),
       });
 
+      // Get the response text first to avoid "Unexpected end of JSON"
       const responseText = await response.text();
       let result;
       try {
@@ -55,41 +55,21 @@ export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
       }
 
       if (!response.ok) {
-        setLoading(false);
-        throw new Error(result.message || "Authentication failed");
+        // This will display "User already exists" if n8n sends that message
+        throw new Error(result.message || `Error: ${response.status}`);
       }
-
-      setLoading(false);
 
       if (isSignUp) {
         alert(result.message || "Signup request sent successfully!");
         setIsSignUp(false);
       } else {
-        // --- LOGIN SUCCESS & REDIRECTION LOGIC ---
-        // Store user session for the private profile page
-        localStorage.setItem('user_session', JSON.stringify(result.user));
-
-        // Only redirect standard members; Treasurers stay on the current dashboard
-        if (result.user?.role === 'member') {
-
-          alert("Login successful! Redirecting to your account...");
-
-          const path = `/member-profile/${result.user.id}`;
-      
-          if (navigate) {
-            navigate(path);
-          } else {
-            // Fallback for when Router context is missing
-            window.location.href = path;
-          }
-
-        } else {
-          alert(`Logged in as ${result.user?.role || 'user'}. Use the dashboard cards to manage records.`);
-        }
+        alert("Login successful!");
       }
     } catch (error: any) {
-      setLoading(false);
+      // This catch block now handles the "User already exists" alert
       alert(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -266,6 +246,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         </div>
 
         <div className="pt-8">
+          {/* We pass the activeShopId down as a prop here */}
           <ChurchHubLogin shopId={activeShopId} />
         </div>
       </main>
