@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Share2, MapPin, Phone, Calendar, Clock } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
 
 export function ChurchHub() {
   const [searchParams] = useSearchParams();
@@ -9,11 +8,7 @@ export function ChurchHub() {
   
   const [churchData, setChurchData] = useState<any>(null);
   const [services, setServices] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'PHONE' | 'OTP'>('PHONE');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function initHub() {
@@ -53,29 +48,6 @@ export function ChurchHub() {
     }
     initHub();
   }, [shopId]);
-
-  const handleVerifyOtp = async () => {
-    setIsLoading(true);
-
-    try {
-      const { error } = await (supabase as any).auth.verifyOtp({
-      phone,
-      token: otp,
-      type: 'sms'
-    });
-
-    if (error) {
-      alert("Invalid Code");
-    } else {
-      console.log("Success!");
-    }
-  } catch (err) {
-      console.error(err);
-  } finally {
-    setIsLoading(false);
-  }
-};
-
 
   const handleAction = async (type: string, metadata?: any) => {
     // Log interaction to n8n (similar to your track_campaign_view)
