@@ -20,7 +20,7 @@ interface ChurchService {
   service_activities: ServiceActivity[];
 }
 
-// --- COMPONENT 1: Login (n8n Webhook Based) ---
+// --- COMPONENT 1: Login (Phone + Password Based) ---
 export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -29,8 +29,6 @@ export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
 
   const handleAuth = async () => {
     setLoading(true);
-    
-    // Ensure phone is formatted for your database/n8n logic
     const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
     
     try {
@@ -38,17 +36,15 @@ export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: formattedPhone,
+          phone: phone,
           password: password,
           isSignUp: isSignUp,
-          shop_id: shopId // Now included in the payload
+          shop_id: shopId
         }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Server responded with ${response.status}`);
-      }
-
+      if (!response.ok) throw new Error("Authentication failed via webhook");
+    
       const result = await response.json();
       
       if (isSignUp) {
@@ -65,6 +61,7 @@ export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
     }
   };
 
+
   return (
     <div className="max-w-md mx-auto p-8 bg-white rounded-3xl shadow-xl">
       <h2 className="text-xl font-bold mb-4">
@@ -72,14 +69,14 @@ export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
       </h2>
       <div className="space-y-4">
         <input 
-          className="w-full border p-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" 
-          placeholder="Phone Number (e.g. 254...)" 
+          className="w-full border p-3 rounded-xl" 
+          placeholder="Phone Number (e.g. +254...)" 
           value={phone} 
           onChange={(e) => setPhone(e.target.value)} 
         />
         <input 
           type="password"
-          className="w-full border p-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" 
+          className="w-full border p-3 rounded-xl" 
           placeholder="Enter your password"
           value={password}
           onChange={(e) => setPassword(e.target.value)} 
@@ -88,16 +85,16 @@ export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
         <button 
           onClick={handleAuth} 
           disabled={loading} 
-          className={`w-full text-white p-3 rounded-xl font-bold transition-all active:scale-95 ${
+          className={`w-full text-white p-3 rounded-xl font-bold transition-colors ${
             isSignUp ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
-          } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          }`}
         >
           {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Login')}
         </button>
 
         <button 
           onClick={() => setIsSignUp(!isSignUp)}
-          className="w-full text-sm text-gray-500 hover:underline text-center"
+          className="w-full text-sm text-gray-500 hover:underline"
         >
           {isSignUp ? 'Already have an account? Login' : 'Need an account? Sign Up'}
         </button>
@@ -238,8 +235,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         </div>
 
         <div className="pt-8">
-          {/* We pass the activeShopId down as a prop here */}
-          <ChurchHubLogin shopId={activeShopId} />
+          <ChurchHubLogin />
         </div>
       </main>
     </div>
