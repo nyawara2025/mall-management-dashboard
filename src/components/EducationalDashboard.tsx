@@ -17,7 +17,7 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
     
     try {
       // REPLACE with your actual n8n "Save Homework" Webhook URL
-      const response = await fetch('https://n8n.tenear.com/webhook/fetch-school-homework', {
+      const response = await fetch('https://n8n.tenear.com/webhook/upload-school-homework', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...formData, shop_id: shopId }),
