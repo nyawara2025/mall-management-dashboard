@@ -18,7 +18,8 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'), 
         // Your new independent Voter App
         voter: resolve(__dirname, 'voter.html'),
-        church: resolve(__dirname, 'church.html') 
+        church: resolve(__dirname, 'church.html'),
+        edu: resolve(__dirname, 'edu.html')
       }
     }
   }
