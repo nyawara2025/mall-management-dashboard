@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { BookOpen, CalendarDays, GraduationCap } from 'lucide-react';
 
-export const PublicSchoolHub = ({ shopId }: { shopId: number }) => {
+import { useParams } from 'react-router-dom'; // Add this import
+
+export const PublicSchoolHub = ({ shopId }: { shopId: number}) => {
+
+
   const [homework, setHomework] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,29 +46,22 @@ export const PublicSchoolHub = ({ shopId }: { shopId: number }) => {
           <BookOpen className="text-blue-600" /> Latest Assignments
         </h2>
 
-        {homework.map((item, idx) => (
-          <div key={idx} className="bg-white p-5 rounded-3xl">
+        {homework.length > 0 ? homework.map((item, idx) => (
+          <div key={idx} className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 hover:scale-[1.02] transition-transform">
             <div className="flex justify-between items-start mb-3">
-              <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-black uppercase">
+              <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-[10px] font-black uppercase tracking-tighter">
                 {item.subject}
               </span>
               <div className="flex items-center gap-1 text-gray-400 text-xs">
                 <CalendarDays size={14} /> Due: {item.due_date}
               </div>
             </div>
-            <h3 className="font-bold text-gray-900 mb-3">{item.title}</h3>
-    
-            {/* Map through the specific activities for this subject */}
-            <div className="space-y-2 border-t pt-3">
-              {item.activities?.map((act: any, i: number) => (
-                <div key={i} className="text-sm">
-                  <p className="font-bold text-blue-600">{act.activity_name}</p>
-                  <p className="text-gray-500 text-xs">{act.description}</p>
-                </div>
-              ))}
-            </div>
+            <h3 className="font-bold text-gray-900 leading-tight">{item.title}</h3>
+            <p className="text-gray-600 text-sm mt-2 line-clamp-3">{item.description}</p>
           </div>
-        ))}
+        )) : (
+          <p className="text-center text-gray-400 py-10">No homework posted yet.</p>
+        )}
       </div>
     </div>
   );
