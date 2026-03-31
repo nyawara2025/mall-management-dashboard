@@ -97,6 +97,7 @@ export const PublicSchoolHub = ({ shopId }: { shopId: number }) => {
                   
                   <div className="pt-4 border-t border-slate-50 mt-4">
                     <p className="font-bold text-blue-600 text-sm mb-1">{item.detail}</p>
+                    <p className="text-slate-500 text-sm leading-relaxed mb-4">{item.pages}</p>
                     <p className="text-slate-500 text-sm leading-relaxed mb-4">{item.description}</p>
                     
                     {/* Attachment Link */}
