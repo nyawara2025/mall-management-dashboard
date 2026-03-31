@@ -6,7 +6,9 @@ import {
   Megaphone, 
   FileText, 
   ExternalLink,
-  Loader2
+  Loader2,
+  Lock,
+  LogOut
 } from 'lucide-react';
 
 interface SchoolData {
@@ -18,18 +20,71 @@ interface SchoolData {
 export const PublicSchoolHub = ({ shopId }: { shopId: number }) => {
   const [data, setData] = useState<SchoolData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('parent_token'));
+  
+  // Login Form State
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authError, setAuthError] = useState('');
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setAuthError('');
+
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/authenticate-parent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, shop_id: shopId }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.token) {
+        localStorage.setItem('parent_token', result.token);
+        setIsAuthenticated(true);
+      } else {
+        setAuthError(result.message || 'Invalid credentials. Please try again.');
+      }
+    } catch (err) {
+      setAuthError('Connection error. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('parent_token');
+    setIsAuthenticated(false);
+    setData(null);
+  };
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
     async function fetchData() {
+      setLoading(true);
       try {
+        const token = localStorage.getItem('parent_token');
         const response = await fetch('https://n8n.tenear.com/webhook/fetch-school-data', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` 
+          },
           body: JSON.stringify({ shop_id: shopId }),
         });
+
+        if (response.status === 401) {
+          handleLogout();
+          return;
+        }
+
         const result = await response.json();
-        
-        // n8n returns an array [item], so we take index 0
         const finalData = Array.isArray(result) ? result[0] : result;
         setData(finalData);
       } catch (err) {
@@ -39,8 +94,51 @@ export const PublicSchoolHub = ({ shopId }: { shopId: number }) => {
       }
     }
     fetchData();
-  }, [shopId]);
+  }, [shopId, isAuthenticated]);
 
+  // LOGIN VIEW
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 border border-slate-100">
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-6 mx-auto">
+            <Lock size={30} />
+          </div>
+          <h2 className="text-2xl font-black text-center text-slate-900 mb-2">Parent Portal</h2>
+          <p className="text-slate-500 text-center text-sm mb-8">Please sign in to access school records.</p>
+          
+          <form onSubmit={handleLogin} className="space-y-4">
+            <input 
+              type="email" 
+              placeholder="Email Address" 
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+            <input 
+              type="password" 
+              placeholder="Password" 
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            {authError && <p className="text-red-500 text-xs font-bold text-center">{authError}</p>}
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="animate-spin" size={20} /> : 'Access Portal'}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // LOADING VIEW
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-400">
@@ -57,7 +155,13 @@ export const PublicSchoolHub = ({ shopId }: { shopId: number }) => {
       <div className="max-w-6xl mx-auto">
         
         {/* HERO HEADER */}
-        <header className="text-center mb-12">
+        <header className="text-center mb-12 relative">
+          <button 
+            onClick={handleLogout}
+            className="absolute right-0 top-0 p-3 text-slate-400 hover:text-red-500 transition-colors flex items-center gap-2 text-xs font-bold"
+          >
+            <LogOut size={18} /> Logout
+          </button>
           <div className="w-20 h-20 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center text-white shadow-xl shadow-blue-200 mb-6">
             <GraduationCap size={40} />
           </div>
@@ -100,7 +204,6 @@ export const PublicSchoolHub = ({ shopId }: { shopId: number }) => {
                     <p className="text-slate-500 text-sm leading-relaxed mb-4">{item.pages}</p>
                     <p className="text-slate-500 text-sm leading-relaxed mb-4">{item.description}</p>
                     
-                    {/* Attachment Link */}
                     {item.document_url && (
                       <a 
                         href={item.document_url} 
@@ -140,10 +243,9 @@ export const PublicSchoolHub = ({ shopId }: { shopId: number }) => {
                     </h3>
                     
                     <p className="text-slate-600 text-sm leading-relaxed mb-4">
-                      {notice.content}
+                      {notice.description}
                     </p>
 
-                    {/* Bulletin Image / Attachment */}
                     {notice.document_url && (
                       <a 
                         href={notice.document_url} 
