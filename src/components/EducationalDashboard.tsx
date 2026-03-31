@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { BookOpen, Send, Plus, Trash2, LayoutGrid, Type } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { BookOpen, Send, Plus, Trash2, LayoutGrid, Type, Megaphone, Bell, Users, CheckCircle, Paperclip, Image as ImageIcon, X } from 'lucide-react';
 
 interface Activity {
   activity_name: string;
@@ -14,170 +14,219 @@ interface SubjectEntry {
 
 export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
   const [loading, setLoading] = useState(false);
+  const [bulletinLoading, setBulletinLoading] = useState(false);
   const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
   
-  // High-level state: Array of Subjects
+  // --- Homework State ---
   const [subjects, setSubjects] = useState<SubjectEntry[]>([
     { subject: '', title: '', activities: [{ activity_name: '', description: '' }] }
   ]);
 
-  // --- Subject Management ---
-  const addSubject = () => {
-    setSubjects([...subjects, { subject: '', title: '', activities: [{ activity_name: '', description: '' }] }]);
+  // --- Bulletin State (Enhanced with Files) ---
+  const [bulletin, setBulletin] = useState({ title: '', content: '' });
+  const [bulletinFile, setBulletinFile] = useState<{name: string, data: string} | null>(null);
+  const [bulletinImage, setBulletinImage] = useState<{name: string, data: string} | null>(null);
+
+  // Helper to convert files for the webhook
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = error => reject(error);
+    });
   };
 
-  const removeSubject = (sIdx: number) => {
-    setSubjects(subjects.filter((_, i) => i !== sIdx));
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'file' | 'image') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const base64 = await convertToBase64(file);
+    if (type === 'file') setBulletinFile({ name: file.name, data: base64 });
+    else setBulletinImage({ name: file.name, data: base64 });
   };
 
+  // --- Subject & Activity Management (Keep existing functions) ---
+  const addSubject = () => setSubjects([...subjects, { subject: '', title: '', activities: [{ activity_name: '', description: '' }] }]);
+  const removeSubject = (sIdx: number) => setSubjects(subjects.filter((_, i) => i !== sIdx));
   const updateSubject = (sIdx: number, field: keyof Omit<SubjectEntry, 'activities'>, value: string) => {
     const newSubjects = [...subjects];
     newSubjects[sIdx][field] = value;
     setSubjects(newSubjects);
   };
-
-  // --- Activity Management (Nested) ---
   const addActivity = (sIdx: number) => {
     const newSubjects = [...subjects];
     newSubjects[sIdx].activities.push({ activity_name: '', description: '' });
     setSubjects(newSubjects);
   };
-
   const updateActivity = (sIdx: number, aIdx: number, field: keyof Activity, value: string) => {
     const newSubjects = [...subjects];
     newSubjects[sIdx].activities[aIdx][field] = value;
     setSubjects(newSubjects);
   };
-
   const removeActivity = (sIdx: number, aIdx: number) => {
     const newSubjects = [...subjects];
     newSubjects[sIdx].activities = newSubjects[sIdx].activities.filter((_, i) => i !== aIdx);
     setSubjects(newSubjects);
   };
 
+  // --- Submit Handlers ---
   const handlePostHomework = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
     try {
       const response = await fetch('https://n8n.tenear.com/webhook/upload-school-homework', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          due_date: dueDate,
-          shop_id: shopId,
-          payload: subjects // Sending the entire nested structure
-        }),
+        body: JSON.stringify({ due_date: dueDate, shop_id: shopId, payload: subjects }),
       });
-
       if (response.ok) {
-        alert("Daily Agenda posted & WhatsApp notifications triggered!");
+        alert("Daily Agenda posted!");
         setSubjects([{ subject: '', title: '', activities: [{ activity_name: '', description: '' }] }]);
       }
-    } catch (error) {
-      console.error("Failed to post homework:", error);
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) { console.error(error); } finally { setLoading(false); }
+  };
+
+  const handlePostBulletin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBulletinLoading(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/upload-school-bulletin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: shopId,
+          title: bulletin.title,
+          content: bulletin.content,
+          attachment_doc: bulletinFile, // Base64 Document
+          attachment_img: bulletinImage, // Base64 Image
+          date_posted: new Date().toISOString()
+        }),
+      });
+      if (response.ok) {
+        alert("Bulletin with attachments posted!");
+        setBulletin({ title: '', content: '' });
+        setBulletinFile(null);
+        setBulletinImage(null);
+      }
+    } catch (error) { console.error(error); } finally { setBulletinLoading(false); }
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h3 className="font-black text-2xl text-gray-800 flex items-center gap-3">
-              <BookOpen className="text-blue-600" size={28} /> Post Daily Agenda
-            </h3>
-            <p className="text-gray-500">Combine all subjects into one notification</p>
-          </div>
-          <input 
-            type="date" 
-            className="p-3 border-2 border-blue-50 rounded-2xl font-bold text-blue-600 focus:outline-none focus:border-blue-400" 
-            value={dueDate} 
-            onChange={e => setDueDate(e.target.value)} 
-          />
-        </div>
+    <div className="p-6 max-w-7xl mx-auto space-y-8 bg-gray-50/50 min-h-screen">
+ 
 
-        <form onSubmit={handlePostHomework} className="space-y-10">
-          {subjects.map((s, sIdx) => (
-            <div key={sIdx} className="relative p-6 rounded-2xl border-2 border-gray-50 bg-white shadow-sm transition-all hover:border-blue-100">
-              {/* Subject Header */}
-              <div className="flex justify-between items-start mb-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mr-4">
-                  <div className="relative">
-                    <LayoutGrid className="absolute left-3 top-3 text-gray-400" size={18} />
-                    <input 
-                      className="w-full pl-10 p-3 bg-gray-50 border-none rounded-xl font-bold" 
-                      placeholder="Subject (e.g. Science)" 
-                      value={s.subject} 
-                      onChange={e => updateSubject(sIdx, 'subject', e.target.value)}
-                      required 
-                    />
-                  </div>
-                  <div className="relative">
-                    <Type className="absolute left-3 top-3 text-gray-400" size={18} />
-                    <input 
-                      className="w-full pl-10 p-3 bg-gray-50 border-none rounded-xl" 
-                      placeholder="Topic (e.g. Photosynthesis)" 
-                      value={s.title} 
-                      onChange={e => updateSubject(sIdx, 'title', e.target.value)}
-                      required 
-                    />
-                  </div>
-                </div>
-                {subjects.length > 1 && (
-                  <button type="button" onClick={() => removeSubject(sIdx)} className="p-2 text-red-400 hover:bg-red-50 rounded-lg">
-                    <Trash2 size={20} />
-                  </button>
-                )}
-              </div>
-
-              {/* Nested Activities */}
-              <div className="ml-4 space-y-3 border-l-4 border-blue-50 pl-6 py-2">
-                {s.activities.map((a, aIdx) => (
-                  <div key={aIdx} className="group relative bg-blue-50/30 p-4 rounded-xl">
-                    <div className="flex gap-3 mb-2">
-                      <input 
-                        className="flex-1 p-2 bg-white border rounded-lg text-sm font-bold" 
-                        placeholder="Item (e.g. Lab Report)" 
-                        value={a.activity_name} 
-                        onChange={e => updateActivity(sIdx, aIdx, 'activity_name', e.target.value)}
-                        required 
-                      />
-                      {s.activities.length > 1 && (
-                        <button type="button" onClick={() => removeActivity(sIdx, aIdx)} className="text-gray-300 hover:text-red-500">
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                    </div>
-                    <textarea 
-                      className="w-full p-2 bg-white border rounded-lg text-sm text-gray-600" 
-                      placeholder="Specific details..." 
-                      rows={2}
-                      value={a.description} 
-                      onChange={e => updateActivity(sIdx, aIdx, 'description', e.target.value)}
-                      required
-                    />
-                  </div>
-                ))}
-                <button type="button" onClick={() => addActivity(sIdx)} className="mt-2 text-blue-600 text-xs font-bold uppercase tracking-wider flex items-center gap-1 hover:text-blue-800">
-                  <Plus size={14} /> Add Task to {s.subject || 'Subject'}
-                </button>
-              </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Homework Card (Existing) */}
+        <div className="lg:col-span-2 bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h3 className="font-black text-2xl text-gray-800 flex items-center gap-3">
+                <BookOpen className="text-blue-600" size={28} /> Enter today's homework
+              </h3>
+              <p className="text-gray-500">Fill the subject details below</p>
             </div>
-          ))}
+            <input type="date" className="p-3 border-2 border-blue-50 rounded-2xl font-bold text-blue-600" value={dueDate} onChange={e => setDueDate(e.target.value)} />
+          </div>
 
-          <div className="flex flex-col gap-4 pt-6 border-t-2 border-dashed border-gray-100">
-            <button type="button" onClick={addSubject} className="w-full py-4 border-2 border-blue-600 border-dashed rounded-2xl text-blue-600 font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
+          <form onSubmit={handlePostHomework} className="space-y-6">
+            {subjects.map((s, sIdx) => (
+              <div key={sIdx} className="relative p-6 rounded-2xl border-2 border-gray-50 bg-white shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full mr-4">
+                    <div className="relative">
+                      <LayoutGrid className="absolute left-3 top-3 text-gray-400" size={18} />
+                      <input className="w-full pl-10 p-3 bg-gray-50 border-none rounded-xl font-bold" placeholder="Subject" value={s.subject} onChange={e => updateSubject(sIdx, 'subject', e.target.value)} required />
+                    </div>
+                    <div className="relative">
+                      <Type className="absolute left-3 top-3 text-gray-400" size={18} />
+                      <input className="w-full pl-10 p-3 bg-gray-50 border-none rounded-xl" placeholder="Topic" value={s.title} onChange={e => updateSubject(sIdx, 'title', e.target.value)} required />
+                    </div>
+                  </div>
+                  {subjects.length > 1 && (
+                    <button type="button" onClick={() => removeSubject(sIdx)} className="p-2 text-red-400"><Trash2 size={20} /></button>
+                  )}
+                </div>
+
+                <div className="ml-4 space-y-3 border-l-4 border-blue-50 pl-6 py-2">
+                  {s.activities.map((a, aIdx) => (
+                    <div key={aIdx} className="group relative bg-blue-50/30 p-4 rounded-xl">
+                      <input className="w-full p-2 mb-2 bg-white border rounded-lg text-sm font-bold" placeholder="Item (e.g. Textbook)" value={a.activity_name} onChange={e => updateActivity(sIdx, aIdx, 'activity_name', e.target.value)} required />
+                      <textarea className="w-full p-2 bg-white border rounded-lg text-sm text-gray-600" placeholder="Specific details..." rows={2} value={a.description} onChange={e => updateActivity(sIdx, aIdx, 'description', e.target.value)} required />
+                    </div>
+                  ))}
+                  <button type="button" onClick={() => addActivity(sIdx)} className="mt-2 text-blue-600 text-xs font-bold uppercase flex items-center gap-1"><Plus size={14} /> Add Task</button>
+                </div>
+              </div>
+            ))}
+            <button type="button" onClick={addSubject} className="w-full py-3 border-2 border-blue-600 border-dashed rounded-2xl text-blue-600 font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
               <Plus size={20} /> Add Another Subject
             </button>
-            
-            <button disabled={loading} className="w-full bg-blue-600 text-white p-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all disabled:opacity-50">
-              <Send size={24} /> {loading ? 'Publishing Everything...' : 'Post Daily Agenda & Notify'}
+            <button disabled={loading} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-blue-700 transition-all disabled:opacity-50">
+              {loading ? 'Posting...' : <><Send size={20} /> Post Daily Agenda</>}
             </button>
+          </form>
+        </div>
+
+        {/* Bulletin Card with File Uploads */}
+        <div className="lg:col-span-1 bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit">
+          <div className="mb-8">
+            <h3 className="font-black text-2xl text-gray-800 flex items-center gap-3">
+              <Megaphone className="text-purple-600" size={28} /> Bulletin
+            </h3>
+            <p className="text-gray-500">Send updates to all parents</p>
           </div>
-        </form>
+
+          <form onSubmit={handlePostBulletin} className="space-y-5">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Bulletin Title</label>
+              <input className="w-full p-3 bg-gray-50 border-none rounded-xl font-bold" placeholder="e.g. Sports Day Update" value={bulletin.title} onChange={e => setBulletin({...bulletin, title: e.target.value})} required />
+            </div>
+            
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Message Content</label>
+              <textarea className="w-full p-3 bg-gray-50 border-none rounded-xl text-gray-700" placeholder="Write your announcement here..." rows={6} value={bulletin.content} onChange={e => setBulletin({...bulletin, content: e.target.value})} required />
+            </div>
+
+            {/* File Upload Section */}
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 transition-colors">
+                <Paperclip size={20} className="text-gray-400 mb-1" />
+                <span className="text-[10px] font-bold text-gray-500">Add Document</span>
+                <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'file')} accept=".pdf,.doc,.docx" />
+              </label>
+              <label className="flex flex-col items-center justify-center p-3 border-2 border-dashed border-gray-100 rounded-2xl cursor-pointer hover:bg-gray-50 transition-colors">
+                <ImageIcon size={20} className="text-gray-400 mb-1" />
+                <span className="text-[10px] font-bold text-gray-500">Add Image</span>
+                <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, 'image')} accept="image/*" />
+              </label>
+            </div>
+
+            {/* Selected Files Preview */}
+            {(bulletinFile || bulletinImage) && (
+              <div className="space-y-2 p-3 bg-purple-50 rounded-xl">
+                {bulletinFile && (
+                  <div className="flex justify-between items-center text-[11px] font-bold text-purple-700">
+                    <span className="truncate max-w-[150px]">📄 {bulletinFile.name}</span>
+                    <button type="button" onClick={() => setBulletinFile(null)}><X size={14}/></button>
+                  </div>
+                )}
+                {bulletinImage && (
+                  <div className="flex justify-between items-center text-[11px] font-bold text-purple-700">
+                    <span className="truncate max-w-[150px]">🖼️ {bulletinImage.name}</span>
+                    <button type="button" onClick={() => setBulletinImage(null)}><X size={14}/></button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <button disabled={bulletinLoading} className="w-full bg-purple-600 text-white p-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-purple-700 transition-all disabled:opacity-50 mt-4">
+              {bulletinLoading ? 'Sending...' : <><Bell size={20} /> Post Bulletin</>}
+            </button>
+          </form>
+        </div>
+
       </div>
     </div>
   );
