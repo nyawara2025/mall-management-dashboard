@@ -22,7 +22,7 @@ export const PublicSchoolHub = ({ shopId }: { shopId: number }) => {
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await fetch('https://n8n.tenear.com/webhook/fetch_school_data', {
+        const response = await fetch('https://n8n.tenear.com/webhook/fetch-school-data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ shop_id: shopId }),
