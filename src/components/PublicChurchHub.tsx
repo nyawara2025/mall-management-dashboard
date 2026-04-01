@@ -33,7 +33,7 @@ interface ChurchService {
   service_activities: ServiceActivity[];
 }
 
-// --- COMPONENT 1: Login (Updated to pass Member Data) ---
+// --- COMPONENT 1: Login ---
 export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onLoginSuccess: (data: MemberData) => void }) => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -66,7 +66,6 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
         alert(result.message || "Signup request sent successfully!");
         setIsSignUp(false);
       } else {
-        // n8n returns an array or single object; we take the first item
         const member = Array.isArray(result) ? result[0] : result;
         onLoginSuccess(member);
       }
@@ -133,7 +132,7 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
   );
 };
 
-// --- COMPONENT 2: Main Hub (Refactored Layout) ---
+// --- COMPONENT 2: Main Hub ---
 export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [church, setChurch] = useState<any>(null);
   const [services, setServices] = useState<ChurchService[]>([]);
@@ -149,14 +148,21 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
     if (savedAuth === 'true' && savedUser) {
       setIsAuthenticated(true);
-      setUserData(JSON.parse(savedUser));
+      try {
+        setUserData(JSON.parse(savedUser));
+      } catch (e) {
+        console.error("Error parsing saved user", e);
+      }
     }
 
     async function fetchHubData() {
       setLoading(true);
       try {
-        const { data } = await supabase.from('churches').select('*').eq('shop_id', activeShopId);
-        if (data?.[0]) setChurch(data[0]);
+        // FIX: Added safety check for data existence
+        const { data, error } = await supabase.from('churches').select('*').eq('shop_id', activeShopId);
+        if (data && data.length > 0) {
+          setChurch(data[0]);
+        }
 
         const response = await fetch('https://n8n.tenear.com/webhook/fetch-public-service-order', {
           method: 'POST',
@@ -192,22 +198,25 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
     setUserData(null);
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-blue-600 animate-pulse">Initializing Hub...</div>;
-  if (!church) return <div className="p-10 text-center">Church Profile Not Found</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-blue-600">Loading Hub...</div>;
+  
+  // Login Guard
   if (!isAuthenticated) return <ChurchHubLogin shopId={activeShopId} onLoginSuccess={handleLoginSuccess} />;
+
+  // Profile Guard (In case supabase query failed)
+  if (!church) return <div className="p-10 text-center font-bold">Church Profile Not Found. Please check shop_id {activeShopId}</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans text-gray-900">
-      {/* APP HEADER */}
       <header className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-30 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shadow-sm">
-            {church.church_name?.charAt(0)}
+            {church.church_name?.charAt(0) || 'C'}
           </div>
           <div>
             <h1 className="font-bold text-sm leading-tight">{church.church_name}</h1>
             <p className="text-[10px] text-gray-400 flex items-center gap-1 uppercase font-bold">
-              <MapPin size={10} className="text-blue-500" /> {church.address || "Langata"}
+              <MapPin size={10} className="text-blue-500" /> {church.address || "Location unavailable"}
             </p>
           </div>
         </div>
@@ -219,18 +228,18 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
       <main className="max-w-6xl mx-auto p-4 md:p-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* LEFT: MEMBER PROFILE CARD (4/12) */}
+          {/* LEFT: MEMBER PROFILE CARD */}
           <aside className="lg:col-span-4 lg:sticky lg:top-24 space-y-6">
             <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100">
               <div className="flex flex-col items-center text-center border-b border-gray-50 pb-6">
                 <div className="w-24 h-24 bg-gradient-to-br from-blue-700 to-blue-500 rounded-[2rem] flex items-center justify-center text-white text-3xl font-black mb-4 shadow-xl shadow-blue-100">
-                  {userData?.first_name[0]}{userData?.last_name[0]}
+                  {userData?.first_name?.charAt(0)}{userData?.last_name?.charAt(0)}
                 </div>
                 <h2 className="text-2xl font-black text-gray-800 leading-tight">
                   {userData?.first_name} {userData?.last_name}
                 </h2>
                 <div className="mt-2 px-4 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded-full tracking-widest border border-blue-100">
-                  {userData?.role}
+                  {userData?.role || 'Member'}
                 </div>
               </div>
 
@@ -239,37 +248,27 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                   <div className="p-2.5 bg-white rounded-xl text-blue-600 shadow-sm"><ShieldCheck size={20}/></div>
                   <div>
                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Zone Affiliation</p>
-                    <p className="text-md font-bold text-gray-700">{userData?.zone_name}</p>
+                    <p className="text-md font-bold text-gray-700">{userData?.zone_name || 'Not assigned'}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
                   <div className="p-2.5 bg-white rounded-xl text-blue-600 shadow-sm"><Users size={20}/></div>
                   <div>
                     <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Current Ministry</p>
-                    <p className="text-md font-bold text-gray-700">{userData?.ministry_name}</p>
+                    <p className="text-md font-bold text-gray-700">{userData?.ministry_name || 'Not assigned'}</p>
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* QUICK ACTIONS BOX */}
-            <div className="bg-blue-600 rounded-[2rem] p-6 text-white shadow-lg shadow-blue-100">
-              <h4 className="font-bold mb-1">Need help?</h4>
-              <p className="text-xs text-blue-100 opacity-80 mb-4">Contact your zone leader or church admin.</p>
-              <button className="w-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white py-3 rounded-xl font-bold text-sm transition-all">
-                Contact Office
-              </button>
-            </div>
           </aside>
 
-          {/* RIGHT: SERVICE ORDERS (8/12) */}
+          {/* RIGHT: SERVICE ORDERS */}
           <section className="lg:col-span-8 space-y-6">
             <div className="flex items-center justify-between mb-4 px-2">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-600 rounded-lg text-white shadow-md shadow-blue-100"><CalendarDays size={20} /></div>
                   <h2 className="text-2xl font-black text-gray-900 tracking-tight">Order of Service</h2>
                 </div>
-                <span className="text-xs font-bold text-gray-400 uppercase tracking-widest bg-white px-3 py-1 rounded-full border">Live Updates</span>
             </div>
 
             {services.length > 0 ? (
@@ -297,11 +296,9 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
               ))
             ) : (
               <div className="bg-white rounded-[2rem] p-16 text-center border-2 border-dashed border-gray-200">
-                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <BookOpen size={32} className="text-gray-300" />
-                </div>
+                <BookOpen size={32} className="text-gray-300 mx-auto mb-4" />
                 <h3 className="text-lg font-bold text-gray-800">No Services Found</h3>
-                <p className="text-gray-400 text-sm mt-1 max-w-xs mx-auto">The church admin hasn't published the service order for this week yet.</p>
+                <p className="text-gray-400 text-sm mt-1">The church admin hasn't published the service order for this week yet.</p>
               </div>
             )}
           </section>
