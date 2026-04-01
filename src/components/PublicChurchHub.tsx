@@ -48,8 +48,16 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         });
         if (response.ok) {
           const n8nData = await response.json();
-          if (n8nData?.services) setServices(n8nData.services);
+  
+          // FIX: Access the first element of the array before grabbing .services
+          const result = Array.isArray(n8nData) ? n8nData[0] : n8nData;
+  
+          if (result?.services) {
+            setServices(result.services);
+          }
         }
+
+
       } catch (e) {
         console.error("Fetch error", e);
       } finally {
