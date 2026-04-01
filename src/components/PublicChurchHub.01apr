@@ -149,7 +149,9 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
     if (savedAuth === 'true' && savedUser) {
       setIsAuthenticated(true);
       try {
-        setUserData(JSON.parse(savedUser));
+        const parsedUser = JSON.parse(savedUser);
+
+        setUserData(Array.isArray(parsedUser) ? parsedUser[0] : parsedUser);
       } catch (e) {
         console.error("Error parsing saved user", e);
       }
@@ -184,7 +186,9 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
     fetchHubData();
   }, [activeShopId]);
 
-  const handleLoginSuccess = (member: MemberData) => {
+  const handleLoginSuccess = (result: any) => {
+    const member = Array.isArray(result) ? result[0] : result;
+
     localStorage.setItem(`church_auth_${activeShopId}`, 'true');
     localStorage.setItem(`church_user_${activeShopId}`, JSON.stringify(member));
     setUserData(member);
