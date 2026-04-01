@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { BookOpen, Send, Plus, Trash2, LayoutGrid, Type, Megaphone, Bell, Users, CheckCircle, Clock, Paperclip, Image as ImageIcon, X } from 'lucide-react';
+import { BookOpen, Send, Plus, Trash2, LayoutGrid, Type, Megaphone, Bell, Users, CheckCircle, Clock, Paperclip, Bus, MessageCircle, CreditCard, RefreshCw, Image as ImageIcon, X } from 'lucide-react';
 
 interface Activity {
   activity_name: string;
@@ -143,6 +143,37 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
     } catch (error) { console.error(error); } finally { setBulletinLoading(false); }
   };
 
+  const handleFetchFees = async () => {
+    setLoading(true);
+    try {
+      // Replace with your actual fees fetching logic/webhook
+      const response = await fetch('https://n8n.tenear.com/webhook/school-fees-management', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: shopId }),
+      });
+      if (response.ok) alert("Fees data refreshed!");
+    } catch (error) {
+      console.error("Failed to fetch fees:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const triggerWhatsAppAlert = async (type: string) => {
+    try {
+      // Replace with your actual WhatsApp alert logic/webhook
+      const response = await fetch('https://n8n.tenear.com/webhook/school-whatsappalert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: shopId, alert_type: type }),
+      });
+      if (response.ok) alert(`WhatsApp ${type} alert sent!`);
+    } catch (error) {
+      console.error("Failed to send alert:", error);
+    }
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8 bg-gray-50/50 min-h-screen">
  
@@ -214,6 +245,7 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
           </form>
         </div>
 
+
         {/* Bulletin Card with File Uploads */}
         <div className="lg:col-span-1 bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit">
           <div className="mb-8">
@@ -270,6 +302,72 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
               {bulletinLoading ? 'Sending...' : <><Bell size={20} /> Post Bulletin</>}
             </button>
           </form>
+        </div>
+        {/* Transport Management Card */}
+        <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit">
+          <div className="mb-6">
+            <h3 className="font-black text-2xl text-gray-800 flex items-center gap-3">
+              <Bus className="text-orange-500" size={28} /> Transport
+            </h3>
+            <p className="text-gray-500">Monitor routes & notify parents</p>
+          </div>
+
+          <div className="space-y-4">
+            {/* Toggle for School Owned vs 3rd Party */}
+            <div className="flex bg-gray-100 p-1 rounded-xl">
+              <button className="flex-1 py-2 text-xs font-bold rounded-lg bg-white shadow-sm">School Fleet</button>
+              <button className="flex-1 py-2 text-xs font-bold text-gray-500">Vendors</button>
+            </div>
+
+            <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-xs font-black text-orange-700 uppercase">Active Route: North Wing</span>
+                <span className="animate-pulse flex h-2 w-2 rounded-full bg-green-500"></span>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">Driver: John Doe • 14 Students</p>
+      
+              <button 
+                onClick={() => triggerWhatsAppAlert('route_start')}
+                className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all"
+              >
+                <MessageCircle size={18} /> Send WhatsApp Alert
+              </button>
+            </div>
+          </div>
+        </div> 
+        {/* School Fees Management Card */}
+        <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit">
+          <div className="mb-6">
+            <h3 className="font-black text-2xl text-gray-800 flex items-center gap-3">
+              <CreditCard className="text-emerald-600" size={28} /> Fees Tracker
+            </h3>
+            <p className="text-gray-500">Collection & Arrears</p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="flex justify-between items-end">
+              <div>
+                <p className="text-[10px] font-black text-gray-400 uppercase">Total Collected</p>
+                <p className="text-2xl font-black text-gray-800">$42,500</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[10px] font-black text-gray-400 uppercase text-red-400">Outstanding</p>
+                <p className="text-lg font-bold text-red-500">$12,400</p>
+              </div>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+              <div className="bg-emerald-500 h-full w-[74%]"></div>
+            </div>
+
+            <button 
+              onClick={() => handleFetchFees()}
+              className="w-full border-2 border-emerald-600 text-emerald-600 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-all flex items-center justify-center gap-2"
+            >
+              <RefreshCw size={18} /> Sync Supabase Data
+            </button>
+          </div>
         </div>
 
       </div>

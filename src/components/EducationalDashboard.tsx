@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { BookOpen, Send, Plus, Trash2, LayoutGrid, Type, Megaphone, Bell, Users, CheckCircle, Clock, Paperclip, Bus, MessageCircle, CreditCard, RefreshCw, Image as ImageIcon, X } from 'lucide-react';
+import { BookOpen, Send, Plus, Trash2, LayoutGrid, Type, Megaphone, Bell, Users, CheckCircle, Clock, Paperclip, Bus, MessageCircle, GraduationCap, ClipboardCheck, CreditCard, RefreshCw, Image as ImageIcon, X } from 'lucide-react';
 
 interface Activity {
   activity_name: string;
@@ -174,6 +174,33 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
     }
   };
 
+  // Add this handler inside your component logic
+  const handleGeneralAction = (action: string) => {
+    alert(`${action} module coming soon!`);
+  };
+
+  const handleRegisterStudent = async (studentData: any) => {
+    setLoading(true);
+    try {
+      const response = await fetch('https://tenear.com', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: shopId,
+          ...studentData, // Name, Grade, Parent Contact, etc.
+          registration_date: new Date().toISOString()
+        }),
+      });
+      if (response.ok) {
+        alert("Student registered and synced to Supabase!");
+      }
+    } catch (error) {
+      console.error("Registration failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8 bg-gray-50/50 min-h-screen">
  
@@ -245,6 +272,83 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
           </form>
         </div>
 
+        {/* Examination Management Card */}
+        <div className="lg:col-span-2 bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h3 className="font-black text-2xl text-gray-800 flex items-center gap-3">
+                <ClipboardCheck className="text-indigo-600" size={28} /> Examinations
+              </h3>
+              <p className="text-gray-500">Manage schedules & publish results</p>
+            </div>
+            <button className="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl font-bold text-sm hover:bg-indigo-100 transition-colors">
+              View Calendar
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Action Item: Input Marks */}
+            <div className="p-5 border-2 border-dashed border-gray-100 rounded-2xl hover:border-indigo-200 transition-all cursor-pointer group">
+              <GraduationCap className="text-gray-400 group-hover:text-indigo-500 mb-3" size={32} />
+              <h4 className="font-bold text-gray-800">Input Exam Marks</h4>
+              <p className="text-xs text-gray-400">Record scores for midterm/finals</p>
+            </div>
+            {/* Action Item: Generate Reports */}
+            <div className="p-5 border-2 border-dashed border-gray-100 rounded-2xl hover:border-indigo-200 transition-all cursor-pointer group">
+              <Send className="text-gray-400 group-hover:text-indigo-500 mb-3" size={32} />
+              <h4 className="font-bold text-gray-800">Generate Report Cards</h4>
+              <p className="text-xs text-gray-400">PDF generation for all students</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Student Registration & Management Card */}
+        <div className="lg:col-span-1 bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit">
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h3 className="font-black text-2xl text-gray-800 flex items-center gap-3">
+                <Users className="text-emerald-600" size={28} /> Students
+              </h3>
+              <p className="text-gray-500">Registration & Records</p>
+            </div>
+            <button 
+              onClick={() => handleGeneralAction('Student List')}
+              className="bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl font-bold text-sm hover:bg-emerald-100 transition-colors"
+            >
+              View All
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-4">
+            {/* Action: Add New Student */}
+            <div 
+              onClick={() => handleGeneralAction('Add Student')}
+              className="p-5 border-2 border-dashed border-gray-100 rounded-2xl hover:border-emerald-200 transition-all cursor-pointer group flex items-start gap-4"
+            >
+              <div className="p-3 bg-emerald-50 rounded-xl group-hover:bg-emerald-100 transition-colors">
+                <Plus className="text-emerald-600" size={24} />
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-800">Register Student</h4>
+                <p className="text-xs text-gray-400">Enroll new learners to system</p>
+              </div>
+            </div>
+
+            {/* Action: Bulk Management */}
+            <div 
+              onClick={() => handleGeneralAction('Student Database')}
+              className="p-5 border-2 border-dashed border-gray-100 rounded-2xl hover:border-emerald-200 transition-all cursor-pointer group flex items-start gap-4"
+            >
+              <div className="p-3 bg-gray-50 rounded-xl group-hover:bg-emerald-50 transition-colors">
+                <LayoutGrid className="text-gray-400 group-hover:text-emerald-600" size={24} />
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-800">Student Database</h4>
+                <p className="text-xs text-gray-400">Edit info, classes, & status</p>
+              </div>
+            </div>
+          </div>
+        </div>
 
         {/* Bulletin Card with File Uploads */}
         <div className="lg:col-span-1 bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit">
