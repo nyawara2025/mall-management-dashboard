@@ -20,7 +20,7 @@ interface ChurchService {
   service_activities: ServiceActivity[];
 }
 
-// --- COMPONENT 1: Login (Phone + Password Based) ---
+// --- COMPONENT 1: Login (n8n Webhook Based) ---
 export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -29,6 +29,8 @@ export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
 
   const handleAuth = async () => {
     setLoading(true);
+    
+    // Ensure phone is formatted for your database/n8n logic
     const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
     
     try {
@@ -36,31 +38,40 @@ export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: phone,
+          phone: formattedPhone,
           password: password,
           isSignUp: isSignUp,
-          shop_id: shopId
+          shop_id: shopId // Now included in the payload
         }),
       });
 
-      if (!response.ok) throw new Error("Authentication failed via webhook");
-    
-      const result = await response.json();
-      
+      // Get the response text first to avoid "Unexpected end of JSON"
+      const responseText = await response.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        result = { message: responseText };
+      }
+
+      if (!response.ok) {
+        // This will display "User already exists" if n8n sends that message
+        throw new Error(result.message || `Error: ${response.status}`);
+      }
+
       if (isSignUp) {
-        alert("Signup request sent! Please wait for approval or check your SMS.");
+        alert(result.message || "Signup request sent successfully!");
         setIsSignUp(false);
       } else {
         alert("Login successful!");
-        // Add logic here to store session if your n8n returns a token
       }
     } catch (error: any) {
-      alert(`Connection Error: ${error.message}`);
+      // This catch block now handles the "User already exists" alert
+      alert(error.message);
     } finally {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="max-w-md mx-auto p-8 bg-white rounded-3xl shadow-xl">
@@ -69,14 +80,14 @@ export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
       </h2>
       <div className="space-y-4">
         <input 
-          className="w-full border p-3 rounded-xl" 
-          placeholder="Phone Number (e.g. +254...)" 
+          className="w-full border p-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" 
+          placeholder="Phone Number (e.g. 254...)" 
           value={phone} 
           onChange={(e) => setPhone(e.target.value)} 
         />
         <input 
           type="password"
-          className="w-full border p-3 rounded-xl" 
+          className="w-full border p-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" 
           placeholder="Enter your password"
           value={password}
           onChange={(e) => setPassword(e.target.value)} 
@@ -85,16 +96,16 @@ export const ChurchHubLogin = ({ shopId }: { shopId: number }) => {
         <button 
           onClick={handleAuth} 
           disabled={loading} 
-          className={`w-full text-white p-3 rounded-xl font-bold transition-colors ${
+          className={`w-full text-white p-3 rounded-xl font-bold transition-all active:scale-95 ${
             isSignUp ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-600 hover:bg-blue-700'
-          }`}
+          } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Login')}
         </button>
 
         <button 
           onClick={() => setIsSignUp(!isSignUp)}
-          className="w-full text-sm text-gray-500 hover:underline"
+          className="w-full text-sm text-gray-500 hover:underline text-center"
         >
           {isSignUp ? 'Already have an account? Login' : 'Need an account? Sign Up'}
         </button>
@@ -235,7 +246,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         </div>
 
         <div className="pt-8">
-          <ChurchHubLogin />
+          {/* We pass the activeShopId down as a prop here */}
+          <ChurchHubLogin shopId={activeShopId} />
         </div>
       </main>
     </div>
