@@ -59,7 +59,6 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
         alert(result.message || "Signup request sent successfully!");
         setIsSignUp(false);
       } else {
-        // SUCCESS: Tell the parent component we are logged in
         onLoginSuccess();
       }
     } catch (error: any) {
@@ -134,7 +133,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   
   const activeShopId = shopId || 68;
 
-  // Check for session and Fetch Data
   useEffect(() => {
     const savedAuth = localStorage.getItem(`church_auth_${activeShopId}`);
     if (savedAuth === 'true') {
@@ -150,13 +148,10 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
           .eq('shop_id', activeShopId);
 
         if (error) throw error;
-
-        // Use the first item in the array if it exists
         if (data && data.length > 0) {
           setChurch(data[0]); 
         }
 
-        // 2. Fetch Services from n8n
         const response = await fetch('https://n8n.tenear.com/webhook/fetch-public-service-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -187,16 +182,10 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
     setIsAuthenticated(false);
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center font-sans">Loading Hub...</div>;
-
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Loading Hub...</div>;
   if (!church) return <div className="p-10 text-center">Church Profile Not Found</div>;
+  if (!isAuthenticated) return <ChurchHubLogin shopId={activeShopId} onLoginSuccess={handleLoginSuccess} />;
 
-  // --- SHOW LOGIN IF NOT AUTHENTICATED ---
-  if (!isAuthenticated) {
-    return <ChurchHubLogin shopId={activeShopId} onLoginSuccess={handleLoginSuccess} />;
-  }
-
-  // --- SHOW DASHBOARD IF AUTHENTICATED ---
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       <header className="bg-white border-b sticky top-0 z-10 px-6 py-4 flex items-center justify-between">
@@ -205,36 +194,51 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
             {church.church_name?.charAt(0) || 'C'}
           </div>
           <div>
-            <h1 className="font-bold text-md leading-tight line-clamp-1">{church.church_name}</h1>
+            <h1 className="font-bold text-md leading-tight">{church.church_name}</h1>
             <p className="text-[10px] text-gray-500 flex items-center gap-1 uppercase tracking-wider">
               <MapPin size={10} /> {church.address || "Location unavailable"}
             </p>
           </div>
         </div>
-        <button onClick={handleLogout} className="p-2 text-gray-500 hover:text-red-600 transition-colors">
+        <button onClick={handleLogout} className="p-2 text-gray-400 hover:text-red-600 transition-colors">
           <LogOut size={20} />
         </button>
       </header>
-      
-      {/* Rest of your Dashboard content would go here */}
-      <main className="p-6">
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100">
-              <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                  <CalendarDays className="text-blue-600" /> Upcoming Services
-              </h2>
-              {services.length > 0 ? (
-                  <div className="space-y-4">
-                      {services.map((service) => (
-                          <div key={service.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                              <h3 className="font-bold text-lg">{service.service_name}</h3>
-                              <p className="text-sm text-gray-500">{service.service_date} @ {service.start_time}</p>
-                          </div>
-                      ))}
+
+      <main className="max-w-2xl mx-auto p-4 space-y-6">
+        <div className="flex items-center gap-2 mb-2">
+            <CalendarDays className="text-blue-600" size={24} />
+            <h2 className="text-xl font-black text-gray-900">Upcoming Services</h2>
+        </div>
+
+        {services.length > 0 ? (
+          services.map((service) => (
+            <div key={service.id} className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 overflow-hidden">
+              <div className="mb-6">
+                <h3 className="text-2xl font-black text-gray-900">{service.service_name}</h3>
+                <p className="text-gray-500 font-medium">{service.service_date} @ {service.start_time}</p>
+              </div>
+
+              {/* SERVICE ACTIVITIES (Hymns, Prayers, etc) */}
+              <div className="space-y-6">
+                {service.service_activities?.sort((a,b) => a.sort_order - b.sort_order).map((activity, idx) => (
+                  <div key={idx} className="border-l-4 border-blue-100 pl-4 py-1">
+                    <h4 className="text-sm font-black text-blue-600 uppercase tracking-widest mb-1">
+                      {activity.activity_name}
+                    </h4>
+                    <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                      {activity.description}
+                    </p>
                   </div>
-              ) : (
-                  <p className="text-gray-500 italic">No services scheduled.</p>
-              )}
+                ))}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-12 bg-white rounded-3xl border-2 border-dashed border-gray-200">
+            <p className="text-gray-400 font-medium">No active service order found.</p>
           </div>
+        )}
       </main>
     </div>
   );
