@@ -83,8 +83,9 @@ export function ChurchHub() {
       }
 
       // Success: Set state and persist
-      setIsAuthenticated(true);
       localStorage.setItem(`church_auth_${shopId}`, 'true');
+
+      setIsAuthenticated(true);
     } catch (error: any) {
       alert(error.message);
     } finally {
