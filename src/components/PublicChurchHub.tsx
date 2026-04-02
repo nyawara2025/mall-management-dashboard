@@ -206,7 +206,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
               <div className="mt-8 space-y-4">
                 <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
                   <div className="p-2.5 bg-white rounded-xl text-blue-600 shadow-sm"><ShieldCheck size={20}/></div>
-                  <div><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Zone Affiliation</p><p className="text-md font-bold text-gray-700">{userData?.zone_name || 'Not assigned'}</p></div>
+                  <div><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Zone</p><p className="text-md font-bold text-gray-700">{userData?.zone_name || 'Not assigned'}</p></div>
                 </div>
                 <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
                   <div className="p-2.5 bg-white rounded-xl text-blue-600 shadow-sm"><Users size={20}/></div>
@@ -240,6 +240,27 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                   <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white"><ClipboardList size={32} /></div>
                   <span className="font-black text-xs uppercase tracking-widest text-gray-500">Tithes & Giviving</span>
                 </button>
+
+                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
+                  <div className="p-4 bg-brown-50 text-brown-600 rounded-2xl group-hover:bg-brown-600 group-hover:text-white"><Wallet size={32} /></div>
+                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Welfare Contributions</span>
+                </button>
+
+                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
+                  <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white"><ClipboardList size={32} /></div>
+                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Church Projects</span>
+                </button>
+
+                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
+                  <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white"><ClipboardList size={32} /></div>
+                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Sokoni</span>
+                </button>
+
+                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
+                  <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white"><ClipboardList size={32} /></div>
+                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Photo Gallery</span>
+                </button>
+              
 
                 <button onClick={() => setActiveView('service_order')} className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group col-span-2">
                   <div className="p-4 bg-green-50 text-green-600 rounded-2xl group-hover:bg-green-600 group-hover:text-white"><CalendarDays size={32} /></div>
