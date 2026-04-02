@@ -83,6 +83,12 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
     }
   };
 
+  // 2. Add a helper function for the M-Pesa integration
+  const handleMpesaPayment = async (type: 'direct' | 'manual', code?: string) => {
+    // This will trigger your n8n STK Push or Manual Verification webhook
+    console.log(`Processing ${type} payment...`);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="w-full max-w-md bg-white rounded-[2rem] p-8 shadow-2xl border border-gray-100">
@@ -122,7 +128,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userData, setUserData] = useState<MemberData | null>(null);
-  const [activeView, setActiveView] = useState<'dashboard' | 'service_order'>('dashboard');
+  const [activeView, setActiveView] = useState<'dashboard' | 'service_order' | 'welfare'>('dashboard');
   
   const activeShopId = shopId || 68;
 
@@ -184,6 +190,51 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-blue-600">Loading Hub...</div>;
   if (!isAuthenticated) return <ChurchHubLogin shopId={activeShopId} onLoginSuccess={(u) => {setUserData(u); setIsAuthenticated(true); localStorage.setItem(`church_auth_${activeShopId}`, 'true'); localStorage.setItem(`church_user_${activeShopId}`, JSON.stringify(u));}} />;
   if (!church) return <div className="p-10 text-center font-bold">Church Profile Not Found.</div>;
+
+  // 3. The New Welfare Page UI
+  const WelfarePage = () => (
+    <div className="p-6 max-w-2xl mx-auto space-y-6">
+      <button onClick={() => setActiveView('dashboard')} className="text-blue-600 font-bold flex items-center gap-2">
+        ← Back to Hub
+      </button>
+    
+      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+        <h2 className="text-3xl font-black mb-2">Welfare Hub</h2>
+        <p className="text-gray-500">Manage your contributions and statements</p>
+      
+        {/* Quick Actions */}
+        <div className="grid grid-cols-2 gap-4 mt-8">
+          <button className="bg-blue-600 text-white p-4 rounded-2xl font-bold flex flex-col items-center gap-2 shadow-lg shadow-blue-100">
+            <Wallet size={24} />
+            <span>Pay via M-Pesa</span>
+          </button>
+          <button className="bg-gray-50 text-gray-700 p-4 rounded-2xl font-bold flex flex-col items-center gap-2 border border-gray-100">
+            <ClipboardList size={24} />
+            <span>Get Statement</span>
+          </button>
+        </div>
+
+        {/* Payment History List */}
+        <div className="mt-10">
+          <h3 className="font-bold text-lg mb-4">Recent Contributions</h3>
+          <div className="space-y-3">
+            {userData?.payment_history?.map((pay, i) => (
+              <div key={i} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl">
+                <div>
+                  <p className="text-xs text-gray-400 font-bold">{new Date(pay.payment_date).toLocaleDateString()}</p>
+                  <p className="font-bold text-gray-700">Contribution</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-blue-600 font-black">KES {pay.amount}</p>
+                  <p className="text-[10px] uppercase font-bold text-green-600">{pay.status}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans text-gray-900">
