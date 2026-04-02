@@ -211,19 +211,38 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
             <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100">
               <div className="flex flex-col items-center text-center border-b border-gray-50 pb-6">
                 <div className="w-24 h-24 bg-gradient-to-br from-blue-700 to-blue-500 rounded-[2rem] flex items-center justify-center text-white text-3xl font-black mb-4 shadow-xl">
+                  {/* SAFE INITIALS LOGIC */}
                   {userData?.first_name?.charAt(0)}{userData?.last_name?.charAt(0)}
                 </div>
-                <h2 className="text-2xl font-black text-gray-800 leading-tight">{userData?.first_name} {userData?.last_name}</h2>
-                <div className="mt-2 px-4 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded-full tracking-widest border border-blue-100">{userData?.role || 'Member'}</div>
+                
+                {/* SAFE NAME LOGIC */}
+                <h2 className="text-2xl font-black text-gray-800 leading-tight">
+                  {userData?.first_name || 'Member'} {userData?.last_name || ''}
+                </h2>
+                
+                <div className="mt-2 px-4 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded-full tracking-widest border border-blue-100">
+                  {userData?.role || 'Member'}
+                </div>
               </div>
+
               <div className="mt-8 space-y-4">
                 <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
                   <div className="p-2.5 bg-white rounded-xl text-blue-600 shadow-sm"><ShieldCheck size={20}/></div>
-                  <div><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Zone Affiliation</p><p className="text-md font-bold text-gray-700">{userData?.zone_name || 'Not assigned'}</p></div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Zone Affiliation</p>
+                    <p className="text-md font-bold text-gray-700">
+                      {userData?.zone_name || 'Not assigned'}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
                   <div className="p-2.5 bg-white rounded-xl text-blue-600 shadow-sm"><Users size={20}/></div>
-                  <div><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Current Ministry</p><p className="text-md font-bold text-gray-700">{userData?.ministry_name || 'Not assigned'}</p></div>
+                  <div>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Current Ministry</p>
+                    <p className="text-md font-bold text-gray-700">
+                      {userData?.ministry_name || 'Not assigned'}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
