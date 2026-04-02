@@ -3,7 +3,7 @@ import {
   MapPin, CalendarDays, BookOpen, 
   LogOut, Lock, Phone as PhoneIcon,
   User, ShieldCheck, Users, Activity,
-  MessageSquare, Heart, Radio, ClipboardList
+  MessageSquare, Heart, Radio, Wallet, Book, Globe, Bell, ClipboardList
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
@@ -235,6 +235,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                   <div className="p-4 bg-purple-50 text-purple-600 rounded-2xl group-hover:bg-purple-600 group-hover:text-white"><ClipboardList size={32} /></div>
                   <span className="font-black text-xs uppercase tracking-widest text-gray-500">Meetings</span>
                 </button>
+
+                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
+                  <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white"><ClipboardList size={32} /></div>
+                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Tithes & Giviving</span>
+                </button>
+
                 <button onClick={() => setActiveView('service_order')} className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group col-span-2">
                   <div className="p-4 bg-green-50 text-green-600 rounded-2xl group-hover:bg-green-600 group-hover:text-white"><CalendarDays size={32} /></div>
                   <span className="font-black text-xs uppercase tracking-widest text-gray-500">Service Order</span>
