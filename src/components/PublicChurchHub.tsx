@@ -1,14 +1,21 @@
-import React, { useEffect, useState } from 'react';
+mport React, { useEffect, useState } from 'react';
 import { 
   MapPin, CalendarDays, BookOpen, 
   LogOut, Lock, Phone as PhoneIcon,
   User, ShieldCheck, Users, Activity,
   MessageSquare, Heart, Radio, Wallet, Book, Globe, Bell, ClipboardList,
-  Image as ImageIcon, MessageCircle
+  Image as ImageIcon, MessageCircle, X
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 // --- TYPES ---
+interface PaymentRecord {
+  amount: number;
+  payment_date: string;
+  transaction_id: string;
+  status: string;
+}
+
 interface MemberData {
   id: number;
   first_name: string;
@@ -34,13 +41,6 @@ interface ChurchService {
   service_date: string;
   start_time: string;
   service_activities: ServiceActivity[];
-}
-
-interface PaymentRecord {
-  amount: number;
-  payment_date: string;
-  transaction_id: string;
-  status: string;
 }
 
 // --- COMPONENT 1: Login ---
@@ -75,7 +75,8 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
         alert(result.message || "Signup request sent successfully!");
         setIsSignUp(false);
       } else {
-        onLoginSuccess(Array.isArray(result) ? result[0] : result);
+        const userData = Array.isArray(result) ? result[0] : result;
+        onLoginSuccess(userData);
       }
     } catch (error: any) {
       alert(error.message);
@@ -134,8 +135,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
     if (savedAuth === 'true' && savedUser) {
       setIsAuthenticated(true);
       const parsedUser = JSON.parse(savedUser);
-      const userObject = Array.isArray(parsedUser) ? parsedUser[0] : parsedUser;
-      setUserData(userObject);
+      setUserData(Array.isArray(parsedUser) ? parsedUser[0] : parsedUser);
     }
 
     async function fetchHubData() {
@@ -178,26 +178,49 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
     setActiveView('dashboard');
   };
 
-  // --- SUB-VIEW: Welfare Dashboard ---
+  // --- SUB-VIEW: Welfare Dashboard (RESTORED HISTORY DISPLAY) ---
   const WelfarePage = () => (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
-      <button onClick={() => setActiveView('dashboard')} className="text-blue-600 font-bold flex items-center gap-2">
+      <button onClick={() => setActiveView('dashboard')} className="text-blue-600 font-bold flex items-center gap-2 hover:underline">
         ← Back to Hub
       </button>
-      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-100">
-            <Wallet size={28} />
-          </div>
-          <h2 className="text-3xl font-black text-gray-900 tracking-tight">Welfare Fund</h2>
+      
+      {/* WELFARE HISTORY MODAL UI */}
+      <div className="bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden">
+        <div className="p-8 border-b border-gray-50 flex justify-between items-center">
+          <h2 className="text-2xl font-black text-gray-900 tracking-tight">Welfare History</h2>
+          <button onClick={() => setActiveView('dashboard')} className="p-2 bg-gray-50 rounded-full text-gray-400 hover:text-gray-600">
+            <X size={20} />
+          </button>
         </div>
-        <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100 mb-6">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Contributions</p>
-          <p className="text-4xl font-black text-blue-600">KES 0.00</p>
+
+        <div className="p-8 space-y-4 max-h-[500px] overflow-y-auto">
+          {userData?.payment_history && userData.payment_history.length > 0 ? (
+            userData.payment_history.map((payment, idx) => (
+              <div key={idx} className="flex items-center justify-between p-6 bg-gray-50 rounded-3xl border border-gray-100">
+                <div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    {new Date(payment.payment_date).toLocaleDateString()}
+                  </p>
+                  <p className="font-bold text-gray-700 mt-1">Contribution</p>
+                </div>
+                <p className="text-xl font-black text-blue-600">
+                  KES {payment.amount}
+                </p>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-10 text-gray-400 italic font-medium">
+              No contributions found in your history.
+            </div>
+          )}
         </div>
-        <button className="w-full bg-blue-600 text-white p-5 rounded-2xl font-bold shadow-xl shadow-blue-100 hover:scale-[1.01] active:scale-95 transition-all">
-          Make a Contribution
-        </button>
+
+        <div className="p-8 bg-gray-50/50 border-t border-gray-50">
+          <button className="w-full bg-blue-600 text-white p-5 rounded-2xl font-bold shadow-xl shadow-blue-100 hover:scale-[1.01] active:scale-95 transition-all">
+            Make New Contribution
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -212,12 +235,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         <h2 className="text-2xl font-black text-gray-900 mb-6 tracking-tight">Order of Service</h2>
         {services.map((service) => (
           <div key={service.id} className="mb-8 last:mb-0">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-xl font-bold text-blue-600">{service.service_name}</h3>
-                <p className="text-sm text-gray-400">{service.service_date} • {service.start_time}</p>
-              </div>
-            </div>
+            <h3 className="text-xl font-bold text-blue-600">{service.service_name}</h3>
+            <p className="text-sm text-gray-400 mb-4">{service.service_date} • {service.start_time}</p>
             <div className="space-y-3">
               {service.service_activities.map((activity, idx) => (
                 <div key={idx} className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
@@ -252,117 +271,76 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         </button>
       </nav>
 
-      {activeView === 'dashboard' ? (
-        <main className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* PROFILE SIDEBAR */}
-          <div className="lg:col-span-4 space-y-6">
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 text-center relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4">
-                <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
-                  {userData?.role || 'MEMBER'}
-                </span>
-              </div>
-              <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center text-white text-3xl font-black mx-auto mb-6 shadow-xl shadow-blue-100">
-                {userData?.first_name.charAt(0)}{userData?.last_name.charAt(0)}
-              </div>
-              <h2 className="text-2xl font-black text-gray-900 leading-tight">
-                {userData?.first_name} {userData?.last_name}
-              </h2>
-              
-              <div className="mt-8 space-y-3">
-                <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100 text-left">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm">
-                    <ShieldCheck size={20} />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">ZONE</p>
-                    <p className="font-bold text-gray-700">{userData?.zone_name}</p>
-                  </div>
+      <main className="max-w-7xl mx-auto p-6">
+        {activeView === 'dashboard' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <div className="lg:col-span-4 space-y-6">
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 text-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4">
+                  <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">MEMBER</span>
                 </div>
-                <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100 text-left">
-                  <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm">
-                    <Users size={20} />
+                <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center text-white text-3xl font-black mx-auto mb-6 shadow-xl shadow-blue-100">
+                  {userData?.first_name.charAt(0)}{userData?.last_name.charAt(0)}
+                </div>
+                <h2 className="text-2xl font-black text-gray-900 leading-tight">{userData?.first_name} {userData?.last_name}</h2>
+                <div className="mt-8 space-y-3">
+                  <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100 text-left">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm"><ShieldCheck size={20} /></div>
+                    <div><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">ZONE</p><p className="font-bold text-gray-700">{userData?.zone_name}</p></div>
                   </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">CURRENT MINISTRY</p>
-                    <p className="font-bold text-gray-700">{userData?.ministry_name}</p>
+                  <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100 text-left">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm"><Users size={20} /></div>
+                    <div><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">CURRENT MINISTRY</p><p className="font-bold text-gray-700">{userData?.ministry_name}</p></div>
                   </div>
                 </div>
               </div>
             </div>
+
+            <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><MessageSquare size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">OPINION</span>
+              </button>
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Heart size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">PRAYER</span>
+              </button>
+              <button onClick={() => setActiveView('service_order')} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Book size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">ORDER OF SERVICE</span>
+              </button>
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">BROADCAST</span>
+              </button>
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><ClipboardList size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">MEETINGS</span>
+              </button>
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">TITHES & GIVING</span>
+              </button>
+              <button onClick={() => setActiveView('welfare')} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Wallet size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">WELFARE CONTRIBUTIONS</span>
+              </button>
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><ImageIcon size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">PHOTO GALLERY</span>
+              </button>
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><MessageCircle size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">CHAT</span>
+              </button>
+            </div>
           </div>
-
-          {/* MAIN GRID - ALL BUTTONS RESTORED */}
-          <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
-            <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-              <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                <MessageSquare size={28} />
-              </div>
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">OPINION</span>
-            </button>
-
-            <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-              <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                <Heart size={28} />
-              </div>
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">PRAYER</span>
-            </button>
-
-            <button onClick={() => setActiveView('service_order')} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-              <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                <Book size={28} />
-              </div>
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">ORDER OF SERVICE</span>
-            </button>
-
-            <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-              <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                <Radio size={28} />
-              </div>
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">BROADCAST</span>
-            </button>
-
-            <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-              <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                <ClipboardList size={28} />
-              </div>
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">MEETINGS</span>
-            </button>
-
-            <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-              <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                <Activity size={28} />
-              </div>
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">TITHES & GIVING</span>
-            </button>
-
-            <button onClick={() => setActiveView('welfare')} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-              <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                <Wallet size={28} />
-              </div>
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">WELFARE CONTRIBUTIONS</span>
-            </button>
-
-            <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-              <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                <ImageIcon size={28} />
-              </div>
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">PHOTO GALLERY</span>
-            </button>
-
-            <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-              <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
-                <MessageCircle size={28} />
-              </div>
-              <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">CHAT</span>
-            </button>
-          </div>
-        </main>
-      ) : activeView === 'welfare' ? (
-        <WelfarePage />
-      ) : (
-        <ServiceOrderView />
-      )}
+        ) : activeView === 'welfare' ? (
+          <WelfarePage />
+        ) : (
+          <ServiceOrderView />
+        )}
+      </main>
     </div>
   );
 };
