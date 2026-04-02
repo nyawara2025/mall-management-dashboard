@@ -274,6 +274,10 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                   <span className="font-black text-xs uppercase tracking-widest text-gray-500">Photo Gallery</span>
                 </button>
               
+                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
+                  <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white"><MessageSquare size={32} /></div>
+                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Inquire</span>
+                </button>
 
                 <button onClick={() => setActiveView('service_order')} className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group col-span-2">
                   <div className="p-4 bg-green-50 text-green-600 rounded-2xl group-hover:bg-green-600 group-hover:text-white"><CalendarDays size={32} /></div>
