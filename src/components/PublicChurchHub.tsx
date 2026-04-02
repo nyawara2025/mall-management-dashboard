@@ -303,10 +303,13 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 </button>
 
                 <button
-                  onClick={() => setShowWelfareModal(true)} // Add this line    
+                  onClick={() => setActiveView('welfare')} // Add this line    
                   className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group"
                 >
-                  <div className="p-4 bg-brown-50 text-brown-600 rounded-2xl group-hover:bg-brown-600 group-hover:text-white"><Wallet size={32} /></div>
+                  <div className="p-4 bg-teal-50 text-teal-600 rounded-2xl group-hover:bg-teal-600 group-hover:text-white">
+                    <Wallet size={32} />
+                  </div>
+                    
                   <span className="font-black text-xs uppercase tracking-widest text-gray-500">Welfare Contributions</span>
                 </button>
 
