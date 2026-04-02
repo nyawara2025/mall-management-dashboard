@@ -18,6 +18,7 @@ interface MemberData {
   zone_name: string;
   ministry_name: string;
   registration_date: string;
+  payment_history: PaymentRecord[] | null;
 }
 
 interface ServiceActivity {
@@ -32,6 +33,13 @@ interface ChurchService {
   service_date: string;
   start_time: string;
   service_activities: ServiceActivity[];
+}
+
+interface PaymentRecord {
+  amount: number;
+  payment_date: string;
+  transaction_id: string;
+  status: string;
 }
 
 // --- COMPONENT 1: Login ---
@@ -117,6 +125,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [activeView, setActiveView] = useState<'dashboard' | 'service_order'>('dashboard');
   
   const activeShopId = shopId || 68;
+
+  const [showWelfareModal, setShowWelfareModal] = useState(false);
 
   useEffect(() => {
     const savedAuth = localStorage.getItem(`church_auth_${activeShopId}`);
@@ -238,13 +248,22 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
                 <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
                   <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white"><ClipboardList size={32} /></div>
-                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Tithes & Giviving</span>
+                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Tithes & Giving</span>
                 </button>
 
                 <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
                   <div className="p-4 bg-brown-50 text-brown-600 rounded-2xl group-hover:bg-brown-600 group-hover:text-white"><Wallet size={32} /></div>
                   <span className="font-black text-xs uppercase tracking-widest text-gray-500">Welfare Contributions</span>
                 </button>
+                <div 
+                  onClick={() => setShowWelfareModal(true)} // <--- ACTIVATE BUTTON HERE
+                  className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:shadow-md transition-all cursor-pointer group"
+                >
+                  <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center">
+                    <Wallet size={28} />
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Welfare Contributions</span>
+                </div>
 
                 <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
                   <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white"><ClipboardList size={32} /></div>
@@ -292,6 +311,33 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
           </section>
         </div>
       </main>
-    </div>
+
+      {/* MODAL IS NOW INSIDE THE RETURN FLOW */}
+      {showWelfareModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="p-8 border-b flex justify-between items-center">
+              <h3 className="font-black text-xl tracking-tight">Welfare History</h3>
+              <button onClick={() => setShowWelfareModal(false)} className="p-2 bg-gray-100 rounded-full">✕</button>
+            </div>
+      
+            <div className="max-h-[60vh] overflow-y-auto p-6 space-y-3">
+              {userData?.payment_history?.map((pay, idx) => (
+                <div key={idx} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                  <div>
+                    <p className="text-[10px] font-black text-gray-400 uppercase">{new Date(pay.payment_date).toLocaleDateString()}</p>
+                    <p className="font-bold text-gray-800 text-xs">{pay.transaction_id || 'Contribution'}</p>
+                  </div>
+                  <p className="font-black text-blue-600">KES {pay.amount}</p>
+                </div>
+              ))}
+              {!userData?.payment_history?.length && (
+                <p className="text-center py-10 text-gray-400 font-medium">No records found</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div> // This is the closing tag for the VERY FIRST <div className="..."> in your component
   );
 };
