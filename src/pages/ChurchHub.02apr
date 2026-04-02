@@ -18,15 +18,11 @@ export function ChurchHub() {
   const [password, setPassword] = useState('');
   const [authLoading, setAuthLoading] = useState(false);
 
-  const [userData, setUserData] = useState<any>(null);
-
   // Check for existing session on mount
   useEffect(() => {
     const savedAuth = localStorage.getItem(`church_auth_${shopId}`);
-    const savedUser = localStorage.getItem(`church_user_${shopId}`);
-    if (savedAuth === 'true' && savedUser) {
+    if (savedAuth) {
       setIsAuthenticated(true);
-      setUserData(JSON.parse(savedUser));
     }
     initHub();
   }, [shopId]);
@@ -50,17 +46,6 @@ export function ChurchHub() {
 
       const result = await response.json();
       const actualData = Array.isArray(result) ? result[0] : result;
-     
-      const user = Array.isArray(result) ? result[0] : result;
-
-      // 2. Persist the actual user object so the dashboard can read it
-      localStorage.setItem(`church_auth_${shopId}`, 'true');
-      localStorage.setItem(`church_user_${shopId}`, JSON.stringify(user));
-
-      // 3. Update the state
-      setUserData(user);
-      setIsAuthenticated(true);
-      // --- THE FIX ENDS HERE ---
 
       if (actualData) {
         setChurchData(actualData.church_profile);
