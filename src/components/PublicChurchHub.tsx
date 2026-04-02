@@ -83,12 +83,6 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
     }
   };
 
-  // 2. Add a helper function for the M-Pesa integration
-  const handleMpesaPayment = async (type: 'direct' | 'manual', code?: string) => {
-    // This will trigger your n8n STK Push or Manual Verification webhook
-    console.log(`Processing ${type} payment...`);
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="w-full max-w-md bg-white rounded-[2rem] p-8 shadow-2xl border border-gray-100">
@@ -132,8 +126,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   
   const activeShopId = shopId || 68;
 
-  const [showWelfareModal, setShowWelfareModal] = useState(false);
-
   useEffect(() => {
     const savedAuth = localStorage.getItem(`church_auth_${activeShopId}`);
     const savedUser = localStorage.getItem(`church_user_${activeShopId}`);
@@ -146,7 +138,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
     }
 
     async function fetchHubData() {
-      // THE FIX: Do not run the fetch if we are not logged in yet.
       if (!isAuthenticated && !savedAuth) {
         setLoading(false);
         return;
@@ -165,7 +156,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
         if (response.ok) {
           const n8nData = await response.json();
-          // Data Extraction: Digging into [{ services: [...] }]
           const rawServices = Array.isArray(n8nData) ? n8nData[0]?.services : n8nData?.services;
           if (rawServices) setServices(rawServices);
         }
@@ -187,209 +177,181 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
     setActiveView('dashboard');
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-blue-600">Loading Hub...</div>;
-  if (!isAuthenticated) return <ChurchHubLogin shopId={activeShopId} onLoginSuccess={(u) => {setUserData(u); setIsAuthenticated(true); localStorage.setItem(`church_auth_${activeShopId}`, 'true'); localStorage.setItem(`church_user_${activeShopId}`, JSON.stringify(u));}} />;
-  if (!church) return <div className="p-10 text-center font-bold">Church Profile Not Found.</div>;
-
-  // 3. The New Welfare Page UI
+  // --- SUB-COMPONENT: Welfare Page ---
   const WelfarePage = () => (
-    <div className="p-6 max-w-2xl mx-auto space-y-6">
-      <button onClick={() => setActiveView('dashboard')} className="text-blue-600 font-bold flex items-center gap-2">
-        ← Back to Hub
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <button 
+        onClick={() => setActiveView('dashboard')} 
+        className="flex items-center gap-2 text-blue-600 font-bold hover:underline mb-4"
+      >
+        ← Back to Dashboard
       </button>
-    
-      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-        <h2 className="text-3xl font-black mb-2">Welfare Hub</h2>
-        <p className="text-gray-500">Manage your contributions and statements</p>
       
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-4 mt-8">
-          <button className="bg-blue-600 text-white p-4 rounded-2xl font-bold flex flex-col items-center gap-2 shadow-lg shadow-blue-100">
+      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+        <div className="flex items-center gap-4 mb-6">
+          <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
             <Wallet size={24} />
-            <span>Pay via M-Pesa</span>
-          </button>
-          <button className="bg-gray-50 text-gray-700 p-4 rounded-2xl font-bold flex flex-col items-center gap-2 border border-gray-100">
-            <ClipboardList size={24} />
-            <span>Get Statement</span>
-          </button>
-        </div>
-
-        {/* Payment History List */}
-        <div className="mt-10">
-          <h3 className="font-bold text-lg mb-4">Recent Contributions</h3>
-          <div className="space-y-3">
-            {userData?.payment_history?.map((pay, i) => (
-              <div key={i} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl">
-                <div>
-                  <p className="text-xs text-gray-400 font-bold">{new Date(pay.payment_date).toLocaleDateString()}</p>
-                  <p className="font-bold text-gray-700">Contribution</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-blue-600 font-black">KES {pay.amount}</p>
-                  <p className="text-[10px] uppercase font-bold text-green-600">{pay.status}</p>
-                </div>
-              </div>
-            ))}
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-gray-900">Welfare Contributions</h2>
+            <p className="text-gray-500 text-sm">Manage your support and community funds</p>
           </div>
         </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100">
+            <h3 className="font-bold text-gray-700 mb-2">Total Contributed</h3>
+            <p className="text-3xl font-black text-blue-600">KES 0.00</p>
+          </div>
+          <div className="bg-gray-50 p-6 rounded-3xl border border-gray-100">
+            <h3 className="font-bold text-gray-700 mb-2">Active Pledges</h3>
+            <p className="text-3xl font-black text-gray-400">None</p>
+          </div>
+        </div>
+
+        <button className="w-full mt-8 bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-lg shadow-blue-100 active:scale-95 transition-transform">
+          Make a Contribution
+        </button>
       </div>
     </div>
   );
 
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-blue-600">Loading Hub...</div>;
+  
+  if (!isAuthenticated) {
+    return (
+      <ChurchHubLogin 
+        shopId={activeShopId} 
+        onLoginSuccess={(u) => {
+          setUserData(u); 
+          setIsAuthenticated(true); 
+          localStorage.setItem(`church_auth_${activeShopId}`, 'true'); 
+          localStorage.setItem(`church_user_${activeShopId}`, JSON.stringify(u));
+        }} 
+      />
+    );
+  }
+
+  if (!church) return <div className="p-10 text-center font-bold">Church Profile Not Found.</div>;
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 font-sans text-gray-900">
-      <header className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-30 px-6 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">
+      {/* Top Navbar */}
+      <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
-          <div onClick={() => setActiveView('dashboard')} className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black cursor-pointer">
-            {church.church_name?.charAt(0)}
+          <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-100">
+            {church.church_name?.charAt(0) || 'S'}
           </div>
-          <div>
-            <h1 className="font-bold text-sm leading-tight">{church.church_name}</h1>
-            <p className="text-[10px] text-gray-400 flex items-center gap-1 uppercase font-bold">
-              <MapPin size={10} className="text-blue-500" /> {church.address}
-            </p>
-          </div>
+          <h1 className="font-bold text-gray-800 text-sm md:text-base truncate max-w-[200px]">
+            {church.church_name}
+          </h1>
         </div>
-        <button onClick={handleLogout} className="p-2.5 bg-gray-100 text-gray-500 rounded-full hover:bg-red-50 hover:text-red-500 transition-all"><LogOut size={18} /></button>
-      </header>
+        <button onClick={handleLogout} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+          <LogOut size={20} />
+        </button>
+      </nav>
 
-      <main className="max-w-6xl mx-auto p-4 md:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          <aside className="lg:col-span-4 lg:sticky lg:top-24 space-y-6">
-            <div className="bg-white rounded-[2rem] p-8 shadow-sm border border-gray-100">
-              <div className="flex flex-col items-center text-center border-b border-gray-50 pb-6">
-                <div className="w-24 h-24 bg-gradient-to-br from-blue-700 to-blue-500 rounded-[2rem] flex items-center justify-center text-white text-3xl font-black mb-4 shadow-xl">
-                  {userData?.first_name?.charAt(0)}{userData?.last_name?.charAt(0)}
+      {/* Main Content Area */}
+      <main className="max-w-7xl mx-auto p-6">
+        {activeView === 'dashboard' ? (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Sidebar / Profile Info */}
+            <div className="lg:col-span-4 space-y-6">
+              <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 text-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4">
+                  <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                    {userData?.role || 'Member'}
+                  </span>
                 </div>
-                <h2 className="text-2xl font-black text-gray-800 leading-tight">{userData?.first_name} {userData?.last_name}</h2>
-                <div className="mt-2 px-4 py-1 bg-blue-50 text-blue-600 text-[10px] font-black uppercase rounded-full tracking-widest border border-blue-100">{userData?.role || 'Member'}</div>
-              </div>
-              <div className="mt-8 space-y-4">
-                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <div className="p-2.5 bg-white rounded-xl text-blue-600 shadow-sm"><ShieldCheck size={20}/></div>
-                  <div><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Zone</p><p className="text-md font-bold text-gray-700">{userData?.zone_name || 'Not assigned'}</p></div>
+                <div className="w-24 h-24 bg-gradient-to-br from-blue-600 to-blue-400 rounded-[2rem] flex items-center justify-center text-white text-3xl font-black mx-auto mb-6 shadow-xl shadow-blue-100">
+                  {userData ? `${userData.first_name[0]}${userData.last_name[0]}` : 'AN'}
                 </div>
-                <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <div className="p-2.5 bg-white rounded-xl text-blue-600 shadow-sm"><Users size={20}/></div>
-                  <div><p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Current Ministry</p><p className="text-md font-bold text-gray-700">{userData?.ministry_name || 'Not assigned'}</p></div>
+                <h2 className="text-2xl font-black text-gray-900 leading-tight">
+                  {userData?.first_name} {userData?.last_name}
+                </h2>
+                
+                <div className="mt-8 space-y-3">
+                  <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100 text-left">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm">
+                      <ShieldCheck size={20} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Zone</p>
+                      <p className="font-bold text-gray-700">{userData?.zone_name || 'Not Assigned'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100 text-left">
+                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm">
+                      <Users size={20} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Current Ministry</p>
+                      <p className="font-bold text-gray-700">{userData?.ministry_name || 'None'}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </aside>
 
-          <section className="lg:col-span-8 space-y-6">
-            {activeView === 'dashboard' ? (
-              <div className="grid grid-cols-2 gap-4">
-                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
-                  <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white"><MessageSquare size={32} /></div>
-                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Opinion</span>
-                </button>
-                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
-                  <div className="p-4 bg-pink-50 text-pink-600 rounded-2xl group-hover:bg-pink-600 group-hover:text-white"><Heart size={32} /></div>
-                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Prayer</span>
-                </button>
-                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
-                  <div className="p-4 bg-orange-50 text-orange-600 rounded-2xl group-hover:bg-orange-600 group-hover:text-white"><Radio size={32} /></div>
-                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Broadcast</span>
-                </button>
-                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
-                  <div className="p-4 bg-purple-50 text-purple-600 rounded-2xl group-hover:bg-purple-600 group-hover:text-white"><ClipboardList size={32} /></div>
-                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Meetings</span>
-                </button>
+            {/* Main Feature Grid */}
+            <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Feature Cards */}
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                  <MessageSquare size={28} />
+                </div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Opinion</span>
+              </button>
 
-                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
-                  <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white"><ClipboardList size={32} /></div>
-                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Tithes & Giving</span>
-                </button>
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                  <Heart size={28} />
+                </div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Prayer</span>
+              </button>
 
-                <button
-                  onClick={() => setActiveView('welfare')} // Add this line    
-                  className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group"
-                >
-                  <div className="p-4 bg-teal-50 text-teal-600 rounded-2xl group-hover:bg-teal-600 group-hover:text-white">
-                    <Wallet size={32} />
-                  </div>
-                    
-                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Welfare Contributions</span>
-                </button>
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                  <Radio size={28} />
+                </div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Broadcast</span>
+              </button>
 
-                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
-                  <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white"><ClipboardList size={32} /></div>
-                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Church Projects</span>
-                </button>
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                  <ClipboardList size={28} />
+                </div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Meetings</span>
+              </button>
 
-                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
-                  <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white"><ClipboardList size={32} /></div>
-                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Sokoni</span>
-                </button>
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                  <Activity size={28} />
+                </div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Tithes & Giving</span>
+              </button>
 
-                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
-                  <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white"><ClipboardList size={32} /></div>
-                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Photo Gallery</span>
-                </button>
-              
-                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
-                  <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white"><MessageSquare size={32} /></div>
-                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Inquire</span>
-                </button>
-
-                <button onClick={() => setActiveView('service_order')} className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group col-span-2">
-                  <div className="p-4 bg-green-50 text-green-600 rounded-2xl group-hover:bg-green-600 group-hover:text-white"><CalendarDays size={32} /></div>
-                  <span className="font-black text-xs uppercase tracking-widest text-gray-500">Service Order</span>
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <button onClick={() => setActiveView('dashboard')} className="text-sm font-bold text-blue-600 flex items-center gap-2 mb-4">&larr; Back</button>
-                {services.map((service, sIdx) => (
-                  <div key={sIdx} className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden mb-6">
-                    <div className="p-8 border-b bg-gray-50/50">
-                      <h3 className="text-3xl font-black">{service.service_name}</h3>
-                      <p className="text-blue-600 font-bold">{service.service_date} • {service.start_time}</p>
-                    </div>
-                    <div className="p-8 space-y-10">
-                      {service.service_activities?.sort((a,b) => a.sort_order - b.sort_order).map((act, idx) => (
-                        <div key={idx} className="relative pl-10 border-l-2 border-blue-50 last:border-0 pb-2">
-                          <div className="absolute -left-[11px] top-0 w-5 h-5 bg-white rounded-full border-4 border-blue-600" />
-                          <h4 className="text-xs font-black text-blue-600 uppercase flex items-center gap-2"><Activity size={14} /> {act.activity_name}</h4>
-                          <div className="text-gray-800 font-bold leading-relaxed whitespace-pre-line bg-gray-50/50 p-5 rounded-[1.5rem] border border-gray-100">{act.description}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        </div>
+              {/* WELFARE CONTRIBUTIONS BUTTON */}
+              <button 
+                onClick={() => setActiveView('welfare')}
+                className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
+              >
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600 transition-colors">
+                  <Wallet size={28} />
+                </div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Welfare Contributions</span>
+              </button>
+            </div>
+          </div>
+        ) : activeView === 'welfare' ? (
+          <WelfarePage />
+        ) : (
+          <div className="text-center py-20 bg-white rounded-[2.5rem] border border-dashed border-gray-200">
+             <p className="text-gray-400 font-bold">This section is coming soon.</p>
+             <button onClick={() => setActiveView('dashboard')} className="mt-4 text-blue-600 font-bold">Return Home</button>
+          </div>
+        )}
       </main>
-
-      {/* MODAL IS NOW INSIDE THE RETURN FLOW */}
-      {showWelfareModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="p-8 border-b flex justify-between items-center">
-              <h3 className="font-black text-xl tracking-tight">Welfare History</h3>
-              <button onClick={() => setShowWelfareModal(false)} className="p-2 bg-gray-100 rounded-full">✕</button>
-            </div>
-      
-            <div className="max-h-[60vh] overflow-y-auto p-6 space-y-3">
-              {userData?.payment_history?.map((pay, idx) => (
-                <div key={idx} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                  <div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase">{new Date(pay.payment_date).toLocaleDateString()}</p>
-                    <p className="font-bold text-gray-800 text-xs">{pay.transaction_id || 'Contribution'}</p>
-                  </div>
-                  <p className="font-black text-blue-600">KES {pay.amount}</p>
-                </div>
-              ))}
-              {!userData?.payment_history?.length && (
-                <p className="text-center py-10 text-gray-400 font-medium">No records found</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div> // This is the closing tag for the VERY FIRST <div className="..."> in your component
+    </div>
   );
 };
