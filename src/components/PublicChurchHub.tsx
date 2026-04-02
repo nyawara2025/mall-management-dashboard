@@ -251,19 +251,13 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                   <span className="font-black text-xs uppercase tracking-widest text-gray-500">Tithes & Giving</span>
                 </button>
 
-                <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
+                <button
+                  onClick={() => setShowWelfareModal(true)} // Add this line    
+                  className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group"
+                >
                   <div className="p-4 bg-brown-50 text-brown-600 rounded-2xl group-hover:bg-brown-600 group-hover:text-white"><Wallet size={32} /></div>
                   <span className="font-black text-xs uppercase tracking-widest text-gray-500">Welfare Contributions</span>
                 </button>
-                <div 
-                  onClick={() => setShowWelfareModal(true)} // <--- ACTIVATE BUTTON HERE
-                  className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:shadow-md transition-all cursor-pointer group"
-                >
-                  <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center">
-                    <Wallet size={28} />
-                  </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Welfare Contributions</span>
-                </div>
 
                 <button className="flex flex-col items-center gap-3 p-8 bg-white rounded-[2rem] border border-gray-100 shadow-sm hover:scale-[1.02] transition-all group">
                   <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl group-hover:bg-blue-600 group-hover:text-white"><ClipboardList size={32} /></div>
