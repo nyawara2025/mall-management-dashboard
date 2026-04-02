@@ -172,8 +172,21 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-blue-600">Loading Hub...</div>;
-  if (!isAuthenticated) return <ChurchHubLogin shopId={activeShopId} onLoginSuccess={(u) => {setUserData(u); setIsAuthenticated(true); localStorage.setItem(`church_auth_${activeShopId}`, 'true'); localStorage.setItem(`church_user_${activeShopId}`, JSON.stringify(u));}} />;
-  if (!church) return <div className="p-10 text-center font-bold">Church Profile Not Found.</div>;
+  if (!isAuthenticated) return (
+    <ChurchHubLogin
+      shopId={activeShopId}
+      onLoginSuccess={(u) => {
+      
+        // FIX: Unwrap the n8n array immediately
+        const userObject = Array.isArray(u) ? u[0] : u;
+
+        setUserData(userObject);
+        setIsAuthenticated(true);
+        localStorage.setItem(`church_auth_${activeShopId}`, 'true');
+        localStorage.setItem(`church_user_${activeShopId}`, JSON.stringify(userObject));
+      }}
+    />
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans text-gray-900">

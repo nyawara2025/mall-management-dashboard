@@ -125,7 +125,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
     if (savedAuth === 'true' && savedUser) {
       setIsAuthenticated(true);
       const parsedUser = JSON.parse(savedUser);
-      setUserData(Array.isArray(parsedUser) ? parsedUser[0] : parsedUser);
+      const userObject = Array.isArray(parsedUser) ? parsedUser[0] : parsedUser;
+      setUserData(userObject);
     }
 
     async function fetchHubData() {
