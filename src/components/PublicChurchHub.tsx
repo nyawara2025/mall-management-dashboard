@@ -128,6 +128,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
+  const [messages, setMessages] = useState<{role: 'user' | 'bot', text: string}[]>([]);
+  const [userInput, setUserInput] = useState('');
   const [isSending, setIsSending] = useState(false);
 
   const activeShopId = shopId || 68;
@@ -183,7 +185,11 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   };
 
   const handleSendMessage = async () => {
-    if (!chatMessage.trim()) return;
+    if (!userInput.trim()) return;
+  
+    const userMsg = userInput;
+    setUserInput(''); // Clear input immediately for UX
+    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setIsSending(true);
 
     try {
@@ -199,14 +205,13 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         }),
       });
 
-      if (response.ok) {
-        setChatMessage('');
-        alert("Message sent to the ministry team!");
-        setIsChatOpen(false);
+      const data = await response.json();
+
+      if (data && data.text) {
+        setMessages(prev => [...prev, { role: 'bot', text: data.text }]);
       }
     } catch (error) {
-      console.error("Chat Error:", error);
-      alert("Failed to send message. Please try again.");
+      setMessages(prev => [...prev, { role: 'bot', text: 'Sorry, something went wrong.' }]);
     } finally {
       setIsSending(false);
     }
@@ -386,31 +391,41 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
       {isChatOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+          <div className="bg-white w-full max-w-md h-[600px] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden">
+            {/* Header */}
             <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <MessageCircle size={24} />
-                <h3 className="font-bold text-lg">Church Help Desk</h3>
-              </div>
-              <button onClick={() => setIsChatOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition-colors">
-                <X size={20} />
-              </button>
+              <h3 className="font-bold">Church Assistant</h3>
+              <button onClick={() => setIsChatOpen(false)}><X size={20} /></button>
             </div>
       
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-gray-500">How can we support you today, {userData?.first_name}?</p>
-              <textarea 
-                className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none resize-none h-32"
-                placeholder="Type your message or prayer request..."
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
+            {/* Message History Area */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
+              {messages.map((m, i) => (
+                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[80%] p-4 rounded-2xl text-sm ${
+                    m.role === 'user' ? 'bg-blue-600 text-white' : 'bg-white border border-gray-100 text-gray-800'
+                  }`}>
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+              {isSending && <div className="text-xs text-gray-400 animate-pulse">Typing...</div>}
+            </div>
+
+            {/* Input Area */}
+            <div className="p-6 bg-white border-t border-gray-100 flex gap-2">
+              <input 
+                className="flex-1 bg-gray-50 p-4 rounded-2xl outline-none text-sm"
+                placeholder="Ask something..."
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
               />
               <button 
                 onClick={handleSendMessage}
-                disabled={isSending || !chatMessage.trim()}
-                className={`w-full p-4 rounded-2xl font-bold text-white transition-all flex items-center justify-center gap-2 ${isSending ? 'bg-blue-400' : 'bg-blue-600 active:scale-95'}`}
+                className="bg-blue-600 p-4 rounded-2xl text-white active:scale-95 transition-transform"
               >
-                {isSending ? 'Sending...' : 'Send Message'}
+                <MessageCircle size={20} />
               </button>
             </div>
           </div>
