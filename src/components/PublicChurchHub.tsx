@@ -27,6 +27,7 @@ interface MemberData {
   ministry_name: string;
   registration_date: string;
   payment_history: PaymentRecord[] | null;
+  shop_id: number; // Add this line
 }
 
 interface ServiceActivity {
@@ -117,6 +118,131 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
   );
 };
 
+const WelfareModal = ({ isOpen, onClose, userData }: { isOpen: boolean, onClose: () => void, userData: MemberData | null }) => {
+  const [selectedKitty, setSelectedKitty] = useState('Social Welfare');
+  const [amount, setAmount] = useState('');
+  const [paymentMode, setPaymentMode] = useState<'stk' | 'manual'>('stk');
+  const [confirmationCode, setConfirmationCode] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const kitties = ['Ministry', 'Zone', 'Regional', 'Social Welfare', 'Ad hoc'];
+
+  const handlePayment = async () => {
+    if (!amount || Number(amount) <= 0) return alert("Please enter a valid amount");
+    setIsProcessing(true);
+    
+    try {
+      const payload = {
+        userId: userData?.id,
+        shop_id: userData?.shop_id,
+        phone: userData?.phone_number,
+        amount,
+        kitty: selectedKitty,
+        mode: paymentMode,
+        code: paymentMode === 'manual' ? confirmationCode : null
+      };
+
+      // Replace with your n8n/backend payment endpoint
+      const response = await fetch('https://n8n.tenear.com/webhook/post-to-church-welfare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (response.ok) {
+        alert(paymentMode === 'stk' ? "STK Push sent! Check your phone." : "Payment submitted for verification.");
+        onClose();
+      }
+    } catch (err) {
+      alert("Payment failed. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden">
+        <div className="p-8">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-2xl font-black text-gray-900">Welfare Fund</h3>
+            <button onClick={onClose} className="p-2 bg-gray-100 rounded-full"><X size={20} /></button>
+          </div>
+
+          <div className="space-y-5">
+            {/* Kitty Selection */}
+            <div>
+              <label className="text-xs font-bold uppercase text-gray-400 ml-1">Select Kitty</label>
+              <div className="grid grid-cols-2 gap-2 mt-2">
+                {kitties.map(k => (
+                  <button 
+                    key={k}
+                    onClick={() => setSelectedKitty(k)}
+                    className={`p-3 rounded-xl text-sm font-semibold border transition-all ${selectedKitty === k ? 'bg-blue-600 border-blue-600 text-white' : 'bg-gray-50 border-gray-100 text-gray-600'}`}
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Amount Input */}
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">KES</span>
+              <input 
+                type="number" 
+                placeholder="Amount" 
+                className="w-full bg-gray-50 border border-gray-100 p-4 pl-14 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+              />
+            </div>
+
+            {/* Payment Mode Toggle */}
+            <div className="flex bg-gray-100 p-1 rounded-2xl">
+              <button onClick={() => setPaymentMode('stk')} className={`flex-1 p-2 rounded-xl text-xs font-bold transition-all ${paymentMode === 'stk' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>M-PESA PUSH</button>
+              <button onClick={() => setPaymentMode('manual')} className={`flex-1 p-2 rounded-xl text-xs font-bold transition-all ${paymentMode === 'manual' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>MANUAL CODE</button>
+            </div>
+
+            {paymentMode === 'manual' && (
+              <input 
+                placeholder="Enter M-Pesa Code (e.g. RBT45...)" 
+                className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl outline-none uppercase"
+                value={confirmationCode}
+                onChange={(e) => setConfirmationCode(e.target.value)}
+              />
+            )}
+
+            <button 
+              onClick={handlePayment}
+              disabled={isProcessing}
+              className="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-all"
+            >
+              {isProcessing ? 'Processing...' : 'Contribute Now'}
+            </button>
+          </div>
+        </div>
+
+        {/* History Preview */}
+        <div className="bg-gray-50 p-6 border-t border-gray-100 max-h-48 overflow-y-auto">
+          <p className="text-xs font-bold text-gray-400 uppercase mb-3">Your Payment History</p>
+          {userData?.payment_history?.map((pay, i) => (
+            <div key={i} className="flex justify-between items-center mb-2 bg-white p-3 rounded-xl border border-gray-100">
+              <div>
+                <p className="text-sm font-bold text-gray-800">KES {pay.amount}</p>
+                <p className="text-[10px] text-gray-400">{new Date(pay.payment_date).toLocaleDateString()}</p>
+              </div>
+              <span className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-md">{pay.status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- COMPONENT 2: Main Hub ---
 export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [church, setChurch] = useState<any>(null);
@@ -133,6 +259,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [isSending, setIsSending] = useState(false);
 
   const activeShopId = shopId || 68;
+  const [isWelfareModalOpen, setIsWelfareModalOpen] = useState(false);
 
   useEffect(() => {
     const savedAuth = localStorage.getItem(`church_auth_${activeShopId}`);
@@ -360,10 +487,16 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">TITHES & GIVING</span>
               </button>
-              <button onClick={() => setActiveView('welfare')} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Wallet size={28} /></div>
-                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">WELFARE CONTRIBUTIONS</span>
+              <button 
+                onClick={() => setIsWelfareModalOpen(true)}
+                className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center text-center group"
+              >
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-blue-50 transition-colors">
+                  <Wallet className="text-gray-400 group-hover:text-blue-600" />
+                </div>
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Welfare Contributions</span>
               </button>
+
               <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><ImageIcon size={28} /></div>
                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">PHOTO GALLERY</span>
@@ -388,6 +521,13 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
           <ServiceOrderView />
         )}
       </main>
+
+      {/* Render the Modal */}
+      <WelfareModal 
+        isOpen={isWelfareModalOpen} 
+        onClose={() => setIsWelfareModalOpen(false)} 
+        userData={userData}
+      />
 
       {isChatOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
