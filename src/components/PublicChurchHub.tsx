@@ -1,4 +1,4 @@
-mport React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   MapPin, CalendarDays, BookOpen, 
   LogOut, Lock, Phone as PhoneIcon,
@@ -126,6 +126,10 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [userData, setUserData] = useState<MemberData | null>(null);
   const [activeView, setActiveView] = useState<'dashboard' | 'service_order' | 'welfare'>('dashboard');
   
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessage, setChatMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+
   const activeShopId = shopId || 68;
 
   useEffect(() => {
@@ -176,6 +180,36 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
     setIsAuthenticated(false);
     setUserData(null);
     setActiveView('dashboard');
+  };
+
+  const handleSendMessage = async () => {
+    if (!chatMessage.trim()) return;
+    setIsSending(true);
+
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/neochat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: activeShopId,
+          user_id: userData?.id,
+          user_name: `${userData?.first_name} ${userData?.last_name}`,
+          message: chatMessage,
+          timestamp: new Date().toISOString()
+        }),
+      });
+
+      if (response.ok) {
+        setChatMessage('');
+        alert("Message sent to the ministry team!");
+        setIsChatOpen(false);
+      }
+    } catch (error) {
+      console.error("Chat Error:", error);
+      alert("Failed to send message. Please try again.");
+    } finally {
+      setIsSending(false);
+    }
   };
 
   // --- SUB-VIEW: Welfare Dashboard (RESTORED HISTORY DISPLAY) ---
@@ -329,10 +363,18 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><ImageIcon size={28} /></div>
                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">PHOTO GALLERY</span>
               </button>
-              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><MessageCircle size={28} /></div>
-                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">CHAT</span>
+             
+              {/* Find your Chat Grid Item and update it like this */}
+              <button 
+                onClick={() => setIsChatOpen(true)}
+                className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-50 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
+              >
+                <div className="p-4 bg-gray-50 rounded-2xl group-hover:bg-blue-50 transition-colors">
+                  <MessageCircle className="text-gray-400 group-hover:text-blue-600" size={32} />
+                </div>
+                <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">Chat</span>
               </button>
+
             </div>
           </div>
         ) : activeView === 'welfare' ? (
@@ -341,6 +383,40 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
           <ServiceOrderView />
         )}
       </main>
+
+      {isChatOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <MessageCircle size={24} />
+                <h3 className="font-bold text-lg">Church Help Desk</h3>
+              </div>
+              <button onClick={() => setIsChatOpen(false)} className="hover:bg-white/20 p-2 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+      
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-gray-500">How can we support you today, {userData?.first_name}?</p>
+              <textarea 
+                className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none resize-none h-32"
+                placeholder="Type your message or prayer request..."
+                value={chatMessage}
+                onChange={(e) => setChatMessage(e.target.value)}
+              />
+              <button 
+                onClick={handleSendMessage}
+                disabled={isSending || !chatMessage.trim()}
+                className={`w-full p-4 rounded-2xl font-bold text-white transition-all flex items-center justify-center gap-2 ${isSending ? 'bg-blue-400' : 'bg-blue-600 active:scale-95'}`}
+              >
+                {isSending ? 'Sending...' : 'Send Message'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
