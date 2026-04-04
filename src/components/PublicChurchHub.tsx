@@ -638,9 +638,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">BROADCAST</span>
               </button>
               
-              // Inside your JSX grid:
-             
-              <div 
+              <button
                 onClick={() => setIsMeetingsOpen(true)}
                 className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-50 flex flex-col items-center justify-center gap-4 cursor-pointer hover:shadow-xl transition-all active:scale-95"
               >
@@ -648,7 +646,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                   <ClipboardList size={32} />
                 </div>
                 <span className="font-black text-[10px] uppercase tracking-widest text-gray-400">Meetings</span>
-              </div>
+              </button>
 
               <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
