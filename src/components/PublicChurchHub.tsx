@@ -401,6 +401,108 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
   );
 };
 
+const GalleryModal = ({ isOpen, onClose, userData }: { isOpen: boolean, onClose: () => void, userData: MemberData | null }) => {
+  const [images, setImages] = useState<{ name: string; url: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const BUCKET_NAME = 'church-gallery';
+
+  useEffect(() => {
+    if (isOpen) fetchImages();
+  }, [isOpen]);
+
+  const fetchImages = async () => {
+    setLoading(true);
+    try {
+      // Replace with your actual n8n GET webhook URL
+      const response = await fetch('https://n8n.tenear.com/webhook/fetch-church-photos');
+    
+      if (!response.ok) throw new Error("Failed to fetch gallery");
+
+      const data = await response.json();
+    
+      // data should be an array like: [{ name: "img.jpg", url: "https://..." }]
+      setImages(data);
+    } catch (err) {
+      console.error("Error fetching images:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    setUploading(true);
+
+    try {
+      const file = e.target.files[0];
+      const formData = new FormData();
+      formData.append('data', file); // 'data' matches the n8n binary property name
+      formData.append('fileName', `${Date.now()}-${file.name}`);
+
+      const response = await fetch('https://n8n.tenear.com/webhook/church-photos', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        alert("Photo uploaded successfully!");
+        fetchImages(); // Refresh the gallery view
+      } else {
+        throw new Error("Upload failed");
+      }
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white w-full max-w-4xl rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+        <div className="p-8 border-b border-gray-100 flex justify-between items-center">
+          <div>
+            <h3 className="text-2xl font-black text-gray-900">Photo Gallery</h3>
+            <p className="text-sm text-gray-500">Memories from our community</p>
+          </div>
+          <div className="flex gap-3">
+            {userData?.role === 'admin' && (
+              <label className={`cursor-pointer px-6 py-2 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-all ${uploading ? 'opacity-50' : ''}`}>
+                {uploading ? 'Uploading...' : 'Upload Photo'}
+                <input type="file" className="hidden" accept="image/*" onChange={handleUpload} disabled={uploading} />
+              </label>
+            )}
+            <button onClick={onClose} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X size={20} /></button>
+          </div>
+        </div>
+
+        <div className="p-8 overflow-y-auto">
+          {loading ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 animate-pulse">
+              {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="aspect-square bg-gray-100 rounded-2xl" />)}
+            </div>
+          ) : images.length === 0 ? (
+            <div className="text-center py-20 text-gray-400 font-medium">No photos uploaded yet.</div>
+          ) : (
+            <div className="columns-2 md:columns-3 gap-4 space-y-4">
+              {images.map((img) => (
+                <div key={img.name} className="relative group overflow-hidden rounded-2xl shadow-sm border border-gray-100">
+                  <img src={img.url} alt="Gallery" className="w-full h-auto object-cover hover:scale-105 transition-transform duration-500" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
 // --- COMPONENT 2: Main Hub ---
 export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [church, setChurch] = useState<any>(null);
@@ -420,6 +522,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [isWelfareModalOpen, setIsWelfareModalOpen] = useState(false);
 
   const [isMeetingsOpen, setIsMeetingsOpen] = useState(false);
+
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
   useEffect(() => {
     const savedAuth = localStorage.getItem(`church_auth_${activeShopId}`);
@@ -664,9 +768,15 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Welfare Contributions</span>
               </button>
 
-              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><ImageIcon size={28} /></div>
-                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">PHOTO GALLERY</span>
+              <button
+                onClick={() => setIsGalleryOpen(true)}
+                className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-50 flex flex-col items-center justify-center gap-4 cursor-pointer hover:shadow-xl transition-all active:scale-95"
+              >
+                <div className="p-4 bg-gray-50 rounded-2xl text-gray-400">
+                  <ImageIcon size={32} />
+                </div>
+                <span className="font-black text-[10px] uppercase tracking-widest text-gray-400">Photo Gallery</span> 
+                
               </button>
              
               {/* Find your Chat Grid Item and update it like this */}
@@ -743,6 +853,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
       <MeetingsModal 
         isOpen={isMeetingsOpen} 
         onClose={() => setIsMeetingsOpen(false)} 
+        userData={userData} 
+      />
+
+      <GalleryModal 
+        isOpen={isGalleryOpen} 
+        onClose={() => setIsGalleryOpen(false)} 
         userData={userData} 
       />
 
