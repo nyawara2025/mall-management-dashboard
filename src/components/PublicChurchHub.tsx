@@ -51,6 +51,7 @@ interface Meeting {
   meeting_time: string;
   category: 'All Church' | 'Zonal' | 'Regional' | 'Ministry' | 'Ad hoc';
   location: string;
+  shop_id: number; // Add this line
 }
 
 interface MeetingsModalProps {
@@ -286,6 +287,7 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           userId: userData?.id,
+          shop_id: userData?.shop_id,
           role: userData?.role,
           zone: userData?.zone_name,
           ministry: userData?.ministry_name 
