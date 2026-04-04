@@ -416,8 +416,19 @@ const GalleryModal = ({ isOpen, onClose, userData }: { isOpen: boolean, onClose:
     setLoading(true);
     try {
       // Replace with your actual n8n GET webhook URL
-      const response = await fetch('https://n8n.tenear.com/webhook/fetch-church-photos');
-    
+      const response = await fetch('https://n8n.tenear.com/webhook/fetch-church-photos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          shop_id: userData?.shop_id,
+          bucket: BUCKET_NAME,
+          limit: 100 
+        }),
+      });
+
+
       if (!response.ok) throw new Error("Failed to fetch gallery");
 
       const data = await response.json();
