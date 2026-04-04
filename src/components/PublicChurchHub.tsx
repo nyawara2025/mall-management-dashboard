@@ -401,7 +401,7 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
   );
 };
 
-const GalleryModal = ({ isOpen, onClose, userData }: { isOpen: boolean, onClose: () => void, userData: MemberData | null }) => {
+const GalleryModal = ({ isOpen, onClose, userData, shopId }: { isOpen: boolean, onClose: () => void, userData: MemberData | null, shopId: number }) => {
   const [images, setImages] = useState<{ name: string; url: string }[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -413,6 +413,7 @@ const GalleryModal = ({ isOpen, onClose, userData }: { isOpen: boolean, onClose:
   }, [isOpen]);
 
   const fetchImages = async () => {
+    if (!shopId) return;
     setLoading(true);
     try {
       // Replace with your actual n8n GET webhook URL
@@ -422,7 +423,7 @@ const GalleryModal = ({ isOpen, onClose, userData }: { isOpen: boolean, onClose:
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          shop_id: userData?.shop_id,
+          shop_id: shopId,
           bucket: BUCKET_NAME,
           limit: 100 
         }),
@@ -434,9 +435,10 @@ const GalleryModal = ({ isOpen, onClose, userData }: { isOpen: boolean, onClose:
       const data = await response.json();
     
       // data should be an array like: [{ name: "img.jpg", url: "https://..." }]
-      setImages(data);
+      setImages(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error("Error fetching images:", err);
+      console.error("Error:", err);
+      setImages([]);
     } finally {
       setLoading(false);
     }
@@ -870,7 +872,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
       <GalleryModal 
         isOpen={isGalleryOpen} 
         onClose={() => setIsGalleryOpen(false)} 
-        userData={userData} 
+        userData={userData}
+        shopId={activeShopId} 
       />
 
     </div>
