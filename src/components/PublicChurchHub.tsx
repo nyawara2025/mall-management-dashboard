@@ -453,7 +453,7 @@ const GalleryModal = ({ isOpen, onClose, userData, shopId }: { isOpen: boolean, 
       const formData = new FormData();
       formData.append('data', file); // 'data' matches the n8n binary property name
       formData.append('fileName', `${Date.now()}-${file.name}`);
-
+      formData.append('shop_id', String(shopId));
       const response = await fetch('https://n8n.tenear.com/webhook/church-photos', {
         method: 'POST',
         body: formData,
