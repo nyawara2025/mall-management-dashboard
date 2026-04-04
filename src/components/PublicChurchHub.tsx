@@ -432,13 +432,16 @@ const GalleryModal = ({ isOpen, onClose, userData, shopId }: { isOpen: boolean, 
 
       if (!response.ok) throw new Error("Failed to fetch gallery");
 
-      const data = await response.json();
+      const result = await response.json();
     
-      // data should be an array like: [{ name: "img.jpg", url: "https://..." }]
-      setImages(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Error:", err);
-      setImages([]);
+      // Check for the .images property specifically
+      if (result && Array.isArray(result.images)) {
+        setImages(result.images);
+      } else {
+        setImages([]);
+      }
+   
+
     } finally {
       setLoading(false);
     }
