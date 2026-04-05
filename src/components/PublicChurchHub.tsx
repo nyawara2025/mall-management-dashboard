@@ -804,7 +804,28 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                   <MessageCircle className="text-gray-400 group-hover:text-blue-600" size={32} />
                 </div>
                 <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">Chat</span>
+              </button> 
+
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Church Projects</span>
               </button>
+
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Community Service</span>
+              </button>
+
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">SOKONI</span>
+              </button>
+
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Join a Ministry</span>
+              </button>
+
 
             </div>
           </div>
