@@ -60,14 +60,6 @@ interface MeetingsModalProps {
   userData: MemberData | null;
 }
 
-interface Notification {
-  id: string;
-  type: 'broadcast' | 'notice' | 'alert' | 'message';
-  content: string;
-  created_at: string;
-  is_urgent: boolean;
-}
-
 // --- COMPONENT 1: Login ---
 export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onLoginSuccess: (data: MemberData) => void }) => {
   const [phone, setPhone] = useState('');
@@ -138,64 +130,6 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
           </button>
         </div>
       </div>
-    </div>
-  );
-};
-
-const AlertsRibbon = ({ userId, shopId }: { userId: number, shopId: number }) => {
-  const [alerts, setAlerts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchAlerts = async () => {
-    try {
-      const response = await fetch('https://n8n.tenear.com/webhook/fetch-notices', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, shopId }),
-      });
-      const data = await response.json();
-      setAlerts(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Failed to fetch alerts", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAlerts();
-    // Optional: Refresh alerts every 5 minutes
-    const interval = setInterval(fetchAlerts, 300000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (loading || alerts.length === 0) return null;
-
-  return (
-    <div className="w-full mb-8 space-y-3">
-      {alerts.map((alert, index) => (
-        <div 
-          key={index} 
-          className={`flex items-center justify-between p-4 rounded-[2rem] border animate-in slide-in-from-top-2 duration-500 ${
-            alert.priority === 'high' ? 'bg-red-50 border-red-100' : 'bg-blue-50 border-blue-100'
-          }`}
-        >
-          <div className="flex items-center gap-4">
-            <div className={`p-3 rounded-2xl ${alert.priority === 'high' ? 'bg-red-500' : 'bg-blue-600'} text-white shadow-lg`}>
-              {alert.type === 'broadcast' ? <Radio size={20} /> : <Bell size={20} />}
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest opacity-50">
-                {alert.category || 'General Notice'}
-              </p>
-              <p className="text-sm font-bold text-gray-800">{alert.message}</p>
-            </div>
-          </div>
-          <button className="text-gray-400 hover:text-gray-600 p-2">
-            <X size={16} />
-          </button>
-        </div>
-      ))}
     </div>
   );
 };
@@ -319,47 +253,6 @@ const WelfareModal = ({ isOpen, onClose, userData }: { isOpen: boolean, onClose:
               <span className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-md">{pay.status}</span>
             </div>
           ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const ProfileCard = ({ userData }: { userData: MemberData }) => {
-  return (
-    <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 text-center relative overflow-hidden">
-      {/* Member Badge */}
-      <div className="absolute top-6 right-6">
-        <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider border border-blue-100">
-          Member
-        </span>
-      </div>
-
-      {/* Avatar Circle */}
-      <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center text-white text-3xl font-black mx-auto mb-6 shadow-xl shadow-blue-100">
-        {userData.first_name[0]}{userData.last_name[0]}
-      </div>
-
-      <h2 className="text-2xl font-black text-gray-900 mb-8">
-        {userData.first_name} {userData.last_name}
-      </h2>
-
-      {/* Info Rows */}
-      <div className="space-y-4">
-        <div className="bg-gray-50/50 p-4 rounded-2xl flex items-start gap-4 text-left border border-gray-100/50">
-          <div className="p-2 bg-white rounded-xl shadow-sm text-blue-600"><ShieldCheck size={18}/></div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Zone</p>
-            <p className="font-bold text-gray-800">{userData.zone_name}</p>
-          </div>
-        </div>
-
-        <div className="bg-gray-50/50 p-4 rounded-2xl flex items-start gap-4 text-left border border-gray-100/50">
-          <div className="p-2 bg-white rounded-xl shadow-sm text-blue-600"><Users size={18}/></div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Current Ministry</p>
-            <p className="font-bold text-gray-800">{userData.ministry_name}</p>
-          </div>
         </div>
       </div>
     </div>
@@ -1031,24 +924,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         userData={userData}
         shopId={activeShopId} 
       />
-
-      {/* Only render the hub content if userData exists */}
-      {userData ? (
-        <div className="max-w-6xl mx-auto">
-          {/* Use ?. to safely access properties */}
-          <AlertsRibbon userId={userData?.id} shopId={userData?.shop_id} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-4">
-              {/* We'll define ProfileCard below to fix the next error */}
-              <ProfileCard userData={userData} />
-            </div>
-            {/* ... rest of your code ... */}
-          </div>
-        </div>
-      ) : (
-        <ChurchHubLogin shopId={shopId} onLoginSuccess={setUserData} />
-      )}
 
     </div>
   );
