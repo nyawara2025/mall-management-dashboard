@@ -17,8 +17,7 @@ interface Service {
 export const ServicePlanner = ({ shopId }: { shopId: string }) => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [services, setServices] = useState<Service[]>([
-    { name: 'Morning Glory', startTime: '07:00', endTime: '08:00', orderOfService: [] },
-    { name: 'Youth Service', startTime: '08:15', endTime: '09:30', orderOfService: [] },
+    { name: 'Youth Service', startTime: '08:00', endTime: '10:00', orderOfService: [] },
     { name: 'English Service', startTime: '10:00', endTime: '12:00', orderOfService: [] },
     { name: 'Kiswahili Service', startTime: '12:00', endTime: '13:00', orderOfService: [] }
   ]);
