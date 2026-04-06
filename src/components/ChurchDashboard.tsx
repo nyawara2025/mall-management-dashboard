@@ -22,11 +22,11 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const stats: StatItem[] = [
-    { label: 'Total Members', value: '1,240', change: '+12%', changeType: 'increase', icon: Users, color: 'text-blue-600' },
-    { label: 'Avg. Attendance', value: '850', change: '+5%', changeType: 'increase', icon: Church, color: 'text-green-600' },
-    { label: 'Monthly Tithes', value: 'KES 450k', change: '-2%', changeType: 'decrease', icon: Heart, color: 'text-red-600' },
-    { label: 'New Visitors', value: '24', change: '+18%', changeType: 'increase', icon: UserPlus, color: 'text-purple-600' },
-    { label: 'Active Volunteers', value: '156', change: '0%', changeType: 'neutral', icon: Milestone, color: 'text-orange-600' }
+    { label: 'Total Members', value: '410', change: '+12%', changeType: 'increase', icon: Users, color: 'text-blue-600' },
+    { label: 'Avg. Attendance', value: '289', change: '+5%', changeType: 'increase', icon: Church, color: 'text-green-600' },
+    { label: 'Monthly Tithes', value: 'KES 75k', change: '-2%', changeType: 'decrease', icon: Heart, color: 'text-red-600' },
+    { label: 'New Visitors', value: '11', change: '+18%', changeType: 'increase', icon: UserPlus, color: 'text-purple-600' },
+    { label: 'Active Volunteers', value: '18', change: '0%', changeType: 'neutral', icon: Milestone, color: 'text-orange-600' }
   ];
 
   const handleWelfareSubmit = async () => {
@@ -99,26 +99,26 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
 
 
   return (
-    <div className="p-4 max-w-7xl mx-auto space-y-4"> {/* Reduced outer padding/spacing */}
+    <div className="bg-orange-50 min-h-screen p-4 max-w-7xl mx-auto space-y-4">
       {/* HEADER: Title, Subtitle, and Logo */}
       <div className="flex justify-between items-center mb-2"> {/* Items center & reduced margin */}
         <div>
-          <h1 className="text-2xl font-black text-gray-800 tracking-tight">
+          <h1 className="text-2xl font-black italic text-gray-700 tracking-tight">
             Church Administration
           </h1>
-          <h2 className="text-lg font-semibold text-purple-600 mt-0">
-            St. Barnabas Anglican Church, Otiende - Langata
+          <h2 className="text-lg font-semibold italic text-purple-600 mt-0">
+            St. Barnabas Anglican Church, Otiende - Langata - The home of encouragement!
           </h2>
         </div>
 
         {user?.shop_id && (
           <div className="flex items-center">
              <img
-              src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/StBarnabaseLogo2final.png"
+              src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/StBarnabasLogo101Finally1.jpg"
               alt="Church Logo"
               /* REMOVED: bg-white, rounded-3xl, shadow, and border */
               /* REDUCED: Height/Width from 60 to 28 */
-              className="h-40 w-40 object-contain" 
+              className="h-28 w-28 object-contain" 
               onError={(e) =>  {
                 e.currentTarget.onerror = null;
                 e.currentTarget.src = "/default-church.png";

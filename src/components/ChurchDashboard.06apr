@@ -97,15 +97,16 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
     }
   };
 
+
   return (
     <div className="p-4 max-w-7xl mx-auto space-y-4"> {/* Reduced outer padding/spacing */}
       {/* HEADER: Title, Subtitle, and Logo */}
       <div className="flex justify-between items-center mb-2"> {/* Items center & reduced margin */}
         <div>
-          <h1 className="text-2xl font-black text-gray-800 tracking-tight">
+          <h1 className="text-2xl font-black italic text-gray-700 tracking-tight">
             Church Administration
           </h1>
-          <h2 className="text-lg font-semibold text-purple-600 mt-0">
+          <h2 className="text-lg font-semibold italic text-purple-600 mt-0">
             St. Barnabas Anglican Church, Otiende - Langata
           </h2>
         </div>
@@ -113,11 +114,11 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
         {user?.shop_id && (
           <div className="flex items-center">
              <img
-              src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/StBarnabaseLogo2final.png"
+              src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/StBarnabasLogo101Finally1.jpg"
               alt="Church Logo"
               /* REMOVED: bg-white, rounded-3xl, shadow, and border */
               /* REDUCED: Height/Width from 60 to 28 */
-              className="h-40 w-40 object-contain" 
+              className="h-28 w-28 object-contain" 
               onError={(e) =>  {
                 e.currentTarget.onerror = null;
                 e.currentTarget.src = "/default-church.png";
@@ -234,7 +235,7 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
               </div>
             </div>
           </div>
-
+                   
 
         </div>
       </div>
