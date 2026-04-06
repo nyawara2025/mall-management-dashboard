@@ -747,15 +747,15 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-purple-50 group-hover:text-purple-600"><MessageSquare size={28} /></div>
                 <span className="text-xs font-black text-purple-400 uppercase tracking-widest text-center">OPINION</span>
               </button>
-              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Heart size={28} /></div>
-                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">PRAYER</span>
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Heart size={28} /></div>
+                <span className="text-xs font-black text-purple-400 uppercase tracking-widest text-center">PRAYER REQUEST</span>
               </button>
-              <button onClick={() => setActiveView('service_order')} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Book size={28} /></div>
+              <button onClick={() => setActiveView('service_order')} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Book size={28} /></div>
                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">ORDER OF SERVICE</span>
               </button>
-              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">BROADCAST</span>
               </button>
@@ -770,9 +770,9 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="font-black text-[10px] uppercase tracking-widest text-gray-400">Meetings</span>
               </button>
 
-              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
-                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">TITHES & GIVING</span>
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
+                <span className="text-xs font-black text-purple-400 uppercase tracking-widest text-center">TITHES & GIVING</span>
               </button>
               <button 
                 onClick={() => setIsWelfareModalOpen(true)}
@@ -782,6 +782,31 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                   <Wallet className="text-gray-400 group-hover:text-blue-600" />
                 </div>
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Welfare Contributions</span>
+              </button>
+
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">DEVOTIONS</span>
+              </button>
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">A MOMENT WITH GOD</span>
+              </button>
+
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Newsletters & Notifications</span>
+
+              </button>
+
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Appointmnets</span>
+              </button>
+
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">My Account</span>
               </button>
 
               <button

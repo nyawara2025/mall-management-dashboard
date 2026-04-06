@@ -61,6 +61,42 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
     }
   };
 
+  // --- STATE FOR NEWSLETTER ---
+  const [newsletterContent, setNewsletterContent] = useState('');
+  const [isSendingNewsletter, setIsSendingNewsletter] = useState(false);
+
+  const handleNewsletterSubmit = async () => {
+    if (!newsletterContent.trim()) {
+      alert("Please enter a message for the newsletter.");
+      return;
+    }
+
+    setIsSendingNewsletter(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/send-newsletter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: newsletterContent,
+          shop_id: user?.shop_id,
+          church_name: "St. Barnabas Anglican Church",
+          category: "NEWSLETTER",
+          sent_by: (user as any)?.username || 'Admin'
+        }),
+      });
+
+      if (!response.ok) throw new Error(`Gateway Error: ${response.status}`);
+
+      alert("WhatsApp Newsletter queued for delivery!");
+      setNewsletterContent(''); // Clear the input
+    } catch (error) {
+      console.error("Newsletter Error:", error);
+      alert("Failed to send WhatsApp broadcast.");
+    } finally {
+      setIsSendingNewsletter(false);
+    }
+  };
+
   return (
     <div className="p-4 max-w-7xl mx-auto space-y-4"> {/* Reduced outer padding/spacing */}
       {/* HEADER: Title, Subtitle, and Logo */}
@@ -168,16 +204,38 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
 
           {/* Quick Actions */}
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-            <h3 className="font-black text-gray-900 mb-4 uppercase text-xs tracking-widest">Quick Actions</h3>
+            <h3 className="font-black text-gray-900 mb-4 uppercase text-xs tracking-widest">
+              WhatsApp Broadcast
+            </h3>
             <div className="space-y-3">
-              <button className="w-full bg-gray-900 text-white py-3 rounded-xl text-sm font-bold hover:bg-black transition shadow-md">
-                Send Newsletter
+              {/* Message Input Area */}
+              <textarea 
+                placeholder="Type newsletter message here..."
+                className="w-full text-sm p-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-purple-500 outline-none min-h-[100px] resize-none"
+                value={newsletterContent}
+                onChange={(e) => setNewsletterContent(e.target.value)}
+              />
+    
+              <button 
+                onClick={handleNewsletterSubmit}
+                disabled={isSendingNewsletter}
+                className="w-full bg-gray-900 text-white py-3 rounded-xl text-sm font-bold hover:bg-black transition shadow-md active:scale-95 disabled:opacity-50"
+              >
+                {isSendingNewsletter ? 'Sending...' : '🚀 Send Newsletter'}
               </button>
-              <button className="w-full border-2 border-gray-100 py-3 rounded-xl text-sm font-bold hover:bg-gray-50 transition">
-                Manage Tithes
-              </button>
+    
+              <div className="border-t border-gray-100 my-2 pt-2">
+                <button 
+                  onClick={() => onViewChange('tithes')}
+                  className="w-full border-2 border-gray-100 py-3 rounded-xl text-sm font-bold hover:bg-gray-50 transition active:scale-95"
+                >
+                  Manage Tithes
+                </button>
+              </div>
             </div>
           </div>
+
+
         </div>
       </div>
     </div>
