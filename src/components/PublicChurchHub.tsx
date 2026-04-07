@@ -1032,24 +1032,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         shopId={activeShopId} 
       />
 
-      {/* Only render the hub content if userData exists */}
-      {userData ? (
-        <div className="max-w-6xl mx-auto">
-          {/* Use ?. to safely access properties */}
-          <AlertsRibbon userId={userData?.id} shopId={userData?.shop_id} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-4">
-              {/* We'll define ProfileCard below to fix the next error */}
-              <ProfileCard userData={userData} />
-            </div>
-            {/* ... rest of your code ... */}
-          </div>
-        </div>
-      ) : (
-        <ChurchHubLogin shopId={shopId} onLoginSuccess={setUserData} />
-      )}
-
     </div>
   );
 };
