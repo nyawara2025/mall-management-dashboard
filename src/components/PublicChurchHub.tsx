@@ -91,10 +91,11 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
         }),
       });
 
-      const text = await response.text();
-      const result = text ? JSON.parse(text) : {};
+      const result = await response.json();
 
-      if (!response.ok) throw new Error(result.message || `Error: ${response.status}`);
+      if (!response.ok) {
+        onLoginSuccess(result);
+      }
 
       if (isSignUp) {
         alert(result.message || "Signup request sent successfully!");
