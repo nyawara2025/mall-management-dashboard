@@ -833,9 +833,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                   <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">MEMBER</span>
                 </div>
                 <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center text-white text-3xl font-black mx-auto mb-6 shadow-xl shadow-blue-100">
-                  {userData?.first_name.charAt(0)}{userData?.last_name.charAt(0)}
+                  {userData?.first_name ? userData.first_name.charAt(0) : 'M'}
+                  {userData?.last_name ? userData.last_name.charAt(0) : ''}
                 </div>
-                <h2 className="text-2xl font-black text-gray-900 leading-tight">{userData?.first_name} {userData?.last_name}</h2>
+                <h2 className="text-2xl font-black text-gray-900 leading-tight">
+                  {userData?.first_name || 'Church'} {userData?.last_name || 'Member'}
+                </h2>
                 <div className="mt-8 space-y-3">
                   <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100 text-left">
                     <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm"><ShieldCheck size={20} /></div>
@@ -908,7 +911,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
               <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
-                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Appointmnets</span>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Appointments</span>
               </button>
 
               <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
