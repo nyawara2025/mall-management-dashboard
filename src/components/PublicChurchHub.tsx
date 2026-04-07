@@ -75,46 +75,76 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+
   const handleAuth = async () => {
+    // Basic Validation
+    if (!phone || !password) {
+      alert("Please enter both phone and password");
+      return;
+    }
+  
+    if (isSignUp && (!firstName || !lastName)) {
+      alert("Please enter your first and last name to create a profile");
+      return;
+    }
+
     setLoading(true);
     const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
   
     try {
+      // Construct the payload
+      const payload = {
+        phone: formattedPhone,
+        password: password,
+        isSignUp: isSignUp,
+        shop_id: shopId,
+        // Only send names if it's a Signup attempt
+        first_name: isSignUp ? firstName : undefined,
+        last_name: isSignUp ? lastName : undefined,
+      };
+
       const response = await fetch('https://n8n.tenear.com/webhook/church-user-signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: formattedPhone,
-          password: password,
-          isSignUp: isSignUp,
-          shop_id: shopId
-        }),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
 
-      // 1. Handle Errors (n8n returns 400 or 500)
+      // 1. Handle HTTP Errors (400, 401, 500 etc)
       if (!response.ok) {
-        throw new Error(result.message || result.error || "Authentication failed");
+        throw new Error(result.message || result.error || "Authentication failed. Please check your credentials.");
       }
 
-      // 2. Unify the Login/Signup Success Logic
-      // If Signup is successful, n8n MUST now return the same user object + token as Login
+      // 2. Process Success
+      // We normalize the result because n8n sometimes wraps objects in arrays
       const userData = Array.isArray(result) ? result[0] : result;
 
       if (userData && (userData.token || userData.id)) {
-        if (isSignUp) alert("Account created successfully!");
-        onLoginSuccess(userData); // This logs them in immediately
+        if (isSignUp) {
+          alert("Welcome! Your account has been created successfully.");
+        }
+      
+        // Save to localStorage so session persists on refresh
+        localStorage.setItem(`church_auth_${shopId}`, 'true');
+        localStorage.setItem(`church_user_${shopId}`, JSON.stringify(userData));
+      
+        // Trigger the parent component state update
+        onLoginSuccess(userData);
       } else {
-        throw new Error("Invalid response from server");
+        throw new Error("The server response was incomplete. Please try again.");
       }
 
     } catch (error: any) {
+      console.error("Auth Error:", error);
       alert(error.message);
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
