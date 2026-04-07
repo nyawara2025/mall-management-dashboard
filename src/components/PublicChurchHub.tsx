@@ -78,7 +78,7 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
   const handleAuth = async () => {
     setLoading(true);
     const formattedPhone = phone.startsWith('+') ? phone : `+${phone}`;
-    
+  
     try {
       const response = await fetch('https://n8n.tenear.com/webhook/church-user-signup', {
         method: 'POST',
@@ -87,23 +87,28 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
           phone: formattedPhone,
           password: password,
           isSignUp: isSignUp,
-          shop_id: shopId 
+          shop_id: shopId
         }),
       });
 
       const result = await response.json();
 
+      // 1. Handle Errors (n8n returns 400 or 500)
       if (!response.ok) {
-        onLoginSuccess(result);
+        throw new Error(result.message || result.error || "Authentication failed");
       }
 
-      if (isSignUp) {
-        alert(result.message || "Signup request sent successfully!");
-        setIsSignUp(false);
+      // 2. Unify the Login/Signup Success Logic
+      // If Signup is successful, n8n MUST now return the same user object + token as Login
+      const userData = Array.isArray(result) ? result[0] : result;
+
+      if (userData && (userData.token || userData.id)) {
+        if (isSignUp) alert("Account created successfully!");
+        onLoginSuccess(userData); // This logs them in immediately
       } else {
-        const userData = Array.isArray(result) ? result[0] : result;
-        onLoginSuccess(userData);
+        throw new Error("Invalid response from server");
       }
+
     } catch (error: any) {
       alert(error.message);
     } finally {
