@@ -78,6 +78,32 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
 
+  {/* Name Fields: Only visible during Sign Up */}
+  {isSignUp && (
+    <div className="space-y-3 mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="First Name"
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-gray-700"
+          required
+        />
+      </div>
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="Last Name"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-gray-700"
+          required
+        />
+      </div>
+    </div>
+  )}
+
   const handleAuth = async () => {
     // Basic Validation
     if (!phone || !password) {
