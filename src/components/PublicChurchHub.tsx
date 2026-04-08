@@ -77,32 +77,7 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-
-  {/* Name Fields: Only visible during Sign Up */}
-  {isSignUp && (
-    <div className="space-y-3 mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
-      <div className="relative">
-        <input
-          type="text"
-          placeholder="First Name"
-          value={firstName}
-          onChange={(e) => setFirstName(e.target.value)}
-          className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-gray-700"
-          required
-        />
-      </div>
-      <div className="relative">
-        <input
-          type="text"
-          placeholder="Last Name"
-          value={lastName}
-          onChange={(e) => setLastName(e.target.value)}
-          className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-gray-700"
-          required
-        />
-      </div>
-    </div>
-  )}
+  
 
   const handleAuth = async () => {
     // Basic Validation
@@ -184,6 +159,33 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
         </div>
 
         <div className="space-y-4">
+
+          {/* Name Fields: Only visible during Sign Up */}
+          {isSignUp && (
+            <div className="space-y-3 mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="First Name"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-gray-700"
+                  required
+                />
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Last Name"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-gray-700"
+                  required
+                />
+              </div>
+            </div>
+          )}
+
           <div className="relative">
             <PhoneIcon className="absolute left-4 top-4 text-gray-400" size={20} />
             <input className="w-full bg-gray-50 border border-gray-100 p-4 pl-12 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Phone (254...)" value={phone} onChange={(e) => setPhone(e.target.value)} />
