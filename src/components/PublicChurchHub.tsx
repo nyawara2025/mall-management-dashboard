@@ -706,61 +706,6 @@ const GalleryModal = ({ isOpen, onClose, userData, shopId }: { isOpen: boolean, 
 };
 
 
-const handleOpenSokoni = async () => {
-    setIsSokoniOpen(true)
-    try {
-      const shopsData = await getActiveShops()
-      setShops(shopsData)
-    } catch (error) {
-      console.error('Error fetching shops:', error)
-      setShops([])
-    }
-  }
-
-  // --- UPDATED ANALYTICS TRACKING LOGIC (NO PREFLIGHT) ---
-  const [isSokoniOpen, setIsSokoniOpen] = useState(false);
-  const [shops, setShops] = useState([]);
-
-  const getActiveShops = async () => {
-    const { data, error } = await supabase
-      .from('shops') // Adjust table name as necessary
-      .select('*')
-      .eq('status', 'active');
-  
-    if (error) throw error;
-    return data || [];
-  };
-
-  const handleTrackShopView = async (shopId: number) => {
-    const payload = {
-      action: "track_view",
-      product_id: "0", 
-      shop_id: shopId.toString(),
-      platform: "nhc residential",
-      user_agent: navigator.userAgent,
-      is_bot: /bot|googlebot|crawler|spider|robot|crawling/i.test(navigator.userAgent),
-      timestamp: new Date().toISOString()
-    };
-
-    try {
-      /**
-       * We use 'no-cors' and 'text/plain' to bypass the OPTIONS preflight check.
-       * This is a "Simple Request" that the browser allows to fire immediately.
-       */
-      await fetch('https://n8n.tenear.com/webhook/shop-analytics-resident', {
-        method: 'POST',
-        mode: 'no-cors', 
-        headers: {
-          'Content-Type': 'text/plain'
-        },
-        body: JSON.stringify(payload)
-      });
-      console.log('Analytics "Simple Request" sent for shop:', shopId);
-    } catch (error) {
-      console.error('Failed to send analytics:', error);
-    }
-  };
-
 // --- COMPONENT 2: Main Hub ---
 export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [church, setChurch] = useState<any>(null);
@@ -782,6 +727,51 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [isMeetingsOpen, setIsMeetingsOpen] = useState(false);
 
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+
+  const [isSokoniOpen, setIsSokoniOpen] = useState(false);
+  const [shops, setShops] = useState<any[]>([]);
+
+  const getActiveShops = async () => {
+    const { data, error } = await supabase
+      .from('shops')
+      .select('*')
+      .eq('status', 'active');
+    if (error) throw error;
+    return data || [];
+  };
+
+  const handleTrackShopView = async (shopId: number) => {
+    const payload = {
+      action: "track_view",
+      product_id: "0", 
+      shop_id: shopId.toString(),
+      platform: "nhc residential",
+      user_agent: navigator.userAgent,
+      is_bot: /bot|googlebot|crawler|spider|robot|crawling/i.test(navigator.userAgent),
+      timestamp: new Date().toISOString()
+    };
+    try {
+      await fetch('https://n8n.tenear.com/webhook/shop-analytics-resident', {
+        method: 'POST',
+        mode: 'no-cors', 
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify(payload)
+      });
+    } catch (error) {
+      console.error('Failed to send analytics:', error);
+    }
+  };
+
+  const handleOpenSokoni = async () => {
+    setIsSokoniOpen(true);
+    try {
+      const shopsData = await getActiveShops();
+      setShops(shopsData);
+    } catch (error) {
+      console.error('Error fetching shops:', error);
+      setShops([]);
+    }
+  };
 
   useEffect(() => {
     const savedAuth = localStorage.getItem(`church_auth_${activeShopId}`);
