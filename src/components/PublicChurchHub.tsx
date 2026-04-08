@@ -765,22 +765,28 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const handleOpenSokoni = async () => {
     setIsSokoniOpen(true);
     try {
-      // 1. Fetch from the correct n8n endpoint instead of Supabase
+      /**
+       * To bypass CORS preflight and still READ the response:
+       * 1. Use POST instead of GET
+       * 2. Set Content-Type to 'text/plain' (This makes it a "Simple Request")
+       * 3. Do NOT use mode: 'no-cors' (or you won't be able to read the JSON)
+       */
       const response = await fetch('https://n8n.tenear.com/webhook/nhc-active-shops', {
-        method: 'GET', // or 'POST' if your other app requires it
-        headers: { 'Content-Type': 'application/json' }
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+        // Sending an empty object or basic identifier if n8n needs it
+        body: JSON.stringify({ request: "fetch_shops" })
       });
 
       if (!response.ok) throw new Error('Failed to fetch shops');
 
       const data = await response.json();
-      
-      // 2. n8n often returns data inside an array or a specific property
-      // Looking at your screenshot, it returns an array of items
       setShops(Array.isArray(data) ? data : (data.items || []));
       
     } catch (error) {
-      console.error('Error fetching shops from n8n:', error);
+      console.error('Error fetching shops via Simple Request:', error);
       setShops([]);
     }
   };
