@@ -765,8 +765,13 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const handleOpenSokoni = async () => {
     setIsSokoniOpen(true);
     try {
-      const shopsData = await getActiveShops();
-      setShops(shopsData);
+      // We remove the .eq('status', 'active') filter that caused the crash
+      const { data, error } = await supabase
+        .from('shops')
+        .select('*');
+  
+      if (error) throw error;
+      setShops(data || []);
     } catch (error) {
       console.error('Error fetching shops:', error);
       setShops([]);
