@@ -765,15 +765,22 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const handleOpenSokoni = async () => {
     setIsSokoniOpen(true);
     try {
-      // We remove the .eq('status', 'active') filter that caused the crash
-      const { data, error } = await supabase
-        .from('shops')
-        .select('*');
-  
-      if (error) throw error;
-      setShops(data || []);
+      // 1. Fetch from the correct n8n endpoint instead of Supabase
+      const response = await fetch('https://n8n.tenear.com/webhook/nhc-active-shops', {
+        method: 'GET', // or 'POST' if your other app requires it
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch shops');
+
+      const data = await response.json();
+      
+      // 2. n8n often returns data inside an array or a specific property
+      // Looking at your screenshot, it returns an array of items
+      setShops(Array.isArray(data) ? data : (data.items || []));
+      
     } catch (error) {
-      console.error('Error fetching shops:', error);
+      console.error('Error fetching shops from n8n:', error);
       setShops([]);
     }
   };
