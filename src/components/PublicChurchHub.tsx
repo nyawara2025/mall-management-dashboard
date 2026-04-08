@@ -740,6 +740,33 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
     return data || [];
   };
 
+  const handleOpenSokoni = async () => {
+    setIsSokoniOpen(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/nhc-active-shops', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain', // Simple Request: bypasses preflight
+        },
+        // Send an empty object as text so n8n can parse it if needed
+        body: JSON.stringify({}) 
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch shops');
+      
+      const data = await response.json();
+
+      // Mapping to the "shops" key from your n8n output
+      if (data && data.shops) {
+        setShops(data.shops);
+      }
+    } catch (error) {
+      console.error('Sokoni Fetch Error:', error);
+      setShops([]);
+    }
+  };
+
+
   const handleTrackShopView = async (shopId: number) => {
     const payload = {
       action: "track_view",
@@ -750,46 +777,21 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
       is_bot: /bot|googlebot|crawler|spider|robot|crawling/i.test(navigator.userAgent),
       timestamp: new Date().toISOString()
     };
+
     try {
+      // SIMPLE POST: no-cors + text/plain = No Preflight
       await fetch('https://n8n.tenear.com/webhook/shop-analytics-resident', {
         method: 'POST',
         mode: 'no-cors', 
         headers: { 'Content-Type': 'text/plain' },
         body: JSON.stringify(payload)
       });
+      console.log('Analytics sent for shop:', shopId);
     } catch (error) {
       console.error('Failed to send analytics:', error);
     }
   };
-
-  const handleOpenSokoni = async () => {
-    setIsSokoniOpen(true);
-    try {
-      /**
-       * To bypass CORS preflight and still READ the response:
-       * 1. Use POST instead of GET
-       * 2. Set Content-Type to 'text/plain' (This makes it a "Simple Request")
-       * 3. Do NOT use mode: 'no-cors' (or you won't be able to read the JSON)
-       */
-      const response = await fetch('https://n8n.tenear.com/webhook/nhc-active-shops', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain',
-        },
-        // Sending an empty object or basic identifier if n8n needs it
-        body: JSON.stringify({ request: "fetch_shops" })
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch shops');
-
-      const data = await response.json();
-      setShops(Array.isArray(data) ? data : (data.items || []));
-      
-    } catch (error) {
-      console.error('Error fetching shops via Simple Request:', error);
-      setShops([]);
-    }
-  };
+ 
 
   useEffect(() => {
     const savedAuth = localStorage.getItem(`church_auth_${activeShopId}`);
