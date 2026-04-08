@@ -69,21 +69,6 @@ interface Notification {
   is_urgent: boolean;
 }
 
-interface Shop {
-  id: number;
-  name: string;
-  category: string;
-  description?: string;
-  // add other fields your shop object has (e.g., image, location)
-}
-
-interface SokoniModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  shops: Shop[];
-  onVisitShop: (shopId: number) => Promise<void> | void;
-}
-
 // --- COMPONENT 1: Login ---
 export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onLoginSuccess: (data: MemberData) => void }) => {
   const [phone, setPhone] = useState('');
@@ -705,61 +690,32 @@ const GalleryModal = ({ isOpen, onClose, userData, shopId }: { isOpen: boolean, 
   );
 };
 
+// --- ANALYTICS TRACKING (PORTED FROM RESIDENTIAL APP) ---
+const handleTrackShopView = async (shopId: string | number) => {
+  const payload = {
+    action: "track_view",
+    product_id: "0", 
+    shop_id: shopId.toString(),
+    platform: "church hub", // Updated for this app
+    user_agent: navigator.userAgent,
+    is_bot: /bot|googlebot|crawler|spider|robot|crawling/i.test(navigator.userAgent),
+    timestamp: new Date().toISOString()
+  };
 
-const handleOpenSokoni = async () => {
-    setIsSokoniOpen(true)
-    try {
-      const shopsData = await getActiveShops()
-      setShops(shopsData)
-    } catch (error) {
-      console.error('Error fetching shops:', error)
-      setShops([])
-    }
+  try {
+    // Using 'no-cors' to bypass OPTIONS preflight check for speed
+    await fetch('https://n8n.tenear.com/webhook/shop-analytics-resident', {
+      method: 'POST',
+      mode: 'no-cors', 
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(payload)
+    });
+    console.log('Church analytics sent for shop:', shopId);
+  } catch (error) {
+    console.error('Failed to send church analytics:', error);
   }
+};
 
-  // --- UPDATED ANALYTICS TRACKING LOGIC (NO PREFLIGHT) ---
-  const [isSokoniOpen, setIsSokoniOpen] = useState(false);
-  const [shops, setShops] = useState([]);
-
-  const getActiveShops = async () => {
-    const { data, error } = await supabase
-      .from('shops') // Adjust table name as necessary
-      .select('*')
-      .eq('status', 'active');
-  
-    if (error) throw error;
-    return data || [];
-  };
-
-  const handleTrackShopView = async (shopId: number) => {
-    const payload = {
-      action: "track_view",
-      product_id: "0", 
-      shop_id: shopId.toString(),
-      platform: "nhc residential",
-      user_agent: navigator.userAgent,
-      is_bot: /bot|googlebot|crawler|spider|robot|crawling/i.test(navigator.userAgent),
-      timestamp: new Date().toISOString()
-    };
-
-    try {
-      /**
-       * We use 'no-cors' and 'text/plain' to bypass the OPTIONS preflight check.
-       * This is a "Simple Request" that the browser allows to fire immediately.
-       */
-      await fetch('https://n8n.tenear.com/webhook/shop-analytics-resident', {
-        method: 'POST',
-        mode: 'no-cors', 
-        headers: {
-          'Content-Type': 'text/plain'
-        },
-        body: JSON.stringify(payload)
-      });
-      console.log('Analytics "Simple Request" sent for shop:', shopId);
-    } catch (error) {
-      console.error('Failed to send analytics:', error);
-    }
-  };
 
 // --- COMPONENT 2: Main Hub ---
 export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
@@ -1086,17 +1042,9 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Community Service</span>
               </button>
 
-              {/* Sokoni Card */}
-              <button 
-                onClick={handleOpenSokoni}
-                className="bg-white p-8 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center gap-4 group"
-              >
-                <div className="text-blue-600 group-hover:scale-110 transition-transform">
-                  <Activity size={32} /> {/* Or your preferred icon */}
-                </div>
-                <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">
-                  Sokoni
-                </span>
+              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
+                <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">SOKONI</span>
               </button>
 
               <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
@@ -1176,14 +1124,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         onClose={() => setIsGalleryOpen(false)} 
         userData={userData}
         shopId={activeShopId} 
-      />
-
-      {/* Sokoni Modal with Analytics prop */}
-      <SokoniModal
-        isOpen={isSokoniOpen}
-        onClose={() => setIsSokoniOpen(false)}
-        shops={shops}
-        onVisitShop={handleTrackShopView}
       />
 
     </div>
