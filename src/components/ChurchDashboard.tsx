@@ -14,18 +14,11 @@ interface StatItem {
 }
 
 interface MpesaTransaction {
-  receipt: string;
+  mpesa_code: string;
   amount: number;
-  phone: string;
+  sender_phone: string;
   sender_name?: string; // Add this line (the '?' makes it optional)
-}
-
-// 1. Define the shape of an MPESA transaction
-interface MpesaTransaction {
-  receipt: string;
-  amount: number;
-  phone: string;
-  date: string;
+  transaction_date?: string;
 }
 
 export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string) => void }) => {
@@ -121,7 +114,7 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
           category: financeCategory,
           payment_method: paymentType,
           amount: paymentType === 'Cash' ? parseFloat(cashTotal) : selectedMpesaTx?.amount,
-          mpesa_receipt: paymentType === 'MPESA' ? selectedMpesaTx?.receipt : null,
+          mpesa_receipt: paymentType === 'MPESA' ? selectedMpesaTx?.mpesa_code : null,
           shop_id: user?.shop_id,
           recorded_by: (user as any)?.username || 'Admin'
         }),
@@ -199,8 +192,8 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
             </option>
 
             {mpesaTransactions.map((tx, index) => (
-              <option key={tx.receipt || index} value={JSON.stringify(tx)}>
-                {tx.receipt} - KES {tx.amount} ({tx.sender_name || tx.phone})
+              <option key={tx.mpesa_code || index} value={JSON.stringify(tx)}>
+                {tx.mpesa_code} - KES {tx.amount} ({tx.sender_name || tx.sender_phone})
               </option>
             ))}
           </select>
@@ -259,22 +252,22 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
       {/* HEADER: Title, Subtitle, and Logo */}
       <div className="flex justify-between items-center mb-2"> {/* Items center & reduced margin */}
         <div>
-          <h1 className="text-2xl font-black italic text-gray-700 tracking-tight">
+          <h1 className="text-2xl font-blue italic text-gray-700 tracking-tight font-['Century_Gothic']">
             Church Administration
           </h1>
-          <h2 className="text-lg font-semibold italic text-purple-600 mt-0">
-            St. Barnabas Anglican Church, Otiende - Langata - The home of encouragement!
+          <h2 className="text-lg font-semibold italic text-blue-600 mt-0 font-['Century_Gothic']">
+            St. Barnabas Anglican Church, Otiende - The home of encouragement!
           </h2>
         </div>
 
         {user?.shop_id && (
           <div className="flex items-center">
              <img
-              src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/StBarnabasLogo101Finally1.jpg"
+              src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/stbarnabasOtiende_Logo_09apr2026.png"
               alt="Church Logo"
               /* REMOVED: bg-white, rounded-3xl, shadow, and border */
               /* REDUCED: Height/Width from 60 to 28 */
-              className="h-28 w-28 object-contain" 
+              className="h-30 w-40 object-contain" 
               onError={(e) =>  {
                 e.currentTarget.onerror = null;
                 e.currentTarget.src = "/default-church.png";
