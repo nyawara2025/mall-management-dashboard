@@ -13,14 +13,6 @@ interface StatItem {
   color: string;
 }
 
-// 1. Define the shape of an MPESA transaction
-interface MpesaTransaction {
-  receipt: string;
-  amount: number;
-  phone: string;
-  date: string;
-}
-
 export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string) => void }) => {
   const { user } = useAuth();
   
@@ -68,111 +60,6 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
       setIsSubmitting(false);
     }
   };
-
-  // --- NEW STATE FOR TITHES & OFFERINGS ---
-  const [financeCategory, setFinanceCategory] = useState('Offertory');
-  const [paymentType, setPaymentType] = useState('Cash');
-  const [cashTotal, setCashTotal] = useState('');
-  const [selectedMpesaTx, setSelectedMpesaTx] = useState<MpesaTransaction | null>(null);
-  const [mpesaTransactions, setMpesaTransactions] = useState<MpesaTransaction[]>([]);
-
-  const handleFinanceSubmit = async () => {
-    setIsSubmitting(true);
-    try {
-      await fetch('https://n8n.tenear.com/webhook/fetch-tithing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          category: financeCategory,
-          payment_method: paymentType,
-          amount: paymentType === 'Cash' ? parseFloat(cashTotal) : selectedMpesaTx?.amount,
-          mpesa_receipt: paymentType === 'MPESA' ? selectedMpesaTx?.receipt : null,
-          shop_id: user?.shop_id,
-          recorded_by: (user as any)?.username || 'Admin'
-        }),
-      });
-      alert("Record saved successfully!");
-      setCashTotal('');
-    } catch (error) {
-      alert("Error saving financial record.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // --- UI RENDER ---
-  <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-    <div className="flex items-center justify-between mb-4">
-      <h3 className="font-black text-gray-900 flex items-center gap-2">
-        <DollarSign className="w-5 h-5 text-green-600" /> Contributions
-      </h3>
-    </div>
-
-    <div className="space-y-3">
-      {/* Category Selection */}
-      <div className="grid grid-cols-2 gap-2">
-        {['Offertory', 'Tithes', 'Givings', 'Other'].map(cat => (
-          <button 
-            key={cat}
-            onClick={() => setFinanceCategory(cat)}
-            className={`py-2 text-[11px] font-bold rounded-xl border transition-all ${
-              financeCategory === cat ? 'bg-green-600 text-white border-green-600' : 'bg-gray-50 text-gray-500 border-gray-100'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
-      {/* Payment Type Toggle */}
-      <div className="flex p-1 bg-gray-100 rounded-xl">
-        {['Cash', 'MPESA', 'Cheque'].map(type => (
-          <button
-            key={type}
-            onClick={() => setPaymentType(type)}
-            className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${
-              paymentType === type ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'
-            }`}
-          >
-            {type}
-          </button>
-        ))}
-      </div>
-
-      {/* Dynamic Input based on Payment Type */}
-      {paymentType === 'Cash' ? (
-        <div className="animate-in fade-in slide-in-from-top-1">
-          <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Total from Cashier</label>
-          <input 
-            type="number" 
-            placeholder="Enter KES total..."
-            className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-green-500"
-            value={cashTotal}
-            onChange={(e) => setCashTotal(e.target.value)}
-          />
-        </div>
-      ) : paymentType === 'MPESA' ? (
-        <div className="bg-green-50 p-3 rounded-xl border border-green-100">
-          <label className="text-[10px] font-bold text-green-700 uppercase">Select Paybill Transaction</label>
-          <select 
-            className="w-full mt-1 p-2 bg-white rounded-lg text-xs border-none outline-none"
-            onChange={(e) => setSelectedMpesaTx(JSON.parse(e.target.value))}
-          >
-            <option>Waiting for data...</option>
-            {/* Use useEffect to fetch these from your n8n -> Supabase endpoint */}
-          </select>
-        </div>
-      ) : null}
-
-      <button 
-        onClick={handleFinanceSubmit}
-        disabled={isSubmitting}
-        className="w-full bg-gray-900 text-white font-black py-3 rounded-xl hover:bg-black transition-all text-sm mt-2"
-      >
-        {isSubmitting ? 'Recording...' : 'Save Contribution'}
-      </button>
-    </div>
-  </div>
 
   // --- STATE FOR NEWSLETTER ---
   const [newsletterContent, setNewsletterContent] = useState('');
@@ -257,80 +144,8 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* COLUMN 1: Contributions Form */}
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-black text-gray-900 flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-green-600" /> Contributions
-            </h3>
-          </div>
 
-          <div className="space-y-3">
-            {/* Category Selection */}
-            <div className="grid grid-cols-2 gap-2">
-              {['Offertory', 'Tithes', 'Givings', 'Other'].map(cat => (
-                <button 
-                  key={cat}
-                  onClick={() => setFinanceCategory(cat)}
-                  className={`py-2 text-[11px] font-bold rounded-xl border transition-all ${
-                    financeCategory === cat ? 'bg-green-600 text-white border-green-600' : 'bg-gray-50 text-gray-500 border-gray-100'
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
 
-            {/* Payment Type Toggle */}
-            <div className="flex p-1 bg-gray-100 rounded-xl">
-              {['Cash', 'MPESA', 'Cheque'].map(type => (
-                <button
-                  key={type}
-                  onClick={() => setPaymentType(type)}
-                  className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${
-                    paymentType === type ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'
-                  }`}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-
-            {/* Dynamic Input based on Payment Type */}
-            {paymentType === 'Cash' ? (
-              <div className="animate-in fade-in slide-in-from-top-1">
-                <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Total from Cashier</label>
-                <input 
-                  type="number" 
-                  placeholder="Enter KES total..."
-                  className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-green-500"
-                  value={cashTotal}
-                  onChange={(e) => setCashTotal(e.target.value)}
-                />
-              </div>
-            ) : paymentType === 'MPESA' ? (
-              <div className="bg-green-50 p-3 rounded-xl border border-green-100">
-                <label className="text-[10px] font-bold text-green-700 uppercase">Select Paybill Transaction</label>
-                <select 
-                  className="w-full mt-1 p-2 bg-white rounded-lg text-xs border-none outline-none"
-                  onChange={(e) => setSelectedMpesaTx(JSON.parse(e.target.value))}
-                >
-                  <option>Waiting for data...</option>
-                </select>
-              </div>
-            ) : null}
-
-            <button 
-              onClick={handleFinanceSubmit}
-              disabled={isSubmitting}
-              className="w-full bg-gray-900 text-white font-black py-3 rounded-xl hover:bg-black transition-all text-sm mt-2"
-            >
-              {isSubmitting ? 'Recording...' : 'Save Contribution'}
-            </button>
-          </div>
-        </div>
-      </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Content: Service Planner */}
         <div className="lg:col-span-2"> 
@@ -409,6 +224,15 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
               >
                 {isSendingNewsletter ? 'Sending...' : '🚀 Send Newsletter'}
               </button>
+    
+              <div className="border-t border-gray-100 my-2 pt-2">
+                <button 
+                  onClick={() => onViewChange('tithes')}
+                  className="w-full border-2 border-gray-100 py-3 rounded-xl text-sm font-bold hover:bg-gray-50 transition active:scale-95"
+                >
+                  Manage Tithes
+                </button>
+              </div>
             </div>
           </div>
                    

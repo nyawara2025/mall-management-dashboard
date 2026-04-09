@@ -35,6 +35,7 @@ import { PublicChurchHub } from './components/PublicChurchHub';
 import { PublicSchoolHub } from './components/PublicSchoolHub';
 import { MemberLogin } from './components/MemberLogin';
 import { PublicHubRouter } from './components/PublicHubRouter';
+import { TithesDashboard } from './components/TithesDashboard';
 import SettingsPage from './pages/SettingsPage';
 import './index.css';
 
@@ -382,7 +383,10 @@ function AppContent() {
                 showUserMenu={showUserMenu} 
                 setShowUserMenu={setShowUserMenu} 
               />
-            
+              <div className="pt-16">
+                {/* This is where your Tithes dashboard component goes */}
+                <TithesDashboard user={user} /> 
+              </div>
             </div>
           )}
 
