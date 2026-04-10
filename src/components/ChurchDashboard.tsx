@@ -80,21 +80,24 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
     const loadMpesaData = async () => {
       // Only fetch if MPESA is selected and we have a shop_id
       if (paymentType === 'MPESA' && user?.shop_id) {
+
         try {
           const response = await fetch('https://n8n.tenear.com/webhook/fetch-church-mpesa', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
               shop_id: user.shop_id,
-              action: 'FETCH_PENDING_MPESA' // Optional: help n8n route the request
+              action: 'FETCH_PENDING_MPESA'
             }),
           });
-
-          if (!response.ok) throw new Error('Network response was not ok');
         
+          if (!response.ok) throw new Error('Network response was not ok');
+
           const data = await response.json();
-          // Assuming n8n returns an array of transactions
-          setMpesaTransactions(data); 
+          console.log("Raw Webhook Response:", data);
+          const normalizedData = Array.isArray(data) ? [...data] : [data];
+
+          setMpesaTransactions(normalizedData); 
         } catch (error) {
           console.error("Failed to fetch MPESA transactions:", error);
         }
@@ -102,7 +105,7 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
     };
 
     loadMpesaData();
-  }, [paymentType, user?.shop_id]); // This runs whenever these two values change
+  }, [paymentType, user]); // This runs whenever these two values change
 
   const handleFinanceSubmit = async () => {
     setIsSubmitting(true);
@@ -184,21 +187,27 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
           <label className="text-[10px] font-bold text-green-700 uppercase">Select Paybill Transaction</label>
           <select 
             className="w-full mt-1 p-2 bg-white rounded-lg text-xs border-none outline-none"
-            value={selectedMpesaTx ? JSON.stringify(selectedMpesaTx) : ""}
-            onChange={(e) => setSelectedMpesaTx(e.target.value ? JSON.parse(e.target.value) : null)}
-          >
-            <option value="">
-              {mpesaTransactions.length > 0 ? "Choose a transaction..." : "No recent transactions found"}
-            </option>
-
-            {mpesaTransactions.map((tx, index) => (
-              <option key={tx.mpesa_code || index} value={JSON.stringify(tx)}>
-                {tx.mpesa_code} - KES {tx.amount} ({tx.sender_name || tx.sender_phone})
-              </option>
-            ))}
-          </select>
-        </div>
-      ) : null}
+            onChange={(e) => {
+            if (e.target.value) setSelectedMpesaTx(JSON.parse(e.target.value));
+          }}
+        >
+          
+          {/* If data is empty, show the loading state */}
+          {!Array.isArray(mpesaTransactions) || mpesaTransactions.length === 0 ? (
+            <option value="">Searching for transactions...</option>
+          ) : (
+            <>
+              <option value="">Select a transaction...</option>
+              {mpesaTransactions.map((tx, index) => (
+                <option key={index} value={JSON.stringify(tx)}>
+                 {tx.mpesa_code} - KES {tx.amount} ({tx.sender_phone})
+               </option>
+             ))}
+           </>
+         )}
+       </select>
+     </div>
+   ) : null}
 
       <button 
         onClick={handleFinanceSubmit}
@@ -352,7 +361,20 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
                   className="w-full mt-1 p-2 bg-white rounded-lg text-xs border-none outline-none"
                   onChange={(e) => setSelectedMpesaTx(JSON.parse(e.target.value))}
                 >
-                  <option>Waiting for data...</option>
+                {mpesaTransactions.length === 0 ? (
+                  <option value="">Searching for transactions...</option>
+                ) : (
+                  <>
+                    <option value="">Select a transaction...</option>
+                    {mpesaTransactions.map((tx, index) => (
+                      <option key={index} value={JSON.stringify(tx)}>
+                        {tx.mpesa_code} - KES {tx.amount} ({tx.sender_phone})
+                      </option>
+                    ))}
+                  </>
+                )}  
+
+          
                 </select>
               </div>
             ) : null}

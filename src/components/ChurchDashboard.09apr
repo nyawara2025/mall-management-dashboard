@@ -252,11 +252,11 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
       {/* HEADER: Title, Subtitle, and Logo */}
       <div className="flex justify-between items-center mb-2"> {/* Items center & reduced margin */}
         <div>
-          <h1 className="text-2xl font-black italic text-gray-700 tracking-tight">
+          <h1 className="text-2xl font-blue italic text-gray-700 tracking-tight font-['Century_Gothic']">
             Church Administration
           </h1>
-          <h2 className="text-lg font-semibold italic text-purple-600 mt-0">
-            St. Barnabas Anglican Church, Otiende - Langata - The home of encouragement!
+          <h2 className="text-lg font-semibold italic text-blue-600 mt-0 font-['Century_Gothic']">
+            St. Barnabas Anglican Church, Otiende - The home of encouragement!
           </h2>
         </div>
 
