@@ -157,7 +157,7 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
 
       {/* Payment Type Toggle */}
       <div className="flex p-1 bg-gray-100 rounded-xl">
-        {['Cash', 'MPESA', 'Cheque', 'PDQ'].map(type => (
+        {['Cash', 'MPESA', 'Cheque'].map(type => (
           <button
             key={type}
             onClick={() => setPaymentType(type)}
@@ -329,7 +329,7 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
 
             {/* Payment Type Toggle */}
             <div className="flex p-1 bg-gray-100 rounded-xl">
-              {['Cash', 'MPESA', 'Cheque', 'PDQ'].map(type => (
+              {['Cash', 'MPESA', 'Cheque'].map(type => (
                 <button
                   key={type}
                   onClick={() => setPaymentType(type)}
