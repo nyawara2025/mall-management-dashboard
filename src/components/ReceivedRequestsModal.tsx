@@ -5,9 +5,12 @@ import { X, MessageSquare } from 'lucide-react';
 interface PrayerRequest {
   id: string | number;
   member_name: string;
+  description: string; // Change 'request_text' to 'description'
   request_text: string;
   created_at: string;
   org_id: number;
+  phone_number?: string;
+  is_anonymous?: boolean;
 }
 
 // 1. Added userData to the props definition
@@ -42,7 +45,8 @@ export const ReceivedRequestsModal = ({
       
       const data = await response.json();
       // 2. Set the actual data into state (assuming the API returns an array)
-      setRequests(data); 
+      const cleanData = Array.isArray(data) ? data : (data.body || []);
+      setRequests(cleanData); 
       
     } catch (error) {
       console.error("Failed to fetch:", error);
@@ -72,7 +76,7 @@ export const ReceivedRequestsModal = ({
             requests.map((req) => (
               <div key={req.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100">
                 <p className="font-bold text-blue-600 text-xs mb-1">{req.member_name || 'Anonymous'}</p>
-                <p className="text-gray-700 text-sm italic">"{req.request_text}"</p>
+                <p className="text-gray-700 text-sm italic">"{req.description}"</p>
                 <p className="text-[9px] text-gray-400 mt-2 uppercase">
                   {new Date(req.created_at).toLocaleDateString()}
                 </p>
