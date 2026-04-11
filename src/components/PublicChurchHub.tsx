@@ -31,6 +31,7 @@ interface MemberData {
   registration_date: string;
   payment_history: PaymentRecord[] | null;
   shop_id: number; // Add this line
+  org_id: number;
 }
 
 interface ServiceActivity {

@@ -10,8 +10,9 @@ interface MemberData {
   email: string;
   role: string;
   zone_name: string;
-  shop_id?: string | number; // Add this line (the '?' makes it optional)
+  shop_id?: number; // Add this line (the '?' makes it optional)
   ministry_name: string;
+  org_id: number;
 }
 
 export const PrayerRequestModal = ({ 
@@ -37,7 +38,7 @@ export const PrayerRequestModal = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           member_id: userData?.id,
-          shop_id: userData?.shop_id,
+          org_id: userData?.org_id,
           name: `${userData?.first_name} ${userData?.last_name}`,
           phone: userData?.phone_number,
           request: request,
