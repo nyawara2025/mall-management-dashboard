@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import SokoniModal from './SokoniModal';
+import { PrayerRequestModal } from './PrayerRequestModal';
 
 // --- TYPES ---
 interface PaymentRecord {
@@ -84,6 +85,8 @@ interface SokoniModalProps {
   onVisitShop: (shopId: number) => Promise<void> | void;
 }
 
+const [isPrayerModalOpen, setIsPrayerModalOpen] = useState(false);
+
 // --- COMPONENT 1: Login ---
 export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onLoginSuccess: (data: MemberData) => void }) => {
   const [phone, setPhone] = useState('');
@@ -94,7 +97,7 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   
-
+  
   const handleAuth = async () => {
     // Basic Validation
     if (!phone || !password) {
@@ -1020,10 +1023,17 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-purple-50 group-hover:text-purple-600"><MessageSquare size={28} /></div>
                 <span className="text-xs font-black text-purple-400 uppercase tracking-widest text-center">OPINION</span>
               </button>
-              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Heart size={28} /></div>
-                <span className="text-xs font-black text-purple-400 uppercase tracking-widest text-center">PRAYER REQUEST</span>
+              <button 
+                onClick={() => setIsPrayerModalOpen(true)}
+                className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-50 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95"
+              >
+                <div className="p-4 bg-purple-50 text-purple-600 rounded-2xl italic">
+                  <Heart size={32} />
+                </div>
+                <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Prayer Request</span>
               </button>
+
+
               <button onClick={() => setActiveView('service_order')} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Book size={28} /></div>
                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">ORDER OF SERVICE</span>
@@ -1212,6 +1222,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         onClose={() => setIsSokoniOpen(false)}
         shops={shops}
         onVisitShop={handleTrackShopView}
+      />
+
+      <PrayerRequestModal
+        isOpen={isPrayerModalOpen}
+        onClose={() => setIsPrayerModalOpen(false)}
+        userData={userData}
       />
 
     </div>
