@@ -1244,7 +1244,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
       <ReceivedRequestsModal 
         isOpen={isInboxOpen} 
-        onClose={() => setIsInboxOpen(false)} 
+        onClose={() => setIsInboxOpen(false)}
+        userData={userData} 
       />
 
     </div>
