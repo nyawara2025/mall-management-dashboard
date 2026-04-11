@@ -9,6 +9,7 @@ import {
 import { supabase } from '../lib/supabase';
 import SokoniModal from './SokoniModal';
 import { PrayerRequestModal } from './PrayerRequestModal';
+import { ReceivedRequestsModal } from './ReceivedRequestsModal';
 
 // --- TYPES ---
 interface PaymentRecord {
@@ -748,6 +749,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
+  const [isInboxOpen, setIsInboxOpen] = useState(false);
   const [isSokoniOpen, setIsSokoniOpen] = useState(false);
   const [shops, setShops] = useState<any[]>([]);
 
@@ -1034,6 +1036,15 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="text-[10px] font-black text-purple-400 uppercase tracking-widest">Prayer Request</span>
               </button>
 
+              {/* ONLY SHOW FOR CANON */}
+              {userData?.role?.toLowerCase() === 'canon' && (
+                <button 
+                  onClick={() => setIsInboxOpen(true)}
+                  className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white p-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg mb-4"
+                >
+                  <MessageSquare size={18} /> View Prayer Requests
+                </button>
+              )}
 
               <button onClick={() => setActiveView('service_order')} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Book size={28} /></div>
@@ -1229,6 +1240,11 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         isOpen={isPrayerModalOpen}
         onClose={() => setIsPrayerModalOpen(false)}
         userData={userData}
+      />
+
+      <ReceivedRequestsModal 
+        isOpen={isInboxOpen} 
+        onClose={() => setIsInboxOpen(false)} 
       />
 
     </div>
