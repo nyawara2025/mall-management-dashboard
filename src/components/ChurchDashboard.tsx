@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, Users, Church, DollarSign, Music, UserPlus, Milestone, Search, Plus } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
 import { useAuth } from '../contexts/AuthContext';
 import { ServicePlanner } from './ServicePlanner';
 
@@ -23,7 +24,34 @@ interface MpesaTransaction {
 
 export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string) => void }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
+
+  useEffect(() => {
+    if (user?.department) {
+      const dept = user.department.toLowerCase();
+      
+      // If the user belongs to a specific department that isn't 'admin', 
+      // redirect them to their respective route defined in App.tsx
+      switch (dept) {
+        case 'media':
+          navigate('/media-dashboard');
+          break;
+        case 'finance':
+          navigate('/finance-dashboard');
+          break;
+        case 'development':
+          navigate('/development-dashboard');
+          break;
+        // Add more cases as you onboard more departments
+        case 'admin':
+        default:
+          // Stay on the main ChurchDashboard
+          break;
+      }
+    }
+  }, [user, navigate]);
+
   // --- STATE FOR WELFARE TRACKING ---
   const [memberSearch, setMemberSearch] = useState('');
   const [amount, setAmount] = useState('');

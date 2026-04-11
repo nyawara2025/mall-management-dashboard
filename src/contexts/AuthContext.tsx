@@ -162,15 +162,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
           rawUser.user?.business_category || 
           'retail';
 
+        // Add logic to catch the department
+        const detectedDepartment = 
+          rawUser.department || 
+          rawUser.dept || 
+          'Admin'; // Default to Admin if not specified
+
+
         const normalizedUser: User = {
           ...rawUser,
-          category: detectedCategory
+          category: detectedCategory,
+          // Add this line to ensure the department is actually saved!
+          department: detectedDepartment
         };
 
         // Category-agnostic debug log
         console.log(`🚀 TeNEAR ${detectedCategory.toUpperCase()} Logic Initialized:`, {
           received_raw: rawUser.business_category || rawUser.category,
           mapped_to: normalizedUser.category,
+          department: normalizedUser.department, // New debug point
           shop_id: normalizedUser.shop_id
         });
 

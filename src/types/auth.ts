@@ -7,6 +7,8 @@ export interface User {
   full_name: string;
   mall_id?: number | null;
   shop_id?: number | null;
+  email?: string;
+  department?: 'Admin' | 'Media' | 'Finance' | 'Development';
   shop_name?: string; // Shop name for shop admins
   mall_name?: string; // Mall name for context
   mall_access?: number[]; // Array of mall IDs the user can access
@@ -99,4 +101,5 @@ export interface AuthContextType {
   logout: () => void;
   isLoading: boolean;
   isAuthenticated: boolean;
+  logoutWithConfirmation: () => void;
 }

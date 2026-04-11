@@ -7,6 +7,7 @@ interface UserRecord {
   full_name: string
   role: 'super_admin' | 'mall_admin' | 'shop_admin' | 'shop_staff'
   category?: string
+  department?: string; // <--- Add this line
   mall_id: number | null
   shop_id: number | null
   shop_name?: string // Shop name for shop admins
@@ -74,7 +75,7 @@ function parseToken(tokenStr: string): UserRecord | null {
       const parts = tokenStr.split('-')
       
       if (parts.length >= 6) {
-        const [userId, username, role, mallId, shopId, timestamp, category] = parts
+        const [userId, username, role, mallId, shopId, timestamp, category, department] = parts
         
         // Return user data from dash-separated token
         return {
@@ -83,6 +84,7 @@ function parseToken(tokenStr: string): UserRecord | null {
           full_name: username, // Default full_name to username if not available
           role: role as 'super_admin' | 'mall_admin' | 'shop_admin' | 'shop_staff', // Cast role to proper type
           category: category || 'retail',
+          department: department || 'admin', // <--- Capture department
           mall_id: parseInt(mallId, 10),
           shop_id: parseInt(shopId, 10),
           active: true, // Default active to true
@@ -203,6 +205,7 @@ export async function login(username: string, password: string): Promise<{ succe
         full_name: result.full_name || result.username,
         role: result.role,
         category: result.category,
+        department: result.department || 'admin', // <--- Capture department from n8n
         mall_id: result.mall_id,
         shop_id: result.shop_id,
         active: result.active !== false,
@@ -214,7 +217,7 @@ export async function login(username: string, password: string): Promise<{ succe
       const timestamp = Date.now()
       const mallId = userData.mall_id || userData.mall_access?.[0] || 0
       const shopId = userData.shop_id || userData.shop_access?.[0] || 0
-      const token = `${userData.id}-${userData.username}-${userData.role}-${mallId}-${shopId}-${timestamp}`
+      const token = `${userData.id}-${userData.username}-${userData.role}-${mallId}-${shopId}-${timestamp}-${userData.category || 'none'}-${userData.department || 'admin'}`;
       
       // Save the token and user data
       saveAuthData(userData, token)

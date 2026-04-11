@@ -35,6 +35,9 @@ import { PublicChurchHub } from './components/PublicChurchHub';
 import { PublicSchoolHub } from './components/PublicSchoolHub';
 import { MemberLogin } from './components/MemberLogin';
 import { PublicHubRouter } from './components/PublicHubRouter';
+import { MediaDashboard } from './components/MediaDashboard';
+import { FinanceDashboard } from './components/FinanceDashboard';
+import { DevelopmentDashboard } from './components/DevelopmentDashboard';
 import SettingsPage from './pages/SettingsPage';
 import './index.css';
 
@@ -76,6 +79,8 @@ function AppContent() {
   const [isDiscoveryModalOpen, setIsDiscoveryModalOpen] = useState(false);
   const isChurchPath = window.location.pathname.includes('/church');
   const isSchoolPath = window.location.pathname.includes('/school');
+
+  
   const handleSelectCandidate = (shopId: string) => {
     // Update the URL parameters without a page reload
     // We keep 'business_category=political' to ensure the Hub stays active
@@ -108,7 +113,7 @@ function AppContent() {
 
   // 2b. CHURCH VISITOR REDIRECT LOGIC (Public Access)
   // If a user arrives with the church category, show them the public hub
-  if (bizCategory === 'church' || isChurchPath) {
+  if ((bizCategory === 'church' || isChurchPath) && !user) {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Import and use your new PublicChurchHub component here */}
@@ -180,6 +185,7 @@ function AppContent() {
           {/* Main Dashboard Logic: Single block to handle all 3 categories */}
           {currentView === 'dashboard' && (() => {
             const category = (user as any)?.category;
+            const department = (user as any)?.department; // Ensure department is accessible
 
             if (category === 'medical') {
               return (
@@ -238,23 +244,48 @@ function AppContent() {
             }
 
             if (category === 'church') {
+              // Helper to render the correct component based on department
+              const renderChurchContent = () => {
+                switch (department) {
+                  case 'Media':
+                    return <MediaDashboard />;
+                  case 'Finance':
+                    return <FinanceDashboard />;
+                  case 'Development':
+                    // We will create this next
+                    return <DevelopmentDashboard />; 
+                  default:
+                    return <ChurchDashboard onViewChange={(view) => setCurrentView(view)} />;
+                }
+              };
+
+              // Dynamic Title Logic
+              const getHeaderTitle = () => {
+                if (department === 'Media') return "Church Media Center";
+                if (department === 'Finance') return "Treasury & Finance";
+                if (department === 'Development') return "Projects & Development";
+                return "TeNEAR Church Control";
+              };
+
               return (
                 <div className="min-h-screen">
-                  <Header 
-                    onBack={() => setCurrentView('dashboard')} 
-                    title="TeNEAR Church Connect" 
-                    user={user} 
-                    onLogout={logout} 
-                    showUserMenu={showUserMenu} 
-                    setShowUserMenu={setShowUserMenu} 
+                  <Header
+                    onBack={() => setCurrentView('dashboard')}
+                    title={getHeaderTitle()}
+                    user={user}
+                    onLogout={logout}
+                    showUserMenu={showUserMenu}
+                    setShowUserMenu={setShowUserMenu}
                   />
-                  <div className="pt-16">
-                    {/* Create this component next */}
-                    <ChurchDashboard onViewChange={setCurrentView} />
+                  <div className="pt-16 px-6 pb-8">
+                    {/* ROUTING BY DEPARTMENT */}
+                    {renderChurchContent()}
                   </div>
                 </div>
               );
             }
+
+
 
             // Default Retail Dashboard
             return <Dashboard onViewChange={setCurrentView} />;
