@@ -7,6 +7,7 @@ interface PrayerRequest {
   member_name: string;
   request_text: string;
   created_at: string;
+  org_id: number;
 }
 
 // 1. Added userData to the props definition
@@ -23,10 +24,10 @@ export const ReceivedRequestsModal = ({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isOpen && userData?.shop_id) {
+    if (isOpen && userData?.org_id) {
       fetchRequests();
     }
-  }, [isOpen, userData?.shop_id]);
+  }, [isOpen, userData?.org_id]);
 
   const fetchRequests = async () => {
     setLoading(true);
