@@ -85,7 +85,6 @@ interface SokoniModalProps {
   onVisitShop: (shopId: number) => Promise<void> | void;
 }
 
-const [isPrayerModalOpen, setIsPrayerModalOpen] = useState(false);
 
 // --- COMPONENT 1: Login ---
 export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onLoginSuccess: (data: MemberData) => void }) => {
@@ -760,6 +759,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
     if (error) throw error;
     return data || [];
   };
+
+   const [isPrayerModalOpen, setIsPrayerModalOpen] = useState(false);
 
   const handleOpenSokoni = async () => {
     setIsSokoniOpen(true);
