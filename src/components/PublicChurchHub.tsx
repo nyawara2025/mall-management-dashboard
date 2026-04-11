@@ -997,7 +997,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
             <div className="lg:col-span-4 space-y-6">
               <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 text-center relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-4">
-                  <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">MEMBER</span>
+                  <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">userData?.role || MEMBER</span>
                 </div>
                 <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center text-white text-3xl font-black mx-auto mb-6 shadow-xl shadow-blue-100">
                   {userData?.first_name ? userData.first_name.charAt(0) : 'M'}
