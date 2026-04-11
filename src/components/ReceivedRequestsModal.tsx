@@ -35,13 +35,13 @@ export const ReceivedRequestsModal = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          shop_id: userData?.shop_id // Now userData exists!
+          org_id: userData?.org_id // Now userData exists!
         }),
       });
       
       const data = await response.json();
       // 2. Set the actual data into state (assuming the API returns an array)
-      setRequests(Array.isArray(data) ? data : []); 
+      setRequests(data); 
       
     } catch (error) {
       console.error("Failed to fetch:", error);
