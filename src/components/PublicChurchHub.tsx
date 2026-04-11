@@ -1042,7 +1042,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                   onClick={() => setIsInboxOpen(true)}
                   className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white p-4 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg mb-4"
                 >
-                  <MessageSquare size={18} /> View Prayer Requests
+                  <MessageSquare size={10} /> View Prayer Requests
                 </button>
               )}
 
