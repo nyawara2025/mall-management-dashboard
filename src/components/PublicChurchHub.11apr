@@ -408,55 +408,37 @@ const WelfareModal = ({ isOpen, onClose, userData }: { isOpen: boolean, onClose:
 const ProfileCard = ({ userData }: { userData: MemberData }) => {
   return (
     <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-100 text-center relative overflow-hidden">
-      {/* --- LEFT COLUMN: PROFILE --- */}
-      <div className="md:col-span-1">
-        <div className="bg-white rounded-[2.5rem] p-8 shadow-sm border border-gray-50 h-full flex flex-col items-center text-center relative overflow-hidden">
-    
-          {/* Member Badge */}
-          <div className="absolute top-6 right-6">
-            <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-blue-100">
-              {userData?.role || 'Member'}
-            </span>
+      {/* Member Badge */}
+      <div className="absolute top-6 right-6">
+        <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider border border-blue-100">
+          Member
+        </span>
+      </div>
+
+      {/* Avatar Circle */}
+      <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center text-white text-3xl font-black mx-auto mb-6 shadow-xl shadow-blue-100">
+        {userData.first_name[0]}{userData.last_name[0]}
+      </div>
+
+      <h2 className="text-2xl font-black text-gray-900 mb-8">
+        {userData.first_name} {userData.last_name}
+      </h2>
+
+      {/* Info Rows */}
+      <div className="space-y-4">
+        <div className="bg-gray-50/50 p-4 rounded-2xl flex items-start gap-4 text-left border border-gray-100/50">
+          <div className="p-2 bg-white rounded-xl shadow-sm text-blue-600"><ShieldCheck size={18}/></div>
+          <div>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Zone</p>
+            <p className="font-bold text-gray-800">{userData.zone_name}</p>
           </div>
+        </div>
 
-          {/* Avatar */}
-          <div className="w-24 h-24 bg-blue-600 rounded-[2rem] flex items-center justify-center text-white mb-6 shadow-xl shadow-blue-100 relative group transition-transform hover:scale-105">
-            <span className="text-4xl font-black italic">
-              {userData?.first_name?.charAt(0) || 'M'}
-            </span>
-          </div>
-
-          {/* Personalized Greeting */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-black text-gray-900 leading-tight">
-              {userData?.first_name ? `Jambo, ${userData.first_name}` : 'Welcome, Member'}
-            </h2>
-            <p className="text-gray-400 font-medium mt-1">St. Barnabas Anglican</p>
-          </div>
-
-          {/* Data Display Slots */}
-          <div className="w-full space-y-3">
-            {/* Zone Display */}
-            <div className="flex items-center p-4 bg-gray-50 rounded-2xl border border-gray-100/50 group hover:bg-white hover:shadow-md transition-all duration-300">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm mr-4">
-                <ShieldCheck size={20} />
-              </div>
-              <div className="text-left">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Zone</p>
-                <p className="text-gray-900 font-bold leading-none">{userData?.zone_name || 'Not Assigned'}</p>
-              </div>
-            </div>
-
-            {/* Ministry Display */}
-            <div className="flex items-center p-4 bg-gray-50 rounded-2xl border border-gray-100/50 group hover:bg-white hover:shadow-md transition-all duration-300">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm mr-4">
-                <Users size={20} />
-              </div>
-              <div className="text-left">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Current Ministry</p>
-                <p className="text-gray-900 font-bold leading-none">{userData?.ministry_name || 'General Member'}</p>
-              </div>
-            </div>
+        <div className="bg-gray-50/50 p-4 rounded-2xl flex items-start gap-4 text-left border border-gray-100/50">
+          <div className="p-2 bg-white rounded-xl shadow-sm text-blue-600"><Users size={18}/></div>
+          <div>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Current Ministry</p>
+            <p className="font-bold text-gray-800">{userData.ministry_name}</p>
           </div>
         </div>
       </div>
