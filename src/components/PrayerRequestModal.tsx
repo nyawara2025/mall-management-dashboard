@@ -31,7 +31,7 @@ export const PrayerRequestModal = ({
     setLoading(true);
 
     try {
-      await fetch('https://n8n.tenear.com/webhook/church-prayer-requestx', {
+      await fetch('https://n8n.tenear.com/webhook/church-prayer-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
