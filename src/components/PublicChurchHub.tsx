@@ -429,7 +429,7 @@ const ProfileCard = ({ userData }: { userData: MemberData }) => {
           {/* Personalized Greeting */}
           <div className="mb-8">
             <h2 className="text-3xl font-black text-gray-900 leading-tight">
-              {userData?.first_name ? `Jambo, ${userData.first_name}` : 'Welcome, Member'}
+              {userData?.first_name ? `Jambo, ${userData.first_name}` : 'Welcome onboard!'}
             </h2>
             <p className="text-gray-400 font-medium mt-1">St. Barnabas Anglican</p>
           </div>
