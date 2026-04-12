@@ -884,7 +884,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
           shop_id: activeShopId,
           user_id: userData?.id,
           user_name: `${userData?.first_name} ${userData?.last_name}`,
-          message: chatMessage,
+          message: userMsg,
           timestamp: new Date().toISOString()
         }),
       });
