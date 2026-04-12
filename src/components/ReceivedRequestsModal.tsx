@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { X, MessageSquare } from 'lucide-react';
 
-// Define the shape of a request so TypeScript is happy
 interface PrayerRequest {
   id: string | number;
   member_name: string;
-  description: string; // Change 'request_text' to 'description'
+  description: string; 
   request_text: string;
   created_at: string;
   org_id: number;
@@ -13,7 +12,6 @@ interface PrayerRequest {
   is_anonymous?: boolean;
 }
 
-// 1. Added userData to the props definition
 export const ReceivedRequestsModal = ({ 
   isOpen, 
   onClose, 
@@ -21,10 +19,13 @@ export const ReceivedRequestsModal = ({
 }: { 
   isOpen: boolean, 
   onClose: () => void,
-  userData: any // Or use your MemberData interface
+  userData: any 
 }) => {
   const [requests, setRequests] = useState<PrayerRequest[]>([]);
   const [loading, setLoading] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<number | string | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
 
   useEffect(() => {
     if (isOpen && userData?.org_id) {
@@ -38,20 +39,42 @@ export const ReceivedRequestsModal = ({
       const response = await fetch('https://n8n.tenear.com/webhook/fetch-prayer-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          org_id: userData?.org_id // Now userData exists!
-        }),
+        body: JSON.stringify({ org_id: userData?.org_id }),
       });
-      
       const data = await response.json();
-      // 2. Set the actual data into state (assuming the API returns an array)
       const cleanData = Array.isArray(data) ? data : (data.body || []);
       setRequests(cleanData); 
-      
     } catch (error) {
       console.error("Failed to fetch:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // --- MOVE handleReply HERE (Above the return) ---
+  const handleReply = async (requestId: number | string) => {
+    if (!replyText.trim()) return;
+    setSendingReply(true);
+
+    try {
+      await fetch('https://n8n.tenear.com/webhook/respond-to-prayer-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          request_id: requestId,
+          response_note: replyText,
+          responded_by: userData?.first_name,
+          timestamp: new Date().toISOString()
+        }),
+      });
+      alert("Reply sent!");
+      setReplyText('');
+      setReplyingTo(null);
+      fetchRequests(); 
+    } catch (error) {
+      alert("Failed to send reply.");
+    } finally {
+      setSendingReply(false);
     }
   };
 
@@ -80,11 +103,12 @@ export const ReceivedRequestsModal = ({
                 <p className="text-[9px] text-gray-400 mt-2 uppercase">
                   {new Date(req.created_at).toLocaleDateString()}
                 </p>
+                {/* You might want to add a "Reply" button here to trigger handleReply! */}
               </div>
             ))
           )}
         </div>
       </div>
     </div>
-  );
+  ); // Properly close the return here
 };
