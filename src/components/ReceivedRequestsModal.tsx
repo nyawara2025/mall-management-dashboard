@@ -55,6 +55,9 @@ export const ReceivedRequestsModal = ({
     if (!replyText.trim()) return;
     setSendingReply(true);
 
+    // Find the specific request to get the requester's phone number
+    const targetRequest = requests.find(req => req.id === requestId);
+
     try {
       await fetch('https://n8n.tenear.com/webhook/respond-to-prayer-requests', {
         method: 'POST',
@@ -63,7 +66,8 @@ export const ReceivedRequestsModal = ({
           request_id: requestId,
           response_note: replyText,
           responded_by: userData?.first_name,
-          phone_number: userData?.phone_number,
+          responder_number: userData?.phone_number,
+          phone_number: targetRequest?.phone_number || 'N/A', // Send the phone number here
           timestamp: new Date().toISOString()
         }),
       });
