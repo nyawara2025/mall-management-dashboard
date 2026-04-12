@@ -51,7 +51,6 @@ export const ReceivedRequestsModal = ({
     }
   };
 
-  // --- MOVE handleReply HERE (Above the return) ---
   const handleReply = async (requestId: number | string) => {
     if (!replyText.trim()) return;
     setSendingReply(true);
@@ -96,7 +95,7 @@ export const ReceivedRequestsModal = ({
           ) : requests.length === 0 ? (
             <p className="text-center py-10 text-gray-400 italic">No requests found.</p>
           ) : (
-            {requests.map((req) => (
+            requests.map((req) => (
               <div key={req.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 mb-4">
                 <div className="flex justify-between items-start">
                   <div>
@@ -111,7 +110,6 @@ export const ReceivedRequestsModal = ({
                   </button>
                 </div>
 
-                {/* Input field that appears only for the selected request */}
                 {replyingTo === req.id && (
                   <div className="mt-4 pt-4 border-t border-gray-200">
                     <textarea
@@ -129,7 +127,10 @@ export const ReceivedRequestsModal = ({
                         {sendingReply ? 'SENDING...' : 'SEND RESPONSE'}
                       </button>
                       <button 
-                        onClick={() => setReplyingTo(null)}
+                        onClick={() => {
+                          setReplyingTo(null);
+                          setReplyText('');
+                        }}
                         className="px-4 text-xs font-bold text-gray-400"
                       >
                         CANCEL
@@ -142,12 +143,10 @@ export const ReceivedRequestsModal = ({
                   {new Date(req.created_at).toLocaleDateString()}
                 </p>
               </div>
-            ))}
-
-
-
+            ))
+          )}
         </div>
       </div>
     </div>
-  ); // Properly close the return here
+  );
 };

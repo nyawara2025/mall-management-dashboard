@@ -63,6 +63,7 @@ export const ReceivedRequestsModal = ({
           request_id: requestId,
           response_note: replyText,
           responded_by: userData?.first_name,
+          phone_number: userData?.phone_number,
           timestamp: new Date().toISOString()
         }),
       });
