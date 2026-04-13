@@ -1029,7 +1029,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
               </button>
               <button 
                 onClick={() => setIsPrayerModalOpen(true)}
-                className="bg-blue rounded-[2.5rem] p-8 shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95"
+                className="bg-blue-300 rounded-[2.5rem] p-8 shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95"
               >
                 <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl italic">
                   <Heart size={32} />
@@ -1052,18 +1052,18 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 </button>
               )}
 
-              <button onClick={() => setActiveView('service_order')} className="bg-blue p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+              <button onClick={() => setActiveView('service_order')} className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Book size={28} /></div>
                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">ORDER OF SERVICE</span>
               </button>
-              <button className="bg-blue p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
                 <span className="text-xs font-black text-blue-400 uppercase tracking-widest text-center">BROADCAST</span>
               </button>
               
               <button
                 onClick={() => setIsMeetingsOpen(true)}
-                className="bg-blue p-8 rounded-[2.5rem] shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-4 cursor-pointer hover:shadow-xl transition-all active:scale-95"
+                className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-4 cursor-pointer hover:shadow-xl transition-all active:scale-95"
               >
                 <div className="p-4 bg-blue-50 rounded-2xl text-blue-400">
                   <ClipboardList size={32} />
@@ -1071,13 +1071,13 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="font-black text-[10px] uppercase tracking-widest text-blue-400">Meetings</span>
               </button>
 
-              <button className="bg-blue p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
                 <span className="text-xs font-black text-blue-400 uppercase tracking-widest text-center">TITHES & GIVING</span>
               </button>
               <button 
                 onClick={() => setIsWelfareModalOpen(true)}
-                className="bg-blue p-8 rounded-[2.5rem] border border-blue-100 shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center text-center group"
+                className="bg-blue-300 p-8 rounded-[2.5rem] border border-blue-100 shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center text-center group"
               >
                 <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-blue-50 transition-colors">
                   <Wallet className="text-blue-400 group-hover:text-blue-600" />
@@ -1085,34 +1085,34 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Welfare Contributions</span>
               </button>
 
-              <button className="bg-blue p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
                 <span className="text-xs font-black text-blue-400 uppercase tracking-widest text-center">DEVOTIONS</span>
               </button>
-              <button className="bg-blue p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
                 <span className="text-xs font-black text-blue-400 uppercase tracking-widest text-center">A MOMENT WITH GOD</span>
               </button>
 
-              <button className="bg-blue p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Newsletters & Notifications</span>
 
               </button>
 
-              <button className="bg-blue p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Appointments</span>
               </button>
 
-              <button className="bg-blue p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">My Account</span>
               </button>
 
               <button
                 onClick={() => setIsGalleryOpen(true)}
-                className="bg-blue p-8 rounded-[2.5rem] shadow-sm border border-gray-50 flex flex-col items-center justify-center gap-4 cursor-pointer hover:shadow-xl transition-all active:scale-95"
+                className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-gray-50 flex flex-col items-center justify-center gap-4 cursor-pointer hover:shadow-xl transition-all active:scale-95"
               >
                 <div className="p-4 bg-gray-50 rounded-2xl text-gray-400">
                   <ImageIcon size={32} />
@@ -1124,7 +1124,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
               {/* Find your Chat Grid Item and update it like this */}
               <button 
                 onClick={() => setIsChatOpen(true)}
-                className="bg-white p-8 rounded-[2rem] shadow-sm border border-gray-50 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
+                className="bg-blue-300 p-8 rounded-[2rem] shadow-sm border border-gray-50 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
               >
                 <div className="p-4 bg-gray-50 rounded-2xl group-hover:bg-blue-50 transition-colors">
                   <MessageCircle className="text-gray-400 group-hover:text-blue-600" size={32} />
@@ -1132,12 +1132,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="text-[10px] font-black text-gray-400 tracking-widest uppercase">Chat</span>
               </button> 
 
-              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Church Projects</span>
               </button>
 
-              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Community Service</span>
               </button>
@@ -1145,7 +1145,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
               {/* Sokoni Card */}
               <button 
                 onClick={handleOpenSokoni}
-                className="bg-white p-8 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center gap-4 group"
+                className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center gap-4 group"
               >
                 <div className="text-blue-600 group-hover:scale-110 transition-transform">
                   <Activity size={32} /> {/* Or your preferred icon */}
@@ -1155,7 +1155,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 </span>
               </button>
 
-              <button className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
                 <span className="text-xs font-black text-gray-400 uppercase tracking-widest text-center">Join a Ministry</span>
               </button>
