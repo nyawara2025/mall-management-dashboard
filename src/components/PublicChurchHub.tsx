@@ -1044,7 +1044,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                   className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:bg-blue-400 hover:shadow-md transition-all active:scale-95 group"
                 >
                   <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500">
-                    <MessageSquare size={28} />
+                    <Radio size={28} />
                   </div>
                   <span className="text-[10px] font-black text-white uppercase tracking-widest text-center">
                     View Prayer Requests
