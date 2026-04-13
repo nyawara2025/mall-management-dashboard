@@ -1023,9 +1023,9 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
             </div>
 
             <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button className="bg-blue p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600"><MessageSquare size={28} /></div>
-                <span className="text-xs font-black text-blue-400 uppercase tracking-widest text-center">OPINION</span>
+                <span className="text-xs font-black text-white uppercase tracking-widest text-center">OPINION</span>
               </button>
               <button 
                 onClick={() => setIsPrayerModalOpen(true)}
