@@ -10,6 +10,8 @@ import { supabase } from '../lib/supabase';
 import SokoniModal from './SokoniModal';
 import { PrayerRequestModal } from './PrayerRequestModal';
 import { ReceivedRequestsModal } from './ReceivedRequestsModal';
+import { ChangePasswordModal } from './ChangePasswordModal';
+
 
 // --- TYPES ---
 interface PaymentRecord {
@@ -95,6 +97,8 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   
@@ -144,18 +148,21 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
       const userData = Array.isArray(result) ? result[0] : result;
 
       if (userData && (userData.token || userData.id)) {
-        if (isSignUp) {
-          alert("Welcome! Your account has been created successfully.");
-        }
       
         // Save to localStorage so session persists on refresh
         localStorage.setItem(`church_auth_${shopId}`, 'true');
         localStorage.setItem(`church_user_${shopId}`, JSON.stringify(userData));
       
-        // Trigger the parent component state update
+        // 2. CHECK THE FLAG HERE
+        if (userData.mustChangePassword) {
+           // Trigger your "Change Password" modal or view
+           setIsPasswordModalOpen(true); 
+           alert("Welcome! Please set a new password to secure your account.");
+        } else if (isSignUp) {
+           alert("Welcome! Your account has been created successfully.");
+        }
+
         onLoginSuccess(userData);
-      } else {
-        throw new Error("The server response was incomplete. Please try again.");
       }
 
     } catch (error: any) {
@@ -222,6 +229,14 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
           </button>
         </div>
       </div>
+
+      <ChangePasswordModal 
+        isOpen={isPasswordModalOpen} 
+        onClose={() => setIsPasswordModalOpen(false)}
+        phone={phone}
+        shopId={shopId}
+      />
+
     </div>
   );
 };

@@ -157,7 +157,7 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
         if (userData.mustChangePassword) {
            // Trigger your "Change Password" modal or view
            setIsPasswordModalOpen(true); 
-           alert("Welcome! Please set a new password to secure your account.");
+         
         } else if (isSignUp) {
            alert("Welcome! Your account has been created successfully.");
         }
