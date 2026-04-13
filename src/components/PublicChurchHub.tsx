@@ -979,7 +979,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   if (!church) return <div className="p-10 text-center font-bold">Church Profile Not Found.</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-900 pb-20">
+    <div className="min-h-screen bg-orange-50 font-sans text-gray-900 pb-20">
       <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-100">
