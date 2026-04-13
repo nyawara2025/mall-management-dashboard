@@ -11,7 +11,7 @@ import SokoniModal from './SokoniModal';
 import { PrayerRequestModal } from './PrayerRequestModal';
 import { ReceivedRequestsModal } from './ReceivedRequestsModal';
 import { ChangePasswordModal } from './ChangePasswordModal';
-
+import { GivingModal } from './GivingModal';
 
 // --- TYPES ---
 interface PaymentRecord {
@@ -763,6 +763,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
+  const [isGivingModalOpen, setIsGivingModalOpen] = useState(false);
+
   const handleAccountClick = () => {
     setIsPasswordModalOpen(true);
   };
@@ -1084,10 +1086,16 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="font-black text-[10px] uppercase tracking-widest text-black-400">Meetings</span>
               </button>
 
-              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
+              <button 
+                onClick={() => setIsGivingModalOpen(true)}
+                className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
+              >
+                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600">
+                  <Activity size={28} />
+                </div>
                 <span className="text-xs font-black text-black-400 uppercase tracking-widest text-center">TITHES & GIVING</span>
               </button>
+
               <button 
                 onClick={() => setIsWelfareModalOpen(true)}
                 className="bg-blue-300 p-8 rounded-[2.5rem] border border-blue-100 shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center text-center group"
@@ -1278,6 +1286,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         userData={userData} // Pass the logged-in user's data for context
         shopId={activeShopId} // Add this (using the activeShopId variable you defined)
         phone={userData?.phone_number || ''} // Add this (gets phone from userData)
+      />
+
+      <GivingModal 
+        isOpen={isGivingModalOpen} 
+        onClose={() => setIsGivingModalOpen(false)} 
+        userData={userData} 
       />
 
     </div>
