@@ -97,7 +97,6 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -156,7 +155,7 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
         // 2. CHECK THE FLAG HERE
         if (userData.mustChangePassword) {
            // Trigger your "Change Password" modal or view
-           setIsPasswordModalOpen(true); 
+   
            alert("Welcome! Please set a new password to secure your account.");
         } else if (isSignUp) {
            alert("Welcome! Your account has been created successfully.");
@@ -229,13 +228,6 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
           </button>
         </div>
       </div>
-
-      <ChangePasswordModal 
-        isOpen={isPasswordModalOpen} 
-        onClose={() => setIsPasswordModalOpen(false)}
-        phone={phone}
-        shopId={shopId}
-      />
 
     </div>
   );
@@ -769,6 +761,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [isSokoniOpen, setIsSokoniOpen] = useState(false);
   const [shops, setShops] = useState<any[]>([]);
 
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+
+  const handleAccountClick = () => {
+    setIsPasswordModalOpen(true);
+  };
+
   const getActiveShops = async () => {
     const { data, error } = await supabase
       .from('shops')
@@ -1120,8 +1118,13 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="text-xs font-black text-black-400 uppercase tracking-widest text-center">Appointments</span>
               </button>
 
-              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
+              <button 
+                onClick={handleAccountClick} 
+                className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
+              >
+                <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600">
+                  <User size={28} />
+                </div>
                 <span className="text-xs font-black text-black-400 uppercase tracking-widest text-center">My Account</span>
               </button>
 
@@ -1267,6 +1270,14 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         isOpen={isInboxOpen} 
         onClose={() => setIsInboxOpen(false)}
         userData={userData} 
+      />
+
+      <ChangePasswordModal 
+        isOpen={isPasswordModalOpen} 
+        onClose={() => setIsPasswordModalOpen(false)}
+        userData={userData} // Pass the logged-in user's data for context
+        shopId={activeShopId} // Add this (using the activeShopId variable you defined)
+        phone={userData?.phone_number || ''} // Add this (gets phone from userData)
       />
 
     </div>

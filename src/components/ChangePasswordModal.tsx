@@ -1,14 +1,22 @@
 import React, { useState } from 'react';
 import { Lock, ShieldCheck, X, Eye, EyeOff, Loader2 } from 'lucide-react';
 
+interface MemberData {
+  id: number;
+  phone_number: string;
+  // ... you can add the other fields if you need them here, 
+  // but phone_number is the important one for this file.
+}
+
 interface ChangePasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
   phone: string;
   shopId: number;
+  userData: MemberData | null;
 }
 
-export const ChangePasswordModal = ({ isOpen, onClose, phone, shopId }: ChangePasswordModalProps) => {
+export const ChangePasswordModal = ({ isOpen, onClose, phone, shopId, userData }: ChangePasswordModalProps) => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
