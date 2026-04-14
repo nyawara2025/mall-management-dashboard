@@ -12,6 +12,7 @@ import { PrayerRequestModal } from './PrayerRequestModal';
 import { ReceivedRequestsModal } from './ReceivedRequestsModal';
 import { ChangePasswordModal } from './ChangePasswordModal';
 import { GivingModal } from './GivingModal';
+import { AppointmentsModal } from './AppointmentsModal';
 
 // --- TYPES ---
 interface PaymentRecord {
@@ -765,6 +766,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
   const [isGivingModalOpen, setIsGivingModalOpen] = useState(false);
 
+  const [isAppointmentsOpen, setIsAppointmentsOpen] = useState(false);
+
   const handleAccountClick = () => {
     setIsPasswordModalOpen(true);
   };
@@ -1121,9 +1124,14 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
               </button>
 
-              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
-                <span className="text-xs font-black text-black-400 uppercase tracking-widest text-center">Appointments</span>
+              <button
+                onClick={() => setIsAppointmentsOpen(true)}
+                className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
+              >
+                <div className="p-4 bg-blue-50 text-black-600 rounded-2xl italic">
+                  <Heart size={32} />
+                </div>
+                <span className="text-[10px] font-black text-black-400 uppercase tracking-widest">Appointments</span>
               </button>
 
               <button 
@@ -1291,6 +1299,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
       <GivingModal 
         isOpen={isGivingModalOpen} 
         onClose={() => setIsGivingModalOpen(false)} 
+        userData={userData} 
+      />
+
+      <AppointmentsModal 
+        isOpen={isAppointmentsOpen} 
+        onClose={() => setIsAppointmentsOpen(false)} 
         userData={userData} 
       />
 
