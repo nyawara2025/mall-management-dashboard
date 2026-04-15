@@ -28,12 +28,19 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
   
   const [qrCode, setQrCode] = useState<string | null>(null);
 
+  const [selectedStartDate, setSelectedStartDate] = useState<string>('');
+  const [selectedEndDate, setSelectedEndDate] = useState<string>('');
+
   const handleExtractData = async () => {
     try {
       const response = await fetch('https://n8n.tenear.com/webhook/fetch-church-bio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shop_id: user?.shop_id }),
+        body: JSON.stringify({ 
+          shop_id: user?.shop_id, 
+          start_date: selectedStartDate, 
+          end_date: selectedEndDate
+        }),
       });
     
       if (!response.ok) throw new Error('Export failed');

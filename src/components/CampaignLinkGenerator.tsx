@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Share2, Copy, Check, ExternalLink, Globe, MessageSquare, Facebook, Twitter, Loader2 } from 'lucide-react';
+import { Share2, Copy, Check, ExternalLink, Globe, MessageSquare, Loader2 } from 'lucide-react';
 
 interface LinkGeneratorProps {
   shopId: string | number
@@ -22,8 +22,8 @@ export function CampaignLinkGenerator({ shopId }: LinkGeneratorProps) {
 
   const platforms = [
   { id: 'whatsapp', name: 'WhatsApp', icon: MessageSquare, color: 'text-green-500' },
-  { id: 'facebook', name: 'Facebook', icon: Facebook, color: 'text-blue-600' },
-  { id: 'twitter', name: 'Twitter', icon: Twitter, color: 'text-sky-500' },
+  { id: 'facebook', name: 'Facebook', icon: Globe, color: 'text-blue-600' },
+  { id: 'twitter', name: 'Twitter', icon: Share2, color: 'text-sky-500' },
   { id: 'web', name: 'Website', icon: Globe, color: 'text-gray-500' }
   ];
 

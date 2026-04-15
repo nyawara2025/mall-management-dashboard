@@ -38,8 +38,6 @@ import { PublicHubRouter } from './components/PublicHubRouter';
 import { MediaDashboard } from './components/MediaDashboard';
 import { FinanceDashboard } from './components/FinanceDashboard';
 import { DevelopmentDashboard } from './components/DevelopmentDashboard';
-import { AgriDashboard } from './components/AgriDashboard';
-import { NGODashboard } from './components/NGODashboard';
 import SettingsPage from './pages/SettingsPage';
 import './index.css';
 
@@ -287,41 +285,7 @@ function AppContent() {
               );
             }
 
-            if (category === 'agricultural') {
-              return (
-                <div className="min-h-screen">
-                  <Header 
-                    onBack={() => setCurrentView('dashboard')} 
-                    title="TeNEAR Agri-Control" 
-                    user={user} 
-                    onLogout={logout} 
-                    showUserMenu={showUserMenu}
-                    setShowUserMenu={setShowUserMenu}
-                  />
-                  <main className="pt-16">
-                    <AgriDashboard />
-                  </main>
-                </div>
-              );
-            }
 
-            if (category === 'ngo') {
-              return (
-                <div className="min-h-screen">
-                  <Header 
-                    onBack={() => setCurrentView('dashboard')} 
-                    title="TeNEAR NGO Impact" 
-                    user={user} 
-                    onLogout={logout} 
-                    showUserMenu={showUserMenu}
-                    setShowUserMenu={setShowUserMenu}
-                  />
-                  <main className="pt-16">
-                    <NGODashboard />
-                  </main>
-                </div>
-              );
-            }
 
             // Default Retail Dashboard
             return <Dashboard onViewChange={setCurrentView} />;
