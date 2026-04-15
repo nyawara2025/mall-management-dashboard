@@ -38,10 +38,25 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
     
       if (!response.ok) throw new Error('Export failed');
     
-      // Assuming n8n returns a direct URL to the generated PDF
-      const { pdfUrl } = await response.json();
-      window.open(pdfUrl, '_blank');
+      // FIX: Process the response as a Blob (File) instead of JSON
+      const blob = await response.blob();
+      // Explicitly define the PDF type here
+      const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(pdfBlob);
+    
+      // Create a temporary link to trigger the download
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Church_Report_68.pdf`;
+      document.body.appendChild(a);
+      a.click();
+    
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
     } catch (error) {
+      console.error("PDF Error:", error);
       alert("Error generating PDF report.");
     }
   };
