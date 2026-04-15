@@ -30,15 +30,28 @@ export const OpinionModal = ({ isOpen, onClose, userData }: OpinionModalProps) =
   }, [isOpen, tab]);
 
   const fetchHistory = async () => {
-    const query = supabase.from('opinions').select('*').order('created_at', { ascending: false });
-    
-    // If not admin, filter by phone
-    if (tab !== 'admin') {
-        query.eq('member_phone', userData.phone_number);
-    }
+    setLoading(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/church-opinion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          member_phone: userData?.phone_number,
+          org_id: userData?.org_id,
+          view_type: tab // Tells n8n if this is an 'admin' or 'history' (member) view
+        }),
+      });
 
-    const { data } = await query;
-    if (data) setHistory(data);
+      if (response.ok) {
+        const data = await response.json();
+        // Ensure data is an array before setting state
+        setHistory(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error("Error fetching history:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -54,7 +67,7 @@ export const OpinionModal = ({ isOpen, onClose, userData }: OpinionModalProps) =
         content
       };
 
-      const response = await fetch('YOUR_N8N_OPINION_WEBHOOK_URL', {
+      const response = await fetch('https://n8n.tenear.com/webhook/church-opinion-submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
