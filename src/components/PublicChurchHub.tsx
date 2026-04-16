@@ -14,6 +14,7 @@ import { ChangePasswordModal } from './ChangePasswordModal';
 import { GivingModal } from './GivingModal';
 import { AppointmentsModal } from './AppointmentsModal';
 import { OpinionModal } from './OpinionModal';
+import { MemberMediaAccess } from './MemberMediaAccess';
 
 // --- TYPES ---
 interface PaymentRecord {
@@ -770,6 +771,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [isAppointmentsOpen, setIsAppointmentsOpen] = useState(false);
   const [isOpinionModalOpen, setIsOpinionModalOpen] = useState(false);
 
+  const [isMediaOpen, setIsMediaOpen] = useState(false);
+  
   const handleAccountClick = () => {
     setIsPasswordModalOpen(true);
   };
@@ -1125,10 +1128,16 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="text-xs font-black text-black-400 uppercase tracking-widest text-center">A MOMENT WITH GOD</span>
               </button>
 
-              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
-                <span className="text-xs font-black text-black-400 uppercase tracking-widest text-center">Newsletters & Notifications</span>
-
+              <button 
+                onClick={() => setIsMediaOpen(true)}
+                className="bg-blue-200 p-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-center hover:scale-[1.02] transition-transform active:scale-95"
+              >
+                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm">
+                  <Radio size={24} />
+                </div>
+                <span className="font-black text-[10px] uppercase tracking-wider text-blue-900">
+                  Newsletters & Notifications
+                </span>
               </button>
 
               <button
@@ -1319,6 +1328,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         isOpen={isOpinionModalOpen} 
         onClose={() => setIsOpinionModalOpen(false)} 
         userData={userData} 
+      />
+
+      <MemberMediaAccess 
+        isOpen={isMediaOpen} 
+        onClose={() => setIsMediaOpen(false)} 
+        shopId={userData?.shop_id || shopId} 
       />
 
     </div>

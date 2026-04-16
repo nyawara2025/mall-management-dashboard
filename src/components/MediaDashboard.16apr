@@ -13,8 +13,7 @@ const DEPARTMENTS = [
   { id: 4, name: 'Choir' },
   { id: 5, name: 'Youth' },
   { id: 6, name: 'KAMA' },
-  { id: 7, name: 'LADIES' },
-  { id: 8, name: 'Praise & Worship'}
+  { id: 7, name: 'LADIES' }
 ];
 
 export const MediaDashboard = () => {
@@ -22,9 +21,6 @@ export const MediaDashboard = () => {
   const [streamUrl, setStreamUrl] = useState('');
   const [isLive, setIsLive] = useState(false);
   const [overlayText, setOverlayText] = useState('');
-
-  const [uploadCategory, setUploadCategory] = useState('video');
-  const [uploadTitle, setUploadTitle] = useState('');
   
   // Planning Modal & OBS States
   const [isPlanningOpen, setIsPlanningOpen] = useState(false);
@@ -115,36 +111,32 @@ export const MediaDashboard = () => {
     );
   }
 
-  const handleCategorizedUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !uploadTitle) {
-      alert("Please enter a title and select a file.");
-      return;
-    }
+    if (!file) return;
 
     setIsUploading(true);
+  
+    // Prepare the multipart form data
     const formData = new FormData();
     formData.append('file', file);
     formData.append('shop_id', String(user?.shop_id || 101));
-    formData.append('department', String(user?.department || 1));
-    formData.append('category', uploadCategory);
-    formData.append('title', uploadTitle);
+    formData.append('category', 'sermon_media');
 
     try {
       const response = await fetch('https://n8n.tenear.com/webhook/church-mediafiles', {
         method: 'POST',
-        body: formData,
+        body: formData, // No headers needed, browser sets boundary
       });
 
       if (response.ok) {
-        alert(`${uploadCategory} uploaded and logged successfully!`);
-        setUploadTitle(''); // Reset form
+        alert("Sermon media uploaded successfully!");
       } else {
         throw new Error("Upload failed");
       }
     } catch (error) {
       console.error("Upload error:", error);
-      alert("Failed to upload media.");
+      alert("Failed to upload sermon media.");
     } finally {
       setIsUploading(false);
     }
@@ -209,36 +201,34 @@ export const MediaDashboard = () => {
         {/* 3. Asset Upload */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
           <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Upload className="w-5 h-5 text-purple-500" /> Publish Content
+            <Upload className="w-5 h-5 text-purple-500" /> Sermon Media
           </h3>
-  
-          <div className="space-y-3">
-            <input 
-              type="text" 
-              placeholder="Content Title (e.g. Sunday Bulletin)"
-              className="w-full p-2 bg-gray-50 border-none rounded-lg text-sm"
-              value={uploadTitle}
-              onChange={(e) => setUploadTitle(e.target.value)}
-            />
+          <div 
+            className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center text-center transition-colors ${
+              isUploading ? 'bg-purple-50 border-purple-200' : 'border-gray-100 bg-white'
+            }`}
+          >
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 ${
+              isUploading ? 'bg-purple-200 animate-bounce' : 'bg-purple-50'
+            }`}>
+              <Upload className={`w-6 h-6 ${isUploading ? 'text-purple-700' : 'text-purple-500'}`} />
+            </div>
     
-            <select 
-              className="w-full p-2 bg-gray-50 border-none rounded-lg text-sm text-gray-600"
-              value={uploadCategory}
-              onChange={(e) => setUploadCategory(e.target.value)}
-            >
-              <option value="video">Video Content</option>
-              <option value="image">Image / Graphic</option>
-              <option value="document">Document / PDF</option>
-            </select>
-
-            <label className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-2xl cursor-pointer transition-colors ${isUploading ? 'bg-gray-100 border-gray-300' : 'hover:bg-purple-50 border-purple-100'}`}>
-              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                <Upload className={`w-8 h-8 mb-2 ${isUploading ? 'animate-bounce text-gray-400' : 'text-purple-400'}`} />
-                <p className="text-xs text-gray-500 font-medium">
-                  {isUploading ? 'Uploading...' : `Click to upload ${uploadCategory}`}
-                </p>
-              </div>
-              <input type="file" className="hidden" onChange={handleCategorizedUpload} disabled={isUploading} />
+            <p className="text-xs font-bold text-gray-400">
+              {isUploading ? 'Uploading to Cloud...' : 'Drag sermon audio or slides here'}
+            </p>
+    
+            <label className="mt-4 cursor-pointer">
+              <span className="text-xs font-black text-purple-600 uppercase tracking-widest hover:text-purple-700">
+                Browse Files
+              </span>
+              <input 
+                type="file" 
+                className="hidden" 
+                onChange={handleFileUpload}
+                disabled={isUploading}
+                accept=".pdf,.mp3,.mp4,.ppt,.pptx"
+              />
             </label>
           </div>
         </div>
