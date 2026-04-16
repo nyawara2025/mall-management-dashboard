@@ -1333,7 +1333,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
       <MemberMediaAccess 
         isOpen={isMediaOpen} 
         onClose={() => setIsMediaOpen(false)} 
-        shopId={userData?.shop_id || shopId} 
+        shopId={userData?.shop_id || shopId}
+        userData={userData} // Ensure this variable is passed here 
       />
 
     </div>
