@@ -15,7 +15,6 @@ import { GivingModal } from './GivingModal';
 import { AppointmentsModal } from './AppointmentsModal';
 import { OpinionModal } from './OpinionModal';
 import { MemberMediaAccess } from './MemberMediaAccess';
-import { ViewGivings } from './ViewGivings';
 
 // --- TYPES ---
 interface PaymentRecord {
@@ -774,8 +773,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
   const [isMediaOpen, setIsMediaOpen] = useState(false);
   
-  const [isViewGivingsOpen, setIsViewGivingsOpen] = useState(false);
-
   const handleAccountClick = () => {
     setIsPasswordModalOpen(true);
   };
@@ -1102,32 +1099,15 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="font-black text-[10px] uppercase tracking-widest text-black-400">Meetings</span>
               </button>
 
-              {/* TITHES & GIVING SECTION WITH CANON OVERLAY */}
-              <div className="relative group/container">
-                <button 
-                  onClick={() => setIsGivingModalOpen(true)}
-                  className="w-full h-full bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
-                >
-                  <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600">
-                    <Activity size={28} />
-                  </div>
-                  <span className="text-xs font-black text-black-400 uppercase tracking-widest text-center">TITHES & GIVING</span>
-                </button>
-
-                {/* Only show "View Givings" if the user role is Canon */}
-                {userData?.role?.toLowerCase() === 'canon' && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation(); // Prevents triggering the underlying GivingModal
-                      setIsViewGivingsOpen(true);
-                    }}
-                    className="absolute -top-2 -right-2 bg-blue-900 text-white px-3 py-2 rounded-xl shadow-lg hover:bg-black transition-all flex items-center gap-2 border-2 border-white z-10 animate-in zoom-in duration-200"
-                  >
-                    <BookOpen size={14} />
-                    <span className="text-[9px] font-black uppercase tracking-tighter">View Givings</span>
-                  </button>
-                )}
-              </div>
+              <button 
+                onClick={() => setIsGivingModalOpen(true)}
+                className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
+              >
+                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600">
+                  <Activity size={28} />
+                </div>
+                <span className="text-xs font-black text-black-400 uppercase tracking-widest text-center">TITHES & GIVING</span>
+              </button>
 
               <button 
                 onClick={() => setIsWelfareModalOpen(true)}
@@ -1355,12 +1335,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         onClose={() => setIsMediaOpen(false)} 
         shopId={userData?.shop_id || shopId}
         userData={userData} // Ensure this variable is passed here 
-      />
-
-      <ViewGivings 
-        isOpen={isViewGivingsOpen} 
-        onClose={() => setIsViewGivingsOpen(false)} 
-        userData={userData}
       />
 
     </div>
