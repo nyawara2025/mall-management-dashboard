@@ -16,6 +16,7 @@ import { AppointmentsModal } from './AppointmentsModal';
 import { OpinionModal } from './OpinionModal';
 import { MemberMediaAccess } from './MemberMediaAccess';
 import { ViewGivings } from './ViewGivings';
+import { JoinMinistryOrZone } from './JoinMinistryOrZone';
 
 // --- TYPES ---
 interface PaymentRecord {
@@ -776,6 +777,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   
   const [isViewGivingsOpen, setIsViewGivingsOpen] = useState(false);
 
+  const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
+
   const handleAccountClick = () => {
     setIsPasswordModalOpen(true);
   };
@@ -1225,9 +1228,14 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 </span>
               </button>
 
-              <button className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
-                <span className="text-xs font-black text-black-400 uppercase tracking-widest text-center">Join a Ministry</span>
+              <button 
+                onClick={() => setIsJoinModalOpen(true)}
+                className="bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all group"
+              >
+                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600">
+                  <Users size={28} />
+                </div>
+                <span className="text-xs font-black text-black-400 uppercase tracking-widest text-center">JOIN MINISTRY/ZONE</span>
               </button>
 
 
@@ -1361,6 +1369,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         isOpen={isViewGivingsOpen} 
         onClose={() => setIsViewGivingsOpen(false)} 
         userData={userData}
+      />
+
+      <JoinMinistryOrZone 
+        isOpen={isJoinModalOpen} 
+        onClose={() => setIsJoinModalOpen(false)} 
+        userData={userData} 
       />
 
     </div>
