@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, FileDown, FileText, Table as TableIcon, Loader2 } from 'lucide-react';
+import { X, FileDown, FileText, Table as TableIcon, Loader2, Hash } from 'lucide-react';
 
 // --- SHARED INTERFACES ---
 interface PaymentRecord {
@@ -73,7 +73,9 @@ export const ViewGivings: React.FC<ViewGivingsProps> = ({ isOpen, onClose, userD
     }
   };
 
-  const totalAmount = contributions.reduce((sum, item) => sum + item.amount, 0);
+  // FIX: Force Number conversion to prevent string concatenation
+  const totalAmount = contributions.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const recordCount = contributions.length;
 
   const downloadCSV = () => {
     const headers = ['Member Name', 'Type', 'Amount', 'Date'];
@@ -166,9 +168,21 @@ export const ViewGivings: React.FC<ViewGivingsProps> = ({ isOpen, onClose, userD
           </div>
 
           <div className="flex items-center gap-3 lg:ml-auto">
-            <div className="bg-blue-900 text-white px-6 py-2 rounded-2xl flex flex-col items-end min-w-[180px] shadow-lg shadow-blue-100">
+            {/* Record Count Badge */}
+            <div className="bg-white border-2 border-blue-100 px-4 py-2 rounded-2xl flex flex-col items-center justify-center shadow-sm">
+               <span className="text-[8px] font-black uppercase text-gray-400">Entries</span>
+               <div className="flex items-center gap-1 text-blue-600">
+                  <Hash size={12} strokeWidth={3} />
+                  <span className="text-lg font-black tracking-tighter">{recordCount}</span>
+               </div>
+            </div>
+
+            {/* Total Display */}
+            <div className="bg-blue-900 text-white px-6 py-2 rounded-2xl flex flex-col items-end min-w-[200px] shadow-lg shadow-blue-100">
               <span className="text-[8px] font-black uppercase opacity-60">Total for Period</span>
-              <span className="text-xl font-black">KES {totalAmount.toLocaleString()}</span>
+              <span className="text-xl font-black">
+                KES {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
             </div>
             
             <div className="flex gap-2">
@@ -194,7 +208,7 @@ export const ViewGivings: React.FC<ViewGivingsProps> = ({ isOpen, onClose, userD
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-gray-100 text-[10px] font-black text-gray-400 uppercase tracking-tighter">
-                    <th className="py-4 px-4">Member</th>
+                    <th className="py-4 px-4">Member / Phone</th>
                     <th className="py-4 px-4">Category</th>
                     <th className="py-4 px-4 text-right">Amount</th>
                     <th className="py-4 px-4 text-center">Date</th>
@@ -209,7 +223,9 @@ export const ViewGivings: React.FC<ViewGivingsProps> = ({ isOpen, onClose, userD
                           {item.type}
                         </span>
                       </td>
-                      <td className="py-4 px-4 text-right font-black text-blue-900">{item.amount.toLocaleString()}</td>
+                      <td className="py-4 px-4 text-right font-black text-blue-900">
+                        {Number(item.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
                       <td className="py-4 px-4 text-center text-gray-400 text-xs font-medium">{new Date(item.date).toLocaleDateString()}</td>
                     </tr>
                   ))}
