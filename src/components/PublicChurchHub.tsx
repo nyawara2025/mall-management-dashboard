@@ -19,6 +19,7 @@ import { MemberMediaAccess } from './MemberMediaAccess';
 import { ViewGivings } from './ViewGivings';
 import { JoinMinistryOrZone } from './JoinMinistryOrZone';
 import { LeaderMessageModal } from './LeaderMessageModal';
+import { ViewBroadcastsModal } from './ViewBroadcastsModal';
 
 // --- TYPES ---
 interface PaymentRecord {
@@ -784,7 +785,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(false);
 
   const [isLeaderMessageOpen, setIsLeaderMessageOpen] = useState(false);
-  const [isReceivedRequestsOpen, setIsReceivedRequestsOpen] = useState(false);
+  
+  const [isViewBroadcastsOpen, setIsViewBroadcastsOpen] = useState(false);
 
   const handleAccountClick = () => {
     setIsPasswordModalOpen(true);
@@ -1100,7 +1102,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
               {/* BROADCAST SECTION */}
               <div className="relative group/container">
                 <button 
-                  onClick={() => setIsReceivedRequestsOpen(true)} // Assuming this opens the member's view
+                  onClick={() => setIsViewBroadcastsOpen(true)} // Assuming this opens the member's view
                   className="w-full bg-blue-300 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
                 >
                   <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600">
@@ -1412,6 +1414,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         isOpen={isLeaderMessageOpen}
         onClose={() => setIsLeaderMessageOpen(false)}
         userData={userData}
+      />
+
+      <ViewBroadcastsModal 
+        isOpen={isViewBroadcastsOpen} 
+        onClose={() => setIsViewBroadcastsOpen(false)} 
+        userData={userData} 
       />
 
     </div>
