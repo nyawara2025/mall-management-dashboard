@@ -87,7 +87,6 @@ const ProductTile = ({ product, onAddToCart }: { product: Product, onAddToCart: 
 export const POS: React.FC<POSProps> = ({ shopId }) => {
   // 1. URLs must be defined inside the component or at the very top of the file
   const CASH_SALE_URL = 'https://n8n.tenear.com/webhook/pos-sale-cash';
-  const MPESA_PUSH_URL = 'https://n8n.tenear.com/webhook/pos-transaction-push';
 
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -179,10 +178,15 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
 
   const executeFinalSale = async () => {
     if (cart.length === 0) return;
+    
     setLoading(true);
+    console.log("Transaction Started..."); // Check F12 Console for this
 
     const payload = {
-      id: crypto.randomUUID(), // Unique ID for tracking
+      // Use crypto if available, otherwise fallback to a timestamp-based ID
+      id: (typeof crypto.randomUUID === 'function') 
+          ? crypto.randomUUID() 
+          : `offline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       shop_id: shopId,
       items: cart,
       total: calculateTotal(),
@@ -191,7 +195,12 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
       timestamp: new Date().toISOString()
     };
 
-    const targetUrl = paymentMethod === 'mpesa' ? MPESA_PUSH_URL : CASH_SALE_URL;
+    // Determine the direct URL based on payment method
+    const targetUrl = paymentMethod === 'mpesa' 
+      ? 'https://n8n.tenear.com/webhook/pos-transaction-push' 
+      : 'https://tenear.com';
+
+    console.log("Sending to:", targetUrl);
 
     try {
       const response = await fetch(targetUrl, {
@@ -201,24 +210,29 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
       });
 
       if (response.ok) {
-        alert('Sale Recorded Successfully!');
+        console.log("Response OK");
+        alert(paymentMethod === 'mpesa' ? 'M-PESA Push Sent!' : 'Cash Sale Recorded!');
+        setCart([]);
       } else {
+        console.error("Server Error:", response.status);
         throw new Error("Server error");
       }
     } catch (err) {
-      // OFFLINE LOGIC: Save to local storage if fetch fails
+      console.warn("Network issue detected, saving locally...");
+      // OFFLINE FALLBACK
       const storageKey = `pending_sales_${shopId}`;
       const pending = JSON.parse(localStorage.getItem(storageKey) || '[]');
       pending.push({ id: payload.id, payload, targetUrl });
       localStorage.setItem(storageKey, JSON.stringify(pending));
       setPendingCount(pending.length);
-    
-      alert('Internet connection weak. Sale saved locally and will sync once online!');
-    } finally {
+      
+      alert('Internet connection weak. Sale saved locally and will sync later!');
       setCart([]);
+    } finally {
       setLoading(false);
     }
   };
+
 
   const FETCH_PRODUCTS_URL = 'https://n8n.tenear.com/webhook/pos-transaction';
 

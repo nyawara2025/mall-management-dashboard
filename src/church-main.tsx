@@ -5,6 +5,8 @@ import { PublicChurchHub } from './components/PublicChurchHub';
 import { registerSW } from 'virtual:pwa-register';
 import './index.css';
 
+registerSW({ immediate: true });
+
 // 1. Get the shop_id from the URL query string (?shop_id=...)
 const urlParams = new URLSearchParams(window.location.search);
 const shopIdParam = urlParams.get('shop_id');
