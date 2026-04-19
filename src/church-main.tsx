@@ -2,6 +2,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { PublicChurchHub } from './components/PublicChurchHub';
+import { registerSW } from 'virtual:pwa-register';
 import './index.css';
 
 // 1. Get the shop_id from the URL query string (?shop_id=...)
