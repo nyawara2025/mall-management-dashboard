@@ -83,112 +83,12 @@ const ProductTile = ({ product, onAddToCart }: { product: Product, onAddToCart: 
 };
 
 export const POS: React.FC<POSProps> = ({ shopId }) => {
-  // 1. URLs must be defined inside the component or at the very top of the file
-  const CASH_SALE_URL = 'https://n8n.tenear.com/webhook/pos-sale-cash';
-  const MPESA_PUSH_URL = 'https://n8n.tenear.com/webhook/pos-transaction-push';
-
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [fetching, setFetching] = useState(false);
-  const [loading, setLoading] = useState(false); // <--- THIS WAS MISSING OR OUT OF SCOPE
   const [searchTerm, setSearchTerm] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'mpesa'>('cash');
   const [phoneNumber, setPhoneNumber] = useState('');
-
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [pendingCount, setPendingCount] = useState(0);
-
-  useEffect(() => {
-    const handleStatusChange = () => {
-      setIsOnline(navigator.onLine);
-      if (navigator.onLine) syncOfflineTransactions();
-    };
-
-    window.addEventListener('online', handleStatusChange);
-    window.addEventListener('offline', handleStatusChange);
-
-    // Initial check for pending items
-    const pending = JSON.parse(localStorage.getItem(`pending_sales_${shopId}`) || '[]');
-    setPendingCount(pending.length);
-
-    return () => {
-      window.removeEventListener('online', handleStatusChange);
-      window.removeEventListener('offline', handleStatusChange);
-    };
-  }, [shopId]);
-
-  // 3. Function to push saved sales to n8n
-  const syncOfflineTransactions = async () => {
-    const storageKey = `pending_sales_${shopId}`;
-    const pending = JSON.parse(localStorage.getItem(storageKey) || '[]');
-  
-    if (pending.length === 0) return;
-
-    console.log(`Syncing ${pending.length} offline transactions...`);
-  
-    for (const sale of pending) {
-      try {
-        const response = await fetch(sale.targetUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(sale.payload)
-        });
-        if (response.ok) {
-          // Remove processed sale from local storage
-          const currentPending = JSON.parse(localStorage.getItem(storageKey) || '[]');
-          const updated = currentPending.filter((s: any) => s.id !== sale.id);
-          localStorage.setItem(storageKey, JSON.stringify(updated));
-          setPendingCount(updated.length);
-        }
-      } catch (err) {
-        console.error("Sync failed for a record, will retry later.");
-        break; // Stop if still having network issues
-      }
-    }
-  };
-
-  const executeFinalSale = async () => {
-    if (cart.length === 0) return;
-    setLoading(true);
-
-    const payload = {
-      id: crypto.randomUUID(), // Unique ID for tracking
-      shop_id: shopId,
-      items: cart,
-      total: calculateTotal(),
-      payment_method: paymentMethod,
-      phone_number: phoneNumber,
-      timestamp: new Date().toISOString()
-    };
-
-    const targetUrl = paymentMethod === 'mpesa' ? MPESA_PUSH_URL : CASH_SALE_URL;
-
-    try {
-      const response = await fetch(targetUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (response.ok) {
-        alert('Sale Recorded Successfully!');
-      } else {
-        throw new Error("Server error");
-      }
-    } catch (err) {
-      // OFFLINE LOGIC: Save to local storage if fetch fails
-      const storageKey = `pending_sales_${shopId}`;
-      const pending = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      pending.push({ id: payload.id, payload, targetUrl });
-      localStorage.setItem(storageKey, JSON.stringify(pending));
-      setPendingCount(pending.length);
-    
-      alert('Internet connection weak. Sale saved locally and will sync once online!');
-    } finally {
-      setCart([]);
-      setLoading(false);
-    }
-  };
 
   const FETCH_PRODUCTS_URL = 'https://n8n.tenear.com/webhook/pos-transaction';
 

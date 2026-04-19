@@ -26,23 +26,16 @@ const ProductCard = ({ product, handleShare, handleDelete, handleAmend }: { prod
   // Find the selected variant object
   const selectedVariant = product.variants?.find((v: any) => v.id === selectedVariantId);
 
-  // 2. PRICE LOGIC (Restoring what was missing)
+
+  // 1. DYNAMIC PRICE CALCULATION (Prevents NaN)
   const basePrice = Number(product.base_price) || product.basePrice || 0;
   const impact = Number(selectedVariant?.price_impact) || selectedVariant?.priceImpact || 0;
   const displayPrice = basePrice + impact;
-
-
-  // 1. Calculate Total Stock from all variants
-  const totalVariantStock = product.variants?.reduce((sum: number, v: any) => 
-    sum + (Number(v.variant_stock) || 0), 0) || 0;
-
-  // 2. Base stock from the main product entry
-  const baseStock = Number(product.stock_quantity) || product.stock || 0;
     
-  // 3. Dynamic display: If variant exist, show their total. Otherwise, show base stock
-  const displayStock = (product.variants && product.variants.length > 0) 
-    ? totalVariantStock 
-    : baseStock;
+  // 2. DYNAMIC STOCK CALCULATION (Prevents Fixed 0)
+  const displayStock = selectedVariant 
+    ? (Number(selectedVariant.variant_stock) || selectedVariant.stock || 0) 
+    : Number(product.stock_quantity || product.stock || product.quality || 0);
 
   const isLowStock = displayStock > 0 && displayStock <= 5;
   const isOutOfStock = displayStock <= 0;
@@ -83,7 +76,7 @@ const ProductCard = ({ product, handleShare, handleDelete, handleAmend }: { prod
               className="w-full pl-3 pr-10 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold appearance-none cursor-pointer hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-300 outline-none shadow-md"
             >
               <option value="base" className="bg-white text-gray-800 font-medium">
-                Standard - KShs {basePrice}
+                Standard - KShs {basePrice} ({Number(product.stock_quantity) || 0} in stock)
               </option>
               {product.variants?.map((v: any) => {
                 const vImpact = Number(v.price_impact || v.priceImpact || 0);
