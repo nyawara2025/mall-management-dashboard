@@ -20,7 +20,6 @@ import { ViewGivings } from './ViewGivings';
 import { JoinMinistryOrZone } from './JoinMinistryOrZone';
 import { LeaderMessageModal } from './LeaderMessageModal';
 import { ViewBroadcastsModal } from './ViewBroadcastsModal';
-import { CanonFeedback } from './CanonFeedback';
 
 // --- TYPES ---
 interface PaymentRecord {
@@ -789,8 +788,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   
   const [isViewBroadcastsOpen, setIsViewBroadcastsOpen] = useState(false);
 
-  const [isCanonFeedbackOpen, setIsCanonFeedbackOpen] = useState(false);
-
   const handleAccountClick = () => {
     setIsPasswordModalOpen(true);
   };
@@ -1165,18 +1162,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                     <span className="text-[9px] font-black uppercase tracking-tighter">View Givings</span>
                   </button>
                 )}
-
-                {/* New Overlay for Members: Canon's Appreciation/Feedback */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsCanonFeedbackOpen(true);
-                  }}
-                  className="absolute -bottom-2 right-4 bg-yellow-400 text-blue-900 px-3 py-2 rounded-xl shadow-lg hover:bg-yellow-500 transition-all flex items-center gap-2 border-2 border-white z-10 animate-in slide-in-from-bottom-2 duration-300"
-                >
-                  <MessageCircle size={14} fill="currentColor" />
-                  <span className="text-[9px] font-black uppercase tracking-tighter">Canon's Feedback</span>
-                </button>
               </div>
 
               <button 
