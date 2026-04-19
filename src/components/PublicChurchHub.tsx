@@ -1437,6 +1437,13 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         userData={userData} 
       />
 
+      <CanonFeedback 
+        isOpen={isCanonFeedbackOpen} 
+        onClose={() => setIsCanonFeedbackOpen(false)} 
+        memberPhone={userData?.phone_number}
+        orgId={userData?.org_id}
+      />
+
     </div>
   );
 };
