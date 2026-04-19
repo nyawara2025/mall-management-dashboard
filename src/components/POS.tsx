@@ -97,7 +97,7 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'mpesa'>('cash');
   const [phoneNumber, setPhoneNumber] = useState('');
 
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
   const [pendingCount, setPendingCount] = useState(0);
  
   const [installPrompt, setInstallPrompt] = useState<any>(null);
