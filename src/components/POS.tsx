@@ -198,7 +198,7 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
     // Determine the direct URL based on payment method
     const targetUrl = paymentMethod === 'mpesa' 
       ? 'https://n8n.tenear.com/webhook/pos-transaction-push' 
-      : 'https://tenear.com';
+      : 'https://n8n.tenear.com/webhook/pos-transaction-push';
 
     console.log("Sending to:", targetUrl);
 
