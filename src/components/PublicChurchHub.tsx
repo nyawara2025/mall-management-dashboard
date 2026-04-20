@@ -583,7 +583,7 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
 
         <div className="p-8 overflow-y-auto">
           {/* Admin Create Section */}
-          {userData?.role === 'admin' && (
+          {userData?.role === 'leader' && (
             <button 
               onClick={() => setIsCreating(!isCreating)}
               className="w-full mb-6 p-4 bg-blue-50 text-blue-600 rounded-2xl font-bold flex items-center justify-center gap-2 border-2 border-dashed border-blue-200"
