@@ -14,20 +14,14 @@ export const JoinMinistryOrZone: React.FC<JoinProps> = ({ isOpen, onClose, userD
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Parse current membership: ministries are comma-separated, zones are single values
-  const currentMembershipRaw = activeTab === 'ministry' 
+  // Derive current membership from userData based on active tab
+  const currentMembership = activeTab === 'ministry' 
     ? (userData?.ministry_name || 'Not Assigned') 
     : (userData?.zone_name || 'Not Assigned');
 
-  // Explicitly typing currentItems as string[] to avoid TS inference issues
-  const currentItems: string[] = currentMembershipRaw
-    .split(',')
-    .map((m: string) => m.trim())
-    .filter((m: string) => m !== '' && m !== 'Not Assigned');
-
   useEffect(() => {
     if (isOpen) {
-      setSelected('');
+      setSelected(''); // Reset selection on open/tab change
       fetchOptions();
     }
   }, [isOpen, activeTab]);
@@ -42,6 +36,7 @@ export const JoinMinistryOrZone: React.FC<JoinProps> = ({ isOpen, onClose, userD
       });
       const data = await response.json();
       
+      // Map n8n array of objects [{option: 'Name'}] to array of strings ['Name']
       if (Array.isArray(data)) {
         setOptions(data.map((item: any) => item.option));
       } else if (data.options) {
@@ -58,19 +53,7 @@ export const JoinMinistryOrZone: React.FC<JoinProps> = ({ isOpen, onClose, userD
   };
 
   const handleJoin = async () => {
-    if (!selected) return;
-
-    if (currentItems.includes(selected)) {
-      alert(`You are already in the ${selected} ${activeTab}.`);
-      return;
-    }
-
-    let newValue = selected;
-    if (activeTab === 'ministry') {
-      const cleanExisting = currentMembershipRaw === 'Not Assigned' ? '' : currentMembershipRaw;
-      newValue = cleanExisting ? `${cleanExisting}, ${selected}` : selected;
-    }
-
+    if (!selected || selected === currentMembership) return;
     setSaving(true);
     try {
       const response = await fetch('https://n8n.tenear.com/webhook/update_member', {
@@ -80,48 +63,20 @@ export const JoinMinistryOrZone: React.FC<JoinProps> = ({ isOpen, onClose, userD
           phone_number: userData.phone_number,
           org_id: userData.org_id,
           field: activeTab === 'ministry' ? 'ministry_name' : 'zone_name',
-          value: newValue
+          value: selected
         }),
       });
 
       if (response.ok) {
-        alert(`Success! You have joined ${selected}.`);
+        alert(`Success! You have joined the ${selected} ${activeTab}.`);
         onClose();
+        // Force refresh to update the main dashboard data
         window.location.reload();
+      } else {
+        throw new Error("Update failed");
       }
     } catch (error) {
       alert("Update failed. Please try again later.");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleRemove = async (itemToRemove: string) => {
-    if (!window.confirm(`Are you sure you want to leave the ${itemToRemove} ministry?`)) return;
-    
-    const updatedList = currentItems
-      .filter((m: string) => m !== itemToRemove)
-      .join(', ');
-
-    setSaving(true);
-    try {
-      const response = await fetch('https://n8n.tenear.com/webhook/update_member', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone_number: userData.phone_number,
-          org_id: userData.org_id,
-          field: 'ministry_name',
-          value: updatedList || 'Not Assigned'
-        }),
-      });
-
-      if (response.ok) {
-        alert(`Successfully left ${itemToRemove}.`);
-        window.location.reload();
-      }
-    } catch (error) {
-      alert("Removal failed. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -137,7 +92,7 @@ export const JoinMinistryOrZone: React.FC<JoinProps> = ({ isOpen, onClose, userD
         <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
           <div>
             <h2 className="text-xl font-black uppercase tracking-tight leading-tight">Connect with Us</h2>
-            <p className="text-blue-200 text-[10px] font-bold uppercase tracking-widest">Member Hub</p>
+            <p className="text-blue-200 text-[10px] font-bold uppercase tracking-widest">St. Barnabas Member Hub</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-blue-500 rounded-full transition-colors">
             <X size={24}/>
@@ -161,40 +116,19 @@ export const JoinMinistryOrZone: React.FC<JoinProps> = ({ isOpen, onClose, userD
         </div>
 
         <div className="p-8">
-          {/* Current Membership Display with Badges */}
-          <div className="mb-6 p-4 bg-blue-50 rounded-2xl border border-blue-100">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="bg-blue-600 p-2 rounded-lg text-white">
-                <Info size={16} />
-              </div>
-              <p className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">
-                Current {activeTab === 'ministry' ? 'Ministries' : 'Zone'}
-              </p>
+          {/* Current Membership Label */}
+          <div className="mb-6 p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-center gap-3">
+            <div className="bg-blue-600 p-2 rounded-lg text-white">
+              <Info size={16} />
             </div>
-            
-            <div className="flex flex-wrap gap-2">
-              {currentItems.length > 0 ? (
-                currentItems.map((item: string, idx: number) => (
-                  <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-white border border-blue-200 text-blue-900 rounded-xl shadow-sm animate-in zoom-in-95">
-                    <span className="text-xs font-black">{item}</span>
-                    {activeTab === 'ministry' && (
-                      <button 
-                        onClick={() => handleRemove(item)}
-                        className="hover:bg-red-50 text-gray-300 hover:text-red-500 rounded-full p-0.5 transition-colors"
-                      >
-                        <X size={12} strokeWidth={3} />
-                      </button>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <span className="text-sm font-black text-blue-900/40 italic">Not Assigned</span>
-              )}
+            <div>
+              <p className="text-[10px] font-black text-blue-400 uppercase tracking-tighter leading-none mb-1">Current {activeTab}</p>
+              <p className="text-sm font-black text-blue-900">{currentMembership}</p>
             </div>
           </div>
 
           <p className="text-gray-500 text-sm mb-4 font-medium italic">
-            {activeTab === 'ministry' ? 'Add a new ministry to join:' : `Change your ${activeTab}:`}
+            Choose a new {activeTab} to join:
           </p>
 
           {loading ? (
@@ -209,7 +143,7 @@ export const JoinMinistryOrZone: React.FC<JoinProps> = ({ isOpen, onClose, userD
               className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-2xl font-bold text-gray-700 focus:ring-4 focus:ring-blue-500/10 outline-none mb-8 appearance-none cursor-pointer"
             >
               <option value="">-- Select {activeTab} --</option>
-              {options.map((opt: string) => (
+              {options.map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
@@ -217,11 +151,11 @@ export const JoinMinistryOrZone: React.FC<JoinProps> = ({ isOpen, onClose, userD
 
           <button
             onClick={handleJoin}
-            disabled={!selected || saving || currentItems.includes(selected)}
+            disabled={!selected || saving || selected === currentMembership}
             className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest shadow-lg shadow-blue-100 flex items-center justify-center gap-2 hover:bg-blue-700 active:scale-95 disabled:bg-gray-200 disabled:shadow-none transition-all"
           >
             {saving ? <Loader2 className="animate-spin" size={20}/> : <CheckCircle2 size={20}/>}
-            {saving ? 'UPDATING...' : (currentItems.includes(selected) ? 'ALREADY JOINED' : `JOIN ${activeTab}`)}
+            {saving ? 'UPDATING...' : (selected === currentMembership ? 'ALREADY JOINED' : `JOIN ${activeTab}`)}
           </button>
         </div>
       </div>
