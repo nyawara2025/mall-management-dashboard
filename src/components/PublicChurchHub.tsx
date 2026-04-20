@@ -281,9 +281,6 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
             {loading ? 'Processing...' : (isResetMode ? 'Send Reset Link' : isSignUp ? 'Request Membership' : 'Sign In')}
           </button>
 
-          <button onClick={handleAuth} disabled={loading} className={`w-full text-white p-4 rounded-2xl font-bold transition-all active:scale-95 shadow-lg ${isSignUp ? 'bg-green-600' : 'bg-blue-600'} ${loading ? 'opacity-50' : ''}`}>
-            {loading ? 'Processing...' : (isSignUp ? 'Request Membership' : 'Sign In')}
-          </button>
           <button onClick={() => setIsSignUp(!isSignUp)} className="w-full text-sm text-gray-400 hover:text-blue-600 transition-colors text-center font-semibold mt-2">
             {isSignUp ? 'Already a member? Sign In' : 'New here? Request Access'}
           </button>
