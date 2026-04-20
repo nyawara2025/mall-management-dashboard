@@ -457,44 +457,29 @@ const ProfileCard = ({ userData }: { userData: MemberData }) => {
           </div>
 
           {/* Data Display Slots */}
-          <div className="mt-8 space-y-3">
-            {/* ZONE SECTION */}
-            <div className="flex items-center gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100 text-left">
-              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm">
+          <div className="w-full space-y-3">
+            {/* Zone Display */}
+            <div className="flex items-center p-4 bg-gray-50 rounded-2xl border border-gray-100/50 group hover:bg-white hover:shadow-md transition-all duration-300">
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm mr-4">
                 <ShieldCheck size={20} />
               </div>
-              <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">ZONE</p>
-                <p className="font-bold text-gray-700">{userData?.zone_name || 'Not Assigned'}</p>
+              <div className="text-left">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Zone</p>
+                <p className="text-gray-900 font-bold leading-none">{userData?.zone_name || 'Not Assigned'}</p>
               </div>
             </div>
 
-            {/* MINISTRIES SECTION - Now with Badges */}
-            <div className="flex flex-col gap-2 bg-gray-50 p-4 rounded-2xl border border-gray-100 text-left">
-              <div className="flex items-center gap-4 mb-1">
-                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm">
-                  <Users size={20} />
-                </div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">MY MINISTRIES</p>
+            {/* Ministry Display */}
+            <div className="flex items-center p-4 bg-gray-50 rounded-2xl border border-gray-100/50 group hover:bg-white hover:shadow-md transition-all duration-300">
+              <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm mr-4">
+                <Users size={20} />
               </div>
-    
-              <div className="flex flex-wrap gap-2 pl-14">
-                {userData?.ministry_name && userData.ministry_name !== 'Not Assigned' ? (
-                  (userData.ministry_name as string).split(',').map((ministry: string, idx: number) => (
-                    <span 
-                      key={idx} 
-                      className="px-3 py-1 bg-white text-blue-600 border border-blue-100 rounded-lg text-[10px] font-black uppercase shadow-sm"
-                    >
-                      {ministry.trim()}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-xs font-bold text-gray-300 italic">No Ministry Joined</span>
-                )}
+              <div className="text-left">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Current Ministry</p>
+                <p className="text-gray-900 font-bold leading-none">{userData?.ministry_name || 'General Member'}</p>
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
