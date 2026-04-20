@@ -108,11 +108,41 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
 
+  const [isResetMode, setIsResetMode] = useState(false);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   
-  
+  const handleForgotPassword = async () => {
+    if (!phone) {
+      alert("Please enter your phone number first.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/church-forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: phone.startsWith('+') ? phone : `+${phone}`,
+          shop_id: shopId
+        }),
+      });
+
+      if (response.ok) {
+        alert("If an account exists, a temporary password or reset link has been sent via SMS.");
+        setIsResetMode(false);
+      } else {
+        throw new Error("Failed to request reset.");
+      }
+    } catch (error: any) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAuth = async () => {
     // Basic Validation
     if (!phone || !password) {
@@ -231,6 +261,26 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
             <Lock className="absolute left-4 top-4 text-gray-400" size={20} />
             <input type="password" className="w-full bg-gray-50 border border-gray-100 p-4 pl-12 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
+
+          {!isSignUp && (
+            <div className="flex justify-end px-2">
+              <button 
+                onClick={() => setIsResetMode(!isResetMode)}
+                className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors"
+              >
+                {isResetMode ? 'Back to Login' : 'Forgot Password?'}
+              </button>
+            </div>
+          )}
+
+          <button 
+            onClick={isResetMode ? handleForgotPassword : handleAuth} // Updated logic
+            disabled={loading} 
+            className={`w-full text-white p-4 rounded-2xl font-bold transition-all active:scale-95 shadow-lg ${isSignUp ? 'bg-green-600' : 'bg-blue-600'} ${loading ? 'opacity-50' : ''}`}
+          >
+            {loading ? 'Processing...' : (isResetMode ? 'Send Reset Link' : isSignUp ? 'Request Membership' : 'Sign In')}
+          </button>
+
           <button onClick={handleAuth} disabled={loading} className={`w-full text-white p-4 rounded-2xl font-bold transition-all active:scale-95 shadow-lg ${isSignUp ? 'bg-green-600' : 'bg-blue-600'} ${loading ? 'opacity-50' : ''}`}>
             {loading ? 'Processing...' : (isSignUp ? 'Request Membership' : 'Sign In')}
           </button>
@@ -243,6 +293,7 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
     </div>
   );
 };
+
 
 const AlertsRibbon = ({ userId, shopId }: { userId: number, shopId: number }) => {
   const [alerts, setAlerts] = useState<any[]>([]);
