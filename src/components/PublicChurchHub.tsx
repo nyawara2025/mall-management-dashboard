@@ -692,7 +692,7 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
 };
 
 const GalleryModal = ({ isOpen, onClose, userData, shopId }: { isOpen: boolean, onClose: () => void, userData: MemberData | null, shopId: number }) => {
-  const [images, setImages] = useState<{ name: string; url: string }[]>([]);
+  const [images, setImages] = useState<any[]>([]);
   const [uploading, setUploading] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -795,11 +795,28 @@ const GalleryModal = ({ isOpen, onClose, userData, shopId }: { isOpen: boolean, 
             <div className="text-center py-20 text-gray-400 font-medium">No photos uploaded yet.</div>
           ) : (
             <div className="columns-2 md:columns-3 gap-4 space-y-4">
-              {images.map((img) => (
-                <div key={img.name} className="relative group overflow-hidden rounded-2xl shadow-sm border border-gray-100">
-                  <img src={img.url} alt="Gallery" className="w-full h-auto object-cover hover:scale-105 transition-transform duration-500" />
-                </div>
-              ))}
+              {images.map((img, index) => {
+
+                // Check if the URL ends in a common video format
+                const isVideo = img.url?.match(/\.(mp4|webm|ogg|mov)$/i);
+                return (
+                  <div key={img.id || index} className="relative group overflow-hidden rounded-2xl shadow-sm border border-gray-100">
+                    {isVideo ? (
+                      <video 
+                        src={img.url} 
+                        controls 
+                        className="w-full h-auto object-cover rounded-2xl"
+                      />
+                    ) : (
+                      <img 
+                        src={img.url} 
+                        alt="Gallery" 
+                        className="w-full h-auto object-cover hover:scale-105 transition-transform duration-500" 
+                      />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
