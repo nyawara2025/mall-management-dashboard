@@ -245,51 +245,90 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
           <div className="w-20 h-20 bg-blue-600 rounded-3xl flex items-center justify-center text-white mx-auto mb-4 shadow-lg shadow-blue-200">
             <Lock size={36} />
           </div>
-          <h2 className="text-3xl font-black text-gray-900 tracking-tight">{isSignUp ? 'Join Us' : 'Welcome Back'}</h2>
-          <p className="text-gray-500 text-sm mt-2">Access the St. Barnabas Member Hub</p>
+          <h2 className="text-3xl font-black text-gray-900 tracking-tight">
+            {isResetMode ? 'Reset Password' : isSignUp ? 'Join Us' : 'Welcome Back'}
+          </h2>
+          <p className="text-gray-500 text-sm mt-2">
+            {isResetMode ? 'Verify your identity' : 'Access the St. Barnabas Member Hub'}
+          </p>
         </div>
 
         <div className="space-y-4">
-
-          {/* Name Fields: Only visible during Sign Up */}
-          {isSignUp && (
+          {/* Sign Up Fields */}
+          {isSignUp && !isResetMode && (
             <div className="space-y-3 mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="First Name"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-gray-700"
-                  required
-                />
-              </div>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Last Name"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-gray-700"
-                  required
-                />
-              </div>
+              <input
+                type="text"
+                placeholder="First Name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium text-gray-700"
+                required
+              />
+              <input
+                type="text"
+                placeholder="Last Name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium text-gray-700"
+                required
+              />
             </div>
           )}
 
+          {/* Common Phone Input */}
           <div className="relative">
             <PhoneIcon className="absolute left-4 top-4 text-gray-400" size={20} />
-            <input className="w-full bg-gray-50 border border-gray-100 p-4 pl-12 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Phone (254...)" value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <input 
+              className="w-full bg-gray-50 border border-gray-100 p-4 pl-12 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none" 
+              placeholder="Phone (254...)" 
+              value={phone} 
+              onChange={(e) => setPhone(e.target.value)} 
+              disabled={resetStep === 2}
+            />
           </div>
-          <div className="relative">
-            <Lock className="absolute left-4 top-4 text-gray-400" size={20} />
-            <input type="password" className="w-full bg-gray-50 border border-gray-100 p-4 pl-12 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          </div>
+
+          {/* Logic for Reset Step 2 (Entering OTP and New Password) */}
+          {isResetMode && resetStep === 2 ? (
+            <div className="space-y-4 animate-in slide-in-from-bottom-2 duration-300">
+              <div className="bg-blue-50 p-4 rounded-2xl text-xs text-blue-700 font-medium">
+                Enter the 6-digit code sent to your WhatsApp.
+              </div>
+              <input 
+                type="text" 
+                placeholder="Verification Code" 
+                value={otpCode} 
+                onChange={(e) => setOtpCode(e.target.value)}
+                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500" 
+              />
+              <input 
+                type="password" 
+                placeholder="New Password" 
+                value={newPassword} 
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500" 
+              />
+            </div>
+          ) : (
+            /* Regular Password Input (Login/Signup) */
+            !isResetMode && (
+              <div className="relative">
+                <Lock className="absolute left-4 top-4 text-gray-400" size={20} />
+                <input 
+                  type="password" 
+                  className="w-full bg-gray-50 border border-gray-100 p-4 pl-12 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none" 
+                  placeholder="Password" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                />
+              </div>
+            )
+          )}
 
           {!isSignUp && (
             <div className="flex justify-end px-2">
               <button 
-                onClick={() => setIsResetMode(!isResetMode)}
+                onClick={() => { setIsResetMode(!isResetMode); setResetStep(1); }}
                 className="text-xs font-semibold text-blue-600 hover:text-blue-800 transition-colors"
               >
                 {isResetMode ? 'Back to Login' : 'Forgot Password?'}
@@ -297,24 +336,36 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
             </div>
           )}
 
+          {/* Action Button */}
           <button 
-            onClick={isResetMode ? handleForgotPassword : handleAuth} // Updated logic
+            onClick={
+              isResetMode 
+                ? (resetStep === 1 ? handleForgotPassword : handleConfirmReset) 
+                : handleAuth
+            }
             disabled={loading} 
             className={`w-full text-white p-4 rounded-2xl font-bold transition-all active:scale-95 shadow-lg ${isSignUp ? 'bg-green-600' : 'bg-blue-600'} ${loading ? 'opacity-50' : ''}`}
           >
-            {loading ? 'Processing...' : (isResetMode ? 'Send Reset Link' : isSignUp ? 'Request Membership' : 'Sign In')}
+            {loading ? 'Processing...' : (
+              isResetMode 
+                ? (resetStep === 1 ? 'Send WhatsApp Code' : 'Update Password') 
+                : (isSignUp ? 'Request Membership' : 'Sign In')
+            )}
           </button>
 
-          <button onClick={() => setIsSignUp(!isSignUp)} className="w-full text-sm text-gray-400 hover:text-blue-600 transition-colors text-center font-semibold mt-2">
-            {isSignUp ? 'Already a member? Sign In' : 'New here? Request Access'}
-          </button>
+          {!isResetMode && (
+            <button 
+              onClick={() => setIsSignUp(!isSignUp)} 
+              className="w-full text-sm text-gray-400 hover:text-blue-600 transition-colors text-center font-semibold mt-2"
+            >
+              {isSignUp ? 'Already a member? Sign In' : 'New here? Request Access'}
+            </button>
+          )}
         </div>
       </div>
-
     </div>
   );
 };
-
 
 const AlertsRibbon = ({ userId, shopId }: { userId: number, shopId: number }) => {
   const [alerts, setAlerts] = useState<any[]>([]);
