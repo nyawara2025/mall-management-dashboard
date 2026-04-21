@@ -1082,10 +1082,10 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 onClick={() => setIsPrayerModalOpen(true)}
                 className="bg-blue-400 rounded-[2.5rem] p-8 shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95"
               >
-                <div className="p-4 bg-blue-50 text-black-600 rounded-2xl italic">
+                <div className="p-4 bg-blue-50 text-white-600 rounded-2xl italic">
                   <Heart size={32} />
                 </div>
-                <span className="text-[10px] font-black text-white-400 uppercase tracking-widest">Prayer Request</span>
+                <span className="text-[10px] font-white text-white-400 uppercase tracking-widest">Prayer Request</span>
               </button>
 
               {/* ONLY SHOW FOR CANON */}
