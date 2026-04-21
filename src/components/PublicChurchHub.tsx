@@ -135,8 +135,9 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
       });
 
       if (response.ok) {
-        alert("If an account exists, a temporary password or reset link has been sent via SMS.");
-        setIsResetMode(false);
+        alert("Verification code sent to WhatsApp!");
+        setIsResetMode(true);
+        setResetStep(2);
       } else {
         throw new Error("Failed to request reset.");
       }
@@ -149,23 +150,40 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
 
   // This function calls a second webhook: /church-confirm-reset
   const handleConfirmReset = async () => {
+    if (!otpCode || !newPassword) {
+      alert("Please enter the code and your new password.");
+      return;
+    }
     setLoading(true);
     try {
       const response = await fetch('https://n8n.tenear.com/webhook/church-confirm-reset', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        phone, 
-        otpCode, 
-        newPassword, // n8n will bcrypt this before saving
-        shop_id: shopId 
-      }),
-    });
-    // ... handle success/fail
-  } finally {
-    setLoading(false);
-  }
-};
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          phone, 
+          otpCode, 
+          newPassword, // n8n will bcrypt this before saving
+          shop_id: shopId 
+        }),
+      });
+     
+      if (response.ok) {
+        alert("Password updated successfully! You can now sign in.");
+        setIsResetMode(false); // Go back to login screen
+        setResetStep(1);      // Reset step for next time
+        setPassword('');       // Clear old password field
+      } else {
+        const result = await response.json();
+        throw new Error(result.message || "Failed to update password.");
+      }
+    } catch (error: any) {
+      alert(error.message);
+
+
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAuth = async () => {
     // Basic Validation
