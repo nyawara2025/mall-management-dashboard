@@ -20,6 +20,7 @@ import { ViewGivings } from './ViewGivings';
 import { JoinMinistryOrZone } from './JoinMinistryOrZone';
 import { LeaderMessageModal } from './LeaderMessageModal';
 import { ViewBroadcastsModal } from './ViewBroadcastsModal';
+import { WelfareModal } from './WelfareModal';
 import { CanonFeedback } from './CanonFeedback';
 
 // --- TYPES ---
@@ -443,130 +444,7 @@ const AlertsRibbon = ({ userId, shopId }: { userId: number, shopId: number }) =>
   );
 };
 
-const WelfareModal = ({ isOpen, onClose, userData }: { isOpen: boolean, onClose: () => void, userData: MemberData | null }) => {
-  const [selectedKitty, setSelectedKitty] = useState('Social Welfare');
-  const [amount, setAmount] = useState('');
-  const [paymentMode, setPaymentMode] = useState<'stk' | 'manual'>('stk');
-  const [confirmationCode, setConfirmationCode] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  const kitties = ['Ministry', 'Zone', 'Regional', 'Social Welfare', 'Ad hoc'];
-
-  const handlePayment = async () => {
-    if (!amount || Number(amount) <= 0) return alert("Please enter a valid amount");
-    setIsProcessing(true);
-    
-    try {
-      const payload = {
-        userId: userData?.id,
-        shop_id: userData?.shop_id,
-        phone: userData?.phone_number,
-        amount,
-        kitty: selectedKitty,
-        mode: paymentMode,
-        code: paymentMode === 'manual' ? confirmationCode : null
-      };
-
-      // Replace with your n8n/backend payment endpoint
-      const response = await fetch('https://n8n.tenear.com/webhook/post-to-church-welfare', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (response.ok) {
-        alert(paymentMode === 'stk' ? "STK Push sent! Check your phone." : "Payment submitted for verification.");
-        onClose();
-      }
-    } catch (err) {
-      alert("Payment failed. Please try again.");
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden">
-        <div className="p-8">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-2xl font-black text-gray-900">Welfare Fund</h3>
-            <button onClick={onClose} className="p-2 bg-gray-100 rounded-full"><X size={20} /></button>
-          </div>
-
-          <div className="space-y-5">
-            {/* Kitty Selection */}
-            <div>
-              <label className="text-xs font-bold uppercase text-gray-400 ml-1">Select Kitty</label>
-              <div className="grid grid-cols-2 gap-2 mt-2">
-                {kitties.map(k => (
-                  <button 
-                    key={k}
-                    onClick={() => setSelectedKitty(k)}
-                    className={`p-3 rounded-xl text-sm font-semibold border transition-all ${selectedKitty === k ? 'bg-blue-600 border-blue-600 text-white' : 'bg-gray-50 border-gray-100 text-gray-600'}`}
-                  >
-                    {k}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Amount Input */}
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">KES</span>
-              <input 
-                type="number" 
-                placeholder="Amount" 
-                className="w-full bg-gray-50 border border-gray-100 p-4 pl-14 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-              />
-            </div>
-
-            {/* Payment Mode Toggle */}
-            <div className="flex bg-gray-100 p-1 rounded-2xl">
-              <button onClick={() => setPaymentMode('stk')} className={`flex-1 p-2 rounded-xl text-xs font-bold transition-all ${paymentMode === 'stk' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>M-PESA PUSH</button>
-              <button onClick={() => setPaymentMode('manual')} className={`flex-1 p-2 rounded-xl text-xs font-bold transition-all ${paymentMode === 'manual' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-500'}`}>MANUAL CODE</button>
-            </div>
-
-            {paymentMode === 'manual' && (
-              <input 
-                placeholder="Enter M-Pesa Code (e.g. RBT45...)" 
-                className="w-full bg-gray-50 border border-gray-100 p-4 rounded-2xl outline-none uppercase"
-                value={confirmationCode}
-                onChange={(e) => setConfirmationCode(e.target.value)}
-              />
-            )}
-
-            <button 
-              onClick={handlePayment}
-              disabled={isProcessing}
-              className="w-full bg-blue-600 text-white p-4 rounded-2xl font-bold shadow-lg shadow-blue-200 active:scale-95 transition-all"
-            >
-              {isProcessing ? 'Processing...' : 'Contribute Now'}
-            </button>
-          </div>
-        </div>
-
-        {/* History Preview */}
-        <div className="bg-gray-50 p-6 border-t border-gray-100 max-h-48 overflow-y-auto">
-          <p className="text-xs font-bold text-gray-400 uppercase mb-3">Your Payment History</p>
-          {userData?.payment_history?.map((pay, i) => (
-            <div key={i} className="flex justify-between items-center mb-2 bg-white p-3 rounded-xl border border-gray-100">
-              <div>
-                <p className="text-sm font-bold text-gray-800">KES {pay.amount}</p>
-                <p className="text-[10px] text-gray-400">{new Date(pay.payment_date).toLocaleDateString()}</p>
-              </div>
-              <span className="text-[10px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-md">{pay.status}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const ProfileCard = ({ userData }: { userData: MemberData }) => {
   return (
@@ -1115,52 +993,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
     }
   };
 
-  // --- SUB-VIEW: Welfare Dashboard (RESTORED HISTORY DISPLAY) ---
-  const WelfarePage = () => (
-    <div className="p-6 max-w-2xl mx-auto space-y-6">
-      <button onClick={() => setActiveView('dashboard')} className="text-blue-600 font-bold flex items-center gap-2 hover:underline">
-        ← Back to Hub
-      </button>
-      
-      {/* WELFARE HISTORY MODAL UI */}
-      <div className="bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden">
-        <div className="p-8 border-b border-gray-50 flex justify-between items-center">
-          <h2 className="text-2xl font-black text-gray-900 tracking-tight">Welfare History</h2>
-          <button onClick={() => setActiveView('dashboard')} className="p-2 bg-gray-50 rounded-full text-gray-400 hover:text-gray-600">
-            <X size={20} />
-          </button>
-        </div>
-
-        <div className="p-8 space-y-4 max-h-[500px] overflow-y-auto">
-          {userData?.payment_history && userData.payment_history.length > 0 ? (
-            userData.payment_history.map((payment, idx) => (
-              <div key={idx} className="flex items-center justify-between p-6 bg-gray-50 rounded-3xl border border-gray-100">
-                <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                    {new Date(payment.payment_date).toLocaleDateString()}
-                  </p>
-                  <p className="font-bold text-gray-700 mt-1">Contribution</p>
-                </div>
-                <p className="text-xl font-black text-blue-600">
-                  KES {payment.amount}
-                </p>
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-10 text-gray-400 italic font-medium">
-              No contributions found in your history.
-            </div>
-          )}
-        </div>
-
-        <div className="p-8 bg-gray-50/50 border-t border-gray-50">
-          <button className="w-full bg-blue-600 text-white p-5 rounded-2xl font-bold shadow-xl shadow-blue-100 hover:scale-[1.01] active:scale-95 transition-all">
-            Make New Contribution
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 
   // --- SUB-VIEW: Order of Service ---
   const ServiceOrderView = () => (
@@ -1244,7 +1076,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600">
                   <MessageSquare size={28} />
                 </div>
-                <span className="text-xs font-black text-black uppercase tracking-widest text-center">OPINION</span>
+                <span className="text-xs font-black text-black uppercase tracking-widest text-center">Share your thoughts</span>
               </button>
               <button 
                 onClick={() => setIsPrayerModalOpen(true)}
@@ -1284,7 +1116,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                   <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600">
                     <Radio size={28} />
                   </div>
-                  <span className="text-xs font-black text-black-400 uppercase tracking-widest text-center">BROADCAST</span>
+                  <span className="text-xs font-black text-black-400 uppercase tracking-widest text-center">Announcements</span>
                 </button>
 
                 {/* NEW: Small 'Send' button for Ministry/Zone Leaders */}
@@ -1373,7 +1205,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
               <button 
                 onClick={() => setIsMediaOpen(true)}
-                className="bg-blue-200 p-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-center hover:scale-[1.02] transition-transform active:scale-95"
+                className="bg-blue-400 p-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-center hover:scale-[1.02] transition-transform active:scale-95"
               >
                 <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm">
                   <Radio size={24} />
@@ -1390,7 +1222,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <div className="p-4 bg-blue-50 text-black-600 rounded-2xl italic">
                   <Heart size={32} />
                 </div>
-                <span className="text-[10px] font-black text-black-400 uppercase tracking-widest">Appointments</span>
+                <span className="text-[10px] font-black text-black-400 uppercase tracking-widest">My Diary</span>
               </button>
 
               <button 
@@ -1461,19 +1293,11 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
             </div>
           </div>
-        ) : activeView === 'welfare' ? (
-          <WelfarePage />
+ 
         ) : (
           <ServiceOrderView />
         )}
       </main>
-
-      {/* Render the Modal */}
-      <WelfareModal 
-        isOpen={isWelfareModalOpen} 
-        onClose={() => setIsWelfareModalOpen(false)} 
-        userData={userData}
-      />
 
       {isChatOpen && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
@@ -1615,6 +1439,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         onClose={() => setIsCanonFeedbackOpen(false)} 
         memberPhone={userData?.phone_number}
         orgId={userData?.org_id}
+      />
+
+      <WelfareModal 
+        isOpen={isWelfareModalOpen} 
+        onClose={() => setIsWelfareModalOpen(false)} 
+        userData={userData} 
       />
 
     </div>
