@@ -22,8 +22,8 @@ import { LeaderMessageModal } from './LeaderMessageModal';
 import { ViewBroadcastsModal } from './ViewBroadcastsModal';
 import { WelfareModal } from './WelfareModal';
 import { CanonFeedback } from './CanonFeedback';
-import { ProjectsRenderer } from './ProjectsRenderer';
 import { FinancialsAndProjectsModal } from './FinancialsAndProjectsModal';
+import { ProjectsRenderer } from './ProjectsRenderer';
 
 // --- TYPES ---
 interface PaymentRecord {

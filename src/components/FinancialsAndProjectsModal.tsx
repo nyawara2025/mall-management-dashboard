@@ -19,6 +19,12 @@ export const FinancialsAndProjectsModal: React.FC<FinancialsAndProjectsModalProp
 
   if (!isOpen) return null;
 
+  // Cleanup helper to close the modal and reset navigation
+  const handleClose = () => {
+    setActiveProjectView(null);
+    onClose();
+  };
+
   const FinancialsContent = () => (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
       {[
@@ -75,10 +81,8 @@ export const FinancialsAndProjectsModal: React.FC<FinancialsAndProjectsModalProp
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-blue-900/40 backdrop-blur-md" onClick={() => {
-        onClose();
-        setActiveProjectView(null); // Reset when clicking background
-      }} />
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-blue-900/40 backdrop-blur-md" onClick={handleClose} />
       
       <div className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-200">
         {/* Header */}
@@ -86,14 +90,11 @@ export const FinancialsAndProjectsModal: React.FC<FinancialsAndProjectsModalProp
           <div>
             <h2 className="text-xl font-black uppercase tracking-tight">Church Insights</h2>
             <p className="text-blue-100 text-xs font-bold uppercase tracking-widest opacity-70">
-              {activeProjectView ? `View: ${activeProjectView}` : 'Financials & Development Portal'}
+              {activeProjectView ? `View: ${activeProjectView.replace('_', ' ')}` : 'Financials & Development Portal'}
             </p>
           </div>
           <button 
-            onClick={() => {
-              onClose();
-              setActiveProjectView(null); // Reset state when closing
-            }} 
+            onClick={handleClose} 
             className="p-2 hover:bg-white/20 rounded-full transition-colors"
           >
             <X size={24} />
