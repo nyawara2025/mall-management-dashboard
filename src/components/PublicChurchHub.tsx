@@ -1254,12 +1254,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <div className="p-4 bg-gray-50 rounded-2xl group-hover:bg-blue-50 transition-colors">
                   <MessageCircle className="text-gray-400 group-hover:text-blue-600" size={32} />
                 </div>
-                <span className="text-[10px] font-black text-white tracking-widest uppercase">Chat</span>
+                <span className="text-[10px] font-black text-white tracking-widest uppercase">Knowledgebase (Church Chat)</span>
               </button> 
 
               <button className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
-                <span className="text-xs font-black text-white uppercase tracking-widest text-center">Church Projects</span>
+                <span className="text-xs font-black text-white uppercase tracking-widest text-center">Church Financials & Projects</span>
               </button>
 
               <button className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
