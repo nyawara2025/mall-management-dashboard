@@ -22,6 +22,7 @@ import { LeaderMessageModal } from './LeaderMessageModal';
 import { ViewBroadcastsModal } from './ViewBroadcastsModal';
 import { WelfareModal } from './WelfareModal';
 import { CanonFeedback } from './CanonFeedback';
+import { ProjectsRenderer } from './ProjectsRenderer';
 import { FinancialsAndProjectsModal } from './FinancialsAndProjectsModal';
 
 // --- TYPES ---
@@ -846,6 +847,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
   const [isFinancialsOpen, setIsFinancialsOpen] = useState(false);
 
+  const [activeProjectView, setActiveProjectView] = useState<'planned' | 'fundraising' | null>(null);
+
   const handleAccountClick = () => {
     setIsPasswordModalOpen(true);
   };
@@ -1323,7 +1326,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 </div>
                 <span className="text-xs font-black text-white uppercase tracking-widest text-center">JOIN MINISTRY/ZONE</span>
               </button>
-
+               
+              <button onClick={() => setActiveProjectView('planned')}>Planned Projects</button>
 
             </div>
           </div>
@@ -1331,6 +1335,17 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         ) : (
           <ServiceOrderView />
         )}
+
+        // Render Logic
+        {activeProjectView ? (
+          <ProjectsRenderer 
+            view={activeProjectView} 
+            onBack={() => setActiveProjectView(null)} 
+          />
+        ) : (
+          <></>
+        )}
+
       </main>
 
       {isChatOpen && (
