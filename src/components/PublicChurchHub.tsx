@@ -4,7 +4,7 @@ import {
   LogOut, Lock, Phone as PhoneIcon,
   User, ShieldCheck, Users, Activity,
   MessageSquare, Heart, Radio, Wallet, Book, Globe, Bell, ClipboardList,
-  Image as ImageIcon, MessageCircle, X,
+  Image as ImageIcon, MessageCircle, X, Calendar, TrendingUp,
   Send
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -1291,6 +1291,73 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 </div>
                 <span className="text-[10px] font-black text-white tracking-widest uppercase">Knowledgebase (Church Chat)</span>
               </button> 
+
+              {/* --- Church Financials & Projects Modal --- */}
+              {isFinancialsOpen && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                  <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in duration-300">
+      
+                    {/* Blue Header */}
+                    <div className="p-8 bg-blue-600 text-white flex justify-between items-center">
+                      <div>
+                        <h2 className="text-2xl font-black uppercase tracking-tighter">Church Insights</h2>
+                        <p className="text-xs font-bold opacity-80 uppercase tracking-widest">Financials & Development Portal</p>
+                      </div>
+                      <button onClick={() => setIsFinancialsOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition">
+                        <X size={24} />
+                      </button>
+                    </div>
+
+                    {/* Content Area */}
+                    <div className="p-8 flex-1 overflow-y-auto">
+                      {/* If a specific Project view is selected, show the Renderer. Otherwise show the Menu. */}
+                      {activeProjectView ? (
+                        <ProjectsRenderer 
+                          view={activeProjectView} 
+                          onBack={() => setActiveProjectView(null)} 
+                        />
+                      ) : (
+                        <div className="space-y-6">
+                          {/* Tabs (Financials vs Projects) */}
+                          <div className="flex gap-4 border-b border-gray-100 mb-6">
+                            <button className="pb-4 text-xs font-black uppercase text-gray-400 tracking-widest border-b-2 border-transparent">Financials</button>
+                            <button className="pb-4 text-xs font-black uppercase text-blue-600 tracking-widest border-b-2 border-blue-600">Projects</button>
+                          </div>
+
+                          {/* Project Menu Items */}
+                          <div className="grid grid-cols-1 gap-4">
+                            <button 
+                              onClick={() => setActiveProjectView('planned')}
+                              className="w-full flex items-center gap-5 p-6 rounded-3xl border border-gray-100 hover:bg-gray-50 transition-all text-left group"
+                            >
+                              <div className="p-4 bg-orange-50 rounded-2xl text-orange-500 group-hover:scale-110 transition-transform">
+                                <Calendar size={28} />
+                              </div>
+                              <div>
+                                <p className="font-black text-gray-800">Planned Projects</p>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase">View Upcoming Developments</p>
+                              </div>
+                            </button>
+
+                            <button 
+                              onClick={() => setActiveProjectView('fundraising')}
+                              className="w-full flex items-center gap-5 p-6 rounded-3xl border border-gray-100 hover:bg-gray-50 transition-all text-left group"
+                            >
+                              <div className="p-4 bg-blue-50 rounded-2xl text-blue-500 group-hover:scale-110 transition-transform">
+                                <TrendingUp size={28} />
+                              </div>
+                              <div>
+                                <p className="font-black text-gray-800">Fund Raising</p>
+                                <p className="text-[10px] text-gray-400 font-bold uppercase">Support Active Campaigns</p>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <button 
                 onClick={() => setIsFinancialsOpen(true)}
