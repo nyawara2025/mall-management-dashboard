@@ -22,6 +22,7 @@ import { LeaderMessageModal } from './LeaderMessageModal';
 import { ViewBroadcastsModal } from './ViewBroadcastsModal';
 import { WelfareModal } from './WelfareModal';
 import { CanonFeedback } from './CanonFeedback';
+import { FinancialsAndProjectsModal } from './FinancialsAndProjectsModal';
 
 // --- TYPES ---
 interface PaymentRecord {
@@ -843,6 +844,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
   const [isCanonFeedbackOpen, setIsCanonFeedbackOpen] = useState(false);
 
+  const [isFinancialsOpen, setIsFinancialsOpen] = useState(false);
+
   const handleAccountClick = () => {
     setIsPasswordModalOpen(true);
   };
@@ -1286,7 +1289,9 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="text-[10px] font-black text-white tracking-widest uppercase">Knowledgebase (Church Chat)</span>
               </button> 
 
-              <button className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
+              <button 
+                onClick={() => setIsFinancialsOpen(true)}
+                className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
                 <span className="text-xs font-black text-white uppercase tracking-widest text-center">Church Financials & Projects</span>
               </button>
@@ -1474,6 +1479,11 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         isOpen={isWelfareModalOpen} 
         onClose={() => setIsWelfareModalOpen(false)} 
         userData={userData} 
+      />
+
+      <FinancialsAndProjectsModal 
+        isOpen={isFinancialsOpen} 
+        onClose={() => setIsFinancialsOpen(false)} 
       />
 
     </div>
