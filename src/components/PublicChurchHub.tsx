@@ -1303,7 +1303,13 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                         <h2 className="text-2xl font-black uppercase tracking-tighter">Church Insights</h2>
                         <p className="text-xs font-bold opacity-80 uppercase tracking-widest">Financials & Development Portal</p>
                       </div>
-                      <button onClick={() => setIsFinancialsOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition">
+                      <button 
+                        onClick={() => {
+                          setIsFinancialsOpen(false);  // Closes the popup
+                          setActiveProjectView(null);  // Resets the view to the menu
+                        }}   
+                        className="p-2 hover:bg-white/10 rounded-full transition"
+                      >
                         <X size={24} />
                       </button>
                     </div>
@@ -1361,9 +1367,14 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
               <button 
                 onClick={() => setIsFinancialsOpen(true)}
-                className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
-                <span className="text-xs font-black text-white uppercase tracking-widest text-center">Church Financials & Projects</span>
+                className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
+              >
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600">
+                  <Activity size={28} />
+                </div>
+                <span className="text-xs font-black text-white uppercase tracking-widest text-center">
+                  Church Financials & Projects
+                </span>
               </button>
 
               <button className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
@@ -1401,16 +1412,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
  
         ) : (
           <ServiceOrderView />
-        )}
-
-        // Render Logic
-        {activeProjectView ? (
-          <ProjectsRenderer 
-            view={activeProjectView} 
-            onBack={() => setActiveProjectView(null)} 
-          />
-        ) : (
-          <></>
         )}
 
       </main>
