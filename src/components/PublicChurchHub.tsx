@@ -1032,15 +1032,17 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
         style={{ 
           backgroundImage: `url(${LOGO_URL})`,
-          backgroundAttachment: 'fixed'
+          backgroundAttachment: 'fixed',
+          backgroundSize: 'contain', // Changed to contain so the logo doesn't crop
+          backgroundPosition: 'center center'
         }}
       />
     
-      {/* Semi-transparent Overlay with Blur */}
-      <div className="fixed inset-0 z-0 bg-white/85 backdrop-blur-sm" />
+      {/* Transparent Overlay with Blur */}
+      <div className="fixed inset-0 z-0 bg-white/60" />
 
       {/* Navigation - Adjusted to sit above background */}
-      <nav className="bg-white/80 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center">
+      <nav className="bg-white/90 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-100">
             {church.church_name?.charAt(0) || 'S'}
