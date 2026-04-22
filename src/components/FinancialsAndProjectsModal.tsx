@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
-import { X, PieChart, Construction, FileText, Landmark, HandCoins, Info, TrendingUp, Calendar } from 'lucide-react';
+import { 
+  X, PieChart, Construction, FileText, Landmark, 
+  HandCoins, Info, TrendingUp, Calendar, ArrowLeft 
+} from 'lucide-react';
+// 1. Import the Renderer we built earlier
+import { ProjectsRenderer } from './ProjectsRenderer';
 
 interface FinancialsAndProjectsModalProps {
   isOpen: boolean;
@@ -8,6 +13,9 @@ interface FinancialsAndProjectsModalProps {
 
 export const FinancialsAndProjectsModal: React.FC<FinancialsAndProjectsModalProps> = ({ isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<'financials' | 'projects'>('financials');
+  
+  // 2. State to track which specific project category we are viewing
+  const [activeProjectView, setActiveProjectView] = useState<'planned' | 'fundraising' | 'current' | null>(null);
 
   if (!isOpen) return null;
 
@@ -31,58 +39,87 @@ export const FinancialsAndProjectsModal: React.FC<FinancialsAndProjectsModalProp
     </div>
   );
 
-  const ProjectsContent = () => (
-    <div className="grid grid-cols-1 gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      {[
-        { title: 'Current Projects', icon: <Construction size={20} />, color: 'bg-green-50 text-green-600' },
-        { title: 'Planned Projects', icon: <Calendar size={20} />, color: 'bg-amber-50 text-amber-600' },
-        { title: 'Fund Raising', icon: <HandCoins size={20} />, color: 'bg-blue-50 text-blue-600' },
-        { title: 'Other', icon: <Info size={20} />, color: 'bg-gray-50 text-gray-600' },
-      ].map((item, i) => (
-        <button key={i} className="flex items-center gap-4 p-4 bg-white border border-gray-100 rounded-2xl hover:shadow-md transition-all text-left">
-          <div className={`w-10 h-10 ${item.color} rounded-xl flex items-center justify-center`}>
-            {item.icon}
-          </div>
-          <span className="font-bold text-gray-800">{item.title}</span>
-        </button>
-      ))}
-    </div>
-  );
+  const ProjectsContent = () => {
+    // 3. Logic: If a view is selected, show the Renderer. Otherwise show the buttons.
+    if (activeProjectView) {
+      return (
+        <ProjectsRenderer 
+          view={activeProjectView === 'fundraising' ? 'fundraising' : 'planned'} 
+          onBack={() => setActiveProjectView(null)} 
+        />
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        {[
+          { id: 'current', title: 'Current Projects', icon: <Construction size={20} />, color: 'bg-green-50 text-green-600' },
+          { id: 'planned', title: 'Planned Projects', icon: <Calendar size={20} />, color: 'bg-amber-50 text-amber-600' },
+          { id: 'fundraising', title: 'Fund Raising', icon: <HandCoins size={20} />, color: 'bg-blue-50 text-blue-600' },
+          { id: 'other', title: 'Other', icon: <Info size={20} />, color: 'bg-gray-50 text-gray-600' },
+        ].map((item, i) => (
+          <button 
+            key={i} 
+            onClick={() => setActiveProjectView(item.id as any)}
+            className="flex items-center gap-4 p-5 bg-white border border-gray-100 rounded-2xl hover:shadow-md hover:border-blue-200 transition-all text-left group"
+          >
+            <div className={`w-12 h-12 ${item.color} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform`}>
+              {item.icon}
+            </div>
+            <span className="font-bold text-gray-800">{item.title}</span>
+          </button>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-blue-900/40 backdrop-blur-md" onClick={onClose} />
+      <div className="absolute inset-0 bg-blue-900/40 backdrop-blur-md" onClick={() => {
+        onClose();
+        setActiveProjectView(null); // Reset when clicking background
+      }} />
       
       <div className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-200">
         {/* Header */}
         <div className="bg-blue-600 p-6 text-white flex justify-between items-center">
           <div>
             <h2 className="text-xl font-black uppercase tracking-tight">Church Insights</h2>
-            <p className="text-blue-100 text-xs">Financials & Development Portal</p>
+            <p className="text-blue-100 text-xs font-bold uppercase tracking-widest opacity-70">
+              {activeProjectView ? `View: ${activeProjectView}` : 'Financials & Development Portal'}
+            </p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-full transition-colors">
+          <button 
+            onClick={() => {
+              onClose();
+              setActiveProjectView(null); // Reset state when closing
+            }} 
+            className="p-2 hover:bg-white/20 rounded-full transition-colors"
+          >
             <X size={24} />
           </button>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="flex p-2 bg-gray-50 border-b border-gray-100">
-          <button 
-            onClick={() => setActiveTab('financials')}
-            className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'financials' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}
-          >
-            <PieChart size={16} /> Financials
-          </button>
-          <button 
-            onClick={() => setActiveTab('projects')}
-            className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'projects' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}
-          >
-            <Construction size={16} /> Projects
-          </button>
-        </div>
+        {/* Tab Switcher - Only show if we aren't "deep" in a project view */}
+        {!activeProjectView && (
+          <div className="flex p-2 bg-gray-50 border-b border-gray-100">
+            <button 
+              onClick={() => setActiveTab('financials')}
+              className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'financials' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}
+            >
+              <PieChart size={16} /> Financials
+            </button>
+            <button 
+              onClick={() => setActiveTab('projects')}
+              className={`flex-1 py-3 px-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'projects' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}
+            >
+              <Construction size={16} /> Projects
+            </button>
+          </div>
+        )}
 
         {/* Scrollable Content */}
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
+        <div className="p-6 max-h-[65vh] overflow-y-auto bg-white">
           {activeTab === 'financials' ? <FinancialsContent /> : <ProjectsContent />}
         </div>
 
