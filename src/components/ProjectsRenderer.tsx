@@ -51,7 +51,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
       }
     };
     fetchProjects();
-  }, [view, user?.shop_id]);
+  }, [view, shopId]);
 
   const handleShare = async (project: Project) => {
     if (navigator.share) {
