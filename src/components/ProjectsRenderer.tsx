@@ -46,12 +46,16 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             shop_id: shopId,
+            type: view === 'planned' ? 'planned' : 'all',
             user_id: user?.id // Pass this so n8n can do the lookup
           }),
         });
 
         const data = await response.json();
-        setProjects(data.projects || []);
+        // CRITICAL: Point to the 'projects' key in the object
+        // If n8n sends 1 item as an object, wrap it in an array so .map works
+        const projectsArray = Array.isArray(data.projects) ? data.projects : [data.projects];
+        setProjects(projectsArray || []);
         setIsActuallyStaff(data.isStaff || false);
       } catch (error) { 
         console.error("Fetch error:", error); 
