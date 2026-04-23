@@ -9,9 +9,10 @@ import { ProjectsRenderer } from './ProjectsRenderer';
 interface FinancialsAndProjectsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  shopId: number;
 }
 
-export const FinancialsAndProjectsModal: React.FC<FinancialsAndProjectsModalProps> = ({ isOpen, onClose }) => {
+export const FinancialsAndProjectsModal: React.FC<FinancialsAndProjectsModalProps> = ({ isOpen, onClose, shopId }) => {
   const [activeTab, setActiveTab] = useState<'financials' | 'projects'>('financials');
   
   // 2. State to track which specific project category we are viewing
@@ -51,7 +52,8 @@ export const FinancialsAndProjectsModal: React.FC<FinancialsAndProjectsModalProp
       return (
         <ProjectsRenderer 
           view={activeProjectView === 'fundraising' ? 'fundraising' : 'planned'} 
-          onBack={() => setActiveProjectView(null)} 
+          onBack={() => setActiveProjectView(null)}
+          shopId={shopId} 
         />
       );
     }

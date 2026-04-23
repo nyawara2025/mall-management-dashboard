@@ -1320,7 +1320,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                       {activeProjectView ? (
                         <ProjectsRenderer 
                           view={activeProjectView} 
-                          onBack={() => setActiveProjectView(null)} 
+                          onBack={() => setActiveProjectView(null)}
+                          shopId={activeShopId} 
                         />
                       ) : (
                         <div className="space-y-6">
@@ -1566,7 +1567,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
       <FinancialsAndProjectsModal 
         isOpen={isFinancialsOpen} 
-        onClose={() => setIsFinancialsOpen(false)} 
+        onClose={() => setIsFinancialsOpen(false)}
+        shopId={activeShopId} 
       />
 
     </div>

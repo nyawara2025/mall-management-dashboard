@@ -19,9 +19,10 @@ interface Project {
 interface ProjectsRendererProps {
   view: 'planned' | 'fundraising';
   onBack: () => void;
+  shopId: number
 }
 
-export const ProjectsRenderer = ({ view, onBack }: ProjectsRendererProps) => {
+export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps) => {
   const { user } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,7 +38,7 @@ export const ProjectsRenderer = ({ view, onBack }: ProjectsRendererProps) => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            shop_id: user?.shop_id, 
+            shop_id: shopId, 
             type: view === 'planned' ? 'planned' : 'all' 
           }),
         });
