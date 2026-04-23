@@ -18,7 +18,9 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
   const [isLoading, setIsLoading] = useState(true);
   const [showDonorLog, setShowDonorLog] = useState<string | null>(null);
   const [newDonor, setNewDonor] = useState({ name: '', amount: 0, type: 'Brick' });
-
+ 
+  const [isActuallyStaff, setIsActuallyStaff] = useState(false);
+ 
   // Logic to identify staff - Loice has "project" in her DB record
   const isProjectStaff = user?.department?.toLowerCase().includes('project') || 
                          user?.department?.toLowerCase().includes('development');
@@ -44,13 +46,13 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             shop_id: shopId,
-            type: view === 'planned' ? 'planned' : 'all',
-            user_department: user?.department || 'member'
+            user_id: user?.id // Pass this so n8n can do the lookup
           }),
         });
 
         const data = await response.json();
-        setProjects(data || []);
+        setProjects(data.projects || []);
+        setIsActuallyStaff(data.isStaff || false);
       } catch (error) { 
         console.error("Fetch error:", error); 
       } finally { 
@@ -76,6 +78,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
           shop_id: shopId,
           bricks_equivalent: bricks,
           ironsheets_equivalent: ironsheets,
+          user_department: user?.department,
           timestamp: new Date().toISOString()
         })
       });
@@ -164,7 +167,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
                   </div>
 
                   {/* Staff-Only: Donor Intelligence Log & Display */}
-                  {isProjectStaff && (
+                  {(isProjectStaff || isActuallyStaff) && (
                     <div className="mt-8 p-6 bg-slate-900 rounded-[2rem] text-white animate-in zoom-in">
                       <div className="flex justify-between items-center mb-6">
                         <h5 className="text-[10px] font-black text-blue-300 uppercase tracking-widest">Donor Intelligence Log</h5>
