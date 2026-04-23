@@ -18,6 +18,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
   const [showDonorLog, setShowDonorLog] = useState<string | null>(null);
   const [newDonor, setNewDonor] = useState({ name: '', amount: 0, type: 'Brick' });
 
+  // Logic to identify staff - Loice has "project" in her DB record
   const isProjectStaff = user?.department?.toLowerCase().includes('project') || 
                          user?.department?.toLowerCase().includes('development');
 
@@ -27,33 +28,65 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
         const response = await fetch('https://n8n.tenear.com/webhook/fetch-projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shop_id: shopId, type: view === 'planned' ? 'planned' : 'all' }),
+          body: JSON.stringify({ 
+            shop_id: shopId,
+            type: view === 'planned' ? 'planned' : 'all',
+            user_department: user?.department || 'member'
+          }),
         });
+
         const data = await response.json();
         setProjects(data || []);
-      } catch (error) { console.error("Fetch error:", error); } finally { setIsLoading(false); }
+      } catch (error) { 
+        console.error("Fetch error:", error); 
+      } finally { 
+        setIsLoading(false); 
+      }
     };
+
     fetchProjects();
-  }, [view, shopId]);
+  }, [view, shopId, user?.department]); // Added proper dependencies
 
   const handleVictoryAlert = async (proj: any) => {
     // Calculates materials based on your price list
     const bricks = Math.floor(newDonor.amount / 1000);
     const ironsheets = Math.floor((newDonor.amount % 1000) / 800);
     
-    await fetch('https://n8n.tenear.com/webhook/church-victory-alerts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        ...newDonor,
-        project_name: proj.project_name,
-        shop_id: shopId,
-        bricks,
-        ironsheets
-      })
-    });
-    alert("Victory Alert Published! WhatsApp notification sent.");
-    setShowDonorLog(null);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/church-victory-alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          donor_name: newDonor.name,
+          amount: newDonor.amount,
+          project_name: proj.project_name,
+          shop_id: shopId,
+          bricks_equivalent: bricks,
+          ironsheets_equivalent: ironsheets,
+          timestamp: new Date().toISOString()
+        })
+      });
+
+      if (response.ok) {
+        alert(`Praise God! Victory Alert Published for ${bricks} bricks.`);
+        setShowDonorLog(null);
+      }
+    } catch (error) {
+      console.error("Alert failed:", error);
+      alert("Network error sending alert.");
+    }
+  };
+
+  const handleShare = async (project: any) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `🔥 Support: ${project.project_name}`,
+          text: `Praise God! Join us in building ${project.project_name}. Every brick counts!`,
+          url: window.location.href,
+        });
+      } catch (err) { console.log("Share failed", err); }
+    }
   };
 
   if (isLoading) return <div className="p-20 flex justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
@@ -61,14 +94,17 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
   return (
     <div className="space-y-6 animate-in slide-in-from-right duration-300">
       <div className="flex items-center gap-4 mb-2">
-        <button onClick={onBack} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition"><ArrowLeft size={18} /></button>
-        <h3 className="text-xl font-black text-gray-800">{view === 'planned' ? 'Upcoming Projects' : 'Social Fundraiser Hub'}</h3>
+        <button onClick={onBack} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition">
+          <ArrowLeft size={18} />
+        </button>
+        <h3 className="text-xl font-black text-gray-800">
+          {view === 'planned' ? 'Upcoming Projects' : 'Social Fundraiser Hub'}
+        </h3>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
         {projects.map((proj) => {
           const progress = Math.min(100, Math.round((proj.funds_available / proj.estimated_cost) * 100));
-          // Visual math for materials
           const totalBricks = Math.floor(proj.funds_available / 1000);
           const totalSheets = Math.floor((proj.funds_available % 1000) / 800);
 
@@ -86,7 +122,6 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
 
               {view === 'fundraising' && (
                 <div className="space-y-8">
-                  {/* Visual Material Grid */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-orange-50 p-4 rounded-3xl border border-orange-100 flex flex-col items-center">
                       <Layout className="text-orange-600 mb-2" size={24} />
@@ -100,21 +135,45 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
                     </div>
                   </div>
 
-                  {/* Staff Donor Intelligence Section */}
+                  <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-600 rounded-full" style={{ width: `${progress}%` }} />
+                  </div>
+
+                  <div className="flex items-center justify-between pt-4">
+                    <div className="flex gap-4">
+                      <button className="text-gray-300 hover:text-red-500 transition"><Heart size={20} /></button>
+                      <button className="text-gray-300 hover:text-blue-500 transition" onClick={() => handleShare(proj)}><Share2 size={20} /></button>
+                    </div>
+                  </div>
+
                   {isProjectStaff && (
-                    <div className="p-6 bg-slate-900 rounded-[2rem] text-white">
+                    <div className="p-6 bg-slate-900 rounded-[2rem] text-white animate-in zoom-in">
                       <div className="flex justify-between items-center mb-4">
-                        <h5 className="text-[10px] font-black text-blue-300 uppercase tracking-widest">Intelligence: Log Individual Donor</h5>
+                        <h5 className="text-[10px] font-black text-blue-300 uppercase tracking-widest">Donor Intelligence Log</h5>
                         <button onClick={() => setShowDonorLog(proj.project_id)} className="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                           <Plus size={14} /> Log Donor
                         </button>
                       </div>
 
                       {showDonorLog === proj.project_id && (
-                        <div className="space-y-3 bg-white/5 p-4 rounded-2xl animate-in fade-in">
-                          <input placeholder="Donor Name" className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none" onChange={(e)=>setNewDonor({...newDonor, name: e.target.value})} />
-                          <input type="number" placeholder="Amount (KES)" className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none" onChange={(e)=>setNewDonor({...newDonor, amount: parseInt(e.target.value)})} />
-                          <button onClick={() => handleVictoryAlert(proj)} className="w-full py-3 bg-emerald-600 rounded-xl text-xs font-black uppercase">Publish Victory Alert</button>
+                        <div className="space-y-3 bg-white/5 p-4 rounded-2xl">
+                          <input 
+                            placeholder="Donor Name" 
+                            className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none" 
+                            onChange={(e) => setNewDonor({...newDonor, name: e.target.value})} 
+                          />
+                          <input 
+                            type="number" 
+                            placeholder="Amount (KES)" 
+                            className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none" 
+                            onChange={(e) => setNewDonor({...newDonor, amount: parseInt(e.target.value) || 0})} 
+                          />
+                          <button 
+                            onClick={() => handleVictoryAlert(proj)} 
+                            className="w-full py-3 bg-emerald-600 rounded-xl text-xs font-black uppercase"
+                          >
+                            Publish Victory Alert
+                          </button>
                         </div>
                       )}
                     </div>
