@@ -22,6 +22,19 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
   const isProjectStaff = user?.department?.toLowerCase().includes('project') || 
                          user?.department?.toLowerCase().includes('development');
 
+  // Inject Custom Scrollbar CSS for the Staff Panel
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.5); border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.8); }
+    `;
+    document.head.appendChild(style);
+    return () => { document.head.removeChild(style); };
+  }, []);
+
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -45,10 +58,9 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
     };
 
     fetchProjects();
-  }, [view, shopId, user?.department]); // Added proper dependencies
+  }, [view, shopId, user?.department]);
 
   const handleVictoryAlert = async (proj: any) => {
-    // Calculates materials based on your price list
     const bricks = Math.floor(newDonor.amount / 1000);
     const ironsheets = Math.floor((newDonor.amount % 1000) / 800);
     
@@ -146,31 +158,59 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
                     </div>
                   </div>
 
+                  {/* Staff-Only: Donor Intelligence Log & Display */}
                   {isProjectStaff && (
-                    <div className="p-6 bg-slate-900 rounded-[2rem] text-white animate-in zoom-in">
-                      <div className="flex justify-between items-center mb-4">
+                    <div className="mt-8 p-6 bg-slate-900 rounded-[2rem] text-white animate-in zoom-in">
+                      <div className="flex justify-between items-center mb-6">
                         <h5 className="text-[10px] font-black text-blue-300 uppercase tracking-widest">Donor Intelligence Log</h5>
-                        <button onClick={() => setShowDonorLog(proj.project_id)} className="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                          <Plus size={14} /> Log Donor
+                        <button 
+                          onClick={() => setShowDonorLog(showDonorLog === proj.project_id ? null : proj.project_id)} 
+                          className="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 hover:bg-blue-700 transition"
+                        >
+                          <Plus size={14} /> Log New Donor
                         </button>
                       </div>
 
+                      {/* Explicit Mapping for Existing Donors */}
+                      <div className="space-y-3 mb-6 max-h-64 overflow-y-auto custom-scrollbar pr-2">
+                        {proj.donor_logs?.length > 0 ? (
+                          proj.donor_logs.map((log: any, idx: number) => (
+                            <div key={idx} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex justify-between items-center">
+                              <div>
+                                <p className="text-sm font-bold text-white">{log.name}</p>
+                                <p className="text-[10px] text-blue-300 italic">"{log.message}"</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-sm font-black text-blue-400">KES {log.amount.toLocaleString()}</p>
+                                <p className="text-[9px] uppercase tracking-tighter text-gray-500">{log.type}</p>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-6 border border-dashed border-white/10 rounded-2xl">
+                            <Users size={20} className="mx-auto text-gray-600 mb-2" />
+                            <p className="text-[10px] text-gray-500 uppercase">No donor data synced</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Toggleable Form to Add New Donor */}
                       {showDonorLog === proj.project_id && (
-                        <div className="space-y-3 bg-white/5 p-4 rounded-2xl">
+                        <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-blue-500/30 animate-in slide-in-from-top-2">
                           <input 
                             placeholder="Donor Name" 
-                            className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none" 
+                            className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none focus:border-blue-400 transition" 
                             onChange={(e) => setNewDonor({...newDonor, name: e.target.value})} 
                           />
                           <input 
                             type="number" 
                             placeholder="Amount (KES)" 
-                            className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none" 
+                            className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none focus:border-blue-400 transition" 
                             onChange={(e) => setNewDonor({...newDonor, amount: parseInt(e.target.value) || 0})} 
                           />
                           <button 
-                            onClick={() => handleVictoryAlert(proj)} 
-                            className="w-full py-3 bg-emerald-600 rounded-xl text-xs font-black uppercase"
+                            onClick={() => handleVictoryAlert(proj)}
+                            className="w-full bg-blue-600 py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition"
                           >
                             Publish Victory Alert
                           </button>
@@ -187,3 +227,4 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
     </div>
   );
 };
+
