@@ -152,6 +152,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await loginWithN8N(username, password);
       
       if (result.success && result.token && result.user) {
+        const userData = Array.isArray(result.user) ? result.user[0] : result.user;
+
         const rawUser = result.user as any;
         
         // Improved normalization to explicitly handle 'political', 'medical', and 'retail'
