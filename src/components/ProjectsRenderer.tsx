@@ -23,6 +23,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
                          user?.department?.toLowerCase().includes('development');
 
   useEffect(() => {
+    if (!user?.department) return;
     const fetchProjects = async () => {
       try {
         const response = await fetch('https://n8n.tenear.com/webhook/fetch-projects', {
@@ -31,7 +32,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
           body: JSON.stringify({ 
             shop_id: shopId,
             type: view === 'planned' ? 'planned' : 'all',
-            user_department: user?.department || 'member'
+            user_department: user.department
           }),
         });
 
