@@ -33,7 +33,6 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
     case 'AUTH_START':
       return { ...state, isLoading: true };
-    
     case 'AUTH_SUCCESS':
       return {
         ...state,
@@ -42,7 +41,6 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         isLoading: false,
         isAuthenticated: true,
       };
-    
     case 'AUTH_ERROR':
       return {
         ...state,
@@ -51,7 +49,6 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         isLoading: false,
         isAuthenticated: false,
       };
-    
     case 'LOGOUT':
       return {
         ...state,
@@ -60,7 +57,6 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         isAuthenticated: false,
         isLoading: false,
       };
-    
     case 'RESTORE_SESSION':
       return {
         ...state,
@@ -69,7 +65,6 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
         isAuthenticated: true,
         isLoading: false,
       };
-    
     default:
       return state;
   }
@@ -152,9 +147,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await loginWithN8N(username, password);
       
       if (result.success && result.token && result.user) {
-        const rawUser = result.user as any;
+        // Handle array response: if result.user is [{}], take the first item
+        const rawUser = Array.isArray(result.user) ? result.user[0] : result.user;
         
-        // Improved normalization to explicitly handle 'political', 'medical', and 'retail'
+        // Multi-sectoral category detection
         const detectedCategory = 
           rawUser.category || 
           rawUser.business_category || 
@@ -162,25 +158,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
           rawUser.user?.business_category || 
           'retail';
 
-        // Add logic to catch the department
+        // Detect department across tables (users/members_welfare)
         const detectedDepartment = 
           rawUser.department || 
           rawUser.dept || 
-          'Admin'; // Default to Admin if not specified
+          'member'; // Default to 'member' for non-staff church categories
 
 
         const normalizedUser: User = {
           ...rawUser,
           category: detectedCategory,
-          // Add this line to ensure the department is actually saved!
-          department: detectedDepartment
+          department: detectedDepartment,
+          shop_id: rawUser.shop_id || rawUser.org_id // Ensure fallback for org-based auth
         };
 
-        // Category-agnostic debug log
-        console.log(`🚀 TeNEAR ${detectedCategory.toUpperCase()} Logic Initialized:`, {
-          received_raw: rawUser.business_category || rawUser.category,
-          mapped_to: normalizedUser.category,
-          department: normalizedUser.department, // New debug point
+        // Debug log to verify correct extraction
+        console.log(`🚀 TeNEAR ${detectedCategory.toUpperCase()} Profile Sync:`, {
+          source: Array.isArray(result.user) ? 'array' : 'object',
+          category: normalizedUser.category,
+          department: normalizedUser.department,
           shop_id: normalizedUser.shop_id
         });
 
