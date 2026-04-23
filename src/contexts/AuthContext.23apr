@@ -173,8 +173,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           ...rawUser,
           category: detectedCategory,
           // Add this line to ensure the department is actually saved!
-          department: rawUser.department || 'member',
-          shop_id: rawUser.shop_id
+          department: detectedDepartment
         };
 
         // Category-agnostic debug log
