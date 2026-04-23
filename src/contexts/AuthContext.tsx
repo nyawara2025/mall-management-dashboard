@@ -172,7 +172,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         const normalizedUser: User = {
           ...rawUser,
-          category: detectedCategory,
+          category: rawUser.category || 'retail',
           // Add this line to ensure the department is actually saved!
           department: rawUser.department || 'member',
           shop_id: rawUser.shop_id
