@@ -23,10 +23,6 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
                          user?.department?.toLowerCase().includes('development');
 
   useEffect(() => {
-    if (!user?.department) {
-      console.warn("User department not found yet...");
-      return;
-    }
 
     const fetchProjects = async () => {
       try {
@@ -36,7 +32,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
           body: JSON.stringify({ 
             shop_id: shopId,
             type: view === 'planned' ? 'planned' : 'all',
-            user_department: user.department
+            user_department: user?.department
           }),
         });
 
