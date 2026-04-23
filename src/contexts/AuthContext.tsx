@@ -152,8 +152,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const result = await loginWithN8N(username, password);
       
       if (result.success && result.token && result.user) {
-
-        const rawUser = Array.isArray(result.user) ? result.user[0] : result.user;
+        const rawUser = result.user as any;
         
         // Improved normalization to explicitly handle 'political', 'medical', and 'retail'
         const detectedCategory = 
@@ -172,10 +171,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         const normalizedUser: User = {
           ...rawUser,
-          category: rawUser.category || 'retail',
+          category: detectedCategory,
           // Add this line to ensure the department is actually saved!
-          department: rawUser.department || 'member',
-          shop_id: rawUser.shop_id
+          department: detectedDepartment
         };
 
         // Category-agnostic debug log
