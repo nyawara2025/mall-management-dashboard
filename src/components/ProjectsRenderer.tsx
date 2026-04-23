@@ -4,6 +4,7 @@ import {
   TrendingUp, Users, Target, MapPin, Package, Layout, Hammer, Plus
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import ChurchBrickBuilder from './ChurchBrickBuilder';
 
 interface ProjectsRendererProps {
   view: 'planned' | 'fundraising';
@@ -147,9 +148,13 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
                     </div>
                   </div>
 
-                  <div className="w-full h-4 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-600 rounded-full" style={{ width: `${progress}%` }} />
-                  </div>
+                  {/* Calculate total bricks based on estimated cost (1000 per brick) */}
+                  <ChurchBrickBuilder 
+                    estimatedCost={proj.estimated_cost}
+                    fundsAvailable={proj.funds_available}
+                    donorLogs={proj.donor_logs || []}
+                    isStaff={!!isProjectStaff} // The '!!' fixes the 'boolean | undefined' error
+                  />
 
                   <div className="flex items-center justify-between pt-4">
                     <div className="flex gap-4">
@@ -215,6 +220,8 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
                             Publish Victory Alert
                           </button>
                         </div>
+                
+
                       )}
                     </div>
                   )}
@@ -224,6 +231,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
           );
         })}
       </div>
+
     </div>
   );
 };
