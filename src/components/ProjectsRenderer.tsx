@@ -47,23 +47,32 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
 
   useEffect(() => {
     const fetchProjects = async () => {
+      setIsLoading(true);
       try {
+        // 1. Grab ID from context or localStorage as backup
+        const storedUser = localStorage.getItem('geofence_user_data');
+        const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+        const userId = user?.id || parsedUser?.id;
+
         const response = await fetch('https://n8n.tenear.com/webhook/fetch-projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             shop_id: shopId,
-            type: view === 'planned' ? 'planned' : 'all',
-            user_id: user?.id // Pass this so n8n can do the lookup
+            user_id: userId,
+            type: view === 'planned' ? 'planned' : 'all'
           }),
         });
 
         const data = await response.json();
-        // CRITICAL: Point to the 'projects' key in the object
-        // If n8n sends 1 item as an object, wrap it in an array so .map works
+        
+        // 2. Handle the object response { isStaff: bool, projects: [] }
         const projectsArray = Array.isArray(data.projects) ? data.projects : [data.projects];
         setProjects(projectsArray || []);
-        setIsActuallyStaff(data.isStaff || false);
+        
+        if (data.isStaff) {
+          setIsActuallyStaff(true);
+        }
       } catch (error) { 
         console.error("Fetch error:", error); 
       } finally { 
@@ -72,7 +81,9 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
     };
 
     fetchProjects();
-  }, [view, shopId, user?.department]);
+  }, [view, shopId, user?.id]); // 3. Re-run if user ID finally loads
+
+
 
   const handleVictoryAlert = async (proj: any) => {
     const bricks = Math.floor(newDonor.amount / 1000);

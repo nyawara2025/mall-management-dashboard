@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ChurchBrickBuilder from './ChurchBrickBuilder';
+import confetti from 'canvas-confetti';
 
 interface ProjectsRendererProps {
   view: 'planned' | 'fundraising';
@@ -17,9 +18,15 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
   const [projects, setProjects] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showDonorLog, setShowDonorLog] = useState<string | null>(null);
-  const [newDonor, setNewDonor] = useState({ name: '', amount: 0, type: 'Brick' });
  
   const [isActuallyStaff, setIsActuallyStaff] = useState(false);
+
+  const [newDonor, setNewDonor] = useState({ 
+    name: '', 
+    amount: 0, 
+    type: 'MPESA', // Default type
+    message: ''    // Added message field
+  });
  
   // Logic to identify staff - Loice has "project" in her DB record
   const isProjectStaff = user?.department?.toLowerCase().includes('project') || 
@@ -78,18 +85,33 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
         body: JSON.stringify({
           donor_name: newDonor.name,
           amount: newDonor.amount,
+          donation_type: newDonor.type, // Sending the type
+          message: newDonor.message,    // Sending the message
           project_name: proj.project_name,
+          project_id: proj.project_id,   // Sending ID for Supabase logging
           shop_id: shopId,
           bricks_equivalent: bricks,
           ironsheets_equivalent: ironsheets,
           user_department: user?.department,
+          verified_by: (user as any)?.first_name || 'Church Staff',
           timestamp: new Date().toISOString()
         })
       });
 
       if (response.ok) {
+
+        // Trigger the celebration!
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#f97316', '#3b82f6', '#ffffff'] // Church & Construction colors
+        });
+
         alert(`Praise God! Victory Alert Published for ${bricks} bricks.`);
         setShowDonorLog(null);
+        // Reset form
+        setNewDonor({ name: '', amount: 0, type: 'MPESA', message: '' });
       }
     } catch (error) {
       console.error("Alert failed:", error);
@@ -220,6 +242,26 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
                             className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none focus:border-blue-400 transition" 
                             onChange={(e) => setNewDonor({...newDonor, amount: parseInt(e.target.value) || 0})} 
                           />
+
+                          {/* 3. NEW: Donation Type Select */}
+                          <select
+                            className="w-full bg-slate-800 text-white border-b border-white/20 p-2 text-sm outline-none rounded-t-lg cursor-pointer focus:border-blue-400"
+                            value={newDonor.type}
+                            onChange={(e) => setNewDonor({ ...newDonor, type: e.target.value })}
+                          >
+                            <option value="MPESA">MPESA</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Other">Other</option>
+                          </select>
+
+                          {/* 4. NEW: Message Textarea */}
+                          <textarea
+                            placeholder="Enter donor's message or blessing..."
+                            className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none h-16 text-white focus:border-blue-400 resize-none"
+                            onChange={(e) => setNewDonor({ ...newDonor, message: e.target.value })}
+                          />
+
                           <button 
                             onClick={() => handleVictoryAlert(proj)}
                             className="w-full bg-blue-600 py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition"
