@@ -50,12 +50,18 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
     const fetchProjects = async () => {
       setIsLoading(true);
       try {
+        // 1. Grab ID with userData as the priority (since it works in Meetings)
+        const storedUser = localStorage.getItem('geofence_user_data');
+        const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+        
+        // Priority: Prop > Context > LocalStorage
+        const userId = userData?.id || user?.id || parsedUser?.id;
         const response = await fetch('https://n8n.tenear.com/webhook/fetch-projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             shop_id: shopId,
-            user_id: userData?.id,
+            user_id: userId,
             type: view === 'planned' ? 'planned' : 'all'
           }),
         });
