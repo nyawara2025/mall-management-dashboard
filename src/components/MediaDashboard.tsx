@@ -7,14 +7,18 @@ import { useAuth } from '../contexts/AuthContext';
 import { ChurchBranding } from './ChurchBranding';
 
 const DEPARTMENTS = [
-  { id: 1, name: 'Media Team' },
-  { id: 2, name: 'Canon / Clergy' },
-  { id: 3, name: 'PCC Team' },
-  { id: 4, name: 'Choir' },
-  { id: 5, name: 'Youth' },
-  { id: 6, name: 'KAMA' },
-  { id: 7, name: 'LADIES' },
-  { id: 8, name: 'Praise & Worship'}
+  { id: 1, name: 'Choir' },
+  { id: 2, name: 'Youth' },
+  { id: 3, name: 'Mothers Union' },
+  { id: 4, name: 'KAMA' },
+  { id: 5, name: 'Children' },
+  { id: 6, name: 'Ushers' },
+  { id: 7, name: 'Pastoral' },
+  { id: 8, name: 'Media' },
+  { id: 9, name: 'FCC' },
+  { id: 10, name: 'CANON' },
+  { id: 11, name: 'Praise & Worship'},
+  { id: 12, name: 'Projects' }
 ];
 
 export const MediaDashboard = () => {

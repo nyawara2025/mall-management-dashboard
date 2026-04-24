@@ -23,6 +23,7 @@ import { ViewBroadcastsModal } from './ViewBroadcastsModal';
 import { WelfareModal } from './WelfareModal';
 import { CanonFeedback } from './CanonFeedback';
 import { FinancialsAndProjectsModal } from './FinancialsAndProjectsModal';
+import { DevotionsModal } from './DevotionsModal';
 import { ProjectsRenderer } from './ProjectsRenderer';
 
 // --- TYPES ---
@@ -847,6 +848,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
   const [isFinancialsOpen, setIsFinancialsOpen] = useState(false);
 
+  const [isDevotionsOpen, setIsDevotionsOpen] = useState(false);
+
   const [activeProjectView, setActiveProjectView] = useState<'planned' | 'fundraising' | null>(null);
 
   const handleAccountClick = () => {
@@ -1229,8 +1232,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="text-[10px] font-black text-white uppercase tracking-widest">Welfare Contributions</span>
               </button>
 
-              <button className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
+              <button
+                onClick={() => setIsDevotionsOpen(true)} 
+                className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
+              >
+                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} />
+                </div>
                 <span className="text-xs font-black text-white uppercase tracking-widest text-center">DEVOTIONS</span>
               </button>
               <button className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
@@ -1570,6 +1577,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         onClose={() => setIsFinancialsOpen(false)}
         shopId={activeShopId}
         userData={userData} 
+      />
+
+      <DevotionsModal
+        isOpen={isDevotionsOpen}
+        onClose={() => setIsDevotionsOpen(false)}
+        userData={userData}
       />
 
     </div>
