@@ -10,9 +10,10 @@ interface FinancialsAndProjectsModalProps {
   isOpen: boolean;
   onClose: () => void;
   shopId: number;
+  userData: any;
 }
 
-export const FinancialsAndProjectsModal: React.FC<FinancialsAndProjectsModalProps> = ({ isOpen, onClose, shopId }) => {
+export const FinancialsAndProjectsModal: React.FC<FinancialsAndProjectsModalProps> = ({ isOpen, onClose, shopId, userData }) => {
   const [activeTab, setActiveTab] = useState<'financials' | 'projects'>('financials');
   
   // 2. State to track which specific project category we are viewing
@@ -53,7 +54,8 @@ export const FinancialsAndProjectsModal: React.FC<FinancialsAndProjectsModalProp
         <ProjectsRenderer 
           view={activeProjectView === 'fundraising' ? 'fundraising' : 'planned'} 
           onBack={() => setActiveProjectView(null)}
-          shopId={shopId} 
+          shopId={shopId}
+          userData={userData} 
         />
       );
     }

@@ -11,9 +11,10 @@ interface ProjectsRendererProps {
   view: 'planned' | 'fundraising';
   onBack: () => void;
   shopId: number;
+  userData?: any;
 }
 
-export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps) => {
+export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRendererProps) => {
   const { user } = useAuth();
   const [projects, setProjects] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -49,17 +50,12 @@ export const ProjectsRenderer = ({ view, onBack, shopId }: ProjectsRendererProps
     const fetchProjects = async () => {
       setIsLoading(true);
       try {
-        // 1. Grab ID from context or localStorage as backup
-        const storedUser = localStorage.getItem('geofence_user_data');
-        const parsedUser = storedUser ? JSON.parse(storedUser) : null;
-        const userId = user?.id || parsedUser?.id;
-
         const response = await fetch('https://n8n.tenear.com/webhook/fetch-projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             shop_id: shopId,
-            user_id: userId,
+            user_id: userData?.id,
             type: view === 'planned' ? 'planned' : 'all'
           }),
         });

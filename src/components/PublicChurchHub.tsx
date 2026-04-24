@@ -1568,7 +1568,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
       <FinancialsAndProjectsModal 
         isOpen={isFinancialsOpen} 
         onClose={() => setIsFinancialsOpen(false)}
-        shopId={activeShopId} 
+        shopId={activeShopId}
+        userData={userData} 
       />
 
     </div>
