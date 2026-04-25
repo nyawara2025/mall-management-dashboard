@@ -24,6 +24,7 @@ import { WelfareModal } from './WelfareModal';
 import { CanonFeedback } from './CanonFeedback';
 import { FinancialsAndProjectsModal } from './FinancialsAndProjectsModal';
 import { DevotionsModal } from './DevotionsModal';
+import { CommunityAndZones } from './CommunityAndZones';
 import { ServiceOrderTabs } from './ServiceOrderTabs';
 import { ProjectsRenderer } from './ProjectsRenderer';
 
@@ -855,6 +856,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
   const [isDevotionsOpen, setIsDevotionsOpen] = useState(false);
 
+  const [isCommunityModalOpen, setIsCommunityModalOpen] = useState(false);
+
   const [activeProjectView, setActiveProjectView] = useState<'planned' | 'fundraising' | null>(null);
 
   const handleAccountClick = () => {
@@ -1377,9 +1380,16 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 </span>
               </button>
 
-              <button className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Activity size={28} /></div>
-                <span className="text-xs font-black text-white uppercase tracking-widest text-center">Community Service</span>
+              <button 
+                onClick={() => setIsCommunityModalOpen(true)}
+                className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
+              >
+                <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600">
+                  <Activity size={28} />
+                </div>
+                <span className="text-xs font-black text-white uppercase tracking-widest text-center">
+                  Community Service & Zonal Activities
+                </span>
               </button>
 
               {/* Sokoni Card */}
@@ -1576,6 +1586,20 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         onClose={() => setIsDevotionsOpen(false)}
         userData={userData}
       />
+
+      {isCommunityModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-xl relative">
+            <button 
+              onClick={() => setIsCommunityModalOpen(false)}
+              className="absolute -top-12 right-0 text-white flex items-center gap-2 font-bold"
+            >
+              <X size={20} /> Close
+            </button>
+            <CommunityAndZones userData={userData} />
+          </div>
+        </div>
+      )}
 
     </div>
   );
