@@ -1,42 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Sun, Users, Languages, Volume2, Clock, AlertCircle } from 'lucide-react';
+import { Sun, Users, Languages, Volume2, Clock } from 'lucide-react';
 
-export const ServiceOrderTabs = ({ data }: { data: any[] }) => {
+export const ServiceOrderTabs = ({ data }: { data: any }) => {
   const [activeTab, setActiveTab] = useState('');
 
-  // 1. Enhanced Grouping Logic
-  const services = React.useMemo(() => {
-    // n8n sometimes sends an object with a 'data' array, or just an array
-    const items = Array.isArray(data) ? data : (data as any)?.data || [];
+  // 1. Map to your specific nested structure: [ { services: [ { service_activities: [] } ] } ]
+  const servicesData = React.useMemo(() => {
+    // Extract the services array from the n8n structure
+    const rawServices = Array.isArray(data) ? data[0]?.services : data?.services;
     
-    return items.reduce((acc: any, item: any) => {
-      // Handle n8n's .json wrapper vs flat objects
-      const fields = item.json || item; 
-      
-      // Use logical fallbacks for field names
-      const serviceName = fields.service_name || fields.service || 'General';
-      const activityName = fields.activity_name || fields.title || fields.activity;
-      const description = fields.description || fields.content || fields.desc;
-
-      if (!acc[serviceName]) {
-        acc[serviceName] = {
-          name: serviceName,
-          time: fields.start_time || fields.time || '--:--',
-          activities: []
-        };
-      }
-      
-      if (activityName || description) {
-        acc[serviceName].activities.push({
-          activity_name: activityName,
-          description: description
-        });
-      }
-      return acc;
-    }, {});
+    if (!Array.isArray(rawServices)) return [];
+    return rawServices;
   }, [data]);
 
-  const serviceNames = Object.keys(services);
+  const serviceNames = servicesData.map((s: any) => s.service_name);
 
   useEffect(() => {
     if (serviceNames.length > 0 && !activeTab) {
@@ -52,46 +29,50 @@ export const ServiceOrderTabs = ({ data }: { data: any[] }) => {
     return <Volume2 size={18} />;
   };
 
+  const activeService = servicesData.find((s: any) => s.service_name === activeTab);
+
+  if (!servicesData.length) return <div className="p-10 text-center text-gray-500">Loading Order of Service...</div>;
+
   return (
-    <div className="flex flex-col h-full bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden">
-      {/* Tabs */}
+    <div className="flex flex-col h-full bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden">
+      {/* Tab Navigation */}
       <div className="flex border-b bg-gray-50/50 overflow-x-auto scrollbar-hide">
-        {serviceNames.map((name) => (
+        {serviceNames.map((name: string) => (
           <button
             key={name}
             onClick={() => setActiveTab(name)}
-            className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all whitespace-nowrap
-              ${activeTab === name ? 'bg-white border-b-2 border-blue-600 text-blue-600' : 'text-gray-400'}`}
+            className={`flex items-center gap-2 px-6 py-5 text-sm font-black transition-all whitespace-nowrap
+              ${activeTab === name 
+                ? 'bg-white border-b-2 border-blue-600 text-blue-600' 
+                : 'text-gray-400 hover:text-gray-600'}`}
           >
             {getIcon(name)} {name}
           </button>
         ))}
       </div>
 
-      {/* Content */}
-      <div className="flex-1 p-6 overflow-y-auto">
-        {activeTab && services[activeTab]?.activities.length > 0 ? (
-          <div className="space-y-8 relative">
-            <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-gray-100" />
-            {services[activeTab].activities.map((act: any, idx: number) => (
-              <div key={idx} className="relative pl-8">
-                <div className="absolute left-0 top-1.5 w-4 h-4 rounded-full bg-white border-4 border-blue-600" />
-                <h3 className="font-black text-gray-900 uppercase text-sm mb-2">{act.activity_name || 'No Title'}</h3>
-                <div className="text-gray-600 text-sm leading-relaxed bg-gray-50 p-4 rounded-xl">
-                  {act.description || 'No description provided.'}
+      {/* Content Area */}
+      <div className="flex-1 p-6 md:p-10 overflow-y-auto bg-white">
+        {activeService && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="flex items-center gap-2 mb-10 text-blue-700 bg-blue-50 w-fit px-4 py-1.5 rounded-2xl font-black text-[10px] tracking-widest uppercase border border-blue-100">
+              <Clock size={14} /> Starts at {activeService.start_time}
+            </div>
+
+            <div className="space-y-12 relative">
+              <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-gray-100" />
+              
+              {activeService.service_activities?.map((act: any, idx: number) => (
+                <div key={idx} className="relative pl-10 group">
+                  <div className="absolute left-0 top-1 w-4 h-4 rounded-full bg-white border-4 border-blue-600 shadow-sm" />
+                  <h3 className="font-black text-gray-900 text-lg uppercase tracking-tight mb-3">
+                    {act.activity_name}
+                  </h3>
+                  <div className="text-gray-600 leading-relaxed whitespace-pre-line text-[15px] font-medium bg-gray-50/30 p-5 rounded-3xl border border-gray-50">
+                    {act.description}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="p-10 text-center">
-            <AlertCircle className="mx-auto text-orange-400 mb-2" />
-            <p className="text-gray-500 font-bold">Data received but fields not recognized.</p>
-            
-            {/* DEBUG VIEW: This will show us exactly what the first item looks like */}
-            <div className="mt-6 p-4 bg-black text-green-400 text-left text-[10px] font-mono rounded-lg overflow-auto max-h-40">
-              <p className="mb-2 text-white font-bold underline">DEBUG: First Item structure:</p>
-              {data && data.length > 0 ? JSON.stringify(data[0], null, 2) : "Data array is empty"}
+              ))}
             </div>
           </div>
         )}
