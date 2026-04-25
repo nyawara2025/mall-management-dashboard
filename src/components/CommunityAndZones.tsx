@@ -19,38 +19,54 @@ export const CommunityAndZones = ({ userData }: { userData: any }) => {
     "Environmental & Clean-up"
   ];
 
-  // 1. Fetch ALL zones for the dropdown
+  // 1. Fetch ALL zones via n8n
   useEffect(() => {
     async function fetchZones() {
-      const { data } = await supabase
-        .from('zones')
-        .select('zone_name')
-        .eq('shop_id', userData?.shop_id);
-      if (data) setZones(data);
+      try {
+        const response = await fetch('https://n8n.tenear.com/webhook/fetch-zone-activity', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            shop_id: userData?.shop_id, 
+            org_id: userData?.org_id 
+          }),
+        });
+        const data = await response.json();
+        setZones(Array.isArray(data) ? data : [data]);
+      } catch (e) { console.error("Zones fetch failed", e); }
     }
     fetchZones();
-  }, [userData?.shop_id]);
+  }, [userData]);
 
-  // 2. Fetch Diary events based on selection
+  // 2. Fetch Diary or Community Service via n8n
   useEffect(() => {
-    async function fetchEvents() {
+    async function fetchActivities() {
       if (!selectedZone && !selectedCategory) return;
       setLoading(true);
       
-      let query = supabase.from('church_diary').select('*').eq('shop_id', userData?.shop_id);
-      
-      if (activeTab === 'zonal') {
-        query = query.eq('zone_name', selectedZone);
-      } else {
-        query = query.eq('category', selectedCategory);
-      }
+      const endpoint = activeTab === 'zonal' 
+        ? 'https://n8n.tenear.com/webhook/fetch-community-activity' 
+        : 'https://n8n.tenear.com/webhook/fetch-community-activity';
 
-      const { data } = await query.order('event_date', { ascending: true });
-      setDiaryEvents(data || []);
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            shop_id: userData?.shop_id, 
+            org_id: userData?.org_id,
+            zone_name: selectedZone,      // For Zonal tab
+            category: selectedCategory    // For Community tab
+          }),
+        });
+        const data = await response.json();
+        setDiaryEvents(Array.isArray(data) ? data : [data]);
+      } catch (e) { console.error("Activity fetch failed", e); }
       setLoading(false);
     }
-    fetchEvents();
-  }, [selectedZone, selectedCategory, activeTab, userData?.shop_id]);
+    fetchActivities();
+  }, [selectedZone, selectedCategory, activeTab, userData]);
+
 
   return (
     <div className="flex flex-col h-[75vh] bg-white rounded-[2.5rem] overflow-hidden shadow-2xl">
