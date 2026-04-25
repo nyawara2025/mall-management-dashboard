@@ -8,36 +8,46 @@ interface RawActivity {
   description: string;
 }
 
-export const ServiceOrderTabs = ({ data }: { data: RawActivity[] }) => {
-  // 1. Group the flat data by service name
-  // We use useMemo to ensure grouping only happens when data changes
+export const ServiceOrderTabs = ({ data }: { data: any[] }) => {
+  // 1. Robust grouping logic to handle n8n data structures
   const services = React.useMemo(() => {
-    return data.reduce((acc: any, item) => {
-      const name = item.service_name || 'General';
+    const items = Array.isArray(data) ? data : [];
+    
+    return items.reduce((acc: any, item) => {
+      // n8n often wraps data in a 'json' property. We check both.
+      const fields = item.json || item; 
+      
+      const name = fields.service_name || 'General';
       if (!acc[name]) {
         acc[name] = {
           name: name,
-          time: item.start_time,
+          time: fields.start_time || '--:--',
           activities: []
         };
       }
-      acc[name].activities.push(item);
+      
+      // We only add the activity if there is a name or description to prevent empty dots
+      if (fields.activity_name || fields.description) {
+        acc[name].activities.push({
+          activity_name: fields.activity_name,
+          description: fields.description,
+          start_time: fields.start_time
+        });
+      }
       return acc;
     }, {});
   }, [data]);
 
   const serviceNames = Object.keys(services);
-  
-  // 2. Set the default tab to the first service found in the data
   const [activeTab, setActiveTab] = useState('');
 
+  // 2. Automatically select the first tab when data loads
   useEffect(() => {
     if (serviceNames.length > 0 && !activeTab) {
       setActiveTab(serviceNames[0]);
     }
   }, [serviceNames, activeTab]);
 
-  // Icon mapping helper based on common Kenyan church service names
   const getIcon = (name: string) => {
     const lowerName = name.toLowerCase();
     if (lowerName.includes('morning')) return <Sun size={18} />;
@@ -49,24 +59,25 @@ export const ServiceOrderTabs = ({ data }: { data: RawActivity[] }) => {
 
   if (!data || data.length === 0) {
     return (
-      <div className="p-8 text-center text-gray-500 bg-gray-50 rounded-xl border border-dashed">
-        No service activities scheduled for today.
+      <div className="p-12 text-center bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
+        <Clock className="mx-auto text-gray-300 mb-4" size={48} />
+        <p className="text-gray-500 font-medium">No service activities found for today.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="flex flex-col h-full bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
       {/* Tab Navigation */}
-      <div className="flex border-b bg-gray-50/50 overflow-x-auto scrollbar-hide">
+      <div className="flex border-b bg-gray-50/30 overflow-x-auto scrollbar-hide">
         {serviceNames.map((name) => (
           <button
             key={name}
             onClick={() => setActiveTab(name)}
-            className={`flex items-center gap-2 px-6 py-4 text-sm font-bold transition-all whitespace-nowrap
+            className={`flex items-center gap-2 px-6 py-5 text-sm font-bold transition-all whitespace-nowrap
               ${activeTab === name 
-                ? 'bg-white border-b-2 border-blue-600 text-blue-600 shadow-sm' 
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'}`}
+                ? 'bg-white border-b-2 border-blue-600 text-blue-600 shadow-[0_4px_12px_rgba(0,0,0,0.05)]' 
+                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100/50'}`}
           >
             {getIcon(name)}
             {name}
@@ -75,41 +86,45 @@ export const ServiceOrderTabs = ({ data }: { data: RawActivity[] }) => {
       </div>
 
       {/* Content Area */}
-      <div className="flex-1 p-6 overflow-y-auto bg-white custom-scrollbar">
+      <div className="flex-1 p-6 md:p-8 overflow-y-auto bg-white">
         {activeTab && services[activeTab] ? (
-          <div className="animate-in fade-in slide-in-from-bottom-2 duration-400">
-            {/* Service Header Info */}
-            <div className="flex items-center gap-2 mb-8 text-blue-700 bg-blue-50 w-fit px-4 py-1.5 rounded-full border border-blue-100">
-              <Clock size={15} className="animate-pulse" />
-              <span className="text-[11px] font-black uppercase tracking-widest">
+          <div className="animate-in fade-in slide-in-from-bottom-3 duration-500">
+            {/* Service Header */}
+            <div className="flex items-center gap-3 mb-10 text-blue-700 bg-blue-50/80 w-fit px-5 py-2 rounded-2xl border border-blue-100">
+              <Clock size={16} className="animate-pulse" />
+              <span className="text-xs font-black uppercase tracking-widest">
                 Starts at {services[activeTab].time}
               </span>
             </div>
 
-            {/* Activities List */}
-            <div className="space-y-10 relative">
-              {/* Vertical Timeline Line */}
-              <div className="absolute left-[3px] top-2 bottom-2 w-0.5 bg-gray-100" />
+            {/* Timeline Activities */}
+            <div className="space-y-12 relative">
+              {/* Central Timeline Line */}
+              <div className="absolute left-[7px] top-2 bottom-2 w-[2px] bg-gradient-to-b from-blue-100 via-gray-100 to-transparent" />
               
               {services[activeTab].activities.map((act: any, idx: number) => (
-                <div key={idx} className="relative pl-8 group">
-                  {/* Timeline Dot */}
-                  <div className="absolute left-0 top-1.5 w-2 h-2 rounded-full bg-blue-500 ring-4 ring-white border border-blue-200 group-hover:scale-125 transition-transform" />
+                <div key={idx} className="relative pl-10 group">
+                  {/* Timeline Node */}
+                  <div className="absolute left-0 top-1 w-4 h-4 rounded-full bg-white border-4 border-blue-500 shadow-sm group-hover:scale-125 transition-transform duration-300" />
                   
-                  <h3 className="font-black text-gray-900 text-base uppercase tracking-tight leading-none mb-3">
-                    {act.activity_name}
-                  </h3>
-                  
-                  <div className="text-gray-600 leading-relaxed whitespace-pre-line text-sm font-medium">
-                    {act.description}
+                  <div className="space-y-2">
+                    <h3 className="font-black text-gray-900 text-lg uppercase tracking-tight leading-tight group-hover:text-blue-700 transition-colors">
+                      {act.activity_name || 'Service Activity'}
+                    </h3>
+                    
+                    {act.description && (
+                      <div className="text-gray-600 leading-relaxed whitespace-pre-line text-[15px] font-medium bg-gray-50/50 p-4 rounded-2xl border border-gray-50">
+                        {act.description}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400">
-            <p>Select a service to view the order</p>
+          <div className="flex flex-col items-center justify-center h-full text-gray-300">
+            <p className="font-bold italic">Select a service to view details</p>
           </div>
         )}
       </div>
