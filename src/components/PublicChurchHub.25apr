@@ -24,7 +24,6 @@ import { WelfareModal } from './WelfareModal';
 import { CanonFeedback } from './CanonFeedback';
 import { FinancialsAndProjectsModal } from './FinancialsAndProjectsModal';
 import { DevotionsModal } from './DevotionsModal';
-import { ServiceOrderTabs } from './ServiceOrderTabs';
 import { ProjectsRenderer } from './ProjectsRenderer';
 
 // --- TYPES ---
@@ -55,19 +54,15 @@ interface MemberData {
 interface ServiceActivity {
   activity_name: string;
   description: string;
-  sort_order?: number;
+  sort_order: number;
 }
 
 interface ChurchService {
+  id: string;
   service_name: string;
+  service_date: string;
   start_time: string;
-  activity_name: string;   // Added this (Flat field from n8n)
-  description: string;     // Added this (Flat field from n8n)
-  id?: string;
-  service_date?: string;
-  // We keep this optional so old code doesn't crash, 
-  // but n8n now fills the flat fields above instead.
-  service_activities?: ServiceActivity[]; 
+  service_activities: ServiceActivity[];
 }
 
 interface Meeting {
@@ -808,12 +803,12 @@ const GalleryModal = ({ isOpen, onClose, userData, shopId }: { isOpen: boolean, 
 // --- COMPONENT 2: Main Hub ---
 export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [church, setChurch] = useState<any>(null);
- 
+  const [services, setServices] = useState<ChurchService[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userData, setUserData] = useState<MemberData | null>(null);
   const [activeView, setActiveView] = useState<'dashboard' | 'service_order' | 'welfare'>('dashboard');
-  const [services, setServices] = useState<ChurchService[]>([]);
+  
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessage, setChatMessage] = useState('');
   const [messages, setMessages] = useState<{role: 'user' | 'bot', text: string}[]>([]);
@@ -954,7 +949,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
         if (response.ok) {
           const n8nData = await response.json();
-          const rawServices = Array.isArray(n8nData) ? n8nData : (n8nData.services || n8nData);
+          const rawServices = Array.isArray(n8nData) ? n8nData[0]?.services : n8nData?.services;
           if (rawServices) setServices(rawServices);
         }
       } catch (error) {
@@ -1015,9 +1010,22 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
       <button onClick={() => setActiveView('dashboard')} className="text-blue-600 font-bold flex items-center gap-2">
         ← Back to Hub
       </button>
-      <div className="flex-1 overflow-hidden">
-        {/* Pass the flat 'services' array directly to your new component */}
-        <ServiceOrderTabs data={services} />
+      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+        <h2 className="text-2xl font-black text-gray-900 mb-6 tracking-tight">Order of Service</h2>
+        {services.map((service) => (
+          <div key={service.id} className="mb-8 last:mb-0">
+            <h3 className="text-xl font-bold text-blue-600">{service.service_name}</h3>
+            <p className="text-sm text-gray-400 mb-4">{service.service_date} • {service.start_time}</p>
+            <div className="space-y-3">
+              {service.service_activities.map((activity, idx) => (
+                <div key={idx} className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                  <h4 className="font-bold text-gray-800">{activity.activity_name}</h4>
+                  <p className="text-sm text-gray-500 mt-1">{activity.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
