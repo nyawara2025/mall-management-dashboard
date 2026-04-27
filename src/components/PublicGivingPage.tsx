@@ -57,7 +57,7 @@ export const PublicGivingPage = () => {
   return (
     <div className="max-w-md mx-auto p-6 space-y-8 bg-white min-h-screen">
       <img 
-        src="https://supabase.co" 
+        src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasFundRaiser27apr2026.png" 
         className="w-full rounded-3xl shadow-lg" 
         alt="Fundraiser" 
       />
