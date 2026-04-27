@@ -40,7 +40,6 @@ import { FinanceDashboard } from './components/FinanceDashboard';
 import { DevelopmentDashboard } from './components/DevelopmentDashboard';
 import { AgriDashboard } from './components/AgriDashboard';
 import { NGODashboard } from './components/NGODashboard';
-import { PublicGivingPage } from './components/PublicGivingPage';
 import SettingsPage from './pages/SettingsPage';
 import './index.css';
 
@@ -117,18 +116,10 @@ function AppContent() {
   // 2b. CHURCH VISITOR REDIRECT LOGIC (Public Access)
   // If a user arrives with the church category, show them the public hub
   if ((bizCategory === 'church' || isChurchPath) && !user) {
-
-    const view = searchParams.get('view'); // Add this to detect the sub-page
-
     return (
       <div className="min-h-screen bg-gray-50">
-
-        {/* If view=give is in URL, show the Giving Page, otherwise show Hub */}
-        {view === 'give' ? (
-          <PublicGivingPage /> 
-        ) : (
-          <PublicChurchHub shopId={Number(shopId) || 68} />
-        )}
+        {/* Import and use your new PublicChurchHub component here */}
+        <PublicChurchHub shopId={Number(shopId) || 68} />
       </div>
     );
   }
