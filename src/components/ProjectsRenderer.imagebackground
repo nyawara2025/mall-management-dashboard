@@ -1,0 +1,305 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  ArrowLeft, Loader2, Heart, MessageCircle, Share2, 
+  TrendingUp, Users, Target, MapPin, Package, Layout, Hammer, Plus, Send
+} from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import ChurchBrickBuilder from './ChurchBrickBuilder';
+import confetti from 'canvas-confetti';
+
+interface ProjectsRendererProps {
+  view: 'planned' | 'fundraising';
+  onBack: () => void;
+  shopId: number;
+  userData?: any;
+}
+
+
+export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRendererProps) => {
+  const { user } = useAuth();
+  const [projects, setProjects] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showDonorLog, setShowDonorLog] = useState<string | null>(null);
+
+  const fundRaiserPosterUrl = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasFundRaiser27apr2026.png"
+ 
+  const [isActuallyStaff, setIsActuallyStaff] = useState(false);
+
+  const [newDonor, setNewDonor] = useState({ 
+    name: '', 
+    amount: 0, 
+    type: 'MPESA', // Default type
+    message: ''    // Added message field
+  });
+ 
+  // Logic to identify staff - Loice has "project" in her DB record
+  const isProjectStaff = user?.department?.toLowerCase().includes('project') || 
+                         user?.department?.toLowerCase().includes('development');
+
+  // Inject Custom Scrollbar CSS for the Staff Panel
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.5); border-radius: 10px; }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(59, 130, 246, 0.8); }
+    `;
+    document.head.appendChild(style);
+    return () => { document.head.removeChild(style); };
+  }, []);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      setIsLoading(true);
+      try {
+        // 1. Grab ID with userData as the priority (since it works in Meetings)
+        const storedUser = localStorage.getItem('geofence_user_data');
+        const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+        
+        // Priority: Prop > Context > LocalStorage
+        const userId = userData?.id || user?.id || parsedUser?.id;
+        const response = await fetch('https://n8n.tenear.com/webhook/fetch-projects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            shop_id: shopId,
+            user_id: userId,
+            type: view === 'planned' ? 'planned' : 'all'
+          }),
+        });
+
+        const data = await response.json();
+        
+        // 2. Handle the object response { isStaff: bool, projects: [] }
+        const projectsArray = Array.isArray(data.projects) ? data.projects : [data.projects];
+        setProjects(projectsArray || []);
+        
+        if (data.isStaff) {
+          setIsActuallyStaff(true);
+        }
+      } catch (error) { 
+        console.error("Fetch error:", error); 
+      } finally { 
+        setIsLoading(false); 
+      }
+    };
+
+    fetchProjects();
+  }, [view, shopId, user?.id]); // 3. Re-run if user ID finally loads
+
+
+
+  const handleVictoryAlert = async (proj: any) => {
+    const bricks = Math.floor(newDonor.amount / 1000);
+    const ironsheets = Math.floor((newDonor.amount % 1000) / 800);
+    
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/church-victory-alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          donor_name: newDonor.name,
+          amount: newDonor.amount,
+          donation_type: newDonor.type, // Sending the type
+          message: newDonor.message,    // Sending the message
+          project_name: proj.project_name,
+          project_id: proj.project_id,   // Sending ID for Supabase logging
+          shop_id: shopId,
+          bricks_equivalent: bricks,
+          ironsheets_equivalent: ironsheets,
+          user_department: user?.department,
+          verified_by: (user as any)?.first_name || 'Church Staff',
+          timestamp: new Date().toISOString()
+        })
+      });
+
+      if (response.ok) {
+
+        // Trigger the celebration!
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#f97316', '#3b82f6', '#ffffff'] // Church & Construction colors
+        });
+
+        alert(`Praise God! Victory Alert Published for ${bricks} bricks.`);
+        setShowDonorLog(null);
+        // Reset form
+        setNewDonor({ name: '', amount: 0, type: 'MPESA', message: '' });
+      }
+    } catch (error) {
+      console.error("Alert failed:", error);
+      alert("Network error sending alert.");
+    }
+  };
+
+  const handleShare = async (project: any) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `🔥 Support: ${project.project_name}`,
+          text: `Praise God! Join us in building ${project.project_name}. Every brick counts!`,
+          url: window.location.href,
+        });
+      } catch (err) { console.log("Share failed", err); }
+    }
+  };
+
+  if (isLoading) return <div className="p-20 flex justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
+
+  return (
+    <div className="relative space-y-6 animate-in slide-in-from-right duration-300 min-h-screen">
+      {/* Background Branding Overlay - Safe for Production */}
+      <div 
+        className="absolute inset-0 opacity-[0.05] pointer-events-none z-0"
+        style={{
+          backgroundImage: `url(${fundRaiserPosterUrl})`,
+          backgroundSize: 'contain',
+          backgroundRepeat: 'no-repeat',
+          backgroundPosition: 'center 120px',
+        }}
+      />
+
+      {/* Main Content Layer */}
+      <div className="relative z-10">
+        <div className="flex items-center gap-4 mb-2">
+          <button onClick={onBack} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition">
+            <ArrowLeft size={18} />
+          </button>
+          <h3 className="text-xl font-black text-gray-800">
+            {view === 'planned' ? 'Upcoming Projects' : 'Social Fundraiser Hub'}
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6">
+          {projects.map((proj) => {
+            const progress = Math.min(100, Math.round((proj.funds_available / proj.estimated_cost) * 100));
+            const totalBricks = Math.floor(proj.funds_available / 1000);
+            const totalSheets = Math.floor((proj.funds_available % 1000) / 800);
+
+            return (
+              <div key={proj.project_id} className="bg-white/90 backdrop-blur-sm border border-gray-100 rounded-[2.5rem] p-8 shadow-sm">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h4 className="text-3xl font-black text-gray-900 leading-tight">{proj.project_name}</h4>
+                    <p className="text-[10px] text-gray-400 font-black flex items-center gap-1 uppercase tracking-widest">
+                      <MapPin size={12} className="text-blue-500" /> {proj.location || 'Church Grounds'}
+                    </p>
+                  </div>
+                  <span className="text-4xl font-black text-blue-600">{progress}%</span>
+                </div>
+
+                {view === 'fundraising' && (
+                  <div className="space-y-8">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-orange-50 p-4 rounded-3xl border border-orange-100 flex flex-col items-center">
+                        <Layout className="text-orange-600 mb-2" size={24} />
+                        <p className="text-[10px] font-black text-orange-400 uppercase">Bricks Sowed</p>
+                        <p className="text-xl font-black text-orange-700">{totalBricks.toLocaleString()}</p>
+                      </div>
+                      <div className="bg-blue-50 p-4 rounded-3xl border border-blue-100 flex flex-col items-center">
+                        <Package className="text-blue-600 mb-2" size={24} />
+                        <p className="text-[10px] font-black text-blue-400 uppercase">Ironsheets Funded</p>
+                        <p className="text-xl font-black text-blue-700">{totalSheets.toLocaleString()}</p>
+                      </div>
+                    </div>
+
+                    <ChurchBrickBuilder 
+                      estimatedCost={proj.estimated_cost}
+                      fundsAvailable={proj.funds_available}
+                      donorLogs={proj.donor_logs || []}
+                      isStaff={!!isProjectStaff}
+                    />
+
+                    <div className="flex items-center justify-between pt-4">
+                      <div className="flex gap-4">
+                        <button className="text-gray-300 hover:text-red-500 transition"><Heart size={20} /></button>
+                        <button className="text-gray-300 hover:text-blue-500 transition" onClick={() => handleShare(proj)}><Share2 size={20} /></button>
+                      </div>
+                    </div>
+
+                    {/* Staff-Only Dashboard: Donor Intelligence Log */}
+                    {(isProjectStaff || isActuallyStaff) && (
+                      <div className="mt-8 p-6 bg-slate-900 rounded-[2rem] text-white animate-in zoom-in">
+                        <div className="flex justify-between items-center mb-6">
+                          <h5 className="text-[10px] font-black text-blue-300 uppercase tracking-widest">Donor Intelligence Log</h5>
+                          <button 
+                            onClick={() => setShowDonorLog(showDonorLog === proj.project_id ? null : proj.project_id)} 
+                            className="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 hover:bg-blue-700 transition"
+                          >
+                            <Plus size={14} /> Log New Donor
+                          </button>
+                        </div>
+
+                        <div className="space-y-3 mb-6 max-h-64 overflow-y-auto custom-scrollbar pr-2">
+                          {proj.donor_logs?.length > 0 ? (
+                            proj.donor_logs.map((log: any, idx: number) => (
+                              <div key={idx} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex justify-between items-center">
+                                <div>
+                                  <p className="text-sm font-bold text-white">{log.name}</p>
+                                  <p className="text-[10px] text-blue-300 italic">"{log.message}"</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-sm font-black text-blue-400">KES {log.amount.toLocaleString()}</p>
+                                  <p className="text-[9px] uppercase tracking-tighter text-gray-500">{log.type}</p>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-center py-6 border border-dashed border-white/10 rounded-2xl">
+                              <Users size={20} className="mx-auto text-gray-600 mb-2" />
+                              <p className="text-[10px] text-gray-500 uppercase">No donor data synced</p>
+                            </div>
+                          )}
+                        </div>
+
+                        {showDonorLog === proj.project_id && (
+                          <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-blue-500/30 animate-in slide-in-from-top-2">
+                            <input 
+                              placeholder="Donor Name" 
+                              className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none focus:border-blue-400 transition" 
+                              onChange={(e) => setNewDonor({...newDonor, name: e.target.value})} 
+                            />
+                            <input 
+                              type="number" 
+                              placeholder="Amount (KES)" 
+                              className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none focus:border-blue-400 transition" 
+                              onChange={(e) => setNewDonor({...newDonor, amount: parseInt(e.target.value) || 0})} 
+                            />
+                            <select
+                              className="w-full bg-slate-800 text-white border-b border-white/20 p-2 text-sm outline-none rounded-t-lg cursor-pointer focus:border-blue-400"
+                              value={newDonor.type}
+                              onChange={(e) => setNewDonor({ ...newDonor, type: e.target.value })}
+                            >
+                              <option value="MPESA">MPESA</option>
+                              <option value="Cheque">Cheque</option>
+                              <option value="Cash">Cash</option>
+                              <option value="Other">Other</option>
+                            </select>
+                            <textarea
+                              placeholder="Enter donor's message or blessing..."
+                              className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none h-16 text-white focus:border-blue-400 resize-none"
+                              onChange={(e) => setNewDonor({ ...newDonor, message: e.target.value })}
+                            />
+                            <button 
+                              onClick={() => handleVictoryAlert(proj)}
+                              className="w-full py-3 bg-blue-600 rounded-xl font-bold text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2"
+                            >
+                              <Send size={16} /> Publish Victory Alert
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}

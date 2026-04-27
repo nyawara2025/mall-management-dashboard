@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Loader2, Heart, MessageCircle, Share2, 
-  TrendingUp, Users, Target, MapPin, Package, Layout, Hammer, Plus, Send
+  TrendingUp, Users, Target, MapPin, Package, Layout, Hammer, Plus
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ChurchBrickBuilder from './ChurchBrickBuilder';
@@ -150,156 +150,154 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
   if (isLoading) return <div className="p-20 flex justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
 
   return (
-    <div className="relative space-y-6 animate-in slide-in-from-right duration-300 min-h-screen">
-      {/* Background Branding Overlay - Safe for Production */}
-      <div 
-        className="absolute inset-0 opacity-[0.05] pointer-events-none z-0"
-        style={{
-          backgroundImage: `url(${fundRaiserPosterUrl})`,
-          backgroundSize: 'contain',
-          backgroundRepeat: 'no-repeat',
-          backgroundPosition: 'center 120px',
-        }}
-      />
+    <div className="space-y-6 animate-in slide-in-from-right duration-300">
+      <div className="flex items-center gap-4 mb-2">
+        <button onClick={onBack} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition">
+          <ArrowLeft size={18} />
+        </button>
+        <h3 className="text-xl font-black text-gray-800">
+          {view === 'planned' ? 'Upcoming Projects' : 'Social Fundraiser Hub'}
+        </h3>
+      </div>
 
-      {/* Main Content Layer */}
-      <div className="relative z-10">
-        <div className="flex items-center gap-4 mb-2">
-          <button onClick={onBack} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition">
-            <ArrowLeft size={18} />
-          </button>
-          <h3 className="text-xl font-black text-gray-800">
-            {view === 'planned' ? 'Upcoming Projects' : 'Social Fundraiser Hub'}
-          </h3>
-        </div>
+      <div className="grid grid-cols-1 gap-6">
+        {projects.map((proj) => {
+          const progress = Math.min(100, Math.round((proj.funds_available / proj.estimated_cost) * 100));
+          const totalBricks = Math.floor(proj.funds_available / 1000);
+          const totalSheets = Math.floor((proj.funds_available % 1000) / 800);
 
-        <div className="grid grid-cols-1 gap-6">
-          {projects.map((proj) => {
-            const progress = Math.min(100, Math.round((proj.funds_available / proj.estimated_cost) * 100));
-            const totalBricks = Math.floor(proj.funds_available / 1000);
-            const totalSheets = Math.floor((proj.funds_available % 1000) / 800);
-
-            return (
-              <div key={proj.project_id} className="bg-white/90 backdrop-blur-sm border border-gray-100 rounded-[2.5rem] p-8 shadow-sm">
-                <div className="flex justify-between items-start mb-6">
-                  <div>
-                    <h4 className="text-3xl font-black text-gray-900 leading-tight">{proj.project_name}</h4>
-                    <p className="text-[10px] text-gray-400 font-black flex items-center gap-1 uppercase tracking-widest">
-                      <MapPin size={12} className="text-blue-500" /> {proj.location || 'Church Grounds'}
-                    </p>
-                  </div>
-                  <span className="text-4xl font-black text-blue-600">{progress}%</span>
+          return (
+            <div key={proj.project_id} className="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm">
+              <div className="flex justify-between items-start mb-6">
+                <div>
+                  <h4 className="text-3xl font-black text-gray-900 leading-tight">{proj.project_name}</h4>
+                  <p className="text-[10px] text-gray-400 font-black flex items-center gap-1 uppercase tracking-widest">
+                    <MapPin size={12} className="text-blue-500" /> {proj.location || 'Church Grounds'}
+                  </p>
                 </div>
+                <span className="text-4xl font-black text-blue-600">{progress}%</span>
+              </div>
 
-                {view === 'fundraising' && (
-                  <div className="space-y-8">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-orange-50 p-4 rounded-3xl border border-orange-100 flex flex-col items-center">
-                        <Layout className="text-orange-600 mb-2" size={24} />
-                        <p className="text-[10px] font-black text-orange-400 uppercase">Bricks Sowed</p>
-                        <p className="text-xl font-black text-orange-700">{totalBricks.toLocaleString()}</p>
-                      </div>
-                      <div className="bg-blue-50 p-4 rounded-3xl border border-blue-100 flex flex-col items-center">
-                        <Package className="text-blue-600 mb-2" size={24} />
-                        <p className="text-[10px] font-black text-blue-400 uppercase">Ironsheets Funded</p>
-                        <p className="text-xl font-black text-blue-700">{totalSheets.toLocaleString()}</p>
-                      </div>
+              {view === 'fundraising' && (
+                <div className="space-y-8">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-orange-50 p-4 rounded-3xl border border-orange-100 flex flex-col items-center">
+                      <Layout className="text-orange-600 mb-2" size={24} />
+                      <p className="text-[10px] font-black text-orange-400 uppercase">Bricks Sowed</p>
+                      <p className="text-xl font-black text-orange-700">{totalBricks.toLocaleString()}</p>
                     </div>
-
-                    <ChurchBrickBuilder 
-                      estimatedCost={proj.estimated_cost}
-                      fundsAvailable={proj.funds_available}
-                      donorLogs={proj.donor_logs || []}
-                      isStaff={!!isProjectStaff}
-                    />
-
-                    <div className="flex items-center justify-between pt-4">
-                      <div className="flex gap-4">
-                        <button className="text-gray-300 hover:text-red-500 transition"><Heart size={20} /></button>
-                        <button className="text-gray-300 hover:text-blue-500 transition" onClick={() => handleShare(proj)}><Share2 size={20} /></button>
-                      </div>
+                    <div className="bg-blue-50 p-4 rounded-3xl border border-blue-100 flex flex-col items-center">
+                      <Package className="text-blue-600 mb-2" size={24} />
+                      <p className="text-[10px] font-black text-blue-400 uppercase">Ironsheets Funded</p>
+                      <p className="text-xl font-black text-blue-700">{totalSheets.toLocaleString()}</p>
                     </div>
+                  </div>
 
-                    {/* Staff-Only Dashboard: Donor Intelligence Log */}
-                    {(isProjectStaff || isActuallyStaff) && (
-                      <div className="mt-8 p-6 bg-slate-900 rounded-[2rem] text-white animate-in zoom-in">
-                        <div className="flex justify-between items-center mb-6">
-                          <h5 className="text-[10px] font-black text-blue-300 uppercase tracking-widest">Donor Intelligence Log</h5>
-                          <button 
-                            onClick={() => setShowDonorLog(showDonorLog === proj.project_id ? null : proj.project_id)} 
-                            className="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 hover:bg-blue-700 transition"
-                          >
-                            <Plus size={14} /> Log New Donor
-                          </button>
-                        </div>
+                  {/* Calculate total bricks based on estimated cost (1000 per brick) */}
+                  <ChurchBrickBuilder 
+                    estimatedCost={proj.estimated_cost}
+                    fundsAvailable={proj.funds_available}
+                    donorLogs={proj.donor_logs || []}
+                    isStaff={!!isProjectStaff} // The '!!' fixes the 'boolean | undefined' error
+                  />
 
-                        <div className="space-y-3 mb-6 max-h-64 overflow-y-auto custom-scrollbar pr-2">
-                          {proj.donor_logs?.length > 0 ? (
-                            proj.donor_logs.map((log: any, idx: number) => (
-                              <div key={idx} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex justify-between items-center">
-                                <div>
-                                  <p className="text-sm font-bold text-white">{log.name}</p>
-                                  <p className="text-[10px] text-blue-300 italic">"{log.message}"</p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-sm font-black text-blue-400">KES {log.amount.toLocaleString()}</p>
-                                  <p className="text-[9px] uppercase tracking-tighter text-gray-500">{log.type}</p>
-                                </div>
+                  <div className="flex items-center justify-between pt-4">
+                    <div className="flex gap-4">
+                      <button className="text-gray-300 hover:text-red-500 transition"><Heart size={20} /></button>
+                      <button className="text-gray-300 hover:text-blue-500 transition" onClick={() => handleShare(proj)}><Share2 size={20} /></button>
+                    </div>
+                  </div>
+
+                  {/* Staff-Only: Donor Intelligence Log & Display */}
+                  {(isProjectStaff || isActuallyStaff) && (
+                    <div className="mt-8 p-6 bg-slate-900 rounded-[2rem] text-white animate-in zoom-in">
+                      <div className="flex justify-between items-center mb-6">
+                        <h5 className="text-[10px] font-black text-blue-300 uppercase tracking-widest">Donor Intelligence Log</h5>
+                        <button 
+                          onClick={() => setShowDonorLog(showDonorLog === proj.project_id ? null : proj.project_id)} 
+                          className="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 hover:bg-blue-700 transition"
+                        >
+                          <Plus size={14} /> Log New Donor
+                        </button>
+                      </div>
+
+                      {/* Explicit Mapping for Existing Donors */}
+                      <div className="space-y-3 mb-6 max-h-64 overflow-y-auto custom-scrollbar pr-2">
+                        {proj.donor_logs?.length > 0 ? (
+                          proj.donor_logs.map((log: any, idx: number) => (
+                            <div key={idx} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex justify-between items-center">
+                              <div>
+                                <p className="text-sm font-bold text-white">{log.name}</p>
+                                <p className="text-[10px] text-blue-300 italic">"{log.message}"</p>
                               </div>
-                            ))
-                          ) : (
-                            <div className="text-center py-6 border border-dashed border-white/10 rounded-2xl">
-                              <Users size={20} className="mx-auto text-gray-600 mb-2" />
-                              <p className="text-[10px] text-gray-500 uppercase">No donor data synced</p>
+                              <div className="text-right">
+                                <p className="text-sm font-black text-blue-400">KES {log.amount.toLocaleString()}</p>
+                                <p className="text-[9px] uppercase tracking-tighter text-gray-500">{log.type}</p>
+                              </div>
                             </div>
-                          )}
-                        </div>
-
-                        {showDonorLog === proj.project_id && (
-                          <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-blue-500/30 animate-in slide-in-from-top-2">
-                            <input 
-                              placeholder="Donor Name" 
-                              className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none focus:border-blue-400 transition" 
-                              onChange={(e) => setNewDonor({...newDonor, name: e.target.value})} 
-                            />
-                            <input 
-                              type="number" 
-                              placeholder="Amount (KES)" 
-                              className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none focus:border-blue-400 transition" 
-                              onChange={(e) => setNewDonor({...newDonor, amount: parseInt(e.target.value) || 0})} 
-                            />
-                            <select
-                              className="w-full bg-slate-800 text-white border-b border-white/20 p-2 text-sm outline-none rounded-t-lg cursor-pointer focus:border-blue-400"
-                              value={newDonor.type}
-                              onChange={(e) => setNewDonor({ ...newDonor, type: e.target.value })}
-                            >
-                              <option value="MPESA">MPESA</option>
-                              <option value="Cheque">Cheque</option>
-                              <option value="Cash">Cash</option>
-                              <option value="Other">Other</option>
-                            </select>
-                            <textarea
-                              placeholder="Enter donor's message or blessing..."
-                              className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none h-16 text-white focus:border-blue-400 resize-none"
-                              onChange={(e) => setNewDonor({ ...newDonor, message: e.target.value })}
-                            />
-                            <button 
-                              onClick={() => handleVictoryAlert(proj)}
-                              className="w-full py-3 bg-blue-600 rounded-xl font-bold text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2"
-                            >
-                              <Send size={16} /> Publish Victory Alert
-                            </button>
+                          ))
+                        ) : (
+                          <div className="text-center py-6 border border-dashed border-white/10 rounded-2xl">
+                            <Users size={20} className="mx-auto text-gray-600 mb-2" />
+                            <p className="text-[10px] text-gray-500 uppercase">No donor data synced</p>
                           </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+
+                      {/* Toggleable Form to Add New Donor */}
+                      {showDonorLog === proj.project_id && (
+                        <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-blue-500/30 animate-in slide-in-from-top-2">
+                          <input 
+                            placeholder="Donor Name" 
+                            className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none focus:border-blue-400 transition" 
+                            onChange={(e) => setNewDonor({...newDonor, name: e.target.value})} 
+                          />
+                          <input 
+                            type="number" 
+                            placeholder="Amount (KES)" 
+                            className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none focus:border-blue-400 transition" 
+                            onChange={(e) => setNewDonor({...newDonor, amount: parseInt(e.target.value) || 0})} 
+                          />
+
+                          {/* 3. NEW: Donation Type Select */}
+                          <select
+                            className="w-full bg-slate-800 text-white border-b border-white/20 p-2 text-sm outline-none rounded-t-lg cursor-pointer focus:border-blue-400"
+                            value={newDonor.type}
+                            onChange={(e) => setNewDonor({ ...newDonor, type: e.target.value })}
+                          >
+                            <option value="MPESA">MPESA</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Other">Other</option>
+                          </select>
+
+                          {/* 4. NEW: Message Textarea */}
+                          <textarea
+                            placeholder="Enter donor's message or blessing..."
+                            className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none h-16 text-white focus:border-blue-400 resize-none"
+                            onChange={(e) => setNewDonor({ ...newDonor, message: e.target.value })}
+                          />
+
+                          <button 
+                            onClick={() => handleVictoryAlert(proj)}
+                            className="w-full bg-blue-600 py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition"
+                          >
+                            Publish Victory Alert
+                          </button>
+                        </div>
+                
+
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
+
     </div>
   );
-}
+};
+
