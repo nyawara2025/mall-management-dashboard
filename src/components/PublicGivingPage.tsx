@@ -17,7 +17,7 @@ export const PublicGivingPage = () => {
   useEffect(() => {
     const loadProjects = async () => {
       try {
-        const response = await fetch('https://tenear.com', {
+        const response = await fetch('https://n8n.tenear.com/webhook/church-projects-for-public', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ shop_id: Number(shopId), type: 'fundraising' })
@@ -36,7 +36,7 @@ export const PublicGivingPage = () => {
     e.preventDefault();
     setIsProcessing(true);
     try {
-      const response = await fetch('https://tenear.com', {
+      const response = await fetch('https://n8n.tenear.com/webhook/church-donations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
