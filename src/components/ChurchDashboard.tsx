@@ -369,7 +369,7 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
         {user?.shop_id && (
           <div className="flex items-center">
              <img
-              src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/stbarnabasOtiende_Logo_09apr2026.png"
+              src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/StBarnanasGoldenFinal27apr.jpeg"
               alt="Church Logo"
               /* REMOVED: bg-white, rounded-3xl, shadow, and border */
               /* REDUCED: Height/Width from 60 to 28 */

@@ -10,7 +10,7 @@ export const ChurchBranding: React.FC<ChurchBrandingProps> = ({ departmentName }
 
   // In a real multi-tenant app, these would come from user.churchName and user.logoUrl
   const churchName = "St. Barnabas Anglican Church, Otiende - The home of encouragement!";
-  const logoUrl = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/StBarnabasLogo11apr2026.png";
+  const logoUrl = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/StBarnanasGoldenFinal27apr.jpeg";
 
   return (
     <div className="flex justify-between items-center mb-6">

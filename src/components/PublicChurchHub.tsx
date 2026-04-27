@@ -824,7 +824,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const activeShopId = shopId || 68;
   const [isWelfareModalOpen, setIsWelfareModalOpen] = useState(false);
 
-  const LOGO_URL = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/stbarnabasOtiende_Logo_09apr2026.png";
+  const LOGO_URL = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/StBarnabasGoldebLogo1.jpeg";
   const [isMeetingsOpen, setIsMeetingsOpen] = useState(false);
 
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
