@@ -26,6 +26,7 @@ import { FinancialsAndProjectsModal } from './FinancialsAndProjectsModal';
 import { DevotionsModal } from './DevotionsModal';
 import { CommunityAndZones } from './CommunityAndZones';
 import { ServiceOrderTabs } from './ServiceOrderTabs';
+import { MomentWithGodModal } from './MomentWithGodModal';
 import { ProjectsRenderer } from './ProjectsRenderer';
 
 // --- TYPES ---
@@ -858,6 +859,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
   const [isCommunityModalOpen, setIsCommunityModalOpen] = useState(false);
 
+  const [isMomentOpen, setIsMomentOpen] = useState(false);
+
   const [activeProjectView, setActiveProjectView] = useState<'planned' | 'fundraising' | null>(null);
 
   const handleAccountClick = () => {
@@ -1235,8 +1238,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 </div>
                 <span className="text-xs font-black text-white uppercase tracking-widest text-center">DEVOTIONS</span>
               </button>
-              <button className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} /></div>
+              <button 
+                onClick={() => setIsMomentOpen(true)}
+                className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
+              >
+                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} />
+                </div>
                 <span className="text-xs font-black text-white uppercase tracking-widest text-center">A MOMENT WITH GOD</span>
               </button>
 
@@ -1585,6 +1592,13 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         isOpen={isDevotionsOpen}
         onClose={() => setIsDevotionsOpen(false)}
         userData={userData}
+      />
+
+      <MomentWithGodModal
+        isOpen={isMomentOpen}
+        onClose={() => setIsMomentOpen(false)}
+        userData={userData}
+        shopId={activeShopId}
       />
 
       {isCommunityModalOpen && (
