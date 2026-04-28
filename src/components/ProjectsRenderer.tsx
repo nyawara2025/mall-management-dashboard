@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, Loader2, Heart, MessageCircle, Share2, 
-  TrendingUp, Users, Target, MapPin, Package, Layout, Hammer, Plus
+  TrendingUp, Users, Target, MapPin, Package, Layout, Hammer, Camera, Plus
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ChurchBrickBuilder from './ChurchBrickBuilder';
@@ -24,6 +24,11 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
   const fundRaiserPosterUrl = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasFundRaiser27apr2026.png"
  
   const [isActuallyStaff, setIsActuallyStaff] = useState(false);
+
+  const [isCampaignMode, setIsCampaignMode] = useState(false);
+  const [selectedProject, setSelectedProject] = useState<any>(null);
+  const [campaignPhoto, setCampaignPhoto] = useState<string | null>(null);
+  const [selectedGraphic, setSelectedGraphic] = useState(fundRaiserPosterUrl); // Default to the main poster
 
   const [newDonor, setNewDonor] = useState({ 
     name: '', 
@@ -88,7 +93,31 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
     fetchProjects();
   }, [view, shopId, user?.id]); // 3. Re-run if user ID finally loads
 
+  const handleGenerateCampaign = async () => {
+    if (!campaignPhoto) {
+      alert("Please upload your family/couple portrait first!");
+      return;
+    }
 
+    // This URL carries the "State" of the member's choices to the public page
+    // We encode the graphic URL and the specific project name so the public page knows what to show
+    const encodedGraphic = encodeURIComponent(selectedGraphic);
+    const shareUrl = `https://sbo-0qapages.dev{shopId}&view=give&project_id=${selectedProject.project_id}&member_name=${encodeURIComponent(userData?.first_name || 'A Church Member')}&custom_photo=${encodeURIComponent(campaignPhoto)}&graphic=${encodedGraphic}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: `Support our Church Project: ${selectedProject.project_name}`,
+          text: `Praise God! Join me in supporting ${selectedProject.project_name}. Here is our progress!`,
+          url: shareUrl,
+        });
+      } catch (err) { console.log("Share failed", err); }
+    } else {
+      // Fallback: Copy to clipboard
+      navigator.clipboard.writeText(shareUrl);
+      alert("Campaign link copied! You can now paste it into WhatsApp.");
+    }
+  };
 
   const handleVictoryAlert = async (proj: any) => {
     const bricks = Math.floor(newDonor.amount / 1000);
@@ -151,6 +180,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
 
   return (
     <div className="space-y-6 animate-in slide-in-from-right duration-300">
+      {/* Header Section */}
       <div className="flex items-center gap-4 mb-2">
         <button onClick={onBack} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition">
           <ArrowLeft size={18} />
@@ -160,11 +190,10 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
         </h3>
       </div>
 
+      {/* Projects Grid */}
       <div className="grid grid-cols-1 gap-6">
         {projects.map((proj) => {
           const progress = Math.min(100, Math.round((proj.funds_available / proj.estimated_cost) * 100));
-          const totalBricks = Math.floor(proj.funds_available / 1000);
-          const totalSheets = Math.floor((proj.funds_available % 1000) / 800);
 
           return (
             <div key={proj.project_id} className="bg-white border border-gray-100 rounded-[2.5rem] p-8 shadow-sm">
@@ -178,126 +207,106 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
                 <span className="text-4xl font-black text-blue-600">{progress}%</span>
               </div>
 
-              {view === 'fundraising' && (
-                <div className="space-y-8">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-orange-50 p-4 rounded-3xl border border-orange-100 flex flex-col items-center">
-                      <Layout className="text-orange-600 mb-2" size={24} />
-                      <p className="text-[10px] font-black text-orange-400 uppercase">Bricks Sowed</p>
-                      <p className="text-xl font-black text-orange-700">{totalBricks.toLocaleString()}</p>
-                    </div>
-                    <div className="bg-blue-50 p-4 rounded-3xl border border-blue-100 flex flex-col items-center">
-                      <Package className="text-blue-600 mb-2" size={24} />
-                      <p className="text-[10px] font-black text-blue-400 uppercase">Ironsheets Funded</p>
-                      <p className="text-xl font-black text-blue-700">{totalSheets.toLocaleString()}</p>
-                    </div>
-                  </div>
+              {/* Project Progress Bar and Stats would be here... */}
 
-                  {/* Calculate total bricks based on estimated cost (1000 per brick) */}
-                  <ChurchBrickBuilder 
-                    estimatedCost={proj.estimated_cost}
-                    fundsAvailable={proj.funds_available}
-                    donorLogs={proj.donor_logs || []}
-                    isStaff={!!isProjectStaff} // The '!!' fixes the 'boolean | undefined' error
-                  />
-
-                  <div className="flex items-center justify-between pt-4">
-                    <div className="flex gap-4">
-                      <button className="text-gray-300 hover:text-red-500 transition"><Heart size={20} /></button>
-                      <button className="text-gray-300 hover:text-blue-500 transition" onClick={() => handleShare(proj)}><Share2 size={20} /></button>
-                    </div>
-                  </div>
-
-                  {/* Staff-Only: Donor Intelligence Log & Display */}
-                  {(isProjectStaff || isActuallyStaff) && (
-                    <div className="mt-8 p-6 bg-slate-900 rounded-[2rem] text-white animate-in zoom-in">
-                      <div className="flex justify-between items-center mb-6">
-                        <h5 className="text-[10px] font-black text-blue-300 uppercase tracking-widest">Donor Intelligence Log</h5>
-                        <button 
-                          onClick={() => setShowDonorLog(showDonorLog === proj.project_id ? null : proj.project_id)} 
-                          className="bg-blue-600 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 hover:bg-blue-700 transition"
-                        >
-                          <Plus size={14} /> Log New Donor
-                        </button>
-                      </div>
-
-                      {/* Explicit Mapping for Existing Donors */}
-                      <div className="space-y-3 mb-6 max-h-64 overflow-y-auto custom-scrollbar pr-2">
-                        {proj.donor_logs?.length > 0 ? (
-                          proj.donor_logs.map((log: any, idx: number) => (
-                            <div key={idx} className="bg-white/5 border border-white/10 p-4 rounded-2xl flex justify-between items-center">
-                              <div>
-                                <p className="text-sm font-bold text-white">{log.name}</p>
-                                <p className="text-[10px] text-blue-300 italic">"{log.message}"</p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-sm font-black text-blue-400">KES {log.amount.toLocaleString()}</p>
-                                <p className="text-[9px] uppercase tracking-tighter text-gray-500">{log.type}</p>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-6 border border-dashed border-white/10 rounded-2xl">
-                            <Users size={20} className="mx-auto text-gray-600 mb-2" />
-                            <p className="text-[10px] text-gray-500 uppercase">No donor data synced</p>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Toggleable Form to Add New Donor */}
-                      {showDonorLog === proj.project_id && (
-                        <div className="space-y-3 bg-white/5 p-4 rounded-2xl border border-blue-500/30 animate-in slide-in-from-top-2">
-                          <input 
-                            placeholder="Donor Name" 
-                            className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none focus:border-blue-400 transition" 
-                            onChange={(e) => setNewDonor({...newDonor, name: e.target.value})} 
-                          />
-                          <input 
-                            type="number" 
-                            placeholder="Amount (KES)" 
-                            className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none focus:border-blue-400 transition" 
-                            onChange={(e) => setNewDonor({...newDonor, amount: parseInt(e.target.value) || 0})} 
-                          />
-
-                          {/* 3. NEW: Donation Type Select */}
-                          <select
-                            className="w-full bg-slate-800 text-white border-b border-white/20 p-2 text-sm outline-none rounded-t-lg cursor-pointer focus:border-blue-400"
-                            value={newDonor.type}
-                            onChange={(e) => setNewDonor({ ...newDonor, type: e.target.value })}
-                          >
-                            <option value="MPESA">MPESA</option>
-                            <option value="Cheque">Cheque</option>
-                            <option value="Cash">Cash</option>
-                            <option value="Other">Other</option>
-                          </select>
-
-                          {/* 4. NEW: Message Textarea */}
-                          <textarea
-                            placeholder="Enter donor's message or blessing..."
-                            className="w-full bg-transparent border-b border-white/20 p-2 text-sm outline-none h-16 text-white focus:border-blue-400 resize-none"
-                            onChange={(e) => setNewDonor({ ...newDonor, message: e.target.value })}
-                          />
-
-                          <button 
-                            onClick={() => handleVictoryAlert(proj)}
-                            className="w-full bg-blue-600 py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition"
-                          >
-                            Publish Victory Alert
-                          </button>
-                        </div>
-                
-
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Action Buttons */}
+              <div className="mt-8 flex gap-4">
+                {/* NEW: Campaign Builder Trigger */}
+                <button 
+                  onClick={() => {
+                    setSelectedProject(proj);
+                    setIsCampaignMode(true);
+                  }}
+                  className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-100 flex items-center justify-center gap-2 hover:bg-blue-700 transition-all"
+                >
+                  <Plus size={18} /> Create Personal Campaign
+                </button>
+              
+                <button 
+                  onClick={() => handleShare(proj)}
+                  className="p-4 bg-gray-100 text-gray-400 rounded-2xl hover:bg-gray-200 transition-all"
+                >
+                  <Share2 size={20} />
+                </button>
+              </div>
             </div>
           );
         })}
       </div>
 
+      {/* NEW: CAMPAIGN BUILDER MODAL */}
+      {isCampaignMode && selectedProject && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[3rem] p-8 max-w-lg w-full space-y-6 shadow-2xl animate-in zoom-in duration-300">
+            <div className="text-center">
+              <h3 className="text-2xl font-black text-gray-900">Personalize Your Campaign</h3>
+              <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">For: {selectedProject.project_name}</p>
+            </div>
+
+            {/* 1. Portrait Upload */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Upload Family/Couple Portrait</label>
+              <label className="block relative cursor-pointer group">
+                <div className="w-full h-44 bg-blue-50 rounded-[2rem] border-2 border-dashed border-blue-200 flex flex-col items-center justify-center overflow-hidden transition-all group-hover:border-blue-400">
+                  {campaignPhoto ? (
+                    <img src={campaignPhoto} alt="Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-center">
+                      <Camera className="text-blue-500 mb-2 mx-auto" size={32} />
+                      <span className="text-[10px] font-black text-blue-400 uppercase">Tap to Select Photo</span>
+                    </div>
+                  )}
+                </div>
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => setCampaignPhoto(reader.result as string);
+                      reader.readAsDataURL(file);
+                    }
+                  }} 
+                />
+              </label>
+            </div>
+
+            {/* 2. Graphic Selector */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Select Church Graphic</label>
+              <div className="grid grid-cols-3 gap-3">
+                {[fundRaiserPosterUrl, /* add other graphic URLs here */].map((url, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => setSelectedGraphic(url)}
+                    className={`relative rounded-2xl overflow-hidden border-4 transition-all ${selectedGraphic === url ? 'border-blue-600 scale-95' : 'border-transparent opacity-50'}`}
+                  >
+                    <img src={url} className="w-full h-16 object-cover" alt="Graphic Option" />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex gap-4 pt-4">
+              <button 
+                onClick={() => setIsCampaignMode(false)} 
+                className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-xs uppercase"
+              >
+                CANCEL
+              </button>
+              <button 
+                onClick={handleGenerateCampaign}
+                className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase shadow-lg shadow-blue-100 flex items-center justify-center gap-2"
+              >
+                <Share2 size={16} /> SHARE TO WHATSAPP
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
-};
-
+ }
