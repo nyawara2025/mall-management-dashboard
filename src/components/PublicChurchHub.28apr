@@ -11,7 +11,7 @@ import { supabase } from '../lib/supabase';
 import SokoniModal from './SokoniModal';
 import { PrayerRequestModal } from './PrayerRequestModal';
 import { ReceivedRequestsModal } from './ReceivedRequestsModal';
-import { MemberAccountModal } from './MemberAccountModal';
+import { ChangePasswordModal } from './ChangePasswordModal';
 import { GivingModal } from './GivingModal';
 import { AppointmentsModal } from './AppointmentsModal';
 import { OpinionModal } from './OpinionModal';
@@ -1503,12 +1503,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         userData={userData} 
       />
 
-      <MemberAccountModal 
+      <ChangePasswordModal 
         isOpen={isPasswordModalOpen} 
         onClose={() => setIsPasswordModalOpen(false)}
-        userData={userData}
-        shopId={activeShopId}
-        phone={userData?.phone_number || ''}
+        userData={userData} // Pass the logged-in user's data for context
+        shopId={activeShopId} // Add this (using the activeShopId variable you defined)
+        phone={userData?.phone_number || ''} // Add this (gets phone from userData)
       />
 
       <GivingModal 
