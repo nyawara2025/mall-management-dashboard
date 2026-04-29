@@ -149,32 +149,32 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
   const handleGenerateCampaign = async () => {
     if (!campaignPhoto) return alert("Please upload your family portrait first!");
     const publicHubUrl = `https://sbo-0qa.pages.dev${shopId}&view=give&member=${encodeURIComponent(userData?.first_name || 'Member')}`;
-    
-    const caption = `Praise God! I am supporting the St. Barnabas 100 Day Challenge to raise funds for Widows' Kiosks, the KUFUGA Sanctuary, and a New Generator. Join me in this mission!\n\nGive here: ${publicHubUrl}`;
+   
 
+     try {
+       // 2. Trigger n8n Webhook
+       const response = await fetch('https://n8n.tenear.com/webhook/share-with-donor', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+           shop_id: shopId,
+           member_name: userData?.first_name || 'Member',
+           member_id: userData?.id,
+           image_data: campaignPhoto, // The Base64 string
+           target_url: publicHubUrl,
+           caption: `Praise God! Join me in supporting the ACK St. Barnabas 100 Day Challenge. \n\nGive here: ${publicHubUrl}`
+         })
+       });
 
-    try {
-      // 2. Routing through Evolution API for true Media Sharing
-      const response = await fetch('https://whatapp.tenear.com', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': 'YOUR_API_KEY' },
-        body: JSON.stringify({
-          number: "RECIPIENT_NUMBER", // Or trigger a contact picker
-          media: campaignPhoto, // The base64 image data from your state
-          caption: caption,
-          mediaType: "image"
-        })
-      });
-
-      if (response.ok) alert("Campaign shared successfully via WhatsApp!");
-    } catch (err) {
-      console.error("Evolution API Error:", err);
-    }
-  };
-
- 
-
-  if (isLoading) return <div className="p-20 flex justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
+       if (response.ok) {
+         alert("Campaign graphic sent to your WhatsApp for sharing!");
+         setIsCampaignMode(false);
+       }
+     } catch (err) {
+       console.error("n8n Webhook Error:", err);
+       alert("Could not trigger sharing workflow.");
+     }
+   };
 
   return (
     <div className="space-y-6 animate-in slide-in-from-right duration-300">
