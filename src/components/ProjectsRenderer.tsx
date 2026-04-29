@@ -125,29 +125,52 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
     }
   };
 
-  const handleGenerateCampaign = async () => {
-    if (!campaignPhoto) return alert("Please upload your family portrait first!");
-    const shareUrl = `https://sbo-0qa.pages.dev{shopId}&view=give&project_id=${selectedProject.project_id}&member_name=${encodeURIComponent(userData?.first_name || 'Member')}&custom_photo=${encodeURIComponent(campaignPhoto)}&graphic=${encodeURIComponent(selectedGraphic)}`;
+  const handleShare = async (project: any) => {
+    const publicHubUrl = `https://sbo-0qa.pages.dev{shopId}&view=give&project_id=${project.project_id}`;
     
-    if (navigator.share) {
-      await navigator.share({ title: `Support ${selectedProject.project_name}`, url: shareUrl });
-    } else {
-      navigator.clipboard.writeText(shareUrl);
-      alert("Link copied!");
+    const shareData = {
+      title: `Support: ${project.project_name}`,
+      text: `Praise God! Join us at ACK St. Barnabas as we raise funds for ${project.project_name}. Every contribution counts!`,
+      url: publicHubUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(`${shareData.text} \n\nSupport here: ${shareData.url}`);
+        alert("Link copied! You can now paste it to share.");
+      }
+    } catch (err) {
+      console.error("Share failed", err);
     }
   };
 
-  const handleShare = async (project: any) => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: `🔥 Support: ${project.project_name}`,
-          text: `Praise God! Join us in building ${project.project_name}. Every brick counts!`,
-          url: window.location.href,
-        });
-      } catch (err) { console.log("Share failed", err); }
+  const handleGenerateCampaign = async () => {
+    if (!campaignPhoto) return alert("Please upload your family portrait first!");
+    const publicHubUrl = `https://sbo-0qa.pages.dev{shopId}&view=give&member=${encodeURIComponent(userData?.first_name || 'Member')}`;
+    
+    const shareData = {
+      title: `St. Barnabas 100 Day Challenge`,
+      text: `Praise God! I am supporting the St. Barnabas 100 Day Challenge to raise funds for Widows' Kiosks, the KUFUGA Sanctuary, and a New Generator. Join me in this mission!`,
+      url: publicHubUrl,
+    };
+
+    try {
+      if (navigator.share) {
+        // This triggers the native mobile/desktop share window with all social platforms
+        await navigator.share(shareData);
+      } else {
+        // Fallback for older browsers
+        await navigator.clipboard.writeText(`${shareData.text} \n\nGive here: ${shareData.url}`);
+        alert("Share link & message copied to clipboard! You can now paste it into WhatsApp.");
+      }
+    } catch (err) {
+      console.error("Error sharing:", err);
     }
   };
+
+ 
 
   if (isLoading) return <div className="p-20 flex justify-center"><Loader2 className="animate-spin text-blue-600" /></div>;
 
