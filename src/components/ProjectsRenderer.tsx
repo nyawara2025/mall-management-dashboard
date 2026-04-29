@@ -235,26 +235,28 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
       {isCampaignMode && selectedProject && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[3rem] p-8 max-w-xl w-full space-y-6 shadow-2xl overflow-hidden relative">
-            <div className="text-center">
-              <h3 className="text-2xl font-black text-gray-900">Your Campaign Poster</h3>
-              <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Tap the circle to add your photo</p>
+            
+            {/* NEW TOP SECTION: Official Logo replacing the "Campaign Poster" text */}
+            <div className="flex flex-col items-center justify-center pt-2 pb-4">
+               <img 
+                 src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/StBarnanasGoldenFinal27apr.jpeg" 
+                 className="w-20 h-auto drop-shadow-md mb-2" 
+                 alt="St. Barnabas Official Seal" 
+               />
+               <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">100 Day Challenge</p>
             </div>
 
+            {/* DYNAMIC CANVAS PREVIEW */}
             <div className="relative w-full aspect-[1.91/1] bg-gray-100 rounded-[2rem] overflow-hidden shadow-inner border border-gray-100">
+              {/* Layer 1: Base Graphic */}
               <img 
                 src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png" 
                 className="w-full h-full object-cover z-0" 
                 alt="Background" 
               />
-              <div className="absolute top-[42%] right-[32.5%] w-[9%] drop-shadow-2xl z-10 pointer-events-none">
-                 <img 
-                   src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/StBarnanasGoldenFinal27apr.jpeg" 
-                   className="w-full h-auto" 
-                   alt="Seal" 
-                 />
-              </div>
 
-              <label className="absolute top-[63.5%] left-[45.2%] w-[11%] aspect-square rounded-full border-2 border-white shadow-xl overflow-hidden bg-white/50 backdrop-blur-sm flex items-center justify-center cursor-pointer group z-20 hovers:scale-110 transition-transform">
+              {/* Layer 2: Interactive Member Photo Placeholder - Boosted Z-Index */}
+              <label className="absolute top-[63.5%] left-[45.2%] w-[11%] aspect-square rounded-full border-2 border-white shadow-xl overflow-hidden bg-white flex items-center justify-center cursor-pointer group z-50 hover:scale-110 transition-transform">
                 {campaignPhoto ? (
                   <img src={campaignPhoto} className="w-full h-full object-cover" alt="Member" />
                 ) : (
@@ -266,7 +268,8 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
                 <input type="file" className="hidden" accept="image/*" onChange={onPhotoUpload} />
               </label>
 
-              <div className="absolute bottom-[4%] left-1/2 -translate-x-1/2 w-[90%] flex flex-col items-center">
+              {/* Layer 3: M-PESA & Social Overlay */}
+              <div className="absolute bottom-[4%] left-1/2 -translate-x-1/2 w-[90%] flex flex-col items-center pointer-events-none z-10">
                 <div className="bg-white/95 backdrop-blur px-6 py-2 rounded-2xl shadow-xl border border-gray-100 flex gap-6 items-center">
                   <div className="text-left border-r border-gray-100 pr-6">
                     <p className="text-[7px] font-black text-gray-400 uppercase tracking-tighter">M-PESA Paybill</p>
@@ -291,7 +294,8 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
             </div>
           </div>
         </div>
-      )}
+      )}   
+
     </div>
   );
 };
