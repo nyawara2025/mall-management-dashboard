@@ -248,7 +248,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
               />
               <div className="absolute top-[42%] right-[32.5%] w-[9%] drop-shadow-2xl z-10 pointer-events-none">
                  <img 
-                   src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasFundRaiser27apr2026.png" 
+                   src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/StBarnanasGoldenFinal27apr.jpeg" 
                    className="w-full h-auto" 
                    alt="Seal" 
                  />
