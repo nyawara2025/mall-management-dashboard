@@ -43,7 +43,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
   const [isCampaignMode, setIsCampaignMode] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [campaignPhoto, setCampaignPhoto] = useState<string | null>(null);
-  const fundRaiserPosterUrl = "https://supabase.co";
+  const fundRaiserPosterUrl = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png";
   const [selectedGraphic, setSelectedGraphic] = useState(fundRaiserPosterUrl);
 
   const [newDonor, setNewDonor] = useState({ 
@@ -250,11 +250,15 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
             {/* DYNAMIC CANVAS PREVIEW */}
             <div className="relative w-full aspect-[1.91/1] bg-gray-100 rounded-[2rem] overflow-hidden shadow-inner border border-gray-100">
               {/* Layer 1: Base Graphic */}
-              <img src={fundRaiserPosterUrl} className="w-full h-full object-cover" alt="Background" />
+              <img 
+                src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png" 
+                className="w-full h-full object-cover" 
+                alt="Background" 
+              />
 
               {/* Layer 2: Correct Gold Logo Seal (Positioned near Kufuga church) */}
               <div className="absolute top-[40%] right-[32%] w-[10%] drop-shadow-xl">
-                 <img src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png" className="w-full h-auto" alt="Seal" />
+                 <img src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasFundRaiser27apr2026.png" className="w-full h-auto" alt="Seal" />
               </div>
 
               {/* Layer 3: Interactive Photo Placeholder */}
@@ -262,30 +266,36 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
                 {campaignPhoto ? (
                   <img src={campaignPhoto} className="w-full h-full object-cover" alt="Member" />
                 ) : (
-                  <Camera size={18} className="text-blue-500 group-hover:scale-110 transition" />
+                  <div className="text-center">
+                    <Camera size={18} className="text-blue-500 mx-auto" />
+                    <span className="text-[6px] font-black block">ADD PHOTO</span>
+                  </div>
                 )}
-                <input type="file" className="hidden" accept="image/*" onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => setCampaignPhoto(reader.result as string);
-                    reader.readAsDataURL(file);
-                  }
-                }} />
+                <input type="file" className="hidden" accept="image/*" onChange={onPhotoUpload} />
               </label>
 
-              {/* Layer 4: M-PESA Overlay */}
-              <div className="absolute bottom-[4%] left-1/2 -translate-x-1/2 flex gap-4 px-4 py-1 bg-white/90 backdrop-blur rounded-full text-[8px] font-black text-gray-800 shadow-sm border border-gray-100">
-                <span>PAYBILL: 123456</span>
-                <span className="text-blue-600">ACC: {userData?.first_name || 'MEMBER'}</span>
-                <span className="text-orange-600">#StBarnabas100Days</span>
+              {/* Layer 4: M-PESA & Social Overlay */}
+              <div className="absolute bottom-[4%] left-1/2 -translate-x-1/2 w-[90%] flex flex-col items-center">
+                <div className="bg-white/95 backdrop-blur px-6 py-2 rounded-2xl shadow-xl border border-gray-100 flex gap-6 items-center">
+                  <div className="text-left border-r border-gray-100 pr-6">
+                    <p className="text-[7px] font-black text-gray-400 uppercase tracking-tighter">M-PESA Paybill</p>
+                    <p className="text-[10px] font-black text-blue-900">400222</p>
+                  </div>
+                  <div className="text-left border-r border-gray-100 pr-6">
+                    <p className="text-[7px] font-black text-gray-400 uppercase tracking-tighter">Account No.</p>
+                    <p className="text-[10px] font-black text-gray-900 uppercase">{userData?.first_name || 'Member'}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] font-black text-orange-600">#StBarnabas100Days</p>
+                  </div>
+                </div>
               </div>
             </div>
 
             <div className="flex gap-4">
               <button onClick={() => setIsCampaignMode(false)} className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-xs">BACK</button>
               <button onClick={handleGenerateCampaign} className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs shadow-lg flex items-center justify-center gap-2">
-                <Share2 size={16} /> SEND TO WHATSAPP
+                <Share2 size={16} /> SHARE TO WHATSAPP
               </button>
             </div>
           </div>
