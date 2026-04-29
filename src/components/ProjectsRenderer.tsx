@@ -179,7 +179,6 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
                 <span className="text-4xl font-black text-blue-600">{progress}%</span>
               </div>
 
-              {/* Progress & Bricks Metrics */}
               <div className="space-y-8">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-orange-50 p-4 rounded-3xl border border-orange-100 flex flex-col items-center">
@@ -191,7 +190,6 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
                     <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest">Goal Status</span>
                   </div>
                 </div>
-
                 <div className="relative pt-1">
                   <div className="overflow-hidden h-3 mb-4 text-xs flex rounded-full bg-gray-100">
                     <div style={{ width: `${progress}%` }} className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-600 transition-all duration-1000"></div>
@@ -199,7 +197,6 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
                 </div>
               </div>
 
-              {/* Staff Donor Log Form */}
               {showDonorLog === proj.project_id && (
                 <div className="mt-6 p-6 bg-gray-50 rounded-3xl space-y-4 animate-in slide-in-from-top-4">
                   <h5 className="font-black text-xs uppercase tracking-widest text-gray-400">Log New Donation</h5>
@@ -214,7 +211,6 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
                 </div>
               )}
 
-              {/* Action Buttons */}
               <div className="mt-8 flex gap-4">
                 <button 
                   onClick={() => { setSelectedProject(proj); setIsCampaignMode(true); }}
@@ -222,13 +218,11 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
                 >
                   Create Personal Campaign
                 </button>
-
                 {isActuallyStaff && (
                   <button onClick={() => setShowDonorLog(showDonorLog === proj.project_id ? null : proj.project_id)} className="p-4 bg-orange-50 text-orange-600 rounded-2xl">
                     <Plus size={20} />
                   </button>
                 )}
-
                 <button onClick={() => handleShare(proj)} className="p-4 bg-gray-100 text-gray-400 rounded-2xl">
                   <Share2 size={20} />
                 </button>
@@ -238,30 +232,24 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
         })}
       </div>
 
-      {/* CAMPAIGN BUILDER MODAL - LAYERED DYNAMIC VERSION */}
       {isCampaignMode && selectedProject && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[3rem] p-8 max-w-xl w-full space-y-6 shadow-2xl overflow-hidden">
+          <div className="bg-white rounded-[3rem] p-8 max-w-xl w-full space-y-6 shadow-2xl overflow-hidden relative">
             <div className="text-center">
               <h3 className="text-2xl font-black text-gray-900">Your Campaign Poster</h3>
               <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Tap the circle to add your photo</p>
             </div>
 
-            {/* DYNAMIC CANVAS PREVIEW */}
             <div className="relative w-full aspect-[1.91/1] bg-gray-100 rounded-[2rem] overflow-hidden shadow-inner border border-gray-100">
-              {/* Layer 1: Base Graphic */}
               <img 
                 src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png" 
                 className="w-full h-full object-cover" 
                 alt="Background" 
               />
-
-              {/* Layer 2: Correct Gold Logo Seal (Positioned near Kufuga church) */}
-              <div className="absolute top-[40%] right-[32%] w-[10%] drop-shadow-xl">
+              <div className="absolute top-[40%] right-[32%] w-[10%] drop-shadow-xl pointer-events-none">
                  <img src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasFundRaiser27apr2026.png" className="w-full h-auto" alt="Seal" />
               </div>
 
-              {/* Layer 3: Interactive Photo Placeholder */}
               <label className="absolute top-[62%] left-[45%] w-[12%] aspect-square rounded-full border-2 border-white shadow-lg overflow-hidden bg-white flex items-center justify-center cursor-pointer group">
                 {campaignPhoto ? (
                   <img src={campaignPhoto} className="w-full h-full object-cover" alt="Member" />
@@ -274,7 +262,6 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
                 <input type="file" className="hidden" accept="image/*" onChange={onPhotoUpload} />
               </label>
 
-              {/* Layer 4: M-PESA & Social Overlay */}
               <div className="absolute bottom-[4%] left-1/2 -translate-x-1/2 w-[90%] flex flex-col items-center">
                 <div className="bg-white/95 backdrop-blur px-6 py-2 rounded-2xl shadow-xl border border-gray-100 flex gap-6 items-center">
                   <div className="text-left border-r border-gray-100 pr-6">
@@ -303,4 +290,4 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
       )}
     </div>
   );
- }
+};
