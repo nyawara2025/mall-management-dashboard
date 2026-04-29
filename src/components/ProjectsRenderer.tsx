@@ -61,7 +61,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
         const parsedUser = storedUser ? JSON.parse(storedUser) : null;
         const userId = userData?.id || user?.id || parsedUser?.id;
 
-        const response = await fetch('https://n8n.tenear.com/webhook/church-donations', {
+        const response = await fetch('https://n8n.tenear.com/webhook/fetch-projects', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
