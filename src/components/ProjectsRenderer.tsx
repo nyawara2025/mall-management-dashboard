@@ -126,7 +126,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
   };
 
   const handleShare = async (project: any) => {
-    const publicHubUrl = `https://sbo-0qa.pages.dev{shopId}&view=give&project_id=${project.project_id}`;
+    const publicHubUrl = `https://sbo-0qa.pages.dev${shopId}&view=give&project_id=${project.project_id}`;
     
     const shareData = {
       title: `Support: ${project.project_name}`,
@@ -148,25 +148,27 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
 
   const handleGenerateCampaign = async () => {
     if (!campaignPhoto) return alert("Please upload your family portrait first!");
-    const publicHubUrl = `https://sbo-0qa.pages.dev{shopId}&view=give&member=${encodeURIComponent(userData?.first_name || 'Member')}`;
+    const publicHubUrl = `https://sbo-0qa.pages.dev${shopId}&view=give&member=${encodeURIComponent(userData?.first_name || 'Member')}`;
     
-    const shareData = {
-      title: `St. Barnabas 100 Day Challenge`,
-      text: `Praise God! I am supporting the St. Barnabas 100 Day Challenge to raise funds for Widows' Kiosks, the KUFUGA Sanctuary, and a New Generator. Join me in this mission!`,
-      url: publicHubUrl,
-    };
+    const caption = `Praise God! I am supporting the St. Barnabas 100 Day Challenge to raise funds for Widows' Kiosks, the KUFUGA Sanctuary, and a New Generator. Join me in this mission!\n\nGive here: ${publicHubUrl}`;
+
 
     try {
-      if (navigator.share) {
-        // This triggers the native mobile/desktop share window with all social platforms
-        await navigator.share(shareData);
-      } else {
-        // Fallback for older browsers
-        await navigator.clipboard.writeText(`${shareData.text} \n\nGive here: ${shareData.url}`);
-        alert("Share link & message copied to clipboard! You can now paste it into WhatsApp.");
-      }
+      // 2. Routing through Evolution API for true Media Sharing
+      const response = await fetch('https://whatapp.tenear.com', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': 'YOUR_API_KEY' },
+        body: JSON.stringify({
+          number: "RECIPIENT_NUMBER", // Or trigger a contact picker
+          media: campaignPhoto, // The base64 image data from your state
+          caption: caption,
+          mediaType: "image"
+        })
+      });
+
+      if (response.ok) alert("Campaign shared successfully via WhatsApp!");
     } catch (err) {
-      console.error("Error sharing:", err);
+      console.error("Evolution API Error:", err);
     }
   };
 
