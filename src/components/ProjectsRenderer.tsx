@@ -127,7 +127,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
 
   const handleGenerateCampaign = async () => {
     if (!campaignPhoto) return alert("Please upload your family portrait first!");
-    const shareUrl = `https://pages.dev{shopId}&view=give&project_id=${selectedProject.project_id}&member_name=${encodeURIComponent(userData?.first_name || 'Member')}&custom_photo=${encodeURIComponent(campaignPhoto)}&graphic=${encodeURIComponent(selectedGraphic)}`;
+    const shareUrl = `https://sbo-0qa.pages.dev{shopId}&view=give&project_id=${selectedProject.project_id}&member_name=${encodeURIComponent(userData?.first_name || 'Member')}&custom_photo=${encodeURIComponent(campaignPhoto)}&graphic=${encodeURIComponent(selectedGraphic)}`;
     
     if (navigator.share) {
       await navigator.share({ title: `Support ${selectedProject.project_name}`, url: shareUrl });
@@ -243,20 +243,24 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
             <div className="relative w-full aspect-[1.91/1] bg-gray-100 rounded-[2rem] overflow-hidden shadow-inner border border-gray-100">
               <img 
                 src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png" 
-                className="w-full h-full object-cover" 
+                className="w-full h-full object-cover z-0" 
                 alt="Background" 
               />
-              <div className="absolute top-[40%] right-[32%] w-[10%] drop-shadow-xl pointer-events-none">
-                 <img src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasFundRaiser27apr2026.png" className="w-full h-auto" alt="Seal" />
+              <div className="absolute top-[42%] right-[32.5%] w-[9%] drop-shadow-2xl z-10 pointer-events-none">
+                 <img 
+                   src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasFundRaiser27apr2026.png" 
+                   className="w-full h-auto" 
+                   alt="Seal" 
+                 />
               </div>
 
-              <label className="absolute top-[62%] left-[45%] w-[12%] aspect-square rounded-full border-2 border-white shadow-lg overflow-hidden bg-white flex items-center justify-center cursor-pointer group">
+              <label className="absolute top-[63.5%] left-[45.2%] w-[11%] aspect-square rounded-full border-2 border-white shadow-xl overflow-hidden bg-white/50 backdrop-blur-sm flex items-center justify-center cursor-pointer group z-20 hovers:scale-110 transition-transform">
                 {campaignPhoto ? (
                   <img src={campaignPhoto} className="w-full h-full object-cover" alt="Member" />
                 ) : (
                   <div className="text-center">
-                    <Camera size={18} className="text-blue-500 mx-auto" />
-                    <span className="text-[6px] font-black block">ADD PHOTO</span>
+                    <Camera size={14} className="text-blue-600 mx-auto" />
+                    <span className="text-[5px] font-black block text-blue-600">ADD PHOTO</span>
                   </div>
                 )}
                 <input type="file" className="hidden" accept="image/*" onChange={onPhotoUpload} />
@@ -266,14 +270,14 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
                 <div className="bg-white/95 backdrop-blur px-6 py-2 rounded-2xl shadow-xl border border-gray-100 flex gap-6 items-center">
                   <div className="text-left border-r border-gray-100 pr-6">
                     <p className="text-[7px] font-black text-gray-400 uppercase tracking-tighter">M-PESA Paybill</p>
-                    <p className="text-[10px] font-black text-blue-900">400222</p>
+                    <p className="text-[10px] font-black text-blue-900">247247</p>
                   </div>
                   <div className="text-left border-r border-gray-100 pr-6">
                     <p className="text-[7px] font-black text-gray-400 uppercase tracking-tighter">Account No.</p>
-                    <p className="text-[10px] font-black text-gray-900 uppercase">{userData?.first_name || 'Member'}</p>
+                    <p className="text-[10px] font-black text-gray-900 uppercase">341009#{userData?.first_name || 'Member'}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-[10px] font-black text-orange-600">#StBarnabas100Days</p>
+                    <p className="text-[10px] font-black text-orange-600">StBarnabas100Days</p>
                   </div>
                 </div>
               </div>
