@@ -8,9 +8,6 @@ import { useAuth } from '../contexts/AuthContext';
 import ChurchBrickBuilder from './ChurchBrickBuilder';
 import confetti from 'canvas-confetti';
 
-import html2canvas from 'html2canvas';
-import { useRef } from 'react';
-
 interface ProjectsRendererProps {
   view: 'planned' | 'fundraising';
   onBack: () => void;
@@ -24,8 +21,6 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
   const [isLoading, setIsLoading] = useState(true);
   const [showDonorLog, setShowDonorLog] = useState<string | null>(null);
   const [isActuallyStaff, setIsActuallyStaff] = useState(false);
-
-  const campaignRef = useRef<HTMLDivElement>(null);
 
   const canvasStyles = {
     container: "relative w-full overflow-hidden rounded-[2.5rem] shadow-2xl border-4 border-white",
@@ -153,24 +148,11 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
 
   const handleGenerateCampaign = async () => {
     if (!campaignPhoto) return alert("Please upload your family portrait first!");
-    if (!campaignRef.current) return;
     const publicHubUrl = `https://sbo-0qa.pages.dev${shopId}&view=give&member=${encodeURIComponent(userData?.first_name || 'Member')}`;
    
 
      try {
        // 2. Trigger n8n Webhook
-
-       // This captures everything inside the campaignRef div as one image
-       const canvas = await html2canvas(campaignRef.current, {
-         useCORS: true,      // Allows images from Supabase to be captured
-         scale: 2,           // Keeps it sharp for WhatsApp
-         backgroundColor: null // Keeps rounded corners clean
-       });
-    
-       const compositeImage = canvas.toDataURL('image/png');
-
-       // Send the flattened image to n8n
-
        const response = await fetch('https://n8n.tenear.com/webhook/share-with-donor', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
@@ -178,7 +160,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
            shop_id: shopId,
            member_name: userData?.first_name || 'Member',
            member_id: userData?.id,
-           image_data: compositeImage,
+           image_data: campaignPhoto, // The Base64 string
            target_url: publicHubUrl,
            caption: `Praise God! Join me in supporting the ACK St. Barnabas 100 Day Challenge. \n\nGive here: ${publicHubUrl}`
          })
@@ -290,13 +272,12 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
             </div>
 
             {/* DYNAMIC CANVAS PREVIEW */}
-            <div ref={campaignRef} className="relative w-full aspect-[1.91/1] bg-gray-100 rounded-[2rem] overflow-hidden shadow-inner border border-gray-100">
+            <div className="relative w-full aspect-[1.91/1] bg-gray-100 rounded-[2rem] overflow-hidden shadow-inner border border-gray-100">
               {/* Layer 1: Base Graphic */}
               <img 
-                src={selectedProject?.graphic_url || "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png"} 
-                crossOrigin="anonymous"
+                src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png" 
                 className="w-full h-full object-cover z-0" 
-                alt={selectedProject?.project_name || "Background"} 
+                alt="Background" 
               />
 
               {/* Layer 2: Interactive Member Photo Placeholder - Boosted Z-Index */}
