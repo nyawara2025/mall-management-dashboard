@@ -168,7 +168,6 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
   const handleGenerateCampaign = async () => {
     if (!campaignPhoto) return alert("Please upload your family portrait first!");
     if (!campaignRef.current) return;
-    const publicHubUrl = `https://sbo-0qa.pages.dev${shopId}&view=give&member=${encodeURIComponent(userData?.first_name || 'Member')}`;
    
 
      try {
@@ -202,8 +201,8 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
            member_name: userData?.first_name || 'Member',
            member_id: userData?.id,
            image_data: compositeImage,
-           target_url: publicHubUrl,
-           caption: `Praise God! Join me in supporting the ACK St. Barnabas 100 Day Challenge. \n\nGive here: ${publicHubUrl}`
+           target_url: 'https://sbo-0qa.pages.dev/?business_category=church&shop_id=68&view=give',
+           caption: `Praise God! Join me in supporting the ACK St. Barnabas 100 Day Challenge. \n\nGive here: https://sbo-0qa.pages.dev/?business_category=church&shop_id=68&view=give`
          })
        });
 
