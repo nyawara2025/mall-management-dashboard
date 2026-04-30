@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Search, Trash2, X, Smartphone, Banknote, Image as ImageIcon } from 'lucide-react';
 import { registerSW } from 'virtual:pwa-register'
-import { getLocalProducts, saveProductsLocally, Product as LocalProduct } from '../utils/db';
 registerSW({ immediate: true })
 
 interface Variant {
@@ -240,18 +239,6 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
   useEffect(() => {
     async function fetchProducts() {
       setFetching(true);
-
-      // --- NEW: LOAD FROM INDEXEDDB FIRST ---
-      try {
-        const cachedProducts = await getLocalProducts();
-        if (cachedProducts.length > 0) {
-          // Type cast safely to your component's Product interface
-          setProducts(cachedProducts as unknown as Product[]);
-        }
-      } catch (dbErr) {
-        console.warn('Could not read from local DB:', dbErr);
-      }
-
       try {
         const response = await fetch(FETCH_PRODUCTS_URL, {
           method: 'POST',
@@ -297,12 +284,6 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
           }, []);
 
           setProducts(grouped);
-
-          // --- NEW: SAVE TO INDEXEDDB FOR OFFLINE USE ---
-          // Mapping to match the DB interface keys if necessary
-          const toCache = grouped.map(p => ({ ...p, id: p.product_id, shop_id: shopId.toString() }));
-          await saveProductsLocally(toCache as any);
-
         }
 
 
