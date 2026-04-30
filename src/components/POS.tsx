@@ -150,8 +150,7 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
 
   // 3. Function to push saved sales to n8n
   const syncOfflineTransactions = async () => {
-    const storageKey = `pending_sales_${shopId}`;
-    const pending = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    const pending = await getPendingSales();
   
     if (pending.length === 0) return;
 
@@ -159,17 +158,26 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
   
     for (const sale of pending) {
       try {
-        const response = await fetch(sale.targetUrl, {
+
+        // Reuse your existing logic, but adapt to the IndexedDB object structure
+        const targetUrl = sale.payment_method.toLowerCase() === 'mpesa' 
+          ? 'https://n8n.tenear.com/webhook/pos-sale-cash' 
+          : 'https://n8n.tenear.com/webhook/pos-transaction-push';
+
+        const response = await fetch(targetUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(sale.payload)
+          body: JSON.stringify(sale)
         });
         if (response.ok) {
-          // Remove processed sale from local storage
-          const currentPending = JSON.parse(localStorage.getItem(storageKey) || '[]');
-          const updated = currentPending.filter((s: any) => s.id !== sale.id);
-          localStorage.setItem(storageKey, JSON.stringify(updated));
-          setPendingCount(updated.length);
+          // 2. IMPORTANT: Remove from IndexedDB only after n8n confirms success
+          if (sale.id) {
+            await deleteSyncedSale(sale.id);
+          }
+          
+          // Update the UI counter
+          const updatedPending = await getPendingSales();
+          setPendingCount(updatedPending.length);
         }
       } catch (err) {
         console.error("Sync failed for a record, will retry later.");
