@@ -302,10 +302,10 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
             <div ref={campaignRef} className="relative w-full aspect-[1.91/1] bg-gray-100 rounded-[2rem] overflow-hidden shadow-inner border border-gray-100">
               {/* Layer 1: Base Graphic */}
               <img 
-                src={selectedProject?.graphic_url || "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png"} 
+                src={'${selectedProject?.graphic_url || "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png"}?t=${new Date().getTime()}'} 
                 crossOrigin="anonymous"
                 className="w-full h-full object-cover z-0" 
-                alt={selectedProject?.project_name || "Background"} 
+                alt="Background" 
               />
 
               {/* Layer 2: Interactive Member Photo Placeholder - Boosted Z-Index */}
