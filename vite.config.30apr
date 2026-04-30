@@ -33,18 +33,6 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         runtimeCaching: [
           {
-            // NEW RULE: Specifically for church materials to allow html2canvas to read them
-            urlPattern: /.*ufrrlfcxuovxgizxuowh\.supabase\.co\/storage\/v1\/object\/public\/church_material\/.*/i,
-            handler: 'NetworkFirst', // Force a network check to get clean CORS headers
-            options: {
-              cacheName: 'church-assets-cache',
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          },
-          {
-
             urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/.*/i,
             handler: 'CacheFirst',
             options: {
