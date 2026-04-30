@@ -12,9 +12,16 @@ export const PublicGivingPage = () => {
   // 1. DYNAMIC ASSETS: Read from URL params sent by the member
   const shopId = searchParams.get('shop_id') || '68';
   const memberName = searchParams.get('member_name') || 'a Church Member';
-  const projectName = searchParams.get('project_name') || 'the Sanctuary Project';
-  const customPortrait = searchParams.get('custom_photo'); // Base64 or URL
-  const selectedGraphic = searchParams.get('graphic') || "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasFundRaiser27apr2026.png";
+  const projectName = searchParams.get('project_name') || 'the Sanctuary Project'
+  const campaignPath = searchParams.get('campaign_img');
+
+  const customPortrait = searchParams.get('custom_photo');
+
+  // Construct the full URL if a campaign_img exists, otherwise use the master poster
+  const selectedGraphic = campaignPath 
+    ? `https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/{campaignPath}`
+    : "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material";
+
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
