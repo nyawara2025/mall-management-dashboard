@@ -158,6 +158,15 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
    
 
      try {
+
+       // 1. Force the background image to reload as a Blob to bypass CORS
+       const bgImage = campaignRef.current.querySelector('img');
+       if (bgImage && bgImage.src.includes('supabase')) {
+         const response = await fetch(bgImage.src);
+         const blob = await response.blob();
+         bgImage.src = URL.createObjectURL(blob);
+       }
+
        // 2. Trigger n8n Webhook
 
        // This captures everything inside the campaignRef div as one image
