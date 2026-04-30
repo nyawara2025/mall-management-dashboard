@@ -27,6 +27,8 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
 
   const campaignRef = useRef<HTMLDivElement>(null);
 
+  const [base64Background, setBase64Background] = useState<string | null>(null);
+
   const canvasStyles = {
     container: "relative w-full overflow-hidden rounded-[2.5rem] shadow-2xl border-4 border-white",
     baseGraphic: "w-full h-auto block",
@@ -89,6 +91,18 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
     };
     fetchProjects();
   }, [view, shopId, user?.id]);
+
+  useEffect(() => {
+    if (selectedProject?.graphic_url) {
+      fetch(selectedProject.graphic_url)
+        .then(res => res.blob())
+        .then(blob => {
+          const reader = new FileReader();
+          reader.onloadend = () => setBase64Background(reader.result as string);
+          reader.readAsDataURL(blob);
+        });
+    }
+  }, [selectedProject]);
 
   const handleVictoryAlert = async (proj: any) => {
     const bricks = Math.floor(newDonor.amount / 1000);
@@ -302,8 +316,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
             <div ref={campaignRef} className="relative w-full aspect-[1.91/1] bg-gray-100 rounded-[2rem] overflow-hidden shadow-inner border border-gray-100">
               {/* Layer 1: Base Graphic */}
               <img 
-                src={'${selectedProject?.graphic_url || "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png"}?t=${new Date().getTime()}'} 
-                crossOrigin="anonymous"
+                src={base64Background || "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png"} 
                 className="w-full h-full object-cover z-0" 
                 alt="Background" 
               />
