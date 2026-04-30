@@ -171,50 +171,38 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
    
 
      try {
-
-       // 1. Force the background image to reload as a Blob to bypass CORS
-       const bgImage = campaignRef.current.querySelector('img');
-       if (bgImage && bgImage.src.includes('supabase')) {
-         const response = await fetch(bgImage.src);
-         const blob = await response.blob();
-         bgImage.src = URL.createObjectURL(blob);
-       }
-
-       // 2. Trigger n8n Webhook
-
-       // This captures everything inside the campaignRef div as one image
+       // 1. Capture the full graphic (Base + Portrait + Hashtag)
        const canvas = await html2canvas(campaignRef.current, {
-         useCORS: true,      // Allows images from Supabase to be captured
-         scale: 2,           // Keeps it sharp for WhatsApp
-         backgroundColor: null // Keeps rounded corners clean
+         useCORS: true,
+         scale: 1.5, // Perfect balance for WhatsApp
        });
     
-       const compositeImage = canvas.toDataURL('image/png');
+       const compositeImage = canvas.toDataURL('image/jpeg', 0.8);
 
-       // Send the flattened image to n8n
-
+       // 2. Send to your n8n 'Heavy Lifter'
        const response = await fetch('https://n8n.tenear.com/webhook/share-with-donor', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({
            shop_id: shopId,
            member_name: userData?.first_name || 'Member',
-           member_id: userData?.id,
+           member_phone: userData?.phone_number || '254...', // Send to the member themselves
            image_data: compositeImage,
-           target_url: 'https://sbo-0qa.pages.dev/?business_category=church&shop_id=68&view=give',
-           caption: `Praise God! Join me in supporting the ACK St. Barnabas 100 Day Challenge. \n\nGive here: https://sbo-0qa.pages.dev/?business_category=church&shop_id=68&view=give`
+           target_url: `https://sbo-0qa.pages.dev{shopId}&view=give&m_id=${userData?.id}`
          })
        });
 
        if (response.ok) {
-         alert("Campaign graphic sent to your WhatsApp for sharing!");
+         alert("Praise God! Your personalized poster is being sent to your WhatsApp. Please forward it to your groups!");
          setIsCampaignMode(false);
        }
      } catch (err) {
-       console.error("n8n Webhook Error:", err);
-       alert("Could not trigger sharing workflow.");
+       console.error("Workflow Error:", err);
+       alert("Could not generate poster. Please check your connection.");
      }
    };
+    
+
 
   return (
     <div className="space-y-6 animate-in slide-in-from-right duration-300">
