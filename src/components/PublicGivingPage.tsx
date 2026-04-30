@@ -67,8 +67,8 @@ export const PublicGivingPage = () => {
 
         <div className="p-8 space-y-8">
           <div className="text-center space-y-2">
-            <h2 className="text-3xl font-black text-gray-900 leading-tight">
-              Join {memberName} in building the Sanctuary Project
+            <h2 className="text-3xl font-black text-gray-600 leading-tight">
+              Join {memberName} in this noble cause.
             </h2>
             <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">
               ACK St. Barnabas 100 Day Challenge
@@ -80,11 +80,11 @@ export const PublicGivingPage = () => {
             <div className="flex justify-between items-center pb-6 border-b border-gray-100">
               <div>
                 <p className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">Paybill No.</p>
-                <p className="text-2xl font-black text-gray-900">247247</p>
+                <p className="text-2xl font-black text-gray-500">247247</p>
               </div>
               <div className="text-right">
                 <p className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">A/C Number</p>
-                <p className="text-2xl font-black text-blue-600 uppercase">{mpesaAccount}</p>
+                <p className="text-2xl font-black text-blue-500 uppercase">{mpesaAccount}</p>
               </div>
             </div>
 
@@ -126,7 +126,7 @@ export const PublicGivingPage = () => {
 
               <button 
                 disabled={isProcessing}
-                className="w-full py-5 bg-green-600 hover:bg-green-700 text-white rounded-[2rem] font-black text-lg shadow-lg flex items-center justify-center gap-3 transition-all active:scale-95"
+                className="w-full py-5 bg-green-600 hover:bg-green-500 text-white rounded-[2rem] font-black text-lg shadow-lg flex items-center justify-center gap-3 transition-all active:scale-95"
               >
                 {isProcessing ? (
                   <Loader2 className="animate-spin" />
