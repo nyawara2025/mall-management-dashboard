@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Search, Trash2, X, Smartphone, Banknote, Image as ImageIcon } from 'lucide-react';
 import { registerSW } from 'virtual:pwa-register'
 import { getLocalProducts, saveProductsLocally, Product as LocalProduct } from '../utils/db';
+import { saveOfflineSale, getPendingSales, deleteSyncedSale } from '../utils/db'; // Ensure this is imported
 registerSW({ immediate: true })
 
 interface Variant {
@@ -220,15 +221,30 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
       }
     } catch (err) {
       console.warn("Network issue detected, saving locally...");
-      // OFFLINE FALLBACK
-      const storageKey = `pending_sales_${shopId}`;
-      const pending = JSON.parse(localStorage.getItem(storageKey) || '[]');
-      pending.push({ id: payload.id, payload, targetUrl });
-      localStorage.setItem(storageKey, JSON.stringify(pending));
-      setPendingCount(pending.length);
       
-      alert('Internet connection weak. Sale saved locally and will sync later!');
-      setCart([]);
+       // --- OFFLINE FALLBACK USING IndexedDB ---
+      try {
+        await saveOfflineSale({
+          cart: cart,
+          total: calculateTotal(),
+          payment_method: paymentMethod.toUpperCase() as 'CASH' | 'M-PESA',
+          shop_id: shopId.toString(),
+          timestamp: new Date().toISOString()
+          // Note: targetUrl and payload are preserved within this structure
+        });
+
+        // Update the counter on the UI
+        const pending = await getPendingSales();
+        setPendingCount(pending.length);
+      
+        alert('Internet connection weak. Sale saved locally and will sync later!');
+        setCart([]);
+
+      } catch (dbErr) {
+        console.error("Critical: Could not save to IndexedDB", dbErr);
+        alert("Failed to save sale locally. Please check your browser storage.");
+      }
+
     } finally {
       setLoading(false);
     }
