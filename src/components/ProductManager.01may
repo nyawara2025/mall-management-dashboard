@@ -5,9 +5,6 @@ import { Package, Plus, Pencil, Share2, Trash2, ArrowLeft, Loader2, X, Save, Ima
 import ShopAnalytics from './ShopAnalytics'; 
 import { BarChart3 } from 'lucide-react'; // Add this for the analytics icon
 
-// 1. Add Imports
-import { getLocalProducts, saveProductsLocally, getShopMetadata, saveShopMetadata } from '../utils/db';
-
 interface ProductManagerProps {
   shopId: number;
   onBack: () => void;
@@ -131,11 +128,6 @@ const ProductCard = ({ product, handleShare, handleDelete, handleAmend }: { prod
   );
 };
  
-// 2. Update your fetch function inside ProductManager
-const [products, setProducts] = useState<any[]>([]);
-const [isSyncing, setIsSyncing] = useState(false);
-
-
 
 export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }) => {
 
@@ -241,26 +233,6 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
 
   const fetchProducts = async () => {
     setIsLoading(true);
-
-    // --- STEP A: LOAD FROM CACHE (INSTANT) ---
-    try {
-      const [cachedProducts, cachedMeta] = await Promise.all([
-      getLocalProducts(),
-      getShopMetadata(shopId)
-    ]);
-    
-    if (cachedProducts && cachedProducts.length > 0) {
-        setProducts(cachedProducts);
-      }
-      if (cachedMeta && cachedMeta.shop_name) {
-        setShopName(cachedMeta.shop_name);
-      }
-     
-
-    } catch (e) {
-      console.warn("Offline cache retrieval failed");
-    }
-
     try {
       const response = await fetch('https://n8n.tenear.com/webhook/shop-products-management', {
         method: 'POST',
@@ -269,25 +241,14 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
       });
       const result = await response.json();
 
-      const name = result.shop_name || (Array.isArray(result) && result[0]?.shop_name) || '';
-      const freshProducts = Array.isArray(result) ? result : (result.products || []);
-
-      if (name) {
-        setShopName(name);
-        await saveShopMetadata({shop_id: shopId, shop_name: name });
+      if (Array.isArray(result) && result.length > 0) {
+        setShopName(result[0].shop_name || '');
+        setProducts(result);
+      } else if (result.products) {
+        setShopName(result.shop_name || '');
+        setProducts(result.products);
       }
-
-      if (freshProducts.length > 0) {
-        setProducts(freshProducts);
-        // --- STEP C: SAVE TO CACHE FOR NEXT TIME ---
-        await saveProductsLocally(freshProducts);
-      }
-
-    } catch (error) { 
-      console.error("Network fetch failed, staying with cached data:", error); 
-    } finally { 
-      setIsLoading(false); 
-    }
+    } catch (error) { console.error("Fetch failed:", error); } finally { setIsLoading(false); }
   };
 
 
