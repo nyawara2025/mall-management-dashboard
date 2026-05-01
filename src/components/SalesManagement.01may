@@ -118,15 +118,10 @@ const SalesManagement: React.FC<SalesManagementProps> = ({ shopId, onBack }) => 
               title="Periodic Extraction" 
               desc="Download CSV sales data." 
               icon={<Calendar className="w-6 h-6" />} 
-              onClick={(data: any) => {
-                // 'data' already contains { period, month, year } from handleAction
-                triggerN8n('extract_periodic', data); 
-              }} 
+              onClick={(data: any) => triggerN8n('extract_periodic', data)} 
               options={['Daily', 'Weekly', 'Monthly', 'Annual']}
               loading={isExtracting}
             />
-
-
             <ActionCard 
               title="Location-Based" 
               desc="Filter by Online vs. PoS." 
