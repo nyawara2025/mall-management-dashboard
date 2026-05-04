@@ -16,7 +16,7 @@ export const PublicGivingPage = () => {
   
   // FIX: Full functional path to your specific Supabase Project and Storage API
   const selectedGraphic = campaignPath 
-    ? `https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/${campaignPath}`
+    ? `https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/{campaignPath}`
     : "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material";
 
   // FIX: Dynamic M-PESA Account based on the sharing member
