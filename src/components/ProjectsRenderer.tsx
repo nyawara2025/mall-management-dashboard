@@ -293,7 +293,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
             <div className="flex flex-col items-center justify-center pt-2 pb-4">
                <img 
                  src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church-logos/StBarnanasGoldenFinal27apr.jpeg" 
-                 className="w-20 h-auto drop-shadow-md mb-2" 
+                 className="w-5 h-5 drop-shadow-md mb-2" 
                  alt="St. Barnabas Official Seal" 
                />
                <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em]">100 Day Challenge</p>
