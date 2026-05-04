@@ -77,14 +77,18 @@ export const PublicGivingPage = () => {
 
           {/* Payment Instructions Card */}
           <div className="bg-white border-2 border-blue-50 rounded-[2.5rem] p-8 shadow-sm space-y-6">
-            <div className="flex justify-between items-center pb-6 border-b border-gray-100">
-              <div>
+            {/* Row: Paybill and A/C Number */}
+            <div className="flex justify-between items-start pb-6 border-b border-gray-100 gap-2">
+              <div className="flex-shrink-0">
                 <p className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">Paybill No.</p>
-                <p className="text-2xl font-black text-gray-500">247247</p>
+                <p className="text-xl sm:text-2xl font-black text-gray-500">247247</p>
               </div>
-              <div className="text-right">
+    
+              <div className="text-right min-w-0"> {/* min-w-0 allows the text to shrink/wrap */}
                 <p className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">A/C Number</p>
-                <p className="text-2xl font-black text-blue-500 uppercase">{mpesaAccount}</p>
+                <p className="text-lg sm:text-2xl font-black text-blue-500 uppercase leading-tight break-words">
+                  {mpesaAccount}
+                </p>
               </div>
             </div>
 
