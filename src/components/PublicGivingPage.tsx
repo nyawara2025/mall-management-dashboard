@@ -60,7 +60,7 @@ export const PublicGivingPage = () => {
             className="w-full h-full object-cover"
             alt="St. Barnabas Fundraiser" 
             onError={(e) => {
-              (e.target as HTMLImageElement).src = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/{{ $json.project_url }}";
+              (e.target as HTMLImageElement).src = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png";
             }}
           />
         </div>
