@@ -76,52 +76,54 @@ export const PublicGivingPage = () => {
           </div>
 
           {/* Payment Instructions Card */}
-          <div className="bg-white border-2 border-blue-50 rounded-[2.5rem] p-5 shadow-sm space-y-6">
-            {/* Row: Paybill and A/C Number */}
-            <div className="flex justify-between items-start pb-4 border-b border-gray-100">
-              <div className="text-left">
-                <p className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">Paybill No.</p>
-                <p className="text-xl font-black text-gray-600 leading-none mt-1">247247</p>
+          <div className="bg-white border-2 border-blue-50 rounded-[2.5rem] p-4 shadow-sm space-y-5">
+            {/* Row: Paybill and A/C Number - STACKED FOR MOBILE SAFETY */}
+            <div className="flex justify-between items-center pb-4 border-b border-gray-100 gap-1">
+              <div className="flex flex-col items-start">
+                <p className="text-[9px] font-black text-blue-400 uppercase tracking-tighter">Paybill No.</p>
+                <p className="text-lg font-black text-gray-600 leading-tight">247247</p>
               </div>
 
-              <div className="text-right">
-                <p className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">A/C Number</p>
-                <p className="text-xl font-black text-blue-500 uppercase leading-none mt-1">
+              <div className="flex flex-col items-end text-right max-w-[60%]">
+                <p className="text-[9px] font-black text-blue-400 uppercase tracking-tighter">A/C Number</p>
+                <p className="text-lg font-black text-blue-500 uppercase leading-tight truncate w-full">
                   {mpesaAccount}
                 </p>
               </div>
             </div>
 
-            <form onSubmit={handlePayment} className="space-y-4">
+            <form onSubmit={handlePayment} className="space-y-3">
+              {/* Name Input */}
               <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
                 <input 
                   required
-                  className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-none font-bold text-gray-900 text-sm"
+                  className="w-full py-3 pl-10 pr-4 bg-gray-50 rounded-xl border-none font-bold text-gray-900 text-xs focus:ring-1 focus:ring-blue-100"
                   placeholder="Your Name"
                   value={donorName}
                   onChange={(e) => setDonorName(e.target.value)}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Amount & Phone Grid */}
+              <div className="grid grid-cols-2 gap-2">
                 <div className="relative">
-                  <Heart className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-400" size={18} />
+                  <Heart className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-300" size={16} />
                   <input 
                     required
                     type="number"
-                    className="w-full p-4 pl-10 bg-gray-50 rounded-2xl border-none font-bold text-gray-900 text-sm"
+                    className="w-full py-3 pl-10 pr-2 bg-gray-50 rounded-xl border-none font-bold text-gray-900 text-xs"
                     placeholder="Amount"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                   />
                 </div>
                 <div className="relative">
-                  <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400" size={18} />
+                  <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-300" size={16} />
                   <input 
                     required
-                    className="w-full p-4 pl-10 bg-gray-50 rounded-2xl border-none font-bold text-gray-900 text-sm"
-                    placeholder="0712..."
+                    className="w-full py-3 pl-10 pr-2 bg-gray-50 rounded-xl border-none font-bold text-gray-900 text-xs"
+                    placeholder="07..."
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                   />
@@ -130,19 +132,15 @@ export const PublicGivingPage = () => {
 
               <button 
                 disabled={isProcessing}
-                className="w-full py-4 bg-green-600 hover:bg-green-500 text-white rounded-[2rem] font-black text-base shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 mt-2"
+                className="w-full py-4 bg-green-600 hover:bg-green-500 text-white rounded-2xl font-black text-sm shadow-md flex items-center justify-center gap-2 mt-2 transition-transform active:scale-95"
               >
-                {isProcessing ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <>
-                    <Smartphone size={20} className="flex-shrink-0" />
-                    <span className="whitespace-nowrap">DONATE VIA M-PESA</span>
-                  </>
-                )}
+                <Smartphone size={18} className="flex-shrink-0" />
+                <span className="whitespace-nowrap">DONATE VIA M-PESA</span>
               </button>
             </form>
           </div>
+                
+
 
           <p className="text-[10px] text-center text-gray-400 font-bold px-8 leading-relaxed">
             All contributions go directly to the ACK St. Barnabas Development Fund. 
