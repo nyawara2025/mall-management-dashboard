@@ -65,28 +65,28 @@ export const PublicGivingPage = () => {
           />
         </div>
 
-        <div className="p-8 space-y-8">
-          <div className="text-center space-y-2">
-            <h2 className="text-3xl font-black text-gray-600 leading-tight">
+        <div className="p-6 space-y-6">
+          <div className="text-center space-y-1">
+            <h2 className="text-xxl font-black text-gray-700 leading-tight">
               Join {memberName} in this noble cause.
             </h2>
-            <p className="text-xs font-bold text-blue-600 uppercase tracking-widest">
+            <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest">
               ACK St. Barnabas 100 Day Challenge
             </p>
           </div>
 
           {/* Payment Instructions Card */}
-          <div className="bg-white border-2 border-blue-50 rounded-[2.5rem] p-4 shadow-sm space-y-5">
+          <div className="bg-white border-2 border-blue-50 rounded-[2rem] p-5 shadow-sm space-y-5">
             {/* Row: Paybill and A/C Number - STACKED FOR MOBILE SAFETY */}
-            <div className="flex justify-between items-center pb-4 border-b border-gray-100 gap-1">
-              <div className="flex flex-col items-start">
-                <p className="text-[9px] font-black text-blue-400 uppercase tracking-tighter">Paybill No.</p>
-                <p className="text-lg font-black text-gray-600 leading-tight">247247</p>
+            <div className="flex justify-between items-start pb-4 border-b border-gray-100">
+              <div className="flex flex-col">
+                <p className="text-[8px] font-black text-blue-400 uppercase tracking-tighter">Paybill No.</p>
+                <p className="text-lg font-black text-gray-600">247247</p>
               </div>
 
-              <div className="flex flex-col items-end text-right max-w-[60%]">
-                <p className="text-[9px] font-black text-blue-400 uppercase tracking-tighter">A/C Number</p>
-                <p className="text-lg font-black text-blue-500 uppercase leading-tight truncate w-full">
+              <div className="flex flex-col text-right">
+                <p className="text-[8px] font-black text-blue-400 uppercase tracking-tighter">A/C Number</p>
+                <p className="text-lg font-black text-blue-500 uppercase leading-none mt-1">
                   {mpesaAccount}
                 </p>
               </div>
@@ -95,10 +95,10 @@ export const PublicGivingPage = () => {
             <form onSubmit={handlePayment} className="space-y-3">
               {/* Name Input */}
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={16} />
                 <input 
                   required
-                  className="w-full py-3 pl-10 pr-4 bg-gray-50 rounded-xl border-none font-bold text-gray-900 text-xs focus:ring-1 focus:ring-blue-100"
+                  className="w-full py-3 pl-12 pr-4 bg-gray-50 rounded-xl border-none font-bold text-gray-900 text-xs"
                   placeholder="Your Name"
                   value={donorName}
                   onChange={(e) => setDonorName(e.target.value)}
@@ -106,24 +106,24 @@ export const PublicGivingPage = () => {
               </div>
 
               {/* Amount & Phone Grid */}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-col gap-3">
                 <div className="relative">
-                  <Heart className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-300" size={16} />
+                  <Heart className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-300" size={16} />
                   <input 
                     required
                     type="number"
-                    className="w-full py-3 pl-10 pr-2 bg-gray-50 rounded-xl border-none font-bold text-gray-900 text-xs"
+                    className="w-full py-3 pl-12 pr-4 bg-gray-50 rounded-xl border-none font-bold text-gray-900 text-xs"
                     placeholder="Amount"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                   />
                 </div>
                 <div className="relative">
-                  <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-300" size={16} />
+                  <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-300" size={16} />
                   <input 
                     required
-                    className="w-full py-3 pl-10 pr-2 bg-gray-50 rounded-xl border-none font-bold text-gray-900 text-xs"
-                    placeholder="07..."
+                    className="w-full py-3 pl-12 pr-4 bg-gray-50 rounded-xl border-none font-bold text-gray-900 text-xs"
+                    placeholder="MPESA Number (07...)"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                   />
@@ -132,10 +132,10 @@ export const PublicGivingPage = () => {
 
               <button 
                 disabled={isProcessing}
-                className="w-full py-4 bg-green-600 hover:bg-green-500 text-white rounded-2xl font-black text-sm shadow-md flex items-center justify-center gap-2 mt-2 transition-transform active:scale-95"
+                className="w-full py-4 bg-green-600 text-white rounded-2xl font-black text-sm shadow-md flex items-center justify-center gap-2 mt-2"
               >
-                <Smartphone size={18} className="flex-shrink-0" />
-                <span className="whitespace-nowrap">DONATE VIA M-PESA</span>
+                <Smartphone size={18} />
+                DONATE VIA M-PESA
               </button>
             </form>
           </div>
