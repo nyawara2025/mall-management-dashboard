@@ -29,6 +29,12 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
 
   const [base64Background, setBase64Background] = useState<string | null>(null);
 
+  const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false);
+  const [phoneNumbers, setPhoneNumbers] = useState(''); // Stores comma-separated numbers
+  const [isSending, setIsSending] = useState(false);
+
+  const [campaignFilename, setCampaignFilename] = useState<string>('');
+
   const canvasStyles = {
     container: "relative w-full overflow-hidden rounded-[2.5rem] shadow-2xl border-4 border-white",
     baseGraphic: "w-full h-auto block",
@@ -165,6 +171,42 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
     }
   };
 
+
+  const handleFinalSend = async () => {
+    setIsSending(true);
+  
+    // 1. Clean the input string into an array of numbers
+    const numbersArray = phoneNumbers
+      .split(',')
+      .map(num => num.trim())
+      .filter(num => num.length >= 10);
+
+    try {
+      // 2. Loop through and trigger n8n for each recipient
+      // Note: You can also update n8n to accept an array to do this in one hit
+      for (const number of numbersArray) {
+        await fetch('https://n8n.tenear.com/webhook/send-to-donor2', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            recipient: number,
+            member_name: userData?.first_name,
+            campaign_img: campaignFilename, // The filename from your Supabase upload
+            shop_id: 68
+          })
+        });
+      }
+    
+      alert(`Successfully shared with ${numbersArray.length} friends!`);
+      setIsRecipientModalOpen(false);
+      setIsCampaignMode(false);
+    } catch (err) {
+      alert("There was an issue sending. Please try again.");
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   const handleGenerateCampaign = async () => {
     if (!campaignPhoto) return alert("Please upload your family portrait first!");
     if (!campaignRef.current) return;
@@ -180,29 +222,37 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
        const compositeImage = canvas.toDataURL('image/jpeg', 0.8);
 
        // 2. Send to your n8n 'Heavy Lifter'
+
+       const fileName = `challenge_${userData?.first_name || 'member'}_${Date.now()}.jpg`;
+       setCampaignFilename(fileName);
+
+       // 3. Send the image to n8n to be saved in Supabase
+       // We send it now so the image is "ready" before the member even finishes typing numbers
+
        const response = await fetch('https://n8n.tenear.com/webhook/share-with-donor', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({
            shop_id: shopId,
            member_name: userData?.first_name || 'Member',
-           member_phone: userData?.phone_number || '254...', // Send to the member themselves
            image_data: compositeImage,
+           file_name: fileName, // Tell n8n what to name the file in Supabase
            target_url: `https://sbo-0qa.pages.dev{shopId}&view=give&m_id=${userData?.id}`
          })
        });
 
        if (response.ok) {
-         alert("Praise God! Your personalized poster is being sent to your WhatsApp. Please forward it to your groups!");
-         setIsCampaignMode(false);
+         // 4. INSTEAD OF CLOSING: Open the Recipients Modal
+         setIsRecipientModalOpen(true); 
+       } else {
+         throw new Error("Failed to prep image");
        }
      } catch (err) {
        console.error("Workflow Error:", err);
-       alert("Could not generate poster. Please check your connection.");
+       alert("Could not generate poster. Please try again.");
      }
-   };
+  };
     
-
 
   return (
     <div className="space-y-6 animate-in slide-in-from-right duration-300">
@@ -341,13 +391,54 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
 
             <div className="flex gap-4">
               <button onClick={() => setIsCampaignMode(false)} className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black text-xs">BACK</button>
-              <button onClick={handleGenerateCampaign} className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black text-xs shadow-lg flex items-center justify-center gap-2">
+              
+              <button 
+                onClick={() => setIsRecipientModalOpen(true)} 
+                className="flex-1 py-4 bg-blue-600 ...">
                 <Share2 size={16} /> SHARE TO WHATSAPP
               </button>
+
             </div>
           </div>
         </div>
       )}   
+  
+      {isRecipientModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-center justify-center p-6">
+          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full space-y-6 shadow-2xl">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                <Share2 className="text-green-600" size={24} />
+              </div>
+              <h3 className="text-lg font-black text-gray-800">Send to Friends</h3>
+              <p className="text-xs text-gray-500 font-medium">Enter M-Pesa numbers separated by commas.</p>
+            </div>
+
+            <textarea
+              className="w-full p-4 bg-gray-50 rounded-2xl border-2 border-gray-100 font-bold text-gray-900 text-sm focus:border-blue-400 outline-none transition-all h-32"
+              placeholder="0712345678, 0722000000..."
+              value={phoneNumbers}
+              onChange={(e) => setPhoneNumbers(e.target.value)}
+            />
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setIsRecipientModalOpen(false)}
+                className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-xl font-black text-xs"
+              >
+                CANCEL
+              </button>
+              <button 
+                onClick={handleFinalSend}
+                disabled={!phoneNumbers || isSending}
+                className="flex-1 py-4 bg-green-600 text-white rounded-xl font-black text-xs flex items-center justify-center gap-2"
+              >
+                {isSending ? <Loader2 className="animate-spin" size={16} /> : "SEND NOW"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

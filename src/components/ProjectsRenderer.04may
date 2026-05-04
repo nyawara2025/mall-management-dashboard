@@ -29,6 +29,10 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
 
   const [base64Background, setBase64Background] = useState<string | null>(null);
 
+  const [isRecipientModalOpen, setIsRecipientModalOpen] = useState(false);
+  const [phoneNumbers, setPhoneNumbers] = useState(''); // Stores comma-separated numbers
+  const [isSending, setIsSending] = useState(false);
+
   const canvasStyles = {
     container: "relative w-full overflow-hidden rounded-[2.5rem] shadow-2xl border-4 border-white",
     baseGraphic: "w-full h-auto block",
@@ -300,41 +304,41 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
             </div>
 
             {/* DYNAMIC CANVAS PREVIEW */}
-            <div ref={campaignRef} className="relative w-full aspect-[1.91/1] bg-gray-100 rounded-[2rem] overflow-hidden shadow-inner border border-gray-100">
+            <div ref={campaignRef} className="relative w-full aspect-[1.91/1] bg-gray-100 rounded-3xl overflow-hidden shadow-2xl border-4 border-white">
               {/* Layer 1: Base Graphic */}
               <img 
                 src={base64Background || "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasFinal04May.png"} 
-                className="w-full h-full object-cover z-0" 
+                className="w-full h-full object-cover" 
                 alt="Background" 
               />
 
-              {/* Layer 2: Interactive Member Photo Placeholder - Boosted Z-Index */}
-              <label className="absolute top-[63.5%] left-[45.2%] w-[11%] aspect-square rounded-full border-2 border-white shadow-xl overflow-hidden bg-white flex items-center justify-center cursor-pointer group z-50 hover:scale-110 transition-transform">
+              {/* Layer 2: Interactive Member Photo Placeholder */}
+              <label className="absolute bottom-[10%] left-1/2 -translate-x-1/2 w-[18%] aspect-square rounded-full border-4 border-white shadow-2xl overflow-hidden bg-white flex items-center justify-center cursor-pointer group z-50 hover:scale-105 transition-transform">
                 {campaignPhoto ? (
                   <img src={campaignPhoto} className="w-full h-full object-cover" alt="Member" />
                 ) : (
                   <div className="text-center">
-                    <Camera size={14} className="text-blue-600 mx-auto" />
-                    <span className="text-[5px] font-black block text-blue-600">ADD PHOTO</span>
+                    <Camera size={20} className="text-blue-600 mx-auto" />
+                    <span className="text-[7px] font-black block text-blue-600 uppercase">ADD PHOTO</span>
                   </div>
                 )}
                 <input type="file" className="hidden" accept="image/*" onChange={onPhotoUpload} />
               </label>
+            </div>
 
-              {/* Layer 3: M-PESA & Social Overlay */}
-              <div className="absolute bottom-[4%] left-1/2 -translate-x-1/2 w-[90%] flex flex-col items-center pointer-events-none z-10">
-                <div className="bg-white/95 backdrop-blur px-6 py-2 rounded-2xl shadow-xl border border-gray-100 flex gap-6 items-center">
-                  <div className="text-left border-r border-gray-100 pr-6">
-                    <p className="text-[7px] font-black text-gray-400 uppercase tracking-tighter">M-PESA Paybill</p>
-                    <p className="text-[10px] font-black text-blue-900">247247</p>
-                  </div>
-                  <div className="text-left border-r border-gray-100 pr-6">
-                    <p className="text-[7px] font-black text-gray-400 uppercase tracking-tighter">Account No.</p>
-                    <p className="text-[10px] font-black text-gray-900 uppercase">341009#{userData?.first_name || 'Member'}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-[10px] font-black text-orange-600">StBarnabas10MILLION</p>
-                  </div>
+            {/* NEW: Clean Info Section (Below the image) */}
+            <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100/50">
+              <div className="flex justify-between items-center text-center">
+                <div className="flex-1">
+                  <p className="text-[8px] font-black text-blue-400 uppercase">Paybill</p>
+                  <p className="text-sm font-black text-gray-700">247247</p>
+                </div>
+                <div className="h-8 w-[1px] bg-blue-100"></div>
+                <div className="flex-1">
+                  <p className="text-[8px] font-black text-blue-400 uppercase">Account No.</p>
+                  <p className="text-sm font-black text-blue-600 uppercase">
+                    341009#{userData?.first_name || 'MEMBER'}
+                  </p>
                 </div>
               </div>
             </div>
