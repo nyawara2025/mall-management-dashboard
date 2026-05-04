@@ -76,17 +76,17 @@ export const PublicGivingPage = () => {
           </div>
 
           {/* Payment Instructions Card */}
-          <div className="bg-white border-2 border-blue-50 rounded-[2.5rem] p-8 shadow-sm space-y-6">
+          <div className="bg-white border-2 border-blue-50 rounded-[2.5rem] p-5 shadow-sm space-y-6">
             {/* Row: Paybill and A/C Number */}
-            <div className="flex justify-between items-start pb-6 border-b border-gray-100 gap-2">
-              <div className="flex-shrink-0">
+            <div className="flex justify-between items-start pb-4 border-b border-gray-100">
+              <div className="text-left">
                 <p className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">Paybill No.</p>
-                <p className="text-xl sm:text-2xl font-black text-gray-500">247247</p>
+                <p className="text-xl font-black text-gray-600 leading-none mt-1">247247</p>
               </div>
-    
-              <div className="text-right min-w-0"> {/* min-w-0 allows the text to shrink/wrap */}
+
+              <div className="text-right">
                 <p className="text-[10px] font-black text-blue-400 uppercase tracking-tighter">A/C Number</p>
-                <p className="text-lg sm:text-2xl font-black text-blue-500 uppercase leading-tight break-words">
+                <p className="text-xl font-black text-blue-500 uppercase leading-none mt-1">
                   {mpesaAccount}
                 </p>
               </div>
@@ -94,33 +94,33 @@ export const PublicGivingPage = () => {
 
             <form onSubmit={handlePayment} className="space-y-4">
               <div className="relative">
-                <User className="absolute left-4 top-4 text-gray-400" size={20} />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                 <input 
                   required
-                  className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-none font-bold text-gray-900"
+                  className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-none font-bold text-gray-900 text-sm"
                   placeholder="Your Name"
                   value={donorName}
                   onChange={(e) => setDonorName(e.target.value)}
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="relative">
-                  <Heart className="absolute left-4 top-4 text-orange-400" size={20} />
+                  <Heart className="absolute left-3 top-1/2 -translate-y-1/2 text-orange-400" size={18} />
                   <input 
                     required
                     type="number"
-                    className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-none font-bold text-gray-900"
+                    className="w-full p-4 pl-10 bg-gray-50 rounded-2xl border-none font-bold text-gray-900 text-sm"
                     placeholder="Amount"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                   />
                 </div>
                 <div className="relative">
-                  <Smartphone className="absolute left-4 top-4 text-blue-400" size={20} />
+                  <Smartphone className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400" size={18} />
                   <input 
                     required
-                    className="w-full p-4 pl-12 bg-gray-50 rounded-2xl border-none font-bold text-gray-900"
+                    className="w-full p-4 pl-10 bg-gray-50 rounded-2xl border-none font-bold text-gray-900 text-sm"
                     placeholder="0712..."
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
@@ -130,14 +130,14 @@ export const PublicGivingPage = () => {
 
               <button 
                 disabled={isProcessing}
-                className="w-full py-5 bg-green-600 hover:bg-green-500 text-white rounded-[2rem] font-black text-lg shadow-lg flex items-center justify-center gap-3 transition-all active:scale-95"
+                className="w-full py-4 bg-green-600 hover:bg-green-500 text-white rounded-[2rem] font-black text-base shadow-lg flex items-center justify-center gap-2 transition-all active:scale-95 mt-2"
               >
                 {isProcessing ? (
                   <Loader2 className="animate-spin" />
                 ) : (
                   <>
-                    <Smartphone size={24} />
-                    DONATE VIA M-PESA
+                    <Smartphone size={20} className="flex-shrink-0" />
+                    <span className="whitespace-nowrap">DONATE VIA M-PESA</span>
                   </>
                 )}
               </button>
