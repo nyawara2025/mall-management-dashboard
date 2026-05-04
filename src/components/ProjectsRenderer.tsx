@@ -50,7 +50,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
   const [isCampaignMode, setIsCampaignMode] = useState(false);
   const [selectedProject, setSelectedProject] = useState<any>(null);
   const [campaignPhoto, setCampaignPhoto] = useState<string | null>(null);
-  const fundRaiserPosterUrl = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png";
+  const fundRaiserPosterUrl = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasFinal04May.png";
   const [selectedGraphic, setSelectedGraphic] = useState(fundRaiserPosterUrl);
 
   const [newDonor, setNewDonor] = useState({ 
