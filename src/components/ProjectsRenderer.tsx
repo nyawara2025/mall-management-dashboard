@@ -303,7 +303,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
             <div ref={campaignRef} className="relative w-full aspect-[1.91/1] bg-gray-100 rounded-[2rem] overflow-hidden shadow-inner border border-gray-100">
               {/* Layer 1: Base Graphic */}
               <img 
-                src={base64Background || "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png"} 
+                src={base64Background || "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasFinal04May.png"} 
                 className="w-full h-full object-cover z-0" 
                 alt="Background" 
               />
