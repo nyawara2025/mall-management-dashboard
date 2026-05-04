@@ -185,6 +185,12 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
       // 2. Loop through and trigger n8n for each recipient
       // Note: You can also update n8n to accept an array to do this in one hit
       for (const number of numbersArray) {
+
+        // Format number to ensure it starts with 254
+        const formattedNumber = number.startsWith('0') 
+          ? '254' + number.slice(1) 
+          : number;
+
         await fetch('https://n8n.tenear.com/webhook/send-to-donor2', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
