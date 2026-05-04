@@ -36,7 +36,7 @@ export const PublicGivingPage = () => {
           phone: phone.startsWith('0') ? '254' + phone.slice(1) : phone,
           donor_name: donorName || 'Well Wisher',
           referred_by: memberName,
-          project_id: searchParams.get('project_id') || "100_day_challenge"
+          project_id: searchParams.get('project_id') || "10 MILLION SHILLING CHALLENGE"
         })
       });
 
@@ -60,7 +60,7 @@ export const PublicGivingPage = () => {
             className="w-full h-full object-cover"
             alt="St. Barnabas Fundraiser" 
             onError={(e) => {
-              (e.target as HTMLImageElement).src = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/100Challenge001.png";
+              (e.target as HTMLImageElement).src = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasFinal04May.png";
             }}
           />
         </div>

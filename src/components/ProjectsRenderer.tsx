@@ -333,7 +333,7 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
                     <p className="text-[10px] font-black text-gray-900 uppercase">341009#{userData?.first_name || 'Member'}</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-[10px] font-black text-orange-600">StBarnabas100Days</p>
+                    <p className="text-[10px] font-black text-orange-600">StBarnabas10MILLION</p>
                   </div>
                 </div>
               </div>
