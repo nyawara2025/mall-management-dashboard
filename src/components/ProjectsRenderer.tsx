@@ -336,18 +336,22 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
               {/* Layer 2: Interactive Member Photo Placeholder - Capture Stable version */}
               <label 
                 style={{ 
-                  bottom: '8%', 
+                  bottom: '5%', 
                   left: '41%', // Using a fixed percentage instead of -translate-x
                   width: '18%',
+                  borderRadius: '9999px',
                 }}
-                className="absolute aspect-square rounded-full border-[3px] border-white shadow-2xl overflow-hidden bg-white flex items-center justify-center cursor-pointer z-50"
+                className="absolute aspect-square overflow-hidden bg-white shadow-2xl flex items-center justify-center cursor-pointer z-50 ring-[3px] ring-white"
               >
                 {campaignPhoto ? (
                   <img 
                     src={campaignPhoto} 
-                    className="w-full h-full object-cover rounded-full" // Added rounded-full here too
+                    className="w-full h-full object-cover"
                     alt="Member" 
-                    style={{ display: 'block' }} // Force display block for cleaner capture
+                    style={{ 
+                      borderRadius: '50%', // Inline style is more reliable for html2canvas
+                      objectFit: 'cover' 
+                    }} 
                   />
                 ) : (
                   <div className="text-center">
