@@ -28,7 +28,6 @@ import { CommunityAndZones } from './CommunityAndZones';
 import { ServiceOrderTabs } from './ServiceOrderTabs';
 import { MomentWithGodModal } from './MomentWithGodModal';
 import { ProjectsRenderer } from './ProjectsRenderer';
-import { ConsentSection } from './ConsentSection';
 
 // --- TYPES ---
 interface PaymentRecord {
@@ -129,8 +128,6 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   
-  const [hasConsented, setHasConsented] = useState(false);
-
   const handleForgotPassword = async () => {
     if (!phone) {
       alert("Please enter your phone number first.");
@@ -206,11 +203,6 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
       return;
     }
   
-    if (isSignUp && !hasConsented) {
-      alert("Please accept the Data Privacy consent to continue.");
-      return;
-    }
-
     if (isSignUp && (!firstName || !lastName)) {
       alert("Please enter your first and last name to create a profile");
       return;
@@ -229,8 +221,6 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
         // Only send names if it's a Signup attempt
         first_name: isSignUp ? firstName : undefined,
         last_name: isSignUp ? lastName : undefined,
-        consent_given: isSignUp ? hasConsented : undefined,
-        consent_timestamp: isSignUp ? new Date().toISOString() : undefined
       };
 
       const response = await fetch('https://n8n.tenear.com/webhook/church-user-signup', {
@@ -312,13 +302,6 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
                 className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium text-gray-700"
                 required
               />
-
-              {/* INSERT CONSENT SECTION HERE */}
-              <ConsentSection 
-                hasConsented={hasConsented} 
-                setHasConsented={setHasConsented} 
-              />
-
             </div>
           )}
 
