@@ -13,7 +13,7 @@ export const ConsentSection = ({ hasConsented, setHasConsented }: ConsentProps) 
           Data Privacy & Consent
         </h4>
         <p className="text-[9px] text-gray-600 leading-relaxed font-medium">
-          Pursuant to the <strong>Kenya Data Protection Act 2019</strong>, ACK St. Barnabas collects your bio for official membership records and pastoral care. You have the right to access, correct, or withdraw this consent at any time.
+          Pursuant to the <strong>Kenya Data Protection Act 2019</strong>, ACK St. Barnabas needs your consent to collects your personal data, for official membership records and pastoral care. You have the right to access, correct, or withdraw this consent at any time.
         </p>
       </div>
 
