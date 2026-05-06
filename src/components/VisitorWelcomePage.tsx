@@ -12,7 +12,7 @@ export const VisitorWelcomePage = ({ shopId }: { shopId: number }) => {
     if (hasCheckedIn) {
       const getOrderOfService = async () => {
         try {
-          const response = await fetch('https://n8n.tenear.com/webhook/fetch-public-service-order', {
+          const response = await fetch('https://n8n.tenear.com/webhook/fetch-visitors-service-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
