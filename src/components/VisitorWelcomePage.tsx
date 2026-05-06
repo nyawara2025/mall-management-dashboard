@@ -20,14 +20,23 @@ export const VisitorWelcomePage = ({ shopId }: { shopId: number }) => {
               service_type: 'English Service' 
             })
           });
-          const data = await response.json();
+          
 
-          if (data.services && data.services.length > 0) {
+          if (response.ok) {
+            const n8nData = await response.json();
+            
+            // 1. Normalize the data exactly like your authenticated logic
+            const rawServices = Array.isArray(n8nData) ? n8nData[0] : (n8nData.services ? n8nData.services[0] : n8nData);
 
-            setServiceData(data.services[0].service_activities || []);
-          } else {
-            setServiceData([]);
+            // 2. Extract the activities from the service
+            if (rawServices && rawServices.service_activities) {
+              setServiceData(rawServices.service_activities);
+            } else {
+              setServiceData([]);
+            }
           }
+
+
         } catch (err) {
           console.error("Fetch error:", err);
           setServiceData([]);
