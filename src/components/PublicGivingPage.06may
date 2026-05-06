@@ -9,8 +9,6 @@ export const PublicGivingPage = () => {
   const [donorName, setDonorName] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const [hasCheckedIn, setHasCheckedIn] = useState(false);
-
   // 1. DYNAMIC ASSETS: Reconstructing data from n8n URL parameters
   const shopId = searchParams.get('shop_id') || '68';
   const memberName = searchParams.get('member_name') || 'a Church Member';
@@ -73,7 +71,7 @@ export const PublicGivingPage = () => {
               Join {memberName} in this noble cause.
             </h2>
             <p className="text-[9px] font-bold text-blue-600 uppercase tracking-widest">
-              ACK St. Barnabas 10 MILLION Challenge
+              ACK St. Barnabas 100 Day Challenge
             </p>
           </div>
 
