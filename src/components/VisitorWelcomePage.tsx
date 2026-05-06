@@ -8,16 +8,21 @@ export const VisitorWelcomePage = ({ shopId }: { shopId: number }) => {
 
   const [serviceData, setServiceData] = useState<any[]>([]);
 
+  const [selectedService, setSelectedService] = useState('English Service');
+
   useEffect(() => {
     if (hasCheckedIn) {
       const getOrderOfService = async () => {
         try {
+
+          setServiceData([]);
+
           const response = await fetch('https://n8n.tenear.com/webhook/fetch-visitors-service-order', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               shop_id: shopId,
-              service_type: 'English Service' 
+              service_type: selectedService 
             })
           });
           
@@ -44,7 +49,7 @@ export const VisitorWelcomePage = ({ shopId }: { shopId: number }) => {
       };
       getOrderOfService();
     }
-  }, [hasCheckedIn, shopId]);
+  }, [hasCheckedIn, selectedService, shopId]);
 
 
   return (
@@ -57,13 +62,13 @@ export const VisitorWelcomePage = ({ shopId }: { shopId: number }) => {
               className="w-20 h-20 mx-auto mb-4 drop-shadow-sm" 
               alt="St. Barnabas Logo"
             />
-            <h2 className="text-2xl font-black text-gray-600 leading-tight">Welcome Home!</h2>
-            <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mt-2">
-              ACK St. Barnabas Otiende,
+            <h2 className="text-2xl font-black text-gray-500 leading-tight">Welcome Home!</h2>
+            <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mt-2">
+              Feel welcome at ACK St. Barnabas Otiende.
+                      The home of encouragement!
             </p>
- 
-            <p className="text-xs font-bold text-blue-500 uppercase tracking-widest mt-2">
-              Home of encouragement!                       
+            <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mt-2">
+              Kindly share with us your names and contacts below:                       
             </p>
           </div>
         
@@ -78,10 +83,27 @@ export const VisitorWelcomePage = ({ shopId }: { shopId: number }) => {
             </p>
           </div>
 
+          {/* 1. SERVICE SELECTOR TABS */}
+          <div className="flex gap-2 overflow-x-auto pb-2 mb-2 scrollbar-hide">
+            {['Morning Glory', 'Youth Service', 'English Service', 'Kiswahili Service'].map((service) => (
+              <button
+                key={service}
+                onClick={() => setSelectedService(service)}
+                className={`px-4 py-2 rounded-full text-[10px] font-black whitespace-nowrap transition-all border ${
+                  selectedService === service 
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-md' 
+                    : 'bg-white text-gray-500 border-gray-100 hover:bg-gray-50'
+                }`}
+              >
+                {service.toUpperCase()}
+              </button>
+            ))}
+          </div>
+
           {/* DYNAMIC SERVICE ACTIVITIES LIST */}
           <div className="space-y-4">
             <h3 className="text-xs font-black text-blue-600 uppercase tracking-widest border-b pb-2">
-              English Service Program
+              {selectedService} Program
             </h3>
           
             {serviceData.length > 0 ? (
