@@ -21,9 +21,16 @@ export const VisitorWelcomePage = ({ shopId }: { shopId: number }) => {
             })
           });
           const data = await response.json();
-          setServiceData(data); // Expecting an array of activities from n8n
+
+          if (data.services && data.services.length > 0) {
+
+            setServiceData(data.services[0].service_activities || []);
+          } else {
+            setServiceData([]);
+          }
         } catch (err) {
           console.error("Fetch error:", err);
+          setServiceData([]);
         }
       };
       getOrderOfService();
