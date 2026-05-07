@@ -63,11 +63,11 @@ export const VisitorWelcomePage = ({ shopId }: { shopId: number }) => {
               alt="St. Barnabas Logo"
             />
             <h2 className="text-2xl font-black text-gray-500 leading-tight">Welcome Home!</h2>
-            <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mt-2">
+            <p className="text-lg text-blue-400 font-chancery mt-3 px-4">
               Feel welcome at ACK St. Barnabas Otiende.
-                      The home of encouragement!
+              The home of encouragement!
             </p>
-            <p className="text-xs font-bold text-blue-400 uppercase tracking-widest mt-2">
+            <p className="text-base text-blue-400 font-chancery mt-2 italic">
               Kindly share with us your names and contacts below:                       
             </p>
           </div>

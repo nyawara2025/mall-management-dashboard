@@ -30,11 +30,9 @@ export default {
         'error': '#DC3545',
       },
       
-      // Typography
+      // Typography - Inter font
       fontFamily: {
         'sans': ['Inter', 'system-ui', 'sans-serif'],
-        // Integrated Chancery stack for cross-platform support
-        'chancery': ['"Apple Chancery"', '"ITC Zapf Chancery"', '"Zapf Chancery"', '"URW Chancery L"', 'cursive'],
       },
       
       // Type Scale (Major Third — 1.25 Ratio)
