@@ -2,6 +2,109 @@ import React, { useState, useEffect } from 'react';
 import { VisitorForm } from './VisitorForm'; // Ensure this matches your filename
 import { CheckCircle2, Loader2, ChevronDown, FileText, ClipboardList, Clock } from 'lucide-react';
 
+const VisitorQuestionnaire = ({ shopId }: { shopId: number }) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    currentChurch: '',
+    attendanceStatus: '',
+    talents: '',
+    comments: ''
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/church-visitor-responses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          shop_id: shopId,
+          submitted_at: new Date().toISOString(),
+        }),
+      });
+
+      if (response.ok) {
+        alert("Praise God! Your feedback has been received.");
+        // Optional: you could reset state here to clear the form
+      } else {
+        throw new Error('Submission failed');
+      }
+    } catch (error) {
+      console.error('Webhook Error:', error);
+      alert("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const inputClasses = "w-full p-3 bg-white border border-blue-100 rounded-xl text-sm focus:ring-2 focus:ring-blue-400 outline-none transition-all disabled:opacity-50";
+  const labelClasses = "block text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1 ml-1";
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+      <div>
+        <label className={labelClasses}>Current Church / Place of Worship</label>
+        <input 
+          type="text" name="currentChurch" value={formData.currentChurch}
+          onChange={handleChange} placeholder="Name of your previous church"
+          className={inputClasses} disabled={isSubmitting}
+        />
+      </div>
+
+      <div>
+        <label className={labelClasses}>Are you here to stay or just passing by?</label>
+        <select 
+          name="attendanceStatus" value={formData.attendanceStatus}
+          onChange={handleChange} className={inputClasses} disabled={isSubmitting}
+        >
+          <option value="">Select an option...</option>
+          <option value="stay">Looking for a new church home</option>
+          <option value="passing">Just passing by / Visiting</option>
+          <option value="regular">Regular visitor</option>
+        </select>
+      </div>
+
+      <div>
+        <label className={labelClasses}>Your Talents / Areas of Interest</label>
+        <select 
+          name="talents" value={formData.talents}
+          onChange={handleChange} className={inputClasses} disabled={isSubmitting}
+        >
+          <option value="">Select your area...</option>
+          <option value="choir">Praise & Worship / Choir</option>
+          <option value="ushering">Ushering & Hospitality</option>
+          <option value="media">Media & IT Team</option>
+          <option value="sunday_school">Sunday School / Children</option>
+        </select>
+      </div>
+
+      <div>
+        <label className={labelClasses}>Comments or Prayer Requests</label>
+        <textarea 
+          name="comments" value={formData.comments}
+          onChange={handleChange} rows={3}
+          className={`${inputClasses} resize-none`} disabled={isSubmitting}
+        />
+      </div>
+
+      <button 
+        type="submit"
+        disabled={isSubmitting}
+        className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black text-xs shadow-lg hover:bg-blue-700 transition-all uppercase tracking-widest"
+      >
+        {isSubmitting ? 'Sending...' : 'Submit Feedback'}
+      </button>
+    </form>
+  );
+};
 
 // Using a Named Export to match your App.tsx import
 export const VisitorWelcomePage = ({ shopId }: { shopId: number }) => {
@@ -81,33 +184,44 @@ export const VisitorWelcomePage = ({ shopId }: { shopId: number }) => {
             </p>
           </div>
 
-          <div className="space-y-2">
-            <HubButton 
-              icon={<FileText size={18} />} 
-                label="Welcome Package" 
-                onClick={() => window.open('https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasVisitorWelcomePage.pdf', '_blank')} 
-              />
-              <HubButton 
-                icon={<Clock size={18} />} 
-                label="Today's Order of Service" 
-                onClick={() => setSelectedHubItem('oos')} 
-              />
+          {/* 1. SHOW THE MENU ONLY IF NOTHING IS SELECTED */}
+          {selectedHubItem === 'menu' ? (
+            <div className="space-y-2">
               <HubButton 
                 icon={<FileText size={18} />} 
-                label="Overview of ACK St. Barnabas" 
-                onClick={() => window.open('https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasVisitorWelcomePage.pdf', '_blank')}
-              />
-              <HubButton 
-                icon={<ClipboardList size={18} />} 
-                label="Brief Questionnaire" 
-                onClick={() => setSelectedHubItem('survey')} 
-              />
-            </div>
-          
-
-            {/* 1. VIEW: ORDER OF SERVICE */}
+                  label="Welcome Package" 
+                  onClick={() => window.open('https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasVisitorWelcomePage.pdf', '_blank')} 
+                />
+                <HubButton 
+                  icon={<Clock size={18} />} 
+                  label="Today's Order of Service" 
+                  onClick={() => setSelectedHubItem('oos')} 
+                />
+                <HubButton 
+                  icon={<FileText size={18} />} 
+                  label="Overview of ACK St. Barnabas" 
+                  onClick={() => window.open('https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/StBarnabasVisitorWelcomePage.pdf', '_blank')}
+                />
+                <HubButton 
+                  icon={<ClipboardList size={18} />} 
+                  label="Brief Questionnaire" 
+                  onClick={() => setSelectedHubItem('survey')} 
+                />
+              </div>
+            ) : (
+              /* 2. SHOW THE BACK BUTTON IF SOMETHING IS SELECTED */
+              <button 
+                onClick={() => setSelectedHubItem('menu')}
+                className="flex items-center gap-2 text-xs font-black text-blue-600 uppercase tracking-widest bg-blue-50 px-4 py-2 rounded-full hover:bg-blue-100 transition-all"
+              >
+                ← Back to Menu
+              </button>
+            )}
+    
+            {/* 3. DYNAMIC CONTENT: OOS  */}
             {selectedHubItem === 'oos' && (
               <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+                {/* SERVICE TABS */}
                 <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                   {['Morning Glory', 'Youth Service', 'English Service', 'Kiswahili Service'].map((service) => (
                     <button
@@ -143,15 +257,20 @@ export const VisitorWelcomePage = ({ shopId }: { shopId: number }) => {
                 ) : (
                   <div className="text-center py-10">
                     <Loader2 className="animate-spin mx-auto text-gray-300" size={24} />
+                    <p className="text-[10px] font-bold text-gray-400 mt-2">Loading today's schedule...</p>
                   </div>
                 )}
               </div>
             )}
 
-            {/* 2. VIEW: QUESTIONNAIRE */}
+            {/* 3. VIEW: QUESTIONNAIRE */}
             {selectedHubItem === 'survey' && (
-              <div className="p-6 bg-blue-50 rounded-[2rem] border border-blue-100">
-                <VisitorQuestionnaire shopId={shopId.toString()} />
+              <div className="p-6 bg-blue-50 rounded-[2rem] border border-blue-100 animate-in slide-in-from-top-2 duration-300">
+                <h3 className="font-black text-blue-800 mb-6 text-center text-xs uppercase tracking-widest">
+                  Visitor Questionnaire
+                </h3>
+                {/* We pass the shopId prop here */}
+                <VisitorQuestionnaire shopId={shopId} />
               </div>
             )}
           </div>
@@ -167,11 +286,3 @@ export const VisitorWelcomePage = ({ shopId }: { shopId: number }) => {
       <span className="text-sm font-bold text-gray-700">{label}</span>
     </button>
   );
-
-  const VisitorQuestionnaire = ({ shopId }: { shopId: string }) => {
-    return (
-      <div className="text-center text-sm font-bold text-blue-800">
-        Questionnaire Form Implementation goes here...
-      </div>
-    );
-  };

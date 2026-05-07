@@ -70,7 +70,7 @@ export const VisitorForm = ({ onComplete }: { onComplete: () => void }) => {
           hasConsented ? 'bg-blue-600 text-white active:scale-95' : 'bg-gray-200 text-gray-400'
         }`}
       >
-        {loading ? <Loader2 className="animate-spin" /> : "CHECK-IN & VIEW ORDER OF SERVICE"}
+        {loading ? <Loader2 className="animate-spin" /> : "CHECK-IN"}
       </button>
     </form>
   );
