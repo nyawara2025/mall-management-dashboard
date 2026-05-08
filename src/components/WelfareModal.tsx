@@ -36,6 +36,44 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
   ];
 
 
+  useEffect(() => {
+    // 1. Only run this if we have explicitly switched to the 'history' tab
+    if (view === 'history' && isOpen) {
+      
+      const fetchHistory = async () => {
+        // Guard: Don't fetch if we don't have the member ID yet
+        if (!userData?.id) return;
+
+        setLoading(true);
+        try {
+          const response = await fetch('https://n8n.tenear.com/webhook/church-welfare-history', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              member_id: userData.id,
+              shop_id: userData.shop_id || 68
+            }),
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            // Ensure we handle the n8n data format correctly
+            setHistory(Array.isArray(data) ? data : (data.history || []));
+          }
+        } catch (err) {
+          console.error("Welfare History Fetch Error:", err);
+          setHistory([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchHistory();
+    }
+  // 2. DEPENDENCY: ONLY watch 'view'. 
+  // Removing 'userData' and 'isOpen' from here stops the infinite loop.
+  }, [view]); 
+
   const handlePayment = async () => {
     if (!selectedKittyId || !amount) {
       alert("Please select a kitty and enter an amount");
