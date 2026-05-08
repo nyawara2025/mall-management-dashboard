@@ -44,14 +44,18 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
-              member_id: userData?.id,
-              shop_id: userData?.shop_id 
+              member_id: userData.id,
+              shop_id: userData.shop_id 
             }),
           });
-          const data = await response.json();
-          setHistory(Array.isArray(data) ? data : []);
+         
+          if (response.ok) {
+            const data = await response.json();
+            setHistory(Array.isArray(data) ? data : []);
+          }
         } catch (err) {
           console.error("History fetch failed", err);
+          setHistory([]);
         } finally {
           setLoading(false);
         }
