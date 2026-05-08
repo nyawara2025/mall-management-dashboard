@@ -18,6 +18,8 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
   const [view, setView] = useState<'pay' | 'history'>('pay');
   const [history, setHistory] = useState<any[]>([]); // To store fetched payments
 
+  const [filter, setFilter] = useState<'All' | 'Ministry' | 'Zone' | 'Regional' | 'Welfare' | 'Ad hoc'>('All');
+
   if (!isOpen) return null;
 
   // 1. Helper to split strings (e.g. "Youth, Gen ZION") into individual items
@@ -35,6 +37,9 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
     { id: 'adhoc', type: 'Ad hoc', name: 'Special Needs' }
   ];
 
+  const filteredHistory = filter === 'All' 
+    ? history 
+    : history.filter(item => item.kitty_type === filter);
 
   const handleFetchHistory = async () => {
     setView('history'); // Switch the tab first
@@ -197,15 +202,32 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
           ) : (
             /* --- TAB 2: PAYMENT HISTORY --- */
             <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 min-h-[300px]">
+  
+              {/* NEW: Filter Bar */}
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {['All', 'Ministry', 'Zone', 'Regional', 'Welfare', 'Ad hoc'].map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setFilter(cat as any)}
+                    className={`px-3 py-1.5 rounded-full text-[9px] font-black whitespace-nowrap transition-all border ${
+                      filter === cat 
+                        ? 'bg-blue-600 text-white border-blue-600' 
+                        : 'bg-white text-gray-400 border-gray-100 hover:bg-gray-50'
+                    }`}
+                  >
+                    {cat.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+
               {loading ? (
                 <div className="flex flex-col items-center justify-center py-20">
                   <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="mt-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Fetching Records...</p>
                 </div>
-              ) : history.length > 0 ? (
-                <div className="space-y-3 max-h-[450px] overflow-y-auto pr-1">
-                  {history.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border border-gray-100 group hover:bg-white hover:shadow-md transition-all">
+              ) : filteredHistory.length > 0 ? (
+                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                  {filteredHistory.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
                       <div>
                         <p className="text-[9px] font-black text-blue-400 uppercase tracking-tighter">{item.kitty_type}</p>
                         <p className="text-sm font-black text-gray-800 leading-none mb-1">{item.kitty_name}</p>
@@ -215,20 +237,19 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
                       </div>
                       <div className="text-right">
                         <p className="text-base font-black text-gray-900">KES {item.amount}</p>
-                        <div className="flex items-center justify-end gap-1">
-                          <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                          <p className="text-[9px] font-black text-green-600 uppercase">Paid</p>
-                        </div>
+                        <p className="text-[9px] font-black text-green-600 uppercase">Paid</p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 opacity-40">
-                   <p className="text-sm font-black text-gray-400">No contributions found yet.</p>
+                   <p className="text-sm font-black text-gray-400">No {filter !== 'All' ? filter : ''} records found.</p>
                 </div>
               )}
             </div>
+
+
           )}
         </div>
       </div>
