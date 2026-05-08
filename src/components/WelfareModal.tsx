@@ -35,34 +35,6 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
     { id: 'adhoc', type: 'Ad hoc', name: 'Special Needs' }
   ];
 
-  useEffect(() => {
-    if (view === 'history' && isOpen && userData?.id) {
-      const fetchHistory = async () => {
-        setLoading(true);
-        try {
-          const response = await fetch('https://n8n.tenear.com/webhook/church-welfare-history', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              member_id: userData.id,
-              shop_id: userData.shop_id 
-            }),
-          });
-         
-          if (response.ok) {
-            const data = await response.json();
-            setHistory(Array.isArray(data) ? data : []);
-          }
-        } catch (err) {
-          console.error("History fetch failed", err);
-          setHistory([]);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchHistory();
-    }
-  }, [view]);
 
   const handlePayment = async () => {
     if (!selectedKittyId || !amount) {
