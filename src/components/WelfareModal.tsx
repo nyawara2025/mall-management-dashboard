@@ -36,7 +36,7 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
   ];
 
   useEffect(() => {
-    if (view === 'history' && isOpen) {
+    if (view === 'history' && isOpen && userData?.id) {
       const fetchHistory = async () => {
         setLoading(true);
         try {
@@ -51,14 +51,14 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
           const data = await response.json();
           setHistory(Array.isArray(data) ? data : []);
         } catch (err) {
-          console.error("History fetch failed");
+          console.error("History fetch failed", err);
         } finally {
           setLoading(false);
         }
       };
       fetchHistory();
     }
-  }, [view, isOpen, userData?.id]);
+  }, [view]);
 
   const handlePayment = async () => {
     if (!selectedKittyId || !amount) {
