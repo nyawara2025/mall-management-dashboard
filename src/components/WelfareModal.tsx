@@ -221,9 +221,6 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 opacity-40">
-                   <div className="w-16 h-16 bg-gray-100 rounded-full mb-4 flex items-center justify-center">
-                      <CreditCard size={24} className="text-gray-400" />
-                   </div>
                    <p className="text-sm font-black text-gray-400">No contributions found yet.</p>
                 </div>
               )}
@@ -233,4 +230,4 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
       </div>
     </div>
   );
- }
+};
