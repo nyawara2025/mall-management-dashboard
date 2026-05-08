@@ -36,43 +36,33 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
   ];
 
 
-  useEffect(() => {
-    // 1. Only run this if we have explicitly switched to the 'history' tab
-    if (view === 'history' && isOpen) {
-      
-      const fetchHistory = async () => {
-        // Guard: Don't fetch if we don't have the member ID yet
-        if (!userData?.id) return;
-
-        setLoading(true);
-        try {
-          const response = await fetch('https://n8n.tenear.com/webhook/church-welfare-history', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              member_id: userData.id,
-              shop_id: userData.shop_id || 68
-            }),
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            // Ensure we handle the n8n data format correctly
-            setHistory(Array.isArray(data) ? data : (data.history || []));
-          }
-        } catch (err) {
-          console.error("Welfare History Fetch Error:", err);
-          setHistory([]);
-        } finally {
-          setLoading(false);
-        }
-      };
-
-      fetchHistory();
+  const handleFetchHistory = async () => {
+    setView('history'); // Switch the tab first
+  
+    if (!userData?.id) return;
+  
+    setLoading(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/church-welfare-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          member_id: userData.id,
+          shop_id: userData.shop_id || 68
+        }),
+      });
+    
+      if (response.ok) {
+        const data = await response.json();
+        setHistory(Array.isArray(data) ? data : (data.history || []));
+      }
+    } catch (err) {
+      console.error("Manual Fetch Error:", err);
+    } finally {
+      setLoading(false);
     }
-  // 2. DEPENDENCY: ONLY watch 'view'. 
-  // Removing 'userData' and 'isOpen' from here stops the infinite loop.
-  }, [view]); 
+  };
+
 
   const handlePayment = async () => {
     if (!selectedKittyId || !amount) {
@@ -117,13 +107,13 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
             <div className="flex gap-6">
               <button 
                 onClick={() => setView('pay')}
-                className={`text-xl font-black transition-all pb-1 ${view === 'pay' ? 'text-gray-900 border-b-4 border-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`text-xl font-black transition-all pb-1 ${view === 'pay' ? 'text-gray-900 border-b-4 border-blue-600' : 'text-gray-400'}`}
               >
                 Contribute
               </button>
               <button 
-                onClick={() => setView('history')}
-                className={`text-xl font-black transition-all pb-1 ${view === 'history' ? 'text-gray-900 border-b-4 border-blue-600' : 'text-gray-400 hover:text-gray-600'}`}
+                onClick={handleFetchHistory}
+                className={`text-xl font-black transition-all pb-1 ${view === 'history' ? 'text-gray-900 border-b-4 border-blue-600' : 'text-gray-400'}`}
               >
                 History
               </button>
