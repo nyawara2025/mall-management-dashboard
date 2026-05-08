@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import ChurchBrickBuilder from './ChurchBrickBuilder';
-import SocialEngagementFeed from './SocialEngagementFeed';
 import confetti from 'canvas-confetti';
 
 import html2canvas from 'html2canvas';
@@ -38,13 +37,6 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
   const [targetIndividual, setTargetIndividual] = useState('');
 
   const [isProcessing, setIsProcessing] = useState(false);
-
-  // New States for the "Other" Modal
-  const [isOtherModalOpen, setIsOtherModalOpen] = useState(false);
-  const [activeOtherTab, setActiveOtherTab] = useState<'social' | 'mobilization'>('social');
-  const [socialMetrics, setSocialMetrics] = useState<any[]>([]);
-  const [isSocialLoading, setIsSocialLoading] = useState(false);
-
 
   const canvasStyles = {
     container: "relative w-full overflow-hidden rounded-[2.5rem] shadow-2xl border-4 border-white",
@@ -120,24 +112,6 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
         });
     }
   }, [selectedProject]);
-
-  // Function to fetch social engagement (WhatsApp/Social metrics from your Cloudflare/n8n stack)
-  const fetchSocialEngagement = async () => {
-    setIsSocialLoading(true);
-    try {
-      const response = await fetch('https://n8n.tenear.com/webhook/fetch-church-socials', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shop_id: shopId }),
-      });
-      const data = await response.json();
-      setSocialMetrics(data.metrics || []);
-    } catch (error) {
-      console.error("Social fetch error:", error);
-    } finally {
-      setIsSocialLoading(false);
-    }
-  };
 
   const handleVictoryAlert = async (proj: any) => {
     const bricks = Math.floor(newDonor.amount / 1000);
@@ -322,21 +296,6 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
                 >
                   Create Personal Campaign
                 </button>
-
-                {/* NEW: The "Other" Button for Staff/Committee */}
-                {isActuallyStaff && (
-                  <button 
-                    onClick={() => {
-                      setSelectedProject(proj);
-                      setIsOtherModalOpen(true);
-                      fetchSocialEngagement(); // Trigger the Cloudflare/n8n fetch
-                    }}
-                    className="p-4 bg-gray-900 text-white rounded-2xl hover:bg-black transition-colors shadow-md"
-                  >
-                    <Layout size={20} />
-                  </button>
-                )}
-
                 {isActuallyStaff && (
                   <button onClick={() => setShowDonorLog(showDonorLog === proj.project_id ? null : proj.project_id)} className="p-4 bg-orange-50 text-orange-600 rounded-2xl">
                     <Plus size={20} />
@@ -467,96 +426,6 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
           </div>
         </div>
       )}   
-
-      {/* OTHER MODAL: SOCIAL & MOBILIZATION */}
-      {isOtherModalOpen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white rounded-t-[3rem] sm:rounded-[3rem] w-full max-w-2xl overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-300">
-      
-            {/* Modal Header & Tabs */}
-            <div className="bg-blue-600 p-8 text-white">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-2xl font-black uppercase tracking-tighter">Insights & Action</h3>
-                <button onClick={() => setIsOtherModalOpen(false)} className="p-2 bg-white/10 rounded-full hover:bg-white/20">
-                  <Plus size={24} className="rotate-45" />
-                </button>
-              </div>
-        
-              <div className="flex bg-blue-700/50 p-1 rounded-2xl">
-                <button 
-                  onClick={() => setActiveOtherTab('social')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition ${activeOtherTab === 'social' ? 'bg-white text-blue-600 shadow-lg' : 'text-blue-100'}`}
-                >
-                  <Share2 size={16} /> Social Media
-                </button>
-                <button 
-                  onClick={() => setActiveOtherTab('mobilization')}
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition ${activeOtherTab === 'mobilization' ? 'bg-white text-blue-600 shadow-lg' : 'text-blue-100'}`}
-                >
-                  <Users size={16} /> Mobilization
-                </button>
-              </div>
-            </div>
-
-            <div className="p-8 max-h-[70vh] overflow-y-auto">
-              {activeOtherTab === 'social' ? (
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-black text-gray-400 text-[10px] uppercase tracking-widest">Live Engagement Feed</h4>
-                    <button onClick={fetchSocialEngagement} className="text-blue-600 font-bold text-[10px] uppercase">Refresh</button>
-                  </div>
-            
-                  {/* Using the sub-component created in the previous step */}
-                  <SocialEngagementFeed 
-                    metrics={socialMetrics} 
-                    isLoading={isSocialLoading} 
-                    shopId={shopId} 
-                  />
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <h4 className="font-black text-gray-400 text-[10px] uppercase tracking-widest">Mobilization Command Center</h4>
-            
-                  <div className="grid grid-cols-1 gap-4">
-                    <button className="flex items-center gap-4 p-6 bg-orange-50 border border-orange-100 rounded-[2rem] text-left group hover:bg-orange-100 transition">
-                      <div className="p-3 bg-orange-500 text-white rounded-2xl"><TrendingUp size={20} /></div>
-                      <div>
-                        <p className="font-black text-gray-900 text-sm">Gospel Engagement</p>
-                        <p className="text-xs text-orange-600 font-bold">Broadcast daily devotionals to campaign followers</p>
-                      </div>
-                    </button>
-
-                    <button className="flex items-center gap-4 p-6 bg-blue-50 border border-blue-100 rounded-[2rem] text-left hover:bg-blue-100 transition">
-                      <div className="p-3 bg-blue-600 text-white rounded-2xl"><Users size={20} /></div>
-                      <div>
-                        <p className="font-black text-gray-900 text-sm">Youth Engagement</p>
-                        <p className="text-xs text-blue-600 font-bold">Coordinate Sunday school & youth volunteers</p>
-                      </div>
-                    </button>
-
-                    <button className="flex items-center gap-4 p-6 bg-gray-50 border border-gray-100 rounded-[2rem] text-left hover:bg-gray-100 transition">
-                      <div className="p-3 bg-gray-800 text-white rounded-2xl"><MessageCircle size={20} /></div>
-                      <div>
-                        <p className="font-black text-gray-900 text-sm">Media Team Link</p>
-                        <p className="text-xs text-gray-500 font-bold">Send raw photos/videos for official editing</p>
-                      </div>
-                    </button>
-                  </div>
-
-                  <div className="mt-8 p-6 bg-blue-900 rounded-[2rem] text-white relative overflow-hidden">
-                     <div className="relative z-10">
-                       <p className="text-[10px] font-black uppercase opacity-60 mb-1">Target Audience</p>
-                       <p className="text-lg font-black leading-tight">Engage with {selectedProject?.project_name}</p>
-                       <button className="mt-4 px-6 py-2 bg-white text-blue-900 rounded-full font-black text-[10px] uppercase">Initiate Group Call</button>
-                     </div>
-                     <div className="absolute right-[-20px] bottom-[-20px] opacity-10"><Users size={120} /></div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
     </div>
   );
