@@ -7,6 +7,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import ChurchBrickBuilder from './ChurchBrickBuilder';
 import SocialEngagementFeed from './SocialEngagementFeed';
+import MobilizationHeatmap from './MobilizationHeatmap';
 import confetti from 'canvas-confetti';
 
 import html2canvas from 'html2canvas';
@@ -515,6 +516,8 @@ export const ProjectsRenderer = ({ view, onBack, shopId, userData }: ProjectsRen
                 </div>
               ) : (
                 <div className="space-y-6">
+                  {/* The Heatmap Component */}
+                  <MobilizationHeatmap />
                   <h4 className="font-black text-gray-400 text-[10px] uppercase tracking-widest">Mobilization Command Center</h4>
             
                   <div className="grid grid-cols-1 gap-4">
