@@ -1,0 +1,80 @@
+import React, { useState, useEffect } from 'react';
+import { UserCheck, AlertCircle } from 'lucide-react';
+
+interface Staff {
+  id: string;
+  name: string;
+}
+
+interface StaffSelectionProps {
+  shopId: number;
+  selectedWaiter: string;
+  onSelectWaiter: (name: string) => void;
+}
+
+export const StaffSelection: React.FC<StaffSelectionProps> = ({ shopId, selectedWaiter, onSelectWaiter }) => {
+  const [staffList, setStaffList] = useState<Staff[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    const fetchStaff = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch('https://n8n.tenear.com/webhook/pos-staff', {
+          method: 'POST', // Switched to POST as requested
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shop_id: shopId }) // shop_id included in body
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setStaffList(data);
+          setError(false);
+        } else {
+          setError(true);
+        }
+      } catch (err) {
+        console.error("Staff fetch error:", err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (shopId) fetchStaff();
+  }, [shopId]);
+
+  if (loading) return <div className="p-4 text-[10px] animate-pulse text-gray-400 font-bold uppercase">Loading Staff...</div>;
+
+  if (error) return (
+    <div className="p-3 bg-red-50 text-red-500 text-[10px] flex items-center gap-2 font-bold">
+      <AlertCircle size={14} /> FAILED TO LOAD STAFF
+    </div>
+  );
+
+  return (
+    <div className="p-4 bg-gray-50 border-b">
+      <div className="flex items-center gap-2 mb-3">
+        <UserCheck size={14} className="text-blue-600" />
+        <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Assign Waiter</h3>
+      </div>
+      
+      <div className="grid grid-cols-3 gap-2">
+        {staffList.map((staff) => (
+          <button
+            key={staff.id}
+            onClick={() => onSelectWaiter(staff.name)}
+            className={`py-3 px-1 rounded-xl text-[10px] font-black transition-all border-2 flex flex-col items-center gap-1 uppercase ${
+              selectedWaiter === staff.name 
+              ? 'border-blue-600 bg-blue-600 text-white shadow-md transform scale-95' 
+              : 'border-white bg-white text-gray-500 hover:border-blue-200 shadow-sm'
+            }`}
+          >
+            <span className="truncate w-full text-center">{staff.name.split(' ')[0]}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};

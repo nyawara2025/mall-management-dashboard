@@ -3,7 +3,6 @@ import { ShoppingCart, Search, Trash2, X, Smartphone, Banknote, Image as ImageIc
 import { registerSW } from 'virtual:pwa-register'
 import { getLocalProducts, saveProductsLocally, Product as LocalProduct } from '../utils/db';
 import { saveOfflineSale, getPendingSales, deleteSyncedSale } from '../utils/db'; // Ensure this is imported
-import { StaffSelection } from './StaffSelection.tsx';
 registerSW({ immediate: true })
 
 interface Variant {
@@ -104,8 +103,6 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
  
   const [installPrompt, setInstallPrompt] = useState<any>(null);
   
-  const [waiterName, setWaiterName] = useState<string>(''); // Add this
-
   useEffect(() => {
     const handler = (e: any) => {
       // Prevent the default mini-infobar from appearing on mobile
@@ -192,12 +189,6 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
   const executeFinalSale = async () => {
     if (cart.length === 0) return;
     
-    // Guard clause: Ensure waiter is selected
-    if (!waiterName) {
-      alert("Please select a waiter first!");
-      return;
-    }
-
     setLoading(true);
     console.log("Transaction Started..."); // Check F12 Console for this
 
@@ -207,7 +198,6 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
           ? crypto.randomUUID() 
           : `offline-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       shop_id: shopId,
-      waiter_name: waiterName,
       items: cart,
       total: calculateTotal(),
       payment_method: paymentMethod,
@@ -438,14 +428,7 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
           )}
         </div>
 
-        {/* --- INSERT THE STAFF SELECTION HERE --- */}
-        <StaffSelection 
-          shopId={shopId} 
-          selectedWaiter={waiterName} 
-          onSelectWaiter={setWaiterName} 
-        />
-
-        <h2 className="text-lg font-black my-4 flex items-center gap-2 border-b pb-4 uppercase tracking-tight">
+        <h2 className="text-lg font-black mb-4 flex items-center gap-2 border-b pb-4 uppercase tracking-tight">
           <ShoppingCart size={20} className="text-blue-600"/> Checkout Cart
         </h2>
         
