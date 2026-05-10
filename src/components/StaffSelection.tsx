@@ -46,13 +46,30 @@ export const StaffSelection: React.FC<StaffSelectionProps> = ({ shopId, selected
     if (shopId) fetchStaff();
   }, [shopId]);
 
-  // Security Function to verify PIN before selection
-  const handleStaffClick = (staff: Staff) => {
-    // If they are already selected, we don't need to re-verify for the same sale
-    if (selectedWaiter === staff.name) return;
+  const handleStaffClick = async (staff: Staff) => {
+    if (selectedWaiter === staff.name) {
+      // If already logged in, offer to change PIN
+      const change = confirm("Would you like to change your PIN?");
+      if (change) {
+        const oldPin = prompt("Enter Current PIN:");
+        if (oldPin === staff.pin_code) {
+          const newPin = prompt("Enter New 4-Digit PIN:");
+          if (newPin && newPin.length === 4) {
+            await fetch('https://n8n.tenear.com/webhook/staff-pos-pin-change', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ shop_id: shopId, action: 'update_pin', staff_id: staff.id, pin_code: newPin })
+            });
+            alert("PIN Updated successfully!");
+          }
+        } else {
+          alert("Incorrect current PIN.");
+        }
+      }
+      return;
+    }
 
     const enteredPin = prompt(`Enter security PIN for ${staff.name}:`);
-    
     if (enteredPin === staff.pin_code) {
       onSelectWaiter(staff.name);
     } else if (enteredPin !== null) {
@@ -60,13 +77,7 @@ export const StaffSelection: React.FC<StaffSelectionProps> = ({ shopId, selected
     }
   };
 
-  if (loading) return <div className="p-4 text-[10px] animate-pulse text-gray-400 font-bold uppercase tracking-widest">Loading Staff...</div>;
 
-  if (error) return (
-    <div className="p-3 bg-red-50 text-red-500 text-[10px] flex items-center gap-2 font-black border border-red-100 rounded-lg mx-4 my-2">
-      <AlertCircle size={14} /> FAILED TO LOAD STAFF LIST
-    </div>
-  );
 
   return (
     <div className="p-4 bg-gray-50 border-b">
