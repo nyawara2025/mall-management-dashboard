@@ -1136,7 +1136,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 className="bg-blue-400 rounded-[2.5rem] p-8 shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95"
               >
                 <div className="p-4 bg-blue-50 text-white-600 rounded-2xl italic">
-                  <Heart size={32} />
+                  <HeartHandshake size={32} />
                 </div>
                 <span className="text-[10px] font-white text-white uppercase tracking-widest">Prayer Request</span>
               </button>
@@ -1157,7 +1157,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
               )}
 
               <button onClick={() => setActiveView('service_order')} className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group">
-                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Book size={28} /></div>
+                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600"><ScrollText size={28} /></div>
                 <span className="text-xs font-black text-white uppercase tracking-widest text-center">ORDER OF SERVICE</span>
               </button>
               {/* BROADCAST SECTION */}
@@ -1167,7 +1167,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                   className="w-full bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
                 >
                   <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600">
-                    <Radio size={28} />
+                    <Megaphone size={28} />
                   </div>
                   <span className="text-xs font-black text-white uppercase tracking-widest text-center">Announcements</span>
                 </button>
@@ -1193,7 +1193,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-4 cursor-pointer hover:shadow-xl transition-all active:scale-95"
               >
                 <div className="p-4 bg-blue-50 rounded-2xl text-blue-400">
-                  <ClipboardList size={32} />
+                  <Presentation size={32} />
                 </div>
                 <span className="font-black text-[10px] uppercase tracking-widest text-white">Meetings</span>
               </button>
