@@ -7,24 +7,7 @@ import {
   BookOpen, 
   Heart, 
   MessageCircle, 
-  ChevronRight,
-  MessageSquareHeart,
-  Quote,
-  Sparkles,
-  HandHelping,
-  HeartHandshake,
-  HandsPraying,
-  ScrollText,
-  ListMusic,
-  Megaphone,
-  BellDot,
-  Newspaper,
-  Users,
-  CalendarRange,
-  Presentation,
-  HandCoins,
-  Gift,
-  Church 
+  ChevronRight 
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
