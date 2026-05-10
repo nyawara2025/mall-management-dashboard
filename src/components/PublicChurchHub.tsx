@@ -1126,7 +1126,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 onClick={() => setIsOpinionModalOpen(true)}
                 className="bg-blue-400 p-4 md:p-8 rounded-[1.5rem] md:rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-2 hover:shadow-md transition-all active:scale-95 group"
               > 
-                <div className="w-10 h-10 md:w-14 md:h-14 bg-purple/20 rounded-xl md:rounded-2xl flex items-center justify-center text-blue-400">
+                <div className="w-10 h-10 md:w-14 md:h-14 bg-white/20 rounded-xl md:rounded-2xl flex items-center justify-center text-white-400">
                   <Sparkles size={20} className="md:w-[28px] md:h-[28px]" />
                 </div>
                 <span className="text-[9px] md:text-xs font-black text-white uppercase tracking-widest text-center">Share your thoughts</span>
