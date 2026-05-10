@@ -5,7 +5,7 @@ import {
   User, ShieldCheck, Users, Activity,
   MessageSquare, Heart, Radio, Wallet, Book, Globe, Bell, ClipboardList,
   Image as ImageIcon, MessageCircle, X, Calendar, TrendingUp,
-  Send, Quote, Sparkles, HandHelping, HeartHandshake, ScrollText, ListMusic, ListOrdered, Megaphone, BellDot, CalendarRange, Presentation, HandCoins, Gift 
+  Send, Quote, Sparkles, Hand, HandHelping, HeartHandshake, ScrollText, ListMusic, ListOrdered, Megaphone, BellDot, CalendarRange, Presentation, HandCoins, Gift 
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import SokoniModal from './SokoniModal';
@@ -1248,12 +1248,22 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
               </button>
 
               <button
-                onClick={() => setIsDevotionsOpen(true)} 
+                onClick={() => setIsDevotionsOpen(true)}
                 className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
               >
-                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} />
+                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600">
+                  {/* Icon Grouping */}
+                  <div className="relative">
+                    <Users size={24} className="opacity-80" />
+                    <Hand 
+                      size={16} 
+                      className="absolute -bottom-1 -right-1 bg-blue-50 rounded-full p-0.5" 
+                    />
+                  </div>
                 </div>
-                <span className="text-xs font-black text-white uppercase tracking-widest text-center">DEVOTIONS</span>
+                <span className="text-xs font-black text-white uppercase tracking-widest text-center">
+                  DEVOTIONS
+                </span>
               </button>
               <button 
                 onClick={() => setIsMomentOpen(true)}
