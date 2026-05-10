@@ -5,7 +5,7 @@ import {
   User, ShieldCheck, Users, Activity,
   MessageSquare, Heart, Radio, Wallet, Book, Globe, Bell, ClipboardList,
   Image as ImageIcon, MessageCircle, X, Calendar, TrendingUp,
-  Send, Quote, Sparkles, Hand, HandHelping, Church, HeartHandshake, ScrollText, ListMusic, ListOrdered, Megaphone, BellDot, CalendarRange, Presentation, HandCoins, Gift 
+  Send, Quote, Sparkles, Hand, HandHelping, Church, HeartHandshake, ScrollText, ListMusic, Store, UsersRound, ListOrdered, Megaphone, BellDot, CalendarRange, Presentation, HandCoins, Gift 
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import SokoniModal from './SokoniModal';
@@ -1290,8 +1290,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 onClick={() => setIsAppointmentsOpen(true)}
                 className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-purple-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
               >
-                <div className="p-4 bg-blue-50 text-white rounded-2xl italic">
-                  <Heart size={32} />
+                <div className="p-4 bg-white-50 text-white rounded-2xl italic">
+                  <Calendar size={32} />
                 </div>
                 <span className="text-[10px] font-black text-white uppercase tracking-widest">My Diary</span>
               </button>
@@ -1407,7 +1407,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
               >
                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600">
-                  <Activity size={28} />
+                  <HandCoins size={28} />
                 </div>
                 <span className="text-xs font-black text-white uppercase tracking-widest text-center">
                   Church Financials & Projects
@@ -1419,7 +1419,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
               >
                 <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:text-blue-600">
-                  <Activity size={28} />
+                  <HeartHandshake size={28} />
                 </div>
                 <span className="text-xs font-black text-white uppercase tracking-widest text-center">
                   Community Service & Zonal Activities
@@ -1432,7 +1432,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center gap-4 group"
               >
                 <div className="text-blue-600 group-hover:scale-110 transition-transform">
-                  <Activity size={32} /> {/* Or your preferred icon */}
+                  <Store size={32} /> {/* Or your preferred icon */}
                 </div>
                 <span className="text-sm font-bold text-white uppercase tracking-widest">
                   Sokoni
@@ -1444,7 +1444,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all group"
               >
                 <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600">
-                  <Users size={28} />
+                  <UsersRound size={28} />
                 </div>
                 <span className="text-xs font-black text-white uppercase tracking-widest text-center">JOIN MINISTRY/ZONE</span>
               </button>
