@@ -133,7 +133,7 @@ export const MemberAccountModal = ({
 
                 <textarea 
                   className="w-full p-4 bg-gray-50 rounded-2xl border-none text-sm font-bold min-h-[100px]"
-                  placeholder="Idiosyncratic habits..."
+                  placeholder="Unique habits..."
                   value={profileData.habits}
                   onChange={e => setProfileData({...profileData, habits: e.target.value})}
                 />
