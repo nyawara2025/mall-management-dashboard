@@ -1449,8 +1449,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="text-xs font-black text-white uppercase tracking-widest text-center">JOIN MINISTRY/ZONE</span>
               </button>
                
-              <button onClick={() => setActiveProjectView('planned')}>Planned Projects</button>
-
             </div>
           </div>
  
