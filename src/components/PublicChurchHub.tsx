@@ -5,7 +5,7 @@ import {
   User, ShieldCheck, Users, Activity,
   MessageSquare, Heart, Radio, Wallet, Book, Globe, Bell, ClipboardList,
   Image as ImageIcon, MessageCircle, X, Calendar, TrendingUp,
-  Send, Quote, Sparkles, Hand, HandHelping, HeartHandshake, ScrollText, ListMusic, ListOrdered, Megaphone, BellDot, CalendarRange, Presentation, HandCoins, Gift 
+  Send, Quote, Sparkles, Hand, HandHelping, Church, HeartHandshake, ScrollText, ListMusic, ListOrdered, Megaphone, BellDot, CalendarRange, Presentation, HandCoins, Gift 
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import SokoniModal from './SokoniModal';
@@ -1193,7 +1193,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-blue-50 flex flex-col items-center justify-center gap-4 cursor-pointer hover:shadow-xl transition-all active:scale-95"
               >
                 <div className="p-4 bg-blue-50 rounded-2xl text-blue-400">
-                  <Presentation size={32} />
+                  <Users size={32} />
                 </div>
                 <span className="font-black text-[10px] uppercase tracking-widest text-white">Meetings</span>
               </button>
@@ -1205,7 +1205,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                   className="w-full h-full bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
                 >
                   <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600">
-                    <Activity size={28} />
+                    <HandCoins size={28} />
                   </div>
                   <span className="text-xs font-black text-white uppercase tracking-widest text-center">TITHES & GIVING</span>
                 </button>
@@ -1269,7 +1269,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 onClick={() => setIsMomentOpen(true)}
                 className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-blue-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
               >
-                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Radio size={28} />
+                <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-400 group-hover:bg-blue-50 group-hover:text-blue-600"><Church size={28} />
                 </div>
                 <span className="text-xs font-black text-white uppercase tracking-widest text-center">A MOMENT WITH GOD</span>
               </button>
@@ -1279,7 +1279,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 className="bg-blue-400 p-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-center hover:scale-[1.02] transition-transform active:scale-95"
               >
                 <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm">
-                  <Radio size={24} />
+                  <ScrollText size={24} />
                 </div>
                 <span className="font-black text-[10px] uppercase tracking-wider text-white">
                   Newsletters & Notifications
