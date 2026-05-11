@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { ChurchBranding } from './ChurchBranding';
+import { LivePrayerFeed } from './LivePrayerFeed';
 
 const DEPARTMENTS = [
   { id: 1, name: 'Choir' },
@@ -226,7 +227,13 @@ export const MediaDashboard = () => {
           </div>
         </div>
 
-        {/* 2. Lower Thirds / Overlays */}
+
+        {/* 2. LIVE PRAYER FEED (NEW) */}
+        <div className="lg:col-span-1">
+          <LivePrayerFeed shopId={user?.shop_id || 101} />
+        </div>
+
+        {/* 3. Lower Thirds / Overlays */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
           <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Type className="w-5 h-5 text-blue-500" /> Screen Overlays
@@ -243,7 +250,7 @@ export const MediaDashboard = () => {
           </button>
         </div>
 
-        {/* 3. Publish Content Card */}
+        {/* 4. Publish Content Card */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
           <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
             <Upload className="w-5 h-5 text-purple-500" /> Publish Content
