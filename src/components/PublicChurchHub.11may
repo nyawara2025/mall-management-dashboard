@@ -28,7 +28,6 @@ import { CommunityAndZones } from './CommunityAndZones';
 import { ServiceOrderTabs } from './ServiceOrderTabs';
 import { MomentWithGodModal } from './MomentWithGodModal';
 import { ProjectsRenderer } from './ProjectsRenderer';
-import { PrayerEngagement } from './PrayerEngagement';
 import { ConsentSection } from './ConsentSection';
 
 // --- TYPES ---
@@ -1043,14 +1042,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         {/* Pass the flat 'services' array directly to your new component */}
         <ServiceOrderTabs data={services} />
       </div>
-
-      {/* NEW: Prayer Engagement Component */}
-      <PrayerEngagement 
-        activeShopId={activeShopId} 
-        serviceName="General Service" // You can track active tab here if needed
-        userData={userData} 
-      />
-
     </div>
   );
 
