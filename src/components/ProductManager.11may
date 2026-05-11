@@ -14,7 +14,6 @@ interface Variant {
   id: string;
   variant_name: string;
   value: string;
-  variant_price: number; // Add this
   price_impact: number;
   variant_stock: number;
   variant_image_url?: string | null;
@@ -29,9 +28,8 @@ const ProductCard = ({ product, handleShare, handleDelete, handleAmend }: { prod
 
   // 2. PRICE LOGIC (Restoring what was missing)
   const basePrice = Number(product.base_price) || product.basePrice || 0;
-  const displayPrice = selectedVariant
-    ? Number(selectedVariant.variant_price) 
-    : basePrice;
+  const impact = Number(selectedVariant?.price_impact) || selectedVariant?.priceImpact || 0;
+  const displayPrice = basePrice + impact;
 
 
   // 1. Calculate Total Stock from all variants
@@ -95,14 +93,14 @@ const ProductCard = ({ product, handleShare, handleDelete, handleAmend }: { prod
               className="w-full pl-3 pr-10 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold appearance-none cursor-pointer hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-300 outline-none shadow-md"
             >
               <option value="base" className="bg-white text-gray-800 font-medium">
-                Standard - KShs {basePrice.toLocaleString()}
+                Standard - KShs {basePrice}
               </option>
               {product.variants?.map((v: any) => {
-                const vPrice = Number(v.variant_price || 0);
+                const vImpact = Number(v.price_impact || v.priceImpact || 0);
                 const vStock = Number(v.variant_stock || v.stock || 0);
                 return (
                   <option key={v.id} value={v.id} className="bg-white text-gray-800 font-medium">
-                    {v.variant_name}: {v.value || ''} - KShs {vPrice.toLocaleString()} ({vStock} in stock)
+                    {v.variant_name || 'Option'}: {v.value || ''} - KShs {basePrice + vImpact} ({vStock} in stock)
                   </option>
                 );
               })}
@@ -234,7 +232,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
   // --- VARIANT LOGIC ---
   const addVariantRow = () => {
     const id = Date.now().toString(36) + Math.random().toString(36).substring(2);
-    setVariants([...variants, { id, variant_name: '', value: '', variant_price: 0, price_impact: 0, variant_stock: 0 }]);
+    setVariants([...variants, { id, variant_name: '', value: '', price_impact: 0, variant_stock: 0 }]);
   };
 
   const removeVariantRow = (id: string) => setVariants(variants.filter(v => v.id !== id));
@@ -253,36 +251,9 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
       });
       const result = await response.json();
 
-      if (Array.isArray(result)) {
-        if (result.length > 0) setShopName(result[0].shop_name || '');
-
-        // 2. Group variants into their parent products
-        const grouped = result.reduce((acc: any[], item: any) => {
-          let existingProduct = acc.find(p => p.product_id === item.product_id);
-
-          const variantObj = item.variant_id ? {
-            id: item.variant_id,
-            variant_name: item.variant_name,
-            variant_price: Number(item.variant_price) || 0, // <--- CRITICAL: Capture the price
-            variant_stock: Number(item.variant_stock) || 0,
-            variant_image_url: item.variant_image_url
-          } : null;
-
-          if (existingProduct) {
-            if (variantObj && !existingProduct.variants.some((v: any) => v.id === variantObj.id)) {
-              existingProduct.variants.push(variantObj);
-            }
-          } else {
-            acc.push({
-              ...item,
-              variants: variantObj ? [variantObj] : []
-            });
-          }
-          return acc;
-        }, []);
-
+      if (Array.isArray(result) && result.length > 0) {
         setShopName(result[0].shop_name || '');
-        setProducts(grouped);
+        setProducts(result);
       } else if (result.products) {
         setShopName(result.shop_name || '');
         setProducts(result.products);
@@ -620,7 +591,7 @@ export const ProductManager: React.FC<ProductManagerProps> = ({ shopId, onBack }
                         type="number" 
                         placeholder="0" 
                         className="w-24 p-2.5 border rounded-xl text-sm font-bold text-center focus:ring-2 focus:ring-blue-500 outline-none" 
-                        value={variant.variant_price} 
+                        value={variant.variant_stock} 
                         onChange={(e) => updateVariant(variant.id, 'variant_stock', parseInt(e.target.value) || 0)} 
                       />
                       <input 
