@@ -10,9 +10,8 @@ registerSW({ immediate: true })
 interface Variant {
   id: string;
   variant_name: string;
-  variant_price: number;
+  price_impact: number;
   variant_stock: number;
-  price_impact?: number;
 }
 
 interface Product {
@@ -37,8 +36,7 @@ interface POSProps {
 const ProductTile = ({ product, onAddToCart }: { product: Product, onAddToCart: (p: Product, v: Variant | null) => void }) => {
   const [selectedVariant, setSelectedVariant] = useState<Variant | null>(null);
   
-  // FIX: Use absolute variant price if selected, otherwise use base_price
-  const currentPrice = selectedVariant ? Number(selectedVariant.variant_price) : Number(product.base_price);
+  const currentPrice = Number(product.base_price) + (selectedVariant?.price_impact || 0);
 
   return (
     <div className="p-3 border rounded-xl bg-white shadow-sm flex flex-col gap-2 hover:border-blue-400 transition-all">
@@ -72,7 +70,7 @@ const ProductTile = ({ product, onAddToCart }: { product: Product, onAddToCart: 
           <option value="">Standard (KES {product.base_price})</option>
           {product.variants.map(v => (
             <option key={v.id} value={v.id}>
-              {v.variant_name} (KES {Number(v.variant_price).toLocaleString()})
+              {v.variant_name} (+{v.price_impact})
             </option>
           ))}
         </select>
@@ -330,7 +328,7 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
             const variantObj: Variant | null = hasVariant ? {
               id: vId.toString(),
               variant_name: item.variant_name,
-              variant_price: Number(item.variant_price) || 0, // Ensure this matches your table column
+              price_impact: Number(item.price_impact) || 0,
               variant_stock: Number(item.variant_stock) || 0
             } : null;
 
@@ -379,7 +377,7 @@ export const POS: React.FC<POSProps> = ({ shopId }) => {
     .sort((a, b) => a.product_name.localeCompare(b.product_name));
 
   const handleAddToCart = (product: Product, variant: Variant | null) => {
-    const final_price = variant ? Number(variant.variant_price) : Number(product.base_price);
+    const final_price = Number(product.base_price) + (variant?.price_impact || 0);
     const cartKey = variant ? `${product.product_id}-${variant.id}` : `${product.product_id}-base`;
 
     const newItem: CartItem = {
