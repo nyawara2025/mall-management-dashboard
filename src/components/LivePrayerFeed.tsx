@@ -2,11 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Heart, Activity, Church } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
-// Initialize the client locally for this component
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
+// Define the event structure
 interface PrayerEvent {
   user_name: string;
   service_name: string;
@@ -18,7 +14,19 @@ export const LivePrayerFeed = ({ shopId }: { shopId: number }) => {
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    // Get credentials from Vite env
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    // Guard: Only initialize if keys exist to prevent the crash you saw earlier
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error("Supabase credentials missing in environment");
+      return;
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
     const channelName = `church_engagement_${shopId}`;
+
     const channel = supabase.channel(channelName, {
       config: {
         broadcast: { self: true },
@@ -26,8 +34,11 @@ export const LivePrayerFeed = ({ shopId }: { shopId: number }) => {
     });
 
     channel
-      .on('broadcast', { event: 'PRAYER_ALERT' }, (payload: { payload: PrayerEvent }) => {
-        setPrayers((prev) => [payload.payload, ...prev.slice(0, 4)]);
+      .on('broadcast', { event: 'PRAYER_ALERT' }, (payload: any) => {
+        // payload.payload contains the data sent from n8n
+        if (payload.payload) {
+          setPrayers((prev) => [payload.payload as PrayerEvent, ...prev.slice(0, 4)]);
+        }
       })
       .subscribe((status: string) => {
         if (status === 'SUBSCRIBED') setIsConnected(true);
@@ -71,7 +82,9 @@ export const LivePrayerFeed = ({ shopId }: { shopId: number }) => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-black text-gray-900 truncate">{prayer.user_name}</p>
-                <p className="text-[10px] font-bold text-blue-600 uppercase truncate">{prayer.service_name}</p>
+                <div className="flex items-center gap-2">
+                   <p className="text-[10px] font-bold text-blue-600 uppercase truncate">{prayer.service_name}</p>
+                </div>
               </div>
             </div>
           ))
