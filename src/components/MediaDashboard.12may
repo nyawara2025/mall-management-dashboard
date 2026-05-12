@@ -6,7 +6,6 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { ChurchBranding } from './ChurchBranding';
 import { LivePrayerFeed } from './LivePrayerFeed';
-import { EngagementHeatmap } from './EngagementHeatmap';
 
 const DEPARTMENTS = [
   { id: 1, name: 'Choir' },
@@ -121,33 +120,6 @@ export const MediaDashboard = () => {
     );
   }
 
-  const handleToggleLive = async (status: 'ON' | 'OFF') => {
-    if (status === 'ON' && !streamUrl) {
-      alert("Please enter a YouTube Live URL first!");
-      return;
-    }
-
-    setIsLive(status === 'ON');
-
-    try {
-      await fetch('https://n8n.tenear.com/webhook/youTubeLive', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          shop_id: user?.shop_id || 68,
-          action: status === 'ON' ? 'GO_LIVE' : 'GO_OFFLINE',
-          url: streamUrl,
-          service_name: "Morning Glory", // This can be dynamic based on your schedule
-          timestamp: new Date().toISOString()
-        }),
-      });
-    
-      if (status === 'OFF') setStreamUrl(''); // Reset on offline
-    } catch (error) {
-      console.error("Failed to update live status:", error);
-    }
-  };
-
   const handleCategorizedUpload = async (event?: React.ChangeEvent<HTMLInputElement>) => {
     const file = event?.target.files?.[0];
 
@@ -225,43 +197,33 @@ export const MediaDashboard = () => {
         <h2 className="text-2xl font-black text-gray-900 flex items-center gap-3">
           <Monitor className="w-8 h-8 text-blue-600" /> Media & Production
         </h2>
-        <div className={`px-4 py-1 rounded-full text-xs font-bold flex items-center gap-2 ${
-          isLive ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-500'
-        }`}>
+        <div className={`px-4 py-1 rounded-full text-xs font-bold flex items-center gap-2 ${isLive ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-500'}`}>
           <Radio className="w-4 h-4" /> {isLive ? 'ON AIR' : 'OFFLINE'}
         </div>
-
       </div>
 
-      {/* !!! ADD THIS LINE HERE TO OPEN THE GRID !!! */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* 1. Livestream Control Card */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
           <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Play className={`w-5 h-5 ${isLive ? 'text-green-500' : 'text-red-500'}`} /> 
-            {isLive ? 'Active Livestream' : 'Livestream Setup'}
+            <Play className="w-5 h-5 text-red-500" /> Livestream Link
           </h3>
-  
           <div className="space-y-4">
             <input 
               type="text" 
-              placeholder="Paste YouTube Live URL..."
-              className="w-full px-4 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm"
+              placeholder="YouTube / Facebook URL..."
+              className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm"
               value={streamUrl}
               onChange={(e) => setStreamUrl(e.target.value)}
-              disabled={isLive} // Lock input while live
             />
-    
-            {isLive ? (
-              <button onClick={() => handleToggleLive('OFF')} className="w-full py-3 bg-red-100 text-red-600 rounded-xl font-black flex items-center justify-center gap-2 hover:bg-red-200 transition-all">
-                <X className="w-4 h-4" /> STOP SERVICE
-              </button>
-            ) : (
-              <button onClick={() => handleToggleLive('ON')} className="w-full py-3 bg-slate-900 text-white rounded-xl font-black flex items-center justify-center gap-2 hover:bg-blue-600 transition-all">
-                <Radio className="w-4 h-4" /> GO LIVE NOW
-              </button>
-            )}
+            <button 
+              onClick={() => setIsLive(!isLive)}
+              className={`w-full py-3 rounded-xl font-bold transition-all ${
+                isLive ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'
+              }`}
+            >
+              {isLive ? 'End Stream' : 'Go Live Now'}
+            </button>
           </div>
         </div>
 
@@ -287,11 +249,6 @@ export const MediaDashboard = () => {
             Push to Screen
           </button>
         </div>
-
-        {/* Place this inside your grid in MediaDashboard.tsx */}
-        <div className="md:col-span-2 lg:col-span-3">
-          <EngagementHeatmap shopId={user?.shop_id || 68} />
-        </div> 
 
         {/* 4. Publish Content Card */}
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
