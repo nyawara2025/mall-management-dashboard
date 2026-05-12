@@ -1,64 +1,46 @@
 import React, { useState } from 'react';
-import { Heart } from 'lucide-react';
+import { Heart, Hand, MessageCircle, Smile } from 'lucide-react';
 
-interface PrayerEngagementProps {
-  activeShopId: number;
-  serviceName: string;
-  userData: any;
-}
+export const PrayerEngagement = ({ activeShopId, serviceName, userData }: any) => {
+  const [lastAction, setLastAction] = useState<string | null>(null);
 
-export const PrayerEngagement: React.FC<PrayerEngagementProps> = ({ 
-  activeShopId, 
-  serviceName, 
-  userData 
-}) => {
-  const [hasPrayed, setHasPrayed] = useState(false);
+  const reactions = [
+    { id: 'love', icon: <Heart className="w-5 h-5" />, label: 'Love', color: 'bg-red-500' },
+    { id: 'amen', icon: <Hand className="w-5 h-5" />, label: 'Amen', color: 'bg-blue-600' },
+    { id: 'shoutout', icon: <MessageCircle className="w-5 h-5" />, label: 'Shout', color: 'bg-green-600' },
+    { id: 'like', icon: <Smile className="w-5 h-5" />, label: 'Like', color: 'bg-yellow-500' },
+  ];
 
-  const handlePrayClick = async () => {
-    if (hasPrayed) return; // Prevent spamming
-    
-    setHasPrayed(true);
-
-    try {
-      await fetch('https://n8n.tenear.com/webhook/church-prayer-click', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          shop_id: activeShopId,
-          service_name: serviceName,
-          user_name: `${userData?.first_name || 'A member'}`,
-          action: 'PRAYER_ENGAGEMENT',
-          timestamp: new Date().toISOString()
-        }),
-      });
-    } catch (error) {
-      console.error('Prayer trigger failed:', error);
-    }
-
-    // Reset button state after 5 seconds
-    setTimeout(() => setHasPrayed(false), 5000);
+  const handleSend = async (type: string) => {
+    setLastAction(type);
+    await fetch('https://n8n.tenear.com/webhook/church-prayer-click', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        shop_id: activeShopId,
+        user_name: `${userData?.first_name || 'Member'}`,
+        service_name: serviceName,
+        action_type: type, // This now sends 'love', 'amen', etc.
+        timestamp: new Date().toISOString()
+      }),
+    });
+    setTimeout(() => setLastAction(null), 2000);
   };
 
   return (
-    <div className="fixed bottom-24 right-6 z-[60]">
-      <button
-        onClick={handlePrayClick}
-        className={`flex items-center gap-3 px-6 py-4 rounded-2xl font-black shadow-2xl transition-all duration-700 transform hover:scale-105 active:scale-95 ${
-          hasPrayed 
-          ? 'bg-red-500 text-white translate-y-[-10px]' 
-          : 'bg-white text-blue-600 border-2 border-blue-50'
-        }`}
-      >
-        <div className="relative">
-           <Heart className={`w-6 h-6 ${hasPrayed ? 'fill-current animate-ping' : ''}`} />
-           {hasPrayed && (
-             <Heart className="w-6 h-6 fill-current absolute inset-0 animate-bounce" />
-           )}
-        </div>
-        <span className="text-sm tracking-tight">
-          {hasPrayed ? 'PRAYING WITH YOU!' : 'PRAYING WITH YOU'}
-        </span>
-      </button>
+    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 flex gap-3 p-3 bg-white/90 backdrop-blur-md rounded-full shadow-2xl border border-gray-100">
+      {reactions.map((r) => (
+        <button
+          key={r.id}
+          onClick={() => handleSend(r.id)}
+          className={`flex flex-col items-center gap-1 p-3 rounded-full transition-all ${
+            lastAction === r.id ? `${r.color} text-white scale-110` : 'text-gray-500 hover:bg-gray-100'
+          }`}
+        >
+          {r.icon}
+          <span className="text-[8px] font-black uppercase">{r.label}</span>
+        </button>
+      ))}
     </div>
   );
 };

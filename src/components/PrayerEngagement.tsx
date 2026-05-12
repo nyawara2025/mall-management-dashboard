@@ -13,6 +13,10 @@ export const PrayerEngagement = ({ activeShopId, serviceName, userData }: any) =
 
   const handleSend = async (type: string) => {
     setLastAction(type);
+
+    // Logic to determine campus based on the service name
+    const campus = serviceName.toLowerCase().includes('kufuga') ? 'Karen' : 'Otiende';
+
     await fetch('https://n8n.tenear.com/webhook/church-prayer-click', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -20,6 +24,7 @@ export const PrayerEngagement = ({ activeShopId, serviceName, userData }: any) =
         shop_id: activeShopId,
         user_name: `${userData?.first_name || 'Member'}`,
         service_name: serviceName,
+        campus: campus, // <--- New Field
         action_type: type, // This now sends 'love', 'amen', etc.
         timestamp: new Date().toISOString()
       }),
