@@ -16,8 +16,8 @@ export const LivePrayerFeed = ({ shopId }: { shopId: number }) => {
   const tallies = useMemo(() => {
     return events.reduce((acc, curr) => {
       // Map PRAYER_ENGAGEMENT to the 'love' tally category
-      const typeKey = curr.action_type === 'PRAYER_ENGAGEMENT' ? 'love' : curr.action_type;
-      acc[typeKey] = (acc[typeKey] || 0) + 1;
+      const type = curr.action_type === 'PRAYER_ENGAGEMENT' ? 'love' : curr.action_type;
+      acc[type] = (acc[type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
   }, [events]);
@@ -31,14 +31,11 @@ export const LivePrayerFeed = ({ shopId }: { shopId: number }) => {
       });
       const data = await response.json();
       
-      // Filter out events older than 2 minutes (120000 ms)
-      const nowUtc = new Date().getTime();
-      const rawData = Array.isArray(data) ? data : [];
-
-      const activePrompts = rawData.filter(e => {
-        const eventTimeUtc = new Date(e.created_at).getTime();
-        const diffMinutes = (nowUtc - eventTimeUtc) / 60000;
-        return diffMinutes >= 0 && diffMinutes <= 2; 
+      const now = new Date().getTime();
+      const activePrompts = (Array.isArray(data) ? data : []).filter(e => {
+        // Check both potential timestamp fields
+        const eventTime = new Date(e.created_at || e.timestamp).getTime();
+        return now - eventTime < 120000; 
       });
 
       setEvents(activePrompts);
