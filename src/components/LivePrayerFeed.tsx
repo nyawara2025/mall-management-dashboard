@@ -1,94 +1,42 @@
 import React, { useEffect, useState } from 'react';
-import { Heart, Activity, Church } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
-
-// Define the event structure
-interface PrayerEvent {
-  user_name: string;
-  service_name: string;
-  timestamp: string;
-}
+import { Heart, Activity } from 'lucide-react';
 
 export const LivePrayerFeed = ({ shopId }: { shopId: number }) => {
-  const [prayers, setPrayers] = useState<PrayerEvent[]>([]);
-  const [isConnected, setIsConnected] = useState(false);
+  const [prayers, setPrayers] = useState<any[]>([]);
+
+  const fetchPrayers = async () => {
+    try {
+      // Strictly fetching via n8n as per your requirement
+      const response = await fetch('https://n8n.tenear.com/webhook/church-fetch-prayers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: shopId, action: 'GET_RECENT' })
+      });
+      const data = await response.json();
+      setPrayers(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error("n8n fetch error", e);
+    }
+  };
 
   useEffect(() => {
-    // Get credentials from Vite env
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-    // Guard: Only initialize if keys exist to prevent the crash you saw earlier
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error("Supabase credentials missing in environment");
-      return;
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-    const channelName = `church_engagement_${shopId}`;
-
-    const channel = supabase.channel(channelName, {
-      config: {
-        broadcast: { self: true },
-      },
-    });
-
-    channel
-      .on('broadcast', { event: 'PRAYER_ALERT' }, (payload: any) => {
-        // payload.payload contains the data sent from n8n
-        if (payload.payload) {
-          setPrayers((prev) => [payload.payload as PrayerEvent, ...prev.slice(0, 4)]);
-        }
-      })
-      .subscribe((status: string) => {
-        if (status === 'SUBSCRIBED') setIsConnected(true);
-      });
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    fetchPrayers(); // Initial fetch
+    const interval = setInterval(fetchPrayers, 10000); // Check every 10 seconds
+    return () => clearInterval(interval);
   }, [shopId]);
 
   return (
-    <div className="bg-white rounded-[2.5rem] border border-gray-100 p-6 shadow-xl h-full flex flex-col min-h-[400px]">
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
-          <Activity className={`w-4 h-4 ${isConnected ? 'text-green-500' : 'text-gray-300'}`} />
-          Live Engagement
-        </h3>
-        {prayers.length > 0 && (
-          <span className="bg-red-50 text-red-600 text-[10px] font-black px-2 py-1 rounded-lg animate-pulse">
-            LIVE
-          </span>
-        )}
-      </div>
-
-      <div className="flex-1 space-y-4 overflow-hidden">
-        {prayers.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-gray-50 rounded-[2rem]">
-            <Church className="w-10 h-10 text-gray-200 mb-2" />
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-tight">
-              Waiting for engagement...
-            </p>
+    <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
+       <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+        <Activity className="w-4 h-4 text-green-500" /> Live Engagement
+      </h3>
+      <div className="space-y-3">
+        {prayers.map((p, i) => (
+          <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+            <Heart className="w-4 h-4 text-red-500 fill-current" />
+            <div className="text-sm font-bold text-gray-800">{p.user_name} is praying</div>
           </div>
-        ) : (
-          prayers.map((prayer, index) => (
-            <div 
-              key={index} 
-              className="flex items-center gap-4 p-4 bg-gradient-to-r from-gray-50 to-white rounded-2xl border border-gray-100 animate-in slide-in-from-right-8 duration-500"
-            >
-              <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center text-red-500">
-                <Heart className="w-6 h-6 fill-current animate-pulse" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-black text-gray-900 truncate">{prayer.user_name}</p>
-                <div className="flex items-center gap-2">
-                   <p className="text-[10px] font-bold text-blue-600 uppercase truncate">{prayer.service_name}</p>
-                </div>
-              </div>
-            </div>
-          ))
-        )}
+        ))}
       </div>
     </div>
   );
