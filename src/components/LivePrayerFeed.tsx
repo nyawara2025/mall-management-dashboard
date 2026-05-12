@@ -32,12 +32,13 @@ export const LivePrayerFeed = ({ shopId }: { shopId: number }) => {
       const data = await response.json();
       
       // Filter out events older than 2 minutes (120000 ms)
-      const now = new Date().getTime();
+      const nowUtc = new Date().getTime();
       const rawData = Array.isArray(data) ? data : [];
 
       const activePrompts = rawData.filter(e => {
-        const eventTime = new Date(e.timestamp).getTime();
-        return now - eventTime < 120000; 
+        const eventTimeUtc = new Date(e.created_at).getTime();
+        const diffMinutes = (nowUtc - eventTimeUtc) / 60000;
+        return diffMinutes >= 0 && diffMinutes <= 2; 
       });
 
       setEvents(activePrompts);
