@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { VisitorForm } from './VisitorForm'; // Ensure this matches your filename
-import { Loader2, Sparkles, CheckCircle2, ChevronDown, FileText, ClipboardList, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { Loader2, Sparkles } from 'lucide-react';
 
-export const VisitorQuestionnaire = ({ shopId }: { shopId: number }) => {
+export const ChurchMembershipForm = ({ shopId }: { shopId: number }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   
