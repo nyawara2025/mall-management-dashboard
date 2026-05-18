@@ -116,41 +116,6 @@ interface SokoniModalProps {
 
 // --- COMPONENT 1: Login ---
 export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onLoginSuccess: (data: MemberData) => void }) => {
-  // 1. Core Tenant State Variables
-  const [activeShopId, setActiveShopId] = useState<number>(shopId || 68);
-  const [churches, setChurches] = useState<{ id: number; name: string }[]>([]);
-  const [fetchingChurches, setFetchingChurches] = useState(false);
-
-  // 2. Fetch all available churches dynamically from your n8n workflow
-  useEffect(() => {
-    const fetchChurchesFromWorkflow = async () => {
-      setFetchingChurches(true);
-      try {
-        const response = await fetch('https://n8n.tenear.com/webhook/fetch-churches', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'get_active_churches' }) // Optional payload if needed by n8n
-        });
-
-        if (!response.ok) throw new Error("Failed to pull registry folder");
-        const result = await response.json();
-        
-        // Normalize if n8n returns an array or an object containing the list
-        const churchList = Array.isArray(result) ? result : (result.churches || []);
-        setChurches(churchList);
-      } catch (err) {
-        console.error("Error loading churches registry via n8n:", err);
-      } finally {
-        setFetchingChurches(false);
-      }
-    };
-
-    fetchChurchesFromWorkflow();
-  }, []);
-
-  // Find the label matching our state for the UI string interpolation
-  const activeChurchName = churches.find(c => c.id === activeShopId)?.name || "Selected Church";
-
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -166,7 +131,6 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
   const [lastName, setLastName] = useState('');
   
   const [hasConsented, setHasConsented] = useState(false);
-
 
   const handleForgotPassword = async () => {
     if (!phone) {
@@ -325,44 +289,11 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
             {isResetMode ? 'Reset Password' : isSignUp ? 'Join Us' : 'Welcome Back'}
           </h2>
           <p className="text-gray-500 text-sm mt-2">
-            {isResetMode ? 'Verify your identity' : `Access the ${activeChurchName} Member Hub`}
+            {isResetMode ? 'Verify your identity' : 'Access the St. Barnabas Member Hub'}
           </p>
         </div>
 
         <div className="space-y-4">
-
-          {/* --- NEW DYNAMIC DROPDOWN SELECTOR BLOCK --- */}
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider pl-1">
-              Select Your Church
-            </label>
-            <div className="relative">
-              <select
-                value={activeShopId}
-                onChange={(e) => setActiveShopId(Number(e.target.value))}
-                disabled={fetchingChurches}
-                className="w-full p-4 bg-gray-50 text-gray-800 font-medium rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer disabled:opacity-50"
-                style={{ 
-                  backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://w3.org' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`, 
-                  backgroundRepeat: 'no-repeat', 
-                  backgroundPosition: 'right 16px center', 
-                  backgroundSize: '16px' 
-                }}
-              >
-                {fetchingChurches ? (
-                  <option>Loading churches...</option>
-                ) : (
-                  churches.map((church) => (
-                    <option key={church.id} value={church.id}>
-                      {church.name}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-          </div>
-          {/* --- END OF DROPDOWN BLOCK --- */}
-
           {/* Sign Up Fields */}
           {isSignUp && !isResetMode && (
             <div className="space-y-3 mb-4 animate-in fade-in slide-in-from-top-2 duration-300">
