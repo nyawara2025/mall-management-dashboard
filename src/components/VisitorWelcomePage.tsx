@@ -175,7 +175,7 @@ export const VisitorQuestionnaire = ({ shopId }: { shopId: number }) => {
       {/* SECTION 2: CHURCH INFORMATION */}
       <h2 className={sectionTitleClasses}>⛪ Church Information</h2>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
         <div>
           <label className={labelClasses}>Are you Baptized?</label>
           <select name="isBaptized" value={formData.isBaptized} onChange={handleChange} className={inputClasses}>
@@ -190,7 +190,7 @@ export const VisitorQuestionnaire = ({ shopId }: { shopId: number }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
         <div>
           <label className={labelClasses}>Are you Confirmed?</label>
           <select name="isConfirmed" value={formData.isConfirmed} onChange={handleChange} className={inputClasses}>
@@ -205,7 +205,7 @@ export const VisitorQuestionnaire = ({ shopId }: { shopId: number }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
         <div>
           <label className={labelClasses}>Are you a Communicant?</label>
           <select name="isCommunicant" value={formData.isCommunicant} onChange={handleChange} className={inputClasses}>
@@ -224,7 +224,7 @@ export const VisitorQuestionnaire = ({ shopId }: { shopId: number }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
         <div>
           <label className={labelClasses}>Name of former Church</label>
           <input type="text" name="formerChurchName" value={formData.formerChurchName} onChange={handleChange} placeholder="Former church" className={inputClasses} />
@@ -265,7 +265,7 @@ export const VisitorQuestionnaire = ({ shopId }: { shopId: number }) => {
         <textarea name="childrenNames" rows={2} value={formData.childrenNames} onChange={handleChange} placeholder="Names of children (comma separated)" className={`${inputClasses} resize-none`} />
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
         <div className="col-span-1">
           <label className={labelClasses}>Next of Kin</label>
           <input type="text" name="nextOfKinName" value={formData.nextOfKinName} onChange={handleChange} placeholder="Name" className={inputClasses} />
