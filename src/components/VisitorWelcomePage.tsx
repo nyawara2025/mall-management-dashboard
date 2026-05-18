@@ -307,7 +307,7 @@ export const VisitorQuestionnaire = ({ shopId }: { shopId: number }) => {
         <input type="text" name="otherCommitments" value={formData.otherCommitments} onChange={handleChange} placeholder="Specify other group..." className={inputClasses} />
       </div>
 
-      <div className="grid grid-cols-2 gap-2 border-t border-gray-100 pt-4 mt-4">
+      <div className="flex flex-col sm:grid sm:grid-cols-2 gap-4 border-t border-gray-100 pt-4 mt-4">
         <div>
           <label className={labelClasses}>Registration Type</label>
           <select name="registrationType" value={formData.registrationType} onChange={handleChange} className={inputClasses}>
