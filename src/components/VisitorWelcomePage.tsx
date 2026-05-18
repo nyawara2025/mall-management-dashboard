@@ -109,7 +109,7 @@ export const VisitorQuestionnaire = ({ shopId }: { shopId: number }) => {
       {/* SECTION 1: PERSONAL INFORMATION */}
       <h2 className={sectionTitleClasses}>👤 Personal Information</h2>
       
-      <div className="grid grid-cols-3 gap-2">
+      <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
         <div className="col-span-1">
           <label className={labelClasses}>Title</label>
           <select name="title" value={formData.title} onChange={handleChange} className={inputClasses} required>
@@ -130,7 +130,7 @@ export const VisitorQuestionnaire = ({ shopId }: { shopId: number }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
         <div className="col-span-2">
           <label className={labelClasses}>Postal Address</label>
           <input type="text" name="postalAddress" value={formData.postalAddress} onChange={handleChange} placeholder="P.O. Box..." className={inputClasses} />
@@ -146,7 +146,7 @@ export const VisitorQuestionnaire = ({ shopId }: { shopId: number }) => {
         <input type="text" name="townCity" value={formData.townCity} onChange={handleChange} placeholder="Nairobi" className={inputClasses} />
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
         <div className="col-span-1">
           <label className={labelClasses}>Estate</label>
           <input type="text" name="estate" value={formData.estate} onChange={handleChange} placeholder="Otiende" className={inputClasses} />
@@ -161,7 +161,7 @@ export const VisitorQuestionnaire = ({ shopId }: { shopId: number }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-col sm:grid sm:grid-cols-3 gap-3">
         <div>
           <label className={labelClasses}>Profession / Occupation</label>
           <input type="text" name="profession" value={formData.profession} onChange={handleChange} placeholder="Accountant" className={inputClasses} />
