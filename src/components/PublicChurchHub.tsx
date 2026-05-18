@@ -181,7 +181,7 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           phone: phone.startsWith('+') ? phone : `+${phone}`,
-          shop_id: shopId
+          shop_id: activeShopId
         }),
       });
 
@@ -214,7 +214,7 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
           phone, 
           otpCode, 
           newPassword, // n8n will bcrypt this before saving
-          shop_id: shopId 
+          shop_id: activeShopId 
         }),
       });
      
@@ -262,7 +262,7 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
         phone: formattedPhone,
         password: password,
         isSignUp: isSignUp,
-        shop_id: shopId,
+        shop_id: activeShopId,
         // Only send names if it's a Signup attempt
         first_name: isSignUp ? firstName : undefined,
         last_name: isSignUp ? lastName : undefined,
