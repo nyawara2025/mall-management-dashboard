@@ -85,8 +85,7 @@ const CreateAppointmentForm = ({ userData }: { userData: any }) => {
                    userData?.role?.toLowerCase().includes('chair') ||
                    userData?.role?.toLowerCase().includes('leader');
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!formData.reason || !formData.date) return alert("Please fill in required fields");
     
     setLoading(true);
@@ -99,18 +98,6 @@ const CreateAppointmentForm = ({ userData }: { userData: any }) => {
           member_id: userData.id,
           org_id: userData.org_id,
           shop_id: userData.shop_id,
-
-          // DYNAMIC RELATIONSHIP IDENTIFIERS LINKED FROM LOGGED-IN SESSION PROFILE
-          // This safely extracts the row ID from your database table schema mappings
-          ministry_id: formData.category === 'Ministry' ? (userData.ministry_id || userData.department_id) : null,
-          zone_id: formData.category === 'Zone' ? userData.zone_id : null,
-          
-          // Attaches the explicit name string fields to help n8n parse logs or templates easily
-          department: formData.category === 'Ministry' ? userData.ministry_name : 'General',
-          zone_name: formData.category === 'Zone' ? userData.zone_name : null,
-
-          // Preserves your original scope assignment parameter logic rule
-
           // If personal, target is the user. If group, target is the specific ministry
           final_scope: formData.category === 'Personal' ? 'Individual' : formData.category
         }),
@@ -119,13 +106,9 @@ const CreateAppointmentForm = ({ userData }: { userData: any }) => {
       if (response.ok) {
         alert("Appointment/Event posted successfully!");
         setFormData({ reason: '', date: '', time: '', category: 'Personal', target_group: '' });
-      } else {
-        throw new Error('Server integration error');
       }
-
     } catch (error) {
       console.error(error);
-      alert("Failed to submit event details. Please verify your connection.");
     } finally {
       setLoading(false);
     }
