@@ -44,11 +44,6 @@ export const MediaDashboard = () => {
 
   // Centralized n8n POST handler
   const fetchFromN8n = async (action: string, payload: any) => {
-
-    // Dynamically look up the clean string text name from your existing DEPARTMENTS array
-    const matchedDept = DEPARTMENTS.find(d => d.id === (payload.department_id || selectedDeptId));
-    const currentDeptName = matchedDept ? matchedDept.name : 'General';
-
     try {
       const response = await fetch('https://n8n.tenear.com/webhook/calendar-and-planning', {
         method: 'POST',
@@ -56,10 +51,6 @@ export const MediaDashboard = () => {
         body: JSON.stringify({
           shop_id: user?.shop_id || 101,
           action,
-
-          // Appends the raw string name so your n8n filter logic runs cleanly
-          department_name: currentDeptName,
-
           ...payload
         }),
       });
