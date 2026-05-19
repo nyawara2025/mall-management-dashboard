@@ -54,13 +54,12 @@ export const MediaDashboard = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          ...payload,
           shop_id: user?.shop_id || 101,
           action,
 
           // Appends the raw string name so your n8n filter logic runs cleanly
           department_name: currentDeptName,
-
-          ...payload
         }),
       });
       const text = await response.text();

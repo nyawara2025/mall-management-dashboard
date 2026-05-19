@@ -73,10 +73,12 @@ const TabButton = ({ active, onClick, icon, label }: any) => (
 const CreateAppointmentForm = ({ userData }: { userData: any }) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    reason: '',
+    title: '',
+    particulars: '',
     date: '',
     time: '',
-    category: 'Personal', // Default
+    location: '',
+    category: 'Ministry', // Default
     target_group: ''      // e.g., 'KAMA', 'Media', 'Zone A'
   });
 
@@ -87,7 +89,7 @@ const CreateAppointmentForm = ({ userData }: { userData: any }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.reason || !formData.date) return alert("Please fill in required fields");
+    if (!formData.title || !formData.date) return alert("Please fill in required fields");
     
     setLoading(true);
     try {
@@ -118,7 +120,7 @@ const CreateAppointmentForm = ({ userData }: { userData: any }) => {
 
       if (response.ok) {
         alert("Appointment/Event posted successfully!");
-        setFormData({ reason: '', date: '', time: '', category: 'Personal', target_group: '' });
+        setFormData({ title: '', particulars: '', date: '', time: '', location: '', category: 'Ministry', target_group: '' });
       } else {
         throw new Error('Server integration error');
       }
@@ -156,11 +158,31 @@ const CreateAppointmentForm = ({ userData }: { userData: any }) => {
 
       <input 
         type="text" 
-        placeholder="Reason for visit / Event Title" 
-        value={formData.reason}
-        onChange={(e) => setFormData({...formData, reason: e.target.value})}
+        placeholder="Event Title" 
+        value={formData.title}
+        onChange={(e) => setFormData({...formData, title: e.target.value})}
         className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none" 
       />
+
+      {/* 🛑 INSERT THIS NEW BLOCK RIGHT HERE 🛑 */}
+      <textarea 
+        placeholder="Event Particulars / More Details (e.g., special requirements, catering details, agenda notes)" 
+        value={formData.particulars}
+        onChange={(e) => setFormData({...formData, particulars: e.target.value})}
+        rows={3}
+        className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium text-gray-800 placeholder-gray-400 resize-none" 
+      />
+
+      {/* Event Location Input Field */}
+      <input 
+        type="text" 
+        placeholder="Venue / Location (e.g., Main Hall, Zoom link)" 
+        value={formData.location}
+        onChange={(e) => setFormData({...formData, location: e.target.value})}
+        className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none" 
+      />
+
+      {/* Date & Time Grid */}
 
       <div className="grid grid-cols-2 gap-4">
         <input 
