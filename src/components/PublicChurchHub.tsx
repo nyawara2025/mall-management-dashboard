@@ -1148,10 +1148,10 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
       <nav className="bg-white/90 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 px-6 py-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-100">
-            {church.church_name?.charAt(0) || 'S'}
+            {userData?.church_name?.charAt(0) || 'S'}
           </div>
           <h1 className="font-bold text-gray-800 text-sm md:text-base truncate max-w-[200px]">
-            {church.church_name}
+            {userData?.church_name || 'My Church'}
           </h1>
         </div>
         <button onClick={handleLogout} className="p-2 text-gray-400 hover:text-red-500 transition-colors">
