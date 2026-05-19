@@ -342,7 +342,7 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
                 value={activeShopId}
                 onChange={(e) => setActiveShopId(Number(e.target.value))}
                 disabled={fetchingChurches}
-                className="w-full p-4 bg-gray-50 text-gray-800 font-medium rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer disabled:opacity-50"
+                className="w-full p-4 bg-gray-50 text-gray-800 text-xs font-semibold rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer disabled:opacity-50"
                 style={{ 
                   backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://w3.org' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>")`, 
                   backgroundRepeat: 'no-repeat', 
