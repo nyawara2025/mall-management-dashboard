@@ -118,8 +118,13 @@ interface SokoniModalProps {
 // --- COMPONENT 1: Login ---
 export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onLoginSuccess: (data: MemberData) => void }) => {
   // 1. Core Tenant State Variables
-  const [activeShopId, setActiveShopId] = useState<number>(shopId || 68);
-  const [churches, setChurches] = useState<{ id: number; name: string }[]>([]);
+  const [activeShopId, setActiveShopId] = useState<number>(() => {
+
+    const savedChurch = localStorage.getItem('preferred_church_shop_id');
+    return savedChurch ? Number(savedChurch) : (shopId || 68);
+  });
+
+  const [churches, setChurches] = useState<{ id: string; shop_id: number; church_name: string }[]>([]);
   const [fetchingChurches, setFetchingChurches] = useState(false);
 
   // 2. Fetch all available churches dynamically from your n8n workflow
@@ -150,7 +155,7 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
   }, []);
 
   // Find the label matching our state for the UI string interpolation
-  const activeChurchName = churches.find(c => c.id === activeShopId)?.name || "Selected Church";
+  const activeChurchName = churches.find(c => c.shop_id === activeShopId)?.church_name || "Selected Church";
 
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -340,7 +345,13 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
             <div className="relative">
               <select
                 value={activeShopId}
-                onChange={(e) => setActiveShopId(Number(e.target.value))}
+                onChange={(e) => {
+                  const selectedShopId = Number(e.target.value);
+                  setActiveShopId(selectedShopId);
+                  // SAVES CHOICE: This Burns the user's church choice into their phone storage memory cleanly
+                  localStorage.setItem('preferred_church_shop_id', String(selectedShopId));
+                }}
+
                 disabled={fetchingChurches}
                 className="w-full p-4 bg-gray-50 text-gray-800 font-medium rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none appearance-none cursor-pointer disabled:opacity-50"
                 style={{ 
@@ -354,8 +365,8 @@ export const ChurchHubLogin = ({ shopId, onLoginSuccess }: { shopId: number, onL
                   <option>Loading churches...</option>
                 ) : (
                   churches.map((church) => (
-                    <option key={church.id} value={church.id}>
-                      {church.name}
+                    <option key={church.shop_id} value={church.shop_id}>
+                      {church.church_name}
                     </option>
                   ))
                 )}
