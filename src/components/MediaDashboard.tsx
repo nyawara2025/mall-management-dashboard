@@ -433,30 +433,58 @@ export const MediaDashboard = () => {
                 <div className="py-20 text-center animate-pulse text-gray-400 text-sm font-bold uppercase tracking-widest">Syncing with Church Cloud...</div>
               ) : calendarEvents.length > 0 ? (
                 calendarEvents.map((event) => {
-                  const eventDate = new Date(event.start_time || event.created_at);
+                  // 1. FIXED DATE RESOLUTION: Prioritize entry_date over system timestamps
+                  const rawDateString = event.entry_date || event.start_time || event.created_at;
+                  const eventDate = new Date(rawDateString);
                   const month = eventDate.toLocaleString('default', { month: 'short' }).toUpperCase();
                   const day = eventDate.getDate();
+                  
+                  // 2. FIXED BADGE LABEL: Read straight from your new 'ministry_name' column
+                  const currentTabName = DEPARTMENTS.find(d => d.id === selectedDeptId)?.name || 'Ministry';
+                  const displayDepartment = event.ministry_name || event.department || currentTabName;
+
                   return (
                     <div key={event.id} className="flex gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                      {/* Date Badge */}
                       <div className="bg-white px-3 py-2 rounded-xl shadow-sm text-center min-w-[60px] h-fit border border-gray-100">
                         <p className="text-[10px] font-black text-blue-600 uppercase">{month}</p>
                         <p className="text-xl font-black text-gray-900 leading-none">{day}</p>
                       </div>
+                      
+                      {/* Content Details */}
                       <div className="flex-1">
-                        <h4 className="font-bold text-gray-900">{event.title}</h4>
-                        <p className="text-xs text-gray-500">{event.description}</p>
+                        {/* Event Title */}
+                        <h4 className="font-bold text-gray-900">{event.subject || event.title || 'Untitled Event'}</h4>
+        
+                        {/* Event Particulars Description */}
+                        {(event.details || event.description || event.particulars) && (
+                          <p className="text-xs text-gray-500 mt-0.5">{event.details || event.description || event.particulars}</p>
+                        )}
+        
                         <div className="mt-2 flex items-center gap-2">
-                          <span className="px-2 py-0.5 bg-blue-100 text-[9px] font-bold text-blue-600 rounded-full">Dept {event.department_id}</span>
-                          <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">{event.location}</span>
+                          {/* Department Label */}
+                          <span className="px-2 py-0.5 bg-blue-100 text-[9px] font-bold text-blue-600 rounded-full">
+                            {displayDepartment}
+                          </span>
+          
+                          {/* Event Location Venue */}
+                          {(event.venue || event.location) && (
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
+                              {event.venue || event.location}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
                   );
                 })
+
+
               ) : (
                 <div className="py-20 text-center text-gray-400 text-sm italic">No events found for this department.</div>
               )}
             </div>
+
           </div>
         </div>
       )}
