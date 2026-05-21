@@ -1,188 +1,128 @@
-import React, { useState, useEffect } from 'react';
-import { Megaphone, X, Radio, Bell, Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Radio, Bell, Loader2 } from 'lucide-react';
 
 interface LeaderCreateBroadcastProps {
+  role: string; // Accepts the string directly (e.g. 'leader')
   userId: any;
   shopId: any;
   onBroadcastCreated: () => void;
 }
 
-export const LeaderCreateBroadcast: React.FC<LeaderCreateBroadcastProps> = ({ userId, shopId, onBroadcastCreated }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [profileLoading, setProfileLoading] = useState(true);
-  const [leaderProfile, setLeaderProfile] = useState<any>(null);
+export const LeaderCreateBroadcast: React.FC<LeaderCreateBroadcastProps> = ({ role, userId, shopId, onBroadcastCreated }) => {
+  const [isCreating, setIsCreating] = useState(false);
+  const [sending, setSending] = useState(false);
   
-  const [formData, setFormData] = useState({
+  // Form State modeled exactly from your working meetings setup
+  const [newNotice, setNewNotice] = useState({
     title: '',
     message: '',
-    type: 'broadcast', 
-    priority: 'normal' 
+    type: 'broadcast',
+    priority: 'normal'
   });
 
-  // --- INTERNAL SELF-CONTAINED WEBHOOK LOOKUP ---
-  useEffect(() => {
-    const fetchProfile = async () => {
-      if (!userId) return;
-      try {
-        const response = await fetch('https://n8n.tenear.com/webhook/fetch-church-leader-profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shop_id: shopId }),
-        });
-        const data = await response.json();
-        
-        if (Array.isArray(data)) {
-          const matched = data.find((m: any) => m.id === Number(userId));
-          setLeaderProfile(matched);
-        }
-      } catch (error) {
-        console.error("Failed to fetch leader verification profile:", error);
-      } finally {
-        setProfileLoading(false);
-      }
-    };
-
-    fetchProfile();
-  }, [userId, shopId]);
-
-  // Evaluate permissions using the internally fetched profile data
-  const userRoleString = (leaderProfile?.role || '').toLowerCase();
-  const isAuthorizedLeader = 
-    userRoleString.includes('head') || 
-    userRoleString.includes('chair') || 
-    userRoleString.includes('admin') ||
-    userRoleString.includes('leader') ||
-    leaderProfile?.is_ministry_leader === true ||
-    leaderProfile?.is_zone_leader === true;
-
-  // Hide everything if the profile is still loading or if the user is not a leader
-  if (profileLoading || !isAuthorizedLeader) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.title || !formData.message) return alert("Please fill in all required fields");
-
-    setLoading(true);
+  const handleCreateNotice = async () => {
+    if (!newNotice.title || !newNotice.message) {
+      alert("Please fill in required fields");
+      return;
+    }
+    
+    setSending(true);
     try {
       const response = await fetch('https://n8n.tenear.com/webhook/create-church-broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
-          member_id: userId,
-          org_id: leaderProfile?.org_id,
+          ...newNotice,
+          created_by: userId,
           shop_id: shopId,
-          target_name: leaderProfile?.is_ministry_leader ? leaderProfile?.ministry_name : leaderProfile?.zone_name
         }),
       });
 
       if (response.ok) {
-        alert("Notice broadcasted successfully!");
-        setFormData({ title: '', message: '', type: 'broadcast', priority: 'normal' });
-        setIsOpen(false);
-        onBroadcastCreated(); 
-      } else {
-        throw new Error('Failed to publish notification');
+        alert("Notice Broadcasted!");
+        setNewNotice({ title: '', message: '', type: 'broadcast', priority: 'normal' });
+        setIsCreating(false);
+        onBroadcastCreated(); // Triggers re-fetch on parent hub list
       }
-    } catch (error) {
-      console.error(error);
-      alert("Failed to publish your notice.");
+    } catch (err) {
+      alert("Error creating notice");
     } finally {
-      setLoading(false);
+      setSending(false);
     }
   };
 
+  // Strict leadership check matching your exact meetings view requirement
+  if (role !== 'leader') return null;
+
   return (
-    <>
-      <button
+    <div className="w-full">
+      {/* Dynamic Creation Toggle Trigger Card */}
+      <button 
         type="button"
-        onClick={() => setIsOpen(true)}
-        className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold p-4 rounded-2xl shadow-lg transition-all mb-4"
+        onClick={() => setIsCreating(!isCreating)}
+        className="w-full mb-6 p-4 bg-blue-50 text-blue-600 rounded-2xl font-bold flex items-center justify-center gap-2 border-2 border-dashed border-blue-200 text-sm"
       >
-        <Megaphone size={18} /> Create Church Notice
+        {isCreating ? 'Cancel' : '+ Broadcast New Notice'}
       </button>
 
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col">
-            
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-blue-50/50">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-blue-600 rounded-2xl text-white"><Megaphone size={20} /></div>
-                <div>
-                  <h2 className="text-lg font-black text-gray-900">New Church Broadcast</h2>
-                  <p className="text-xs text-gray-500">Publish announcements to congregation</p>
-                </div>
-              </div>
-              <button type="button" onClick={() => setIsOpen(false)} className="p-2 hover:bg-gray-100 rounded-full">
-                <X size={20} className="text-gray-400" />
-              </button>
-            </div>
+      {/* Creation Inputs Tray Container */}
+      {isCreating && (
+        <div className="space-y-4 mb-8 bg-gray-50 p-6 rounded-3xl border border-gray-100 text-left">
+          <input 
+            className="w-full p-4 rounded-xl border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500 bg-white text-sm font-medium outline-none" 
+            placeholder="Notice Title" 
+            value={newNotice.title}
+            onChange={e => setNewNotice({...newNotice, title: e.target.value})}
+          />
+          
+          <textarea 
+            className="w-full p-4 rounded-xl ring-1 ring-gray-200 bg-white text-sm font-medium outline-none h-32 resize-none" 
+            placeholder="Notice Message Content" 
+            value={newNotice.message}
+            onChange={e => setNewNotice({...newNotice, message: e.target.value})}
+          />
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, type: 'broadcast' })}
-                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-medium text-sm transition-all ${
-                    formData.type === 'broadcast' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-500'
-                  }`}
-                >
-                  Broadcast
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, type: 'alert' })}
-                  className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-medium text-sm transition-all ${
-                    formData.type === 'alert' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-gray-50 border-gray-100 text-gray-500'
-                  }`}
-                >
-                  Alert / Warning
-                </button>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-gray-500 block mb-1 uppercase tracking-wider">Priority Level</label>
-                <select
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                  className="w-full p-3.5 bg-gray-50 border border-gray-100 rounded-xl outline-none font-medium text-sm focus:ring-2 focus:ring-blue-600"
-                >
-                  <option value="normal">Normal Priority</option>
-                  <option value="high">High Importance</option>
-                </select>
-              </div>
-
-              <input
-                type="text"
-                placeholder="Notice Title"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full p-4 bg-gray-50 rounded-xl border border-gray-100 focus:ring-2 focus:ring-blue-600 outline-none text-sm font-medium"
-              />
-
-              <textarea
-                placeholder="Write your broadcast notice payload detail instructions here..."
-                value={formData.message}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                rows={4}
-                className="w-full p-4 bg-gray-50 rounded-xl border border-gray-100 focus:ring-2 focus:ring-blue-600 outline-none text-sm font-medium resize-none"
-              />
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold py-4 rounded-xl shadow-lg transition-all text-sm mt-2 flex items-center justify-center gap-2"
-              >
-                {loading ? <Loader2 className="animate-spin" size={18} /> : null}
-                {loading ? 'Transmitting Notice...' : 'Broadcast to Church'}
-              </button>
-            </form>
-
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setNewNotice({ ...newNotice, type: 'broadcast' })}
+              className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-bold text-xs uppercase tracking-wider transition-all ${
+                newNotice.type === 'broadcast' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-400 border-gray-200'
+              }`}
+            >
+              Broadcast
+            </button>
+            <button
+              type="button"
+              onClick={() => setNewNotice({ ...newNotice, type: 'alert' })}
+              className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-bold text-xs uppercase tracking-wider transition-all ${
+                newNotice.type === 'alert' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-gray-400 border-gray-200'
+              }`}
+            >
+              Alert Node
+            </button>
           </div>
+
+          <select 
+            className="w-full p-4 rounded-xl ring-1 ring-gray-200 bg-white text-sm font-medium outline-none"
+            value={newNotice.priority}
+            onChange={e => setNewNotice({...newNotice, priority: e.target.value})}
+          >
+            <option value="normal">Normal Priority (Blue Card)</option>
+            <option value="high">High Importance (Red Card)</option>
+          </select>
+
+          <button 
+            type="button"
+            onClick={handleCreateNotice} 
+            disabled={sending}
+            className="w-full bg-blue-600 text-white p-4 rounded-xl font-bold flex items-center justify-center gap-2 shadow-md hover:bg-blue-700 transition-colors"
+          >
+            {sending && <Loader2 className="animate-spin" size={16} />}
+            {sending ? 'Posting...' : 'Post Notice'}
+          </button>
         </div>
       )}
-    </>
+    </div>
   );
 };
