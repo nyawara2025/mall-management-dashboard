@@ -16,12 +16,17 @@ export const LeaderCreateBroadcast: React.FC<LeaderCreateBroadcastProps> = ({ us
     priority: 'normal' // normal or high
   });
 
+  // 1. Check the role string
+  const userRoleString = (userData?.role || '').toLowerCase();
+
   // Verify authorization roles safely
   const isAuthorizedLeader = 
-    userData?.role?.toLowerCase().includes('head') || 
-    userData?.role?.toLowerCase().includes('chair') || 
-    userData?.role?.toLowerCase().includes('admin') ||
-    userData?.role?.toLowerCase().includes('leader');
+    userRoleString.includes('head') || 
+    userRoleString.includes('chair') || 
+    userRoleString.includes('admin') ||
+    userRoleString.includes('leader') ||
+    userData?.is_ministry_leader === true ||
+    userData?.is_zone_leader === true;
 
   if (!isAuthorizedLeader) return null;
 
