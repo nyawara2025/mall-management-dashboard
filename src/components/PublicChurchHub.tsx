@@ -519,7 +519,8 @@ const AlertsRibbon = ({ userId, shopId }: { userId: number, shopId: number }) =>
 
       {/* 🛑 PLUG IN OUR NEW LEADER WRAPPER COMPONENT HERE 🛑 */}
       <LeaderCreateBroadcast 
-        userData={{ id: userId, shop_id: shopId, role: 'leader' }} 
+        userId={userId} 
+        shopId={shopId} 
         onBroadcastCreated={fetchAlerts} 
       />
 
