@@ -29,7 +29,6 @@ import { ServiceOrderTabs } from './ServiceOrderTabs';
 import { MomentWithGodModal } from './MomentWithGodModal';
 import { ProjectsRenderer } from './ProjectsRenderer';
 import { PrayerEngagement } from './PrayerEngagement';
-import { LeaderCreateBroadcast } from './LeaderCreateBroadcast';
 import { ConsentSection } from './ConsentSection';
 
 // --- TYPES ---
@@ -516,14 +515,6 @@ const AlertsRibbon = ({ userId, shopId }: { userId: number, shopId: number }) =>
 
   return (
     <div className="w-full mb-8 space-y-3">
-
-      {/* 🛑 PLUG IN OUR NEW LEADER WRAPPER COMPONENT HERE 🛑 */}
-      <LeaderCreateBroadcast 
-        userData={{ id: userId, shop_id: shopId, role: 'leader' }} 
-        onBroadcastCreated={fetchAlerts} 
-      />
-
-
       {alerts.map((alert, index) => (
         <div 
           key={index} 
