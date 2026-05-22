@@ -40,7 +40,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     
     setTransmitting(true);
     try {
-      const response = await fetch('https://n8n.tenear.com/webhook/church-comms', {
+      const response = await fetch('https://n8n.tenear.com/webhook/church-chat-direct', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
