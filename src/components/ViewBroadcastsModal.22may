@@ -57,29 +57,37 @@ export const ViewBroadcastsModal = ({ isOpen, onClose, userData }: any) => {
     }
     setSending(true);
     try {
-      // 1. Placeholder for handling raw base64 or file uploads if a file is attached
-      let currentFileUrl = '';
+      // 1. Package the entire request payload into a standard multipart FormData container
+      const formDataPayload = new FormData();
+      
+      // 2. Append the text attributes cleanly
+      formDataPayload.append('sender_phone', userData?.phone_number || '0700000000');
+      formDataPayload.append('org_id', userData?.org_id || '');
+      formDataPayload.append('shop_id', userData?.shop_id || '68');
+      formDataPayload.append('title', newBroadcast.title);
+      formDataPayload.append('message', newBroadcast.message);
+      formDataPayload.append('target_type', newBroadcast.target_scope);
+      formDataPayload.append('target_name', newBroadcast.target_name);
+      
+      // Generate the exact path string pattern your n8n expects
+      const generatedPathName = selectedFile 
+        ? `uploaded_media_${Date.now()}_${selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
+        : '';
+      formDataPayload.append('attachment_path', generatedPathName);
+      formDataPayload.append('target_id', newBroadcast.target_scope === 'zone' ? userData?.zone_id : userData?.ministry_id);
+
+      // 3. Attach the actual physical binary file stream if one is selected
       if (selectedFile) {
-        // You can attach your file handler here (e.g. upload to Supabase storage or pass as base64)
-        currentFileUrl = `uploaded_media_${Date.now()}_${selectedFile.name}`;
+        // This maps the actual binary content directly to the key 'photo' that n8n expects
+        formDataPayload.append('photo', selectedFile); 
       }
 
-      // 2. Transmit fully loaded dynamic payload out to n8n
+      // 4. Transmit the multi-part data payload out to your n8n workflow
       const response = await fetch('https://n8n.tenear.com/webhook/create-church-broadcast', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sender_phone: userData?.phone_number || '0700000000',
-          org_id: userData?.org_id,
-          shop_id: userData?.shop_id || 68,
-          title: newBroadcast.title,
-          message: newBroadcast.message,
-          target_type: newBroadcast.target_scope,
-          target_name: newBroadcast.target_name,
-          attachment_path: currentFileUrl,
-          // Forwarding exact lookup context IDs
-          target_id: newBroadcast.target_scope === 'zone' ? userData?.zone_id : userData?.ministry_id
-        }),
+        // Note: Do NOT explicitly set 'Content-Type' header here. 
+        // Leaving it empty allows the browser to configure the boundary separators automatically.
+        body: formDataPayload,
       });
 
       if (response.ok) {
@@ -87,7 +95,7 @@ export const ViewBroadcastsModal = ({ isOpen, onClose, userData }: any) => {
         setNewBroadcast({ title: '', message: '', target_scope: 'general', target_name: 'General Notice', attachment_url: '' });
         setSelectedFile(null);
         setIsCreating(false);
-        fetchMessages(); // Auto-refresh updates feed list
+        fetchMessages();
       } else {
         throw new Error("Payload transmission rejected");
       }
@@ -96,7 +104,7 @@ export const ViewBroadcastsModal = ({ isOpen, onClose, userData }: any) => {
     } finally {
       setSending(false);
     }
-  };
+  }; 
 
   if (!isOpen) return null;
 
