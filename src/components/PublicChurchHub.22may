@@ -29,6 +29,7 @@ import { ServiceOrderTabs } from './ServiceOrderTabs';
 import { MomentWithGodModal } from './MomentWithGodModal';
 import { ProjectsRenderer } from './ProjectsRenderer';
 import { PrayerEngagement } from './PrayerEngagement';
+import { MemberChatModal } from './MemberChatModal';
 import { LeaderCreateBroadcast } from './LeaderCreateBroadcast';
 import { ConsentSection } from './ConsentSection';
 
@@ -960,6 +961,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
   const [isMomentOpen, setIsMomentOpen] = useState(false);
 
+  const [isChatModalOpen, setIsChatModalOpen] = useState(false);
+
   const [activeProjectView, setActiveProjectView] = useState<'planned' | 'fundraising' | null>(null);
 
   const handleAccountClick = () => {
@@ -1516,6 +1519,18 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 </span>
               </button>
 
+              {/* 💬 INDEPENDENT MEMBER-TO-MEMBER CHAT GRID BUTTON TRIGGER 💬 */}
+              <button
+                type="button"
+                onClick={() => setIsChatModalOpen(true)}
+                className="flex flex-col items-center justify-center p-5 bg-gradient-to-br from-indigo-500 to-blue-600 rounded-3xl text-white shadow-md hover:scale-[1.02] transition-transform text-center gap-2"
+              >
+                <div className="p-3 bg-white/20 rounded-2xl">
+                  <svg xmlns="http://w3.org" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </div>
+                <span className="text-xs font-black uppercase tracking-wider">Member Chat</span>
+              </button>
+
               {/* Sokoni Card */}
               <button 
                 onClick={handleOpenSokoni}
@@ -1714,6 +1729,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         onClose={() => setIsMomentOpen(false)}
         userData={userData}
         shopId={activeShopId}
+      />
+
+      <MemberChatModal 
+        isOpen={isChatModalOpen} 
+        onClose={() => setIsChatModalOpen(false)} 
+        userData={userData || { id: 0, shop_id: shopId }} 
       />
 
       {isCommunityModalOpen && (

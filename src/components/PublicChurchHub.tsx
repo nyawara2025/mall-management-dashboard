@@ -5,7 +5,7 @@ import {
   User, ShieldCheck, Users, Activity,
   MessageSquare, Heart, Radio, Wallet, Book, Globe, Bell, ClipboardList,
   Image as ImageIcon, MessageCircle, X, Calendar, TrendingUp,
-  Send, Quote, Sparkles, Hand, HandHelping, Church, HeartHandshake, ScrollText, ListMusic, Store, UsersRound, ListOrdered, Megaphone, BellDot, CalendarRange, Presentation, HandCoins, Gift 
+  Send, Quote, Sparkles, Hand, HandHelping, Church, HeartHandshake, Award, ScrollText, ListMusic, Store, UsersRound, ListOrdered, Megaphone, BellDot, CalendarRange, Presentation, HandCoins, Gift 
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import SokoniModal from './SokoniModal';
@@ -30,6 +30,8 @@ import { MomentWithGodModal } from './MomentWithGodModal';
 import { ProjectsRenderer } from './ProjectsRenderer';
 import { PrayerEngagement } from './PrayerEngagement';
 import { MemberChatModal } from './MemberChatModal';
+import { BaptismConfirmationModal } from './BaptismConfirmationModal';
+import { ChurchDocumentsModal } from './ChurchDocumentsModal';
 import { LeaderCreateBroadcast } from './LeaderCreateBroadcast';
 import { ConsentSection } from './ConsentSection';
 
@@ -963,6 +965,9 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
   const [isChatModalOpen, setIsChatModalOpen] = useState(false);
 
+  const [isSacramentOpen, setIsSacramentOpen] = useState(false);
+  const [isDocsOpen, setIsDocsOpen] = useState(false);
+
   const [activeProjectView, setActiveProjectView] = useState<'planned' | 'fundraising' | null>(null);
 
   const handleAccountClick = () => {
@@ -1531,6 +1536,28 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <span className="text-xs font-black uppercase tracking-wider">Member Chat</span>
               </button>
 
+              {/* ⛪ BAPTISM & CONFIRMATION BUTTON ⛪ */}
+              <button
+                onClick={() => setIsSacramentOpen(true)}
+                className="flex flex-col items-center justify-center p-5 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl text-white shadow-md hover:scale-[1.02] transition-transform text-center gap-2"
+              >
+                <div className="p-3 bg-white/20 rounded-2xl">
+                  <Award size={24} />
+                </div>
+                <span className="text-xs font-black uppercase tracking-wider">Sacraments Intake</span>
+              </button>
+
+              {/* 📂 CHURCH DOCUMENTS & REGISTRY BUTTON 📂 */}
+              <button
+                onClick={() => setIsDocsOpen(true)}
+                className="flex flex-col items-center justify-center p-5 bg-gradient-to-br from-slate-700 to-slate-900 rounded-3xl text-white shadow-md hover:scale-[1.02] transition-transform text-center gap-2"
+              >
+                <div className="p-3 bg-white/20 rounded-2xl">
+                  <ScrollText size={24} />
+                </div>
+                <span className="text-xs font-black uppercase tracking-wider">Church Docs</span>
+              </button>
+
               {/* Sokoni Card */}
               <button 
                 onClick={handleOpenSokoni}
@@ -1736,6 +1763,9 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
         onClose={() => setIsChatModalOpen(false)} 
         userData={userData || { id: 0, shop_id: shopId }} 
       />
+
+      <BaptismConfirmationModal isOpen={isSacramentOpen} onClose={() => setIsSacramentOpen(false)} userData={userData || { id: 0, shop_id: shopId }} />
+      <ChurchDocumentsModal isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
 
       {isCommunityModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
