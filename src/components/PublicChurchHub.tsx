@@ -1411,7 +1411,7 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
                 <div className="p-4 bg-gray-50 rounded-2xl text-gray-400">
                   <ImageIcon size={32} />
                 </div>
-                <span className="font-black text-[10px] uppercase tracking-widest text-white">Photo Gallery</span> 
+                <span className="font-black text-[10px] uppercase tracking-widest text-white">Photo & Video Gallery</span> 
                 
               </button>
              
@@ -1539,12 +1539,12 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
               {/* ⛪ BAPTISM & CONFIRMATION BUTTON ⛪ */}
               <button
                 onClick={() => setIsSacramentOpen(true)}
-                className="flex flex-col items-center justify-center p-5 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl text-white shadow-md hover:scale-[1.02] transition-transform text-center gap-2"
+                className="flex flex-col items-center justify-center p-5 bg-gradient-to-br from-blue-400 to-blue-700 rounded-3xl text-white shadow-md hover:scale-[1.02] transition-transform text-center gap-2"
               >
                 <div className="p-3 bg-white/20 rounded-2xl">
                   <Award size={24} />
                 </div>
-                <span className="text-xs font-black uppercase tracking-wider">Sacraments Intake</span>
+                <span className="text-xs font-black uppercase tracking-wider">Baptism & Confirmation</span>
               </button>
 
               {/* 📂 CHURCH DOCUMENTS & REGISTRY BUTTON 📂 */}
