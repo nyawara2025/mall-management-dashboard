@@ -158,7 +158,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
         </div>
 
         {/* Layout Panels Area */}
-        <div className="p-6 flex flex-col flex-1 overflow-hidden min-h-[40vh]">
+        <div className="p-6 flex flex-col flex-1 overflow-y-auto min-h-[40vh] max-h-[55vh]">
           {activeTab === 'contacts' ? (
             !selectedRecipient ? (
               <>
