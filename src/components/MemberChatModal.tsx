@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, Send, Loader2, MessageSquare, History, MessageCircle, Upload, Paperclip } from 'lucide-react';
+import { X, Search, Send, Loader2, MessageSquare, History, MessageCircle, Upload, Paperclip, Reply } from 'lucide-react';
 
 interface MemberChatModalProps {
   isOpen: boolean;
@@ -17,8 +17,6 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
   const [selectedRecipient, setSelectedRecipient] = useState<any | null>(null);
   const [chatMessage, setChatMessage] = useState('');
   const [transmitting, setTransmitting] = useState(false);
-
-  // Attachment state configuration tracking
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   useEffect(() => {
@@ -61,15 +59,26 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     }
   };
 
+  // --- DYNAMIC REPLY INITIATION HANDLER ---
+  const handleInitiateReply = (msg: any) => {
+    // Construct target object from message sender variables
+    const recipientObj = {
+      id: msg.sender_id,
+      first_name: msg.sender_name.split(' ')[0] || 'Member',
+      last_name: msg.sender_name.split(' ').slice(1).join(' ') || '',
+      phone_number: msg.sender_phone || ''
+    };
+    setSelectedRecipient(recipientObj);
+    setActiveTab('contacts'); // Redirects straight to composition form
+  };
+
   const dispatchPrivateMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatMessage.trim() || !selectedRecipient) return;
     
     setTransmitting(true);
     try {
-      // 1. Package using multi-part FormData to bundle physical attachments
       const formPayload = new FormData();
-      
       formPayload.append('sender_id', userData?.id || '');
       formPayload.append('sender_name', `${userData?.first_name || 'Member'} ${userData?.last_name || ''}`);
       formPayload.append('sender_phone', userData?.phone_number || '');
@@ -79,7 +88,6 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
       formPayload.append('message', chatMessage);
       formPayload.append('shop_id', userData?.shop_id || '68');
 
-      // Unique safe destination string generation
       const generatedPathName = selectedFile 
         ? `chat_media_${Date.now()}_${selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
         : '';
@@ -89,7 +97,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
         formPayload.append('photo', selectedFile);
       }
 
-      const response = await fetch('https://n8n.tenear.com/church-chat-direct', {
+      const response = await fetch('https://n8n.tenear.com/webhook/church-chat-direct', {
         method: 'POST',
         body: formPayload
       });
@@ -99,7 +107,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
         setChatMessage('');
         setSelectedFile(null);
         setSelectedRecipient(null);
-        setActiveTab('history'); // Switch view automatically
+        setActiveTab('history'); 
       }
     } catch (err) {
       alert("Failed to deliver your message.");
@@ -118,7 +126,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[85vh] flex flex-col text-left">
         
-        {/* Modal Header */}
+        {/* Header */}
         <div className="p-6 bg-indigo-600 text-white flex justify-between items-center">
           <div>
             <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
@@ -153,7 +161,6 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
         <div className="p-6 flex flex-col flex-1 overflow-hidden min-h-[40vh]">
           {activeTab === 'contacts' ? (
             !selectedRecipient ? (
-              /* Contact lookup lists view panel layout */
               <>
                 <div className="relative mb-4">
                   <Search className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
@@ -188,8 +195,8 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                 </div>
               </>
             ) : (
-              /* Composition form view layout */
-              <form onSubmit={dispatchPrivateMessage} className="space-y-4 animate-in fade-in zoom-in-95 duration-100">
+              /* PANEL B: MESSAGE COMPOSER (INCLUDES THE ATTACHMENT UPLOADER UI) */
+              <form onSubmit={dispatchPrivateMessage} className="space-y-4 animate-in fade-in zoom-in-95 duration-100 text-left">
                 <div className="p-3.5 bg-indigo-50 rounded-xl flex justify-between items-center">
                   <p className="text-xs font-bold text-indigo-800">To: <span className="font-black text-indigo-950">{selectedRecipient.first_name} {selectedRecipient.last_name}</span></p>
                   <button type="button" onClick={() => setSelectedRecipient(null)} className="text-[10px] font-black uppercase text-indigo-600 hover:underline">Change</button>
@@ -203,16 +210,14 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                   className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-gray-700 resize-none"
                 />
 
-                {/* Uploader Box layout element wrapper */}
+                {/* 📎 THE ATTACHMENT FILE UPLOADER COMPONENT 📎 */}
                 <div>
-                  <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase tracking-wider">
-                    Attach Document / Photo (Optional)
-                  </label>
+                  <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Attach Document / Photo (Optional)</label>
                   <div className="relative flex items-center justify-center w-full bg-gray-50 ring-1 ring-gray-200/50 rounded-xl p-3 hover:bg-gray-100/70 transition-colors">
                     <input 
                       type="file"
                       accept="image/*,application/pdf"
-                      onChange={(e) => {
+                      onChange={e => {
                         if (e.target.files && e.target.files[0]) {
                           setSelectedFile(e.target.files[0]);
                         }
@@ -225,6 +230,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                     </div>
                   </div>
                 </div>
+
                 <button
                   type="submit"
                   disabled={transmitting || !chatMessage.trim()}
@@ -236,7 +242,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
               </form>
             )
           ) : (
-            /* PANEL C: INBOX MAILBOX RECEIVED CHAT LIST WITH DOWNLOAD LINK */
+            /* PANEL C: INBOX MAILBOX RECEIVED CHAT LIST WITH REPLY HANDLER */
             <div className="overflow-y-auto space-y-3 flex-1 max-h-[50vh]">
               {loading ? (
                 <p className="text-center py-10 text-xs font-bold uppercase animate-pulse text-gray-400">Opening mailbox...</p>
@@ -255,19 +261,30 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                     </div>
                     <p className="text-sm text-gray-700 font-medium leading-relaxed">{msg.message}</p>
                     
-                    {msg.pdf_url && msg.pdf_url.trim() !== "" && (
-                      <div className="pt-2 border-t border-gray-200/60 flex items-center justify-between mt-1">
-                        <span className="text-[9px] font-bold text-gray-400 flex items-center gap-1"><Paperclip size={10}/> File Attachment</span>
+                    {/* Inbox Bottom Section: Handles file views and reply routing */}
+                    <div className="pt-2 border-t border-gray-200/60 flex items-center justify-between mt-1">
+                      {msg.pdf_url && msg.pdf_url.trim() !== "" ? (
                         <a 
                           href={msg.pdf_url} 
                           target="_blank" 
                           rel="noopener noreferrer" 
-                          className="text-[9px] bg-white border border-gray-200 font-black text-indigo-600 px-2 py-1 rounded-md hover:bg-indigo-600 hover:text-white"
+                          className="text-[9px] bg-white border border-gray-200 font-black text-indigo-600 px-2.5 py-1.5 rounded-lg hover:bg-indigo-600 hover:text-white"
                         >
                           View File
                         </a>
-                      </div>
-                    )}
+                      ) : (
+                        <span className="text-[9px] font-bold text-gray-300">No Attachment</span>
+                      )}
+
+                      {/* 🔄 THE REPLY INTERACTIVE CTA TRIGGER LINK 🔄 */}
+                      <button
+                        type="button"
+                        onClick={() => handleInitiateReply(msg)}
+                        className="text-[9px] bg-indigo-50 border border-indigo-100 font-black text-indigo-700 px-3 py-1.5 rounded-lg hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all flex items-center gap-1"
+                      >
+                        <Reply size={10} /> Reply
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -279,3 +296,4 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     </div>
   );
 };
+
