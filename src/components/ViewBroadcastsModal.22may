@@ -230,14 +230,14 @@ export const ViewBroadcastsModal = ({ isOpen, onClose, userData }: any) => {
             </div>
           )}
 
-          {/* Dynamic History Messages Feed Listing (Visible to Everyone) */}
+          {/* Broadcasts Feed Stream (Visible to Everyone) */}
           <div className="space-y-4">
             {loading ? (
               <p className="text-center py-10 italic text-gray-400">Checking for notices...</p>
             ) : messages.length === 0 ? (
               <p className="text-center py-10 text-gray-400 font-bold uppercase text-xs">No active broadcasts</p>
             ) : (
-              messages.map((msg: any, i) => (
+              messages.map((msg: any, i: number) => (
                 <div key={i} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 animate-in fade-in duration-200">
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-[10px] font-black text-blue-600 uppercase bg-blue-50 px-2 py-1 rounded-md">
@@ -247,8 +247,43 @@ export const ViewBroadcastsModal = ({ isOpen, onClose, userData }: any) => {
                       {msg.created_at ? new Date(msg.created_at).toLocaleDateString() : 'Today'}
                     </span>
                   </div>
+                  
+                  {/* Notice Title Header */}
                   {msg.title && <h4 className="font-bold text-gray-900 text-sm mb-1">{msg.title}</h4>}
-                  <p className="text-sm text-gray-700 font-medium leading-relaxed">{msg.content || msg.message}</p>
+                  
+                  {/* Notice Content Body */}
+                  <p className="text-sm text-gray-700 font-medium leading-relaxed mb-2">{msg.content || msg.message}</p>
+                  
+                  {/* Speaker info badge if present */}
+                  {msg.speaker && (
+                    <p className="text-[10px] text-gray-500 font-bold mb-2">Speaker: {msg.speaker}</p>
+                  )}
+
+                  {/* 🛑 DYNAMIC ATTACHMENT CARD RENDER (PDF Link Badge) 🛑 */}
+                  {msg.pdf_url && (
+                    <div className="mt-3 pt-3 border-t border-gray-200/60 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 bg-red-50 text-red-600 rounded-lg">
+                          {/* Render file type descriptor icon */}
+                          <svg xmlns="http://w3.org" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 15h6"/><path d="M9 11h6"/></svg>
+                        </div>
+                        <div className="text-left">
+                          <p className="text-[11px] font-black text-gray-800 leading-none">Attached Resource File</p>
+                          <p className="text-[9px] text-gray-400 font-medium mt-0.5">Click to view document</p>
+                        </div>
+                      </div>
+                      
+                      <a 
+                        href={msg.pdf_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] bg-white border border-gray-200 text-gray-700 hover:bg-blue-600 hover:text-white hover:border-blue-600 px-3 py-1.5 rounded-xl font-bold transition-all shadow-sm"
+                      >
+                        View Attachment
+                      </a>
+                    </div>
+                  )}
+
                 </div>
               ))
             )}

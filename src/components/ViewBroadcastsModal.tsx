@@ -259,12 +259,11 @@ export const ViewBroadcastsModal = ({ isOpen, onClose, userData }: any) => {
                     <p className="text-[10px] text-gray-500 font-bold mb-2">Speaker: {msg.speaker}</p>
                   )}
 
-                  {/* 🛑 DYNAMIC ATTACHMENT CARD RENDER (PDF Link Badge) 🛑 */}
-                  {msg.pdf_url && (
+                  {/* 🛑 UPDATE STRINGS RIGID CHECK ENGINES HERE 🛑 */}
+                  {msg.pdf_url && msg.pdf_url.trim() !== "" && msg.pdf_url !== "https://pages.dev" && (
                     <div className="mt-3 pt-3 border-t border-gray-200/60 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <div className="p-2 bg-red-50 text-red-600 rounded-lg">
-                          {/* Render file type descriptor icon */}
                           <svg xmlns="http://w3.org" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M9 15h6"/><path d="M9 11h6"/></svg>
                         </div>
                         <div className="text-left">
@@ -272,7 +271,7 @@ export const ViewBroadcastsModal = ({ isOpen, onClose, userData }: any) => {
                           <p className="text-[9px] text-gray-400 font-medium mt-0.5">Click to view document</p>
                         </div>
                       </div>
-                      
+    
                       <a 
                         href={msg.pdf_url}
                         target="_blank"
