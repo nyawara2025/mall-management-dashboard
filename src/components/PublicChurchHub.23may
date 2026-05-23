@@ -736,39 +736,11 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
               </div>
               <select 
                 className="w-full p-4 rounded-xl ring-1 ring-gray-200"
-                onChange={e => {
-                  const [selectedCategory, selectedLocation] = e.target.value.split('|');
-                  setNewMeeting({
-                    ...newMeeting, 
-                    category: selectedCategory,
-                    location: selectedLocation
-                  });
-                }}
+                onChange={e => setNewMeeting({...newMeeting, category: e.target.value as any})}
               >
-                {/* General Universal Selection Choices */}
-                <option value="All Church|General Sanctuary">All Church Meeting</option>
-                <option value="Regional|Regional Headquarters">Regional Meeting</option>
-                <option value="Ad hoc|Committee Room">Ad hoc Meeting</option>
-
-                {/* Secure dynamic rendering layout matching your user parameters context metadata */}
-                {userData?.zone_name && (
-                  <option value={`Zonal|${userData.zone_name}`}>
-                    Zonal Meeting ({userData.zone_name})
-                  </option>
-                )}
-
-                {/* Comma separation string mapping extraction utility */}
-                {userData?.ministry_name && userData.ministry_name.split(',').map((ministryName: string, idx: number) => {
-                  const cleanMinistryName = ministryName.trim();
-                  return (
-                    <option key={idx} value={`Ministry|${cleanMinistryName}`}>
-                      Ministry Meeting ({cleanMinistryName})
-                    </option>
-                  );
-                })}
+                {categories.map(cat => <option key={cat} value={cat}>{cat} Meeting</option>)}
               </select>
-
-              <button onClick={handleCreateMeeting} className="w-full bg-blue-600 text-white p-4 rounded-xl font-bold shadow-md hover:bg-blue-700 transition-colors">Post Meeting</button>
+              <button onClick={handleCreateMeeting} className="w-full bg-blue-600 text-white p-4 rounded-xl font-bold">Post Meeting</button>
             </div>
           )}
 
