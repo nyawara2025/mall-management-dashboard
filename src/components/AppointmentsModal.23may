@@ -75,9 +75,9 @@ const CreateAppointmentForm = ({ userData }: { userData: any }) => {
   const [formData, setFormData] = useState({
     title: '',
     particulars: '',
-    location: '',
     date: '',
     time: '',
+    location: '',
     category: 'Ministry', // Default
     target_group: ''      // e.g., 'KAMA', 'Media', 'Zone A'
   });
@@ -145,36 +145,13 @@ const CreateAppointmentForm = ({ userData }: { userData: any }) => {
           </label>
           <select 
             value={formData.category}
-            onChange={(e) => {
-              const [selectedCategory, selectedLocationName] = e.target.value.split('|');
-              setFormData({
-                ...formData,
-                category: selectedCategory,
-                // Automatically pre-populates target name destination fields
-                target_group: selectedLocationName 
-              });
-            }}
+            onChange={(e) => setFormData({...formData, category: e.target.value})}
             className="w-full p-4 bg-blue-50 border border-blue-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium"
           >
-            <option value="Personal|Individual">Personal Appointment</option>
-            <option value="Department|General">Departmental Activity</option>
-            
-            {/* Dynamic Zone Group Selection Option */}
-            {userData?.zone_name && (
-              <option value={`Zone|${userData.zone_name}`}>
-                Meeting: {userData.zone_name} Zone
-              </option>
-            )}
-
-            {/* Dynamic Multi-Ministry Option Splitter */}
-            {userData?.ministry_name && userData.ministry_name.split(',').map((ministryName: string, idx: number) => {
-              const cleanMinistryName = ministryName.trim();
-              return (
-                <option key={idx} value={`Ministry|${cleanMinistryName}`}>
-                  Event: {cleanMinistryName} Ministry
-                </option>
-              );
-            })}
+            <option value="Personal">Personal Appointment</option>
+            <option value="Ministry">{userData?.ministry_name} Ministry Event</option>
+            <option value="Department">Departmental Activity</option>
+            <option value="Zone">{userData?.zone_name} Meeting</option>
           </select>
         </div>
       )}
