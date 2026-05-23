@@ -56,45 +56,6 @@ export const MemberAccountModal = ({
     }
   };
 
-  // 🛑 ADD THESE FOR MEMBERS TO LINK WHATSAPP FROM THEIR APP VIEW 🛑
-  const [pairingCode, setPairingCode] = useState<string | null>(null);
-  const [isGeneratingPairing, setIsGeneratingPairing] = useState(false);
-
-  const handleGetMemberPairingCode = async () => {
-    // Dynamically reads the logged-in member's phone number from your props/state
-    const memberPhone = userData?.phone_number;
-    if (!memberPhone) {
-      alert("No phone number found linked to your account profile.");
-      return;
-    }
-
-    setIsGeneratingPairing(true);
-    setPairingCode(null);
-    try {
-      
-      const response = await fetch(`https://n8n.tenear.com/webhook/evolution-link`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          member_id: userData?.id,
-          phone_number: memberPhone.replace(/\+/g, '').trim(),
-          shop_id: userData?.shop_id || 68
-        }),
-      });
-      
-      const data = await response.json();
-      if (data && data.code) {
-        setPairingCode(data.code);
-      } else {
-        throw new Error("Failed to capture code");
-      }
-    } catch (error) {
-      alert("Unable to generate WhatsApp connection token at this time.");
-    } finally {
-      setIsGeneratingPairing(false);
-    }
-  };
-
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
       <div className="bg-white rounded-[2.5rem] w-full max-w-lg shadow-2xl overflow-hidden animate-in zoom-in duration-300">
@@ -191,37 +152,6 @@ export const MemberAccountModal = ({
                     onChange={e => setProfileData({...profileData, personality_word: e.target.value})}
                   />
                 </div>
-              </div>
-
-              {/* SECURE MEMBER WHATSAPP LINKING PORTAL */}
-              <div className="bg-gray-50 p-5 rounded-3xl border border-gray-100 text-left mt-4 space-y-3">
-                <div>
-                  <h4 className="font-black text-gray-900 text-xs uppercase tracking-tight">Sync Member WhatsApp Services</h4>
-                  <p className="text-[11px] text-gray-400 font-medium">Link your account to receive real-time parish notices and announcements straight to your device</p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleGetMemberPairingCode}
-                  disabled={isGeneratingPairing}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 disabled:text-gray-400 text-white font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-sm"
-                >
-                  {isGeneratingPairing ? 'Generating Pairing Link...' : 'Link My WhatsApp Number'}
-                </button>
-
-                {pairingCode && (
-                  <div className="p-4 bg-blue-50/50 border border-blue-100 rounded-2xl text-center space-y-2 animate-in zoom-in-95 duration-150 mt-2">
-                    <p className="text-[9px] font-black text-blue-700 uppercase tracking-widest">Your Code Token</p>
-                
-                    <div className="text-xl font-black text-gray-900 tracking-widest font-mono select-all bg-white py-2.5 border border-dashed border-blue-200 rounded-xl inline-block px-6">
-                      {pairingCode}
-                    </div>
-                
-                    <p className="text-[10px] text-gray-500 font-medium leading-relaxed max-w-xs mx-auto">
-                      Open WhatsApp on your phone ➔ Go to <span className="font-bold">Linked Devices</span> ➔ Choose <span className="font-bold">Link with phone number instead</span> ➔ Enter this code block.
-                    </p>
-                  </div>
-                )}
               </div>
 
               <button 
