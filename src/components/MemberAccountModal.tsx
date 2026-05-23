@@ -71,16 +71,15 @@ export const MemberAccountModal = ({
     setIsGeneratingPairing(true);
     setPairingCode(null);
     try {
-      // Cleans country symbols out safely
-      const cleanNumber = memberPhone.replace(/\+/g, '').trim();
-
-      // Generates code using the member's ID or unique phone string as their personal Evolution instance name
-      const response = await fetch(`https://n8n.tenear.com/webhook/evolution-link{userData?.id}?number=${cleanNumber}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': 'iSrEy83FiLJtZSFv62wfJI0YSAI1WOWhbfkA9ySg9qk=eyJhIjoiNmFiYWFmZjBmYzA4MzMzNDBlODE3ZTU5MmQ5YzI0ZDkiLCJ0IjoiODg4NTdmZjMtNjBhYy00MzNlLTg3OWMtNzg2NTQ4MTgyYmUwIiwicyI6IlpqZ3dZV1EwTldNdE5qTXdNUzAwWlRnNExUZzNaRGd0TTJNd056WTNOVEl6TlRNNCJ9' // Your master API token secret key
-        }
+      
+      const response = await fetch(`https://n8n.tenear.com/webhook/evolution-link`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          member_id: userData?.id,
+          phone_number: memberPhone.replace(/\+/g, '').trim(),
+          shop_id: userData?.shop_id || 68
+        }),
       });
       
       const data = await response.json();
