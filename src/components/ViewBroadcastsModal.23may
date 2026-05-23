@@ -33,9 +33,7 @@ export const ViewBroadcastsModal = ({ isOpen, onClose, userData }: any) => {
         body: JSON.stringify({ 
           org_id: userData?.org_id,
           ministry_id: userData?.ministry_id,
-          zone_id: userData?.zone_id,
-          ministry_name: userData?.ministry_name || 'General',
-          zone_name: userData?.zone_name || 'General Notice' 
+          zone_id: userData?.zone_id 
         }),
       });
       const data = await response.json();
