@@ -683,6 +683,7 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
         body: JSON.stringify({
           ...newMeeting,
           created_by: userData?.id,
+          org_id: userData?.org_id,
           shop_id: userData?.shop_id,
           // Dynamic names based on category selection
           target_name: newMeeting.category === 'Zonal' ? userData?.zone_name : 
