@@ -64,13 +64,22 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
       });
     
       if (response.ok) {
-        const data = await response.json();
+        // FIX: Read raw text first to guarantee it is valid JSON
+        const textData = await response.text();
+        if (!textData || textData.trim() === "") {
+          setSubModalHistory([]);
+          return;
+        }
+
+        const data = JSON.parse(textData);
         const fullHistory = Array.isArray(data) ? data : (data.history || []);
-        // Isolates transactions belonging to the Regional kitty framework
         setSubModalHistory(fullHistory.filter((item: any) => item.kitty_type === 'Regional'));
+      } else {
+        setSubModalHistory([]);
       }
     } catch (err) {
-      console.error("Regional Account History Fetch Error:", err);
+      console.error("Regional Account History Fetch Error Handle:", err);
+      setSubModalHistory([]);
     } finally {
       setSubModalLoadingHistory(false);
     }
@@ -96,16 +105,27 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
         }),
       });
     
-      if (response.ok) {
-        const data = await response.json();
+       if (response.ok) {
+        // FIX: Read raw text first to guarantee it is valid JSON
+        const textData = await response.text();
+        if (!textData || textData.trim() === "") {
+          setHistory([]);
+          return;
+        }
+        
+        const data = JSON.parse(textData);
         setHistory(Array.isArray(data) ? data : (data.history || []));
+      } else {
+        setHistory([]);
       }
     } catch (err) {
-      console.error("Manual Fetch Error:", err);
+      console.error("Manual Fetch Error Handle:", err);
+      setHistory([]); // Safely fallback without freezing
     } finally {
       setLoading(false);
     }
   };
+
 
 
   const handlePayment = async () => {
