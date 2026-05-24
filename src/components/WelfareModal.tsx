@@ -27,6 +27,26 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
 
   const [filter, setFilter] = useState<'All' | 'Ministry' | 'Zone' | 'Regional' | 'Welfare' | 'Ad hoc'>('All');
 
+  // 2. DATA WORKERS & PARSERS
+  const parseList = (str: string) => str ? str.split(',').map(item => item.trim()).filter(Boolean) : [];
+
+  const ministries = parseList(userData?.ministry_name);
+  const zones = parseList(userData?.zone_name);
+
+  const availableKitties = [
+    ...ministries.map(m => ({ id: `min_${m}`, type: 'Ministry', name: m })),
+    ...zones.map(z => ({ id: `zone_${z}`, type: 'Zone', name: z })),
+    { id: 'reg', type: 'Regional', name: 'Regional Fund' },
+    { id: 'wel', type: 'Welfare', name: 'Social Welfare' },
+    { id: 'adhoc', type: 'Ad hoc', name: 'Special Needs' }
+  ];
+
+  
+
+  const filteredHistory = filter === 'All' 
+    ? history 
+    : history.filter(item => item.kitty_type === filter);
+
   // 3. ADD THE DATA FETCHING FUNCTION FOR THE EXCLUSIVE WORKSPACE
   const handleFetchLembDholuoHistory = async () => {
     setSubModalActiveTab('statement');
@@ -59,24 +79,6 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
 
   if (!isOpen) return null;
 
-  // 1. Helper to split strings (e.g. "Youth, Gen ZION") into individual items
-  const parseList = (str: string) => str ? str.split(',').map(item => item.trim()).filter(Boolean) : [];
-
-  const ministries = parseList(userData?.ministry_name);
-  const zones = parseList(userData?.zone_name);
-
-  // 2. Build the dynamic list of available kitties
-  const availableKitties = [
-    ...ministries.map(m => ({ id: `min_${m}`, type: 'Ministry', name: m })),
-    ...zones.map(z => ({ id: `zone_${z}`, type: 'Zone', name: z })),
-    { id: 'reg', type: 'Regional', name: 'Regional Fund' },
-    { id: 'wel', type: 'Welfare', name: 'Social Welfare' },
-    { id: 'adhoc', type: 'Ad hoc', name: 'Special Needs' }
-  ];
-
-  const filteredHistory = filter === 'All' 
-    ? history 
-    : history.filter(item => item.kitty_type === filter);
 
   const handleFetchHistory = async () => {
     setView('history'); // Switch the tab first
@@ -139,6 +141,9 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
       setLoading(false);
     }
   };
+
+  // 4. CRITICAL PLACE: MOVED THE VISIBILITY ESCAPE PORTAL HERE BELOW HOOKS
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
