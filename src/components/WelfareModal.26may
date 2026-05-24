@@ -168,13 +168,20 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl animate-in zoom-in duration-300">
-        
         {/* HEADER SECTION with TAB SWITCHER */}
         <div className="p-6 border-b border-gray-50 bg-gray-50/50">
           <div className="flex justify-between items-center mb-6">
             <div className="flex gap-6">
+
               <button 
-                onClick={() => { setView('pay'); setSubRegionTab('Main'); setSelectedKittyId(''); }}
+                onClick={() => { setSubRegionTab('Main'); setView('pay'); onClose(); }} 
+                className="p-2 hover:bg-white rounded-full transition-colors"
+              >
+                <X size={24} className="text-gray-400" />
+              </button>
+
+              <button 
+                onClick={() => setView('pay')}
                 className={`text-xl font-black transition-all pb-1 ${view === 'pay' ? 'text-gray-900 border-b-4 border-blue-600' : 'text-gray-400'}`}
               >
                 Contribute
@@ -186,7 +193,7 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
                 History
               </button>
             </div>
-            <button onClick={() => { setSubRegionTab('Main'); setSelectedKittyId(''); onClose(); }} className="p-2 hover:bg-white rounded-full transition-colors">
+            <button onClick={onClose} className="p-2 hover:bg-white rounded-full transition-colors">
               <X size={24} className="text-gray-400" />
             </button>
           </div>
@@ -198,151 +205,142 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
 
         <div className="p-8">
           {view === 'pay' ? (
-            /* --- TAB 1: CONTRIBUTION FORM --- */
-            <div className="space-y-6 animate-in fade-in slide-in-from-left-4 duration-300">
+            /* --- TAB 1: DYNAMIC CONTRIBUTION FORMS PANEL --- */
+            <div className="animate-in fade-in duration-300">
               
-              {/* ALWAYS DISPLAY THE SELECT KITTY GRID BUTTON DECK */}
-              <div className="space-y-3 text-left">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Select Kitty</label>
-                <div className="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1 scrollbar-thin">
-                  {availableKitties.map((kitty) => (
-                    <button
-                      key={kitty.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedKittyId(kitty.id);
-                        setTargetName(kitty.name);
-                        setTargetType(kitty.type);
+              {/* VIEW A: STANDARD MAIN WELFARE GRID VIEW */}
+              {subRegionTab === 'Main' && (
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest px-1">Select Kitty</label>
+                    <div className="grid grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1 scrollbar-thin">
+                      {/* ... Insert your availableKitties.map loop code precisely as shown in Step 3 ... */}
+                    </div>
+                  </div>
 
-                        // Routing logic if user clicks the Regional Fund item box
-                        if (kitty.id === 'reg') {
-                          const isLembDholuo = userData?.member_region?.toLowerCase().trim() === 'lembdholuo';
-                          if (isLembDholuo) {
-                            setSubRegionTab('LembDholuo');
-                          } else {
-                            setSubRegionTab('Other');
-                          }
-                        } else {
-                          // Resets view back to standard parameters if clicking any other card item
-                          setSubRegionTab('Main');
-                        }
-                      }}
-                      className={`p-4 rounded-2xl text-left transition-all border ${
-                        selectedKittyId === kitty.id 
-                        ? 'bg-blue-600 border-blue-600 text-white shadow-lg' 
-                        : 'bg-gray-50 border-gray-100 text-gray-600 hover:border-blue-200'
-                      }`}
-                    >
-                      <span className={`block text-[9px] uppercase font-bold mb-1 ${selectedKittyId === kitty.id ? 'text-blue-100' : 'text-gray-400'}`}>
-                        {kitty.type}
-                      </span>
-                      <span className="block text-sm font-black leading-tight truncate">
-                        {kitty.name}
-                      </span>
-                    </button>
-                  ))}
+                  <div className="relative">
+                    <span className="absolute left-5 top-5 text-gray-400 font-bold">KES</span>
+                    <input
+                      type="number"
+                      placeholder="Amount"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-100 p-5 pl-16 rounded-[1.5rem] focus:ring-2 focus:ring-blue-500 outline-none text-xl font-bold"
+                    />
+                  </div>
+
+                  {/* Payment Method Selector & Submit Button */}
+                  <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
+                    <button onClick={() => setPaymentMethod('push')} className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all ${paymentMethod === 'push' ? 'bg-white shadow-md text-blue-600' : 'text-gray-400'}`}><Smartphone size={16} /> M-PESA PUSH</button>
+                    <button onClick={() => setPaymentMethod('manual')} className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all ${paymentMethod === 'manual' ? 'bg-white shadow-md text-blue-600' : 'text-gray-400'}`}><CreditCard size={16} /> MANUAL CODE</button>
+                  </div>
+                  <button onClick={handlePayment} disabled={loading || !amount || !selectedKittyId} className="w-full bg-blue-600 text-white py-5 rounded-[1.5rem] font-black text-lg hover:bg-blue-700 shadow-xl shadow-blue-100 disabled:opacity-50">{loading ? 'Processing...' : 'Contribute Now'}</button>
                 </div>
-              </div>
+              )}
 
-              {/* DYNAMIC REGIONAL CONDITIONAL AREA ROUTER */}
-              {selectedKittyId === 'reg' && subRegionTab === 'LembDholuo' ? (
-                /* VIEW A: EXCLUSIVE DUAL TAB SYSTEM FOR VERIFIED LEMB DHOLUO MEMBERS */
-                <div className="space-y-4 border border-blue-100 bg-blue-50/30 p-4 rounded-3xl animate-in zoom-in-95 duration-200 text-left">
-                  <div className="flex border-b border-gray-100 bg-white p-1 rounded-xl shadow-sm">
+              {/* VIEW B: ISOLATED LEMB DHOLUO WORKSPACE (Only visible to verified members) */}
+              {subRegionTab === 'LembDholuo' && (
+                <div className="space-y-6 animate-in slide-in-from-right-4 duration-200">
+                  <div className="flex justify-between items-center bg-blue-50 border border-blue-100 p-3 rounded-xl">
+                    <span className="text-xs font-black text-blue-700">📍 Tab: Lemb Dholuo</span>
+                    <button 
+                      onClick={() => { setSubRegionTab('Main'); setSelectedKittyId(''); }}
+                      className="text-xs font-bold text-gray-400 hover:text-blue-600 underline"
+                    >
+                      Back to Menu
+                    </button>
+                  </div>
+
+                  {/* Sub-Modal Horizontal Tabs */}
+                  <div className="flex border-b border-gray-100 bg-gray-50 p-1 rounded-xl">
                     <button
                       type="button"
                       onClick={() => setSubModalActiveTab('contribute')}
-                      className={`flex-1 py-2 text-center text-xs font-black rounded-lg transition-all ${subModalActiveTab === 'contribute' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400'}`}
+                      className={`flex-1 py-2 text-center text-xs font-black rounded-lg transition-all ${subModalActiveTab === 'contribute' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}
                     >
                       CONTRIBUTE
                     </button>
                     <button
                       type="button"
                       onClick={handleFetchLembDholuoHistory}
-                      className={`flex-1 py-2 text-center text-xs font-black rounded-lg transition-all ${subModalActiveTab === 'statement' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-400'}`}
+                      className={`flex-1 py-2 text-center text-xs font-black rounded-lg transition-all ${subModalActiveTab === 'statement' ? 'bg-white shadow-sm text-blue-600' : 'text-gray-400'}`}
                     >
                       STATEMENT
                     </button>
                   </div>
 
                   {subModalActiveTab === 'contribute' ? (
-                    <div className="space-y-4 animate-in fade-in duration-200">
+                    <div className="space-y-4">
                       <div className="relative">
                         <span className="absolute left-5 top-5 text-gray-400 font-bold">KES</span>
-                        <input type="number" placeholder="Amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-white border border-gray-100 p-5 pl-16 rounded-[1.5rem] focus:ring-2 focus:ring-blue-500 outline-none text-xl font-bold" />
+                        <input type="number" placeholder="Amount" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-gray-50 border border-gray-100 p-5 pl-16 rounded-[1.5rem] focus:ring-2 focus:ring-blue-500 outline-none text-xl font-bold" />
                       </div>
-                      <div className="flex bg-white p-1.5 rounded-2xl border border-gray-100">
-                        <button type="button" onClick={() => setPaymentMethod('push')} className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all ${paymentMethod === 'push' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400'}`}><Smartphone size={16} /> M-PESA PUSH</button>
-                        <button type="button" onClick={() => setPaymentMethod('manual')} className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all ${paymentMethod === 'manual' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400'}`}><CreditCard size={16} /> MANUAL CODE</button>
+                      <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
+                        <button onClick={() => setPaymentMethod('push')} className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all ${paymentMethod === 'push' ? 'bg-white shadow-md text-blue-600' : 'text-gray-400'}`}><Smartphone size={16} /> M-PESA PUSH</button>
+                        <button onClick={() => setPaymentMethod('manual')} className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all ${paymentMethod === 'manual' ? 'bg-white shadow-md text-blue-600' : 'text-gray-400'}`}><CreditCard size={16} /> MANUAL CODE</button>
                       </div>
-                      <button type="button" onClick={handlePayment} disabled={loading || !amount} className="w-full bg-blue-600 text-white py-5 rounded-[1.5rem] font-black text-lg hover:bg-blue-700 shadow-xl">
-                        {loading ? 'Processing...' : 'Contribute to Lemb Dholuo'}
-                      </button>
+                      <button onClick={handlePayment} disabled={loading || !amount} className="w-full bg-blue-600 text-white py-5 rounded-[1.5rem] font-black text-lg hover:bg-blue-700 shadow-xl">{loading ? 'Processing...' : 'Contribute to Lemb Dholuo'}</button>
                     </div>
                   ) : (
-                    <div className="max-h-[160px] overflow-y-auto space-y-2 pr-1 custom-scrollbar animate-in fade-in duration-200">
+                    <div className="max-h-[220px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                       {subModalLoadingHistory ? (
-                        <p className="text-center text-xs font-bold py-6 animate-pulse text-gray-400">Loading statement history...</p>
+                        <p className="text-center text-xs font-bold py-10 animate-pulse text-gray-400">Loading statement history...</p>
                       ) : subModalHistory.length > 0 ? (
                         subModalHistory.map((item: any, idx: number) => (
-                          <div key={idx} className="flex justify-between items-center p-3 bg-white rounded-xl border border-gray-100">
-                            <div><p className="text-xs font-black text-gray-800 leading-none mb-1">{item.kitty_name}</p><p className="text-[9px] text-gray-400 font-bold">{new Date(item.created_at).toLocaleDateString('en-GB')}</p></div>
-                            <div className="text-right"><p className="text-xs font-black text-gray-900">KES {item.amount}</p><p className="text-[8px] font-black text-green-600 uppercase">Settled</p></div>
+                          <div key={idx} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                            <div><p className="text-sm font-black text-gray-800 leading-none mb-1">{item.kitty_name}</p><p className="text-[10px] text-gray-400 font-bold">{new Date(item.created_at).toLocaleDateString('en-GB')}</p></div>
+                            <div className="text-right"><p className="text-sm font-black text-gray-900">KES {item.amount}</p><p className="text-[9px] font-black text-green-600 uppercase">Settled</p></div>
                           </div>
                         ))
                       ) : (
-                        <p className="text-center text-xs py-6 italic text-gray-400">No regional transactions found.</p>
+                        <p className="text-center text-xs py-10 italic text-gray-400">No regional transactions recorded.</p>
                       )}
                     </div>
                   )}
                 </div>
-              ) : (
-                /* VIEW B: STANDARD CHECKOUT AREA (Rendered for everything else, including 'Other' non-members) */
-                (selectedKittyId !== '' && (selectedKittyId !== 'reg' || subRegionTab === 'Other')) && (
-                  <div className="space-y-6 animate-in fade-in duration-200 text-left">
-                    <div className="relative">
-                      <span className="absolute left-5 top-5 text-gray-400 font-bold">KES</span>
-                      <input
-                        type="number"
-                        placeholder="Amount"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                        className="w-full bg-gray-50 border border-gray-100 p-5 pl-16 rounded-[1.5rem] focus:ring-2 focus:ring-blue-500 outline-none text-xl font-bold"
-                      />
-                    </div>
+              )}
 
-                    <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod('push')}
-                        className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all ${paymentMethod === 'push' ? 'bg-white shadow-md text-blue-600' : 'text-gray-400'}`}
-                      >
-                        <Smartphone size={16} /> M-PESA PUSH
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod('manual')}
-                        className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all ${paymentMethod === 'manual' ? 'bg-blue-600 text-white shadow-md' : 'text-gray-400'}`}
-                      >
-                        <CreditCard size={16} /> MANUAL CODE
-                      </button>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handlePayment}
-                      disabled={loading || !amount || !selectedKittyId}
-                      className="w-full bg-blue-600 text-white py-5 rounded-[1.5rem] font-black text-lg hover:bg-blue-700 transition-all shadow-xl shadow-blue-100 disabled:opacity-50"
+              {/* VIEW C: ISOLATED OTHER REGIONS VIEW */}
+              {subRegionTab === 'Other' && (
+                <div className="space-y-6 animate-in slide-in-from-right-4 duration-200">
+                  <div className="flex justify-between items-center bg-gray-100 p-3 rounded-xl">
+                    <span className="text-xs font-black text-gray-700">📍 Tab: Other Regions</span>
+                    <button 
+                      onClick={() => { setSubRegionTab('Main'); setSelectedKittyId(''); }}
+                      className="text-xs font-bold text-gray-400 hover:text-gray-900 underline"
                     >
-                      {loading ? 'Processing...' : 'Contribute Now'}
+                      Back to Menu
                     </button>
                   </div>
-                )
+
+                  <div className="relative">
+                    <span className="absolute left-5 top-5 text-gray-400 font-bold">KES</span>
+                    <input
+                      type="number"
+                      placeholder="Amount"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-100 p-5 pl-16 rounded-[1.5rem] focus:ring-2 focus:ring-blue-500 outline-none text-xl font-bold"
+                    />
+                  </div>
+
+                  <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
+                    <button onClick={() => setPaymentMethod('push')} className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all ${paymentMethod === 'push' ? 'bg-white shadow-md text-blue-600' : 'text-gray-400'}`}><Smartphone size={16} /> M-PESA PUSH</button>
+                    <button onClick={() => setPaymentMethod('manual')} className={`flex-1 py-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all ${paymentMethod === 'manual' ? 'bg-white shadow-md text-blue-600' : 'text-gray-400'}`}><CreditCard size={16} /> MANUAL CODE</button>
+                  </div>
+
+                  <button onClick={handlePayment} disabled={loading || !amount} className="w-full bg-blue-600 text-white py-5 rounded-[1.5rem] font-black text-lg hover:bg-blue-700 shadow-xl shadow-blue-100">{loading ? 'Processing...' : 'Contribute Now'}</button>
+                </div>
               )}
+
             </div>
           ) : (
+
+
             /* --- TAB 2: PAYMENT HISTORY --- */
             <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300 min-h-[300px]">
+  
+              {/* NEW: Filter Bar */}
               <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
                 {['All', 'Ministry', 'Zone', 'Regional', 'Welfare', 'Ad hoc'].map((cat) => (
                   <button
@@ -364,10 +362,10 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
                   <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
                 </div>
               ) : filteredHistory.length > 0 ? (
-                <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
-                  {filteredHistory.map((item: any, idx: number) => (
+                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                  {filteredHistory.map((item, idx) => (
                     <div key={idx} className="flex justify-between items-center p-4 bg-gray-50 rounded-2xl border border-gray-100">
-                      <div className="text-left">
+                      <div>
                         <p className="text-[9px] font-black text-blue-400 uppercase tracking-tighter">{item.kitty_type}</p>
                         <p className="text-sm font-black text-gray-800 leading-none mb-1">{item.kitty_name}</p>
                         <p className="text-[10px] text-gray-400 font-bold">
@@ -387,6 +385,8 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
                 </div>
               )}
             </div>
+
+
           )}
         </div>
       </div>
