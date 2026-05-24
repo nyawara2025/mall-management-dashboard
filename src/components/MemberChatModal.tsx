@@ -197,40 +197,58 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                   />
                 </div>
 
+                {/* NEW: Dedicated display layout block for Selected Recipients Badges */}
+                {selectedRecipients.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 p-2 bg-white border border-gray-100 rounded-xl max-h-[10vh] overflow-y-auto animate-in fade-in duration-150">
+                    {selectedRecipients.map(recipient => (
+                      <span 
+                        key={recipient.id} 
+                        className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-indigo-100"
+                      >
+                        {recipient.first_name} {recipient.last_name}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleRecipient(recipient)}
+                          className="hover:bg-indigo-200/60 ml-0.5 px-1 rounded text-indigo-500 hover:text-indigo-700 font-black text-xs"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 {/* Vertical checklist view layout grid tracking */}
                 <div className="max-h-[16vh] overflow-y-auto space-y-1.5 pr-1">
                   {loading ? (
                     <p className="text-center py-4 text-xs font-bold uppercase animate-pulse text-gray-400">Loading congregation records...</p>
-                  ) : filteredContacts.length === 0 ? (
-                    <p className="text-center py-4 text-xs italic text-gray-400">No matching members found.</p>
+                  ) : filteredContacts.filter(member => !selectedRecipients.some(r => r.id === member.id)).length === 0 ? (
+                    <p className="text-center py-4 text-xs italic text-gray-400">No unselected members found.</p>
                   ) : (
-                    filteredContacts.map(member => {
-                      const isChecked = selectedRecipients.some(r => r.id === member.id);
-                      return (
-                        <div 
-                          key={member.id}
-                          onClick={() => handleToggleRecipient(member)}
-                          className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
-                            isChecked ? 'bg-indigo-50/50 border-indigo-200' : 'bg-white border-gray-100 hover:bg-gray-50'
-                          }`}
-                        >
-                          <div>
-                            <p className="font-bold text-gray-900 text-xs">{member.first_name} {member.last_name}</p>
-                            <p className="text-[9px] text-gray-400 font-medium">{member.department || 'Congregation'}</p>
+                    filteredContacts
+                      // CRITICAL FIX: Actively subtracts selected contacts out of the unselected list stack
+                      .filter(member => !selectedRecipients.some(r => r.id === member.id))
+                      .map(member => {
+                        return (
+                          <div 
+                            key={member.id}
+                            onClick={() => handleToggleRecipient(member)}
+                            className="p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all bg-white border-gray-100 hover:bg-gray-50"
+                          >
+                            <div>
+                              <p className="font-bold text-gray-900 text-xs">{member.first_name} {member.last_name}</p>
+                              <p className="text-[9px] text-gray-400 font-medium">{member.department || 'Congregation'}</p>
+                            </div>
+                            <span className="text-[10px] text-indigo-600 font-bold px-2 py-0.5 bg-indigo-50/40 rounded-md border border-indigo-100/30">
+                              Add +
+                            </span>
                           </div>
-                          <input 
-                            type="checkbox"
-                            checked={isChecked}
-                            readOnly
-                            className="w-3.5 h-3.5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                          />
-
-                        </div>
-                      );
-                    })
+                        );
+                      })
                   )}
                 </div>
               </div>
+
 
               {/* Composition inputs field */}
               {selectedRecipients.length > 0 && (

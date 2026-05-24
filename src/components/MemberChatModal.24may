@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Search, Send, Loader2, MessageSquare, History, MessageCircle, Upload, Paperclip, Reply } from 'lucide-react';
+import { X, Search, Send, Loader2, MessageSquare, History, MessageCircle, Upload, Paperclip, Reply, Users } from 'lucide-react';
 
 interface MemberChatModalProps {
   isOpen: boolean;
@@ -14,7 +14,10 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
   const [receivedMessages, setReceivedMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [selectedRecipient, setSelectedRecipient] = useState<any | null>(null);
+  
+  // --- CHANGED TO ARRAY FOR MULTI-SELECT ---
+  const [selectedRecipients, setSelectedRecipients] = useState<any[]>([]);
+  
   const [chatMessage, setChatMessage] = useState('');
   const [transmitting, setTransmitting] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -59,22 +62,30 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     }
   };
 
-  // --- DYNAMIC REPLY INITIATION HANDLER ---
+  // Toggles selection state of a member in the recipients array
+  const handleToggleRecipient = (member: any) => {
+    const isAlreadySelected = selectedRecipients.some(r => r.id === member.id);
+    if (isAlreadySelected) {
+      setSelectedRecipients(selectedRecipients.filter(r => r.id !== member.id));
+    } else {
+      setSelectedRecipients([...selectedRecipients, member]);
+    }
+  };
+
   const handleInitiateReply = (msg: any) => {
-    // Construct target object from message sender variables
     const recipientObj = {
       id: msg.sender_id,
       first_name: msg.sender_name.split(' ')[0] || 'Member',
       last_name: msg.sender_name.split(' ').slice(1).join(' ') || '',
       phone_number: msg.sender_phone || ''
     };
-    setSelectedRecipient(recipientObj);
-    setActiveTab('contacts'); // Redirects straight to composition form
+    setSelectedRecipients([recipientObj]); // Wraps in array for compliance
+    setActiveTab('contacts'); 
   };
 
   const dispatchPrivateMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatMessage.trim() || !selectedRecipient) return;
+    if (!chatMessage.trim() || selectedRecipients.length === 0) return;
     
     setTransmitting(true);
     try {
@@ -82,11 +93,17 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
       formPayload.append('sender_id', userData?.id || '');
       formPayload.append('sender_name', `${userData?.first_name || 'Member'} ${userData?.last_name || ''}`);
       formPayload.append('sender_phone', userData?.phone_number || '');
-      formPayload.append('recipient_id', selectedRecipient.id);
-      formPayload.append('recipient_name', `${selectedRecipient.first_name} ${selectedRecipient.last_name}`);
-      formPayload.append('recipient_phone', selectedRecipient.phone_number || '');
       formPayload.append('message', chatMessage);
       formPayload.append('shop_id', userData?.shop_id || '68');
+
+      // 🛑 EXTRACTION CHANGE: Passes array lists of targets details to n8n 🛑
+      const recipientIds = selectedRecipients.map(r => r.id).join(',');
+      const recipientNames = selectedRecipients.map(r => `${r.first_name} ${r.last_name}`).join(',');
+      const recipientPhones = selectedRecipients.map(r => r.phone_number || '').join(',');
+
+      formPayload.append('recipient_ids', recipientIds);
+      formPayload.append('recipient_names', recipientNames);
+      formPayload.append('recipient_phones', recipientPhones);
 
       const generatedPathName = selectedFile 
         ? `chat_media_${Date.now()}_${selectedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`
@@ -103,10 +120,10 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
       });
 
       if (response.ok) {
-        alert(`Message sent successfully to ${selectedRecipient.first_name}!`);
+        alert(`Message sent successfully to ${selectedRecipients.length} recipients!`);
         setChatMessage('');
         setSelectedFile(null);
-        setSelectedRecipient(null);
+        setSelectedRecipients([]);
         setActiveTab('history'); 
       }
     } catch (err) {
@@ -134,13 +151,14 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
             </h3>
             <p className="text-xs text-indigo-100 uppercase font-medium mt-0.5">Secure internal messaging system</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-indigo-500 rounded-full transition-colors"><X size={20}/></button>
+          <button type="button" onClick={onClose} className="p-2 hover:bg-indigo-500 rounded-full transition-colors"><X size={20}/></button>
         </div>
 
         {/* Tab Controls */}
         <div className="flex border-b border-gray-100 p-2 gap-2 bg-gray-50">
           <button
-            onClick={() => { setActiveTab('contacts'); setSelectedRecipient(null); }}
+            type="button"
+            onClick={() => setActiveTab('contacts')}
             className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
               activeTab === 'contacts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
             }`}
@@ -148,6 +166,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
             <MessageCircle size={14} /> Send New
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('history')}
             className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
               activeTab === 'history' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
@@ -157,93 +176,110 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
           </button>
         </div>
 
-        {/* Layout Panels Area */}
+        {/* Layout Panels Content Area */}
         <div className="p-6 flex flex-col flex-1 overflow-y-auto min-h-[40vh] max-h-[55vh]">
           {activeTab === 'contacts' ? (
-            !selectedRecipient ? (
-              <>
-                <div className="relative mb-4">
-                  <Search className="absolute left-3 top-3.5 text-gray-400 w-4 h-4" />
+            <div className="space-y-4">
+              {/* Directory Contact Picker Box */}
+              <div className="border border-gray-100 rounded-2xl p-4 bg-gray-50/50 space-y-3">
+                <label className="text-[10px] font-black text-gray-400 uppercase block tracking-wider">
+                  Select Recipients ({selectedRecipients.length} Chosen)
+                </label>
+                
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 text-gray-400 w-3.5 h-3.5" />
                   <input 
                     type="text"
                     placeholder="Search member by name..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="w-full pl-10 pr-4 p-3.5 bg-gray-50 border border-gray-100 rounded-xl font-medium text-sm outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full pl-9 pr-4 p-2 bg-white border border-gray-200 rounded-lg font-medium text-xs outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
-                <div className="overflow-y-auto space-y-2 flex-1 max-h-[40vh]">
+
+                {/* Vertical checklist view layout grid tracking */}
+                <div className="max-h-[16vh] overflow-y-auto space-y-1.5 pr-1">
                   {loading ? (
-                    <p className="text-center py-10 text-xs font-bold uppercase animate-pulse text-gray-400">Loading congregation records...</p>
+                    <p className="text-center py-4 text-xs font-bold uppercase animate-pulse text-gray-400">Loading congregation records...</p>
                   ) : filteredContacts.length === 0 ? (
-                    <p className="text-center py-10 text-xs italic text-gray-400">No matching members found.</p>
+                    <p className="text-center py-4 text-xs italic text-gray-400">No matching members found.</p>
                   ) : (
-                    filteredContacts.map(member => (
-                      <div 
-                        key={member.id}
-                        onClick={() => setSelectedRecipient(member)}
-                        className="p-3.5 bg-gray-50/60 border border-gray-100 rounded-2xl flex items-center justify-between cursor-pointer hover:bg-indigo-50/40 hover:border-indigo-100 transition-all"
-                      >
-                        <div>
-                          <p className="font-bold text-gray-900 text-sm">{member.first_name} {member.last_name}</p>
-                          <p className="text-[10px] text-gray-400 uppercase font-black tracking-wider mt-0.5">{member.department || 'General Congregation'}</p>
+                    filteredContacts.map(member => {
+                      const isChecked = selectedRecipients.some(r => r.id === member.id);
+                      return (
+                        <div 
+                          key={member.id}
+                          onClick={() => handleToggleRecipient(member)}
+                          className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                            isChecked ? 'bg-indigo-50/50 border-indigo-200' : 'bg-white border-gray-100 hover:bg-gray-50'
+                          }`}
+                        >
+                          <div>
+                            <p className="font-bold text-gray-900 text-xs">{member.first_name} {member.last_name}</p>
+                            <p className="text-[9px] text-gray-400 font-medium">{member.department || 'Congregation'}</p>
+                          </div>
+                          <input 
+                            type="checkbox"
+                            checked={isChecked}
+                            readOnly
+                            className="w-3.5 h-3.5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                          />
+
                         </div>
-                        <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-3 py-1.5 rounded-xl">Chat</span>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
-              </>
-            ) : (
-              /* PANEL B: MESSAGE COMPOSER (INCLUDES THE ATTACHMENT UPLOADER UI) */
-              <form onSubmit={dispatchPrivateMessage} className="space-y-4 animate-in fade-in zoom-in-95 duration-100 text-left">
-                <div className="p-3.5 bg-indigo-50 rounded-xl flex justify-between items-center">
-                  <p className="text-xs font-bold text-indigo-800">To: <span className="font-black text-indigo-950">{selectedRecipient.first_name} {selectedRecipient.last_name}</span></p>
-                  <button type="button" onClick={() => setSelectedRecipient(null)} className="text-[10px] font-black uppercase text-indigo-600 hover:underline">Change</button>
-                </div>
-                
-                <textarea
-                  rows={4}
-                  value={chatMessage}
-                  onChange={e => setChatMessage(e.target.value)}
-                  placeholder={`Write your private text message to ${selectedRecipient.first_name}...`}
-                  className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-gray-700 resize-none"
-                />
+              </div>
 
-                {/* 📎 THE ATTACHMENT FILE UPLOADER COMPONENT 📎 */}
-                <div>
-                  <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Attach Document / Photo (Optional)</label>
-                  <div className="relative flex items-center justify-center w-full bg-gray-50 ring-1 ring-gray-200/50 rounded-xl p-3 hover:bg-gray-100/70 transition-colors">
-                    <input 
-                      type="file"
-                      accept="image/*,application/pdf"
-                      onChange={e => {
-                        if (e.target.files && e.target.files[0]) {
-                          setSelectedFile(e.target.files[0]);
-                        }
-                      }}
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+              {/* Composition inputs field */}
+              {selectedRecipients.length > 0 && (
+                <form onSubmit={dispatchPrivateMessage} className="space-y-4 animate-in fade-in duration-200 text-left">
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Message Details</label>
+                    <textarea
+                      rows={3}
+                      value={chatMessage}
+                      onChange={e => setChatMessage(e.target.value)}
+                      placeholder="Write your private message here..."
+                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-gray-700 resize-none"
                     />
-                    <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
-                      {selectedFile ? <Paperclip size={14} className="text-indigo-600" /> : <Upload size={14} />}
-                      <span>{selectedFile ? selectedFile.name : 'Choose attachment...'}</span>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Attach Document / Photo (Optional)</label>
+                    <div className="relative flex items-center justify-center w-full bg-gray-50 ring-1 ring-gray-200/50 rounded-xl p-3 hover:bg-gray-100/70 transition-colors">
+                      <input 
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={e => {
+                          if (e.target.files && e.target.files) {
+                            setSelectedFile(e.target.files[0]);
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                      <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+                        {selectedFile ? <Paperclip size={14} className="text-indigo-600" /> : <Upload size={14} />}
+                        <span>{selectedFile ? selectedFile.name : 'Choose attachment...'}</span>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <button
-                  type="submit"
-                  disabled={transmitting || !chatMessage.trim()}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-sm transition-all"
-                >
-                  {transmitting ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
-                  Send Private Message
-                </button>
-              </form>
-            )
+                  <button
+                    type="submit"
+                    disabled={transmitting || !chatMessage.trim()}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-sm transition-all"
+                  >
+                    {transmitting ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
+                    Send to {selectedRecipients.length} Members
+                  </button>
+                </form>
+              )}
+            </div>
           ) : (
-            /* PANEL C: INBOX MAILBOX RECEIVED CHAT LIST WITH REPLY HANDLER */
-            <div className="overflow-y-auto space-y-3 flex-1 max-h-[50vh]">
+            /* Inbox Received Messaging Logs view */
+            <div className="overflow-y-auto space-y-3 pr-1">
               {loading ? (
                 <p className="text-center py-10 text-xs font-bold uppercase animate-pulse text-gray-400">Opening mailbox...</p>
               ) : receivedMessages.length === 0 ? (
@@ -254,14 +290,13 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                 </div>
               ) : (
                 receivedMessages.map((msg: any) => (
-                  <div key={msg.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2 animate-in slide-in-from-bottom-2 duration-150 text-left">
+                  <div key={msg.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2 text-left">
                     <div className="flex justify-between items-center text-[10px] font-black text-indigo-600 uppercase">
                       <span>From: {msg.sender_name || 'Anonymous Member'}</span>
                       <span className="text-gray-400 font-bold">{new Date(msg.created_at).toLocaleDateString()}</span>
                     </div>
                     <p className="text-sm text-gray-700 font-medium leading-relaxed">{msg.message}</p>
                     
-                    {/* Inbox Bottom Section: Handles file views and reply routing */}
                     <div className="pt-2 border-t border-gray-200/60 flex items-center justify-between mt-1">
                       {msg.pdf_url && msg.pdf_url.trim() !== "" ? (
                         <a 
@@ -276,7 +311,6 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                         <span className="text-[9px] font-bold text-gray-300">No Attachment</span>
                       )}
 
-                      {/* 🔄 THE REPLY INTERACTIVE CTA TRIGGER LINK 🔄 */}
                       <button
                         type="button"
                         onClick={() => handleInitiateReply(msg)}
@@ -295,5 +329,4 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
       </div>
     </div>
   );
-};
-
+};  
