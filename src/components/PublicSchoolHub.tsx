@@ -31,19 +31,36 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
     return (
       <div className="p-8 max-w-4xl mx-auto space-y-6 text-left animate-in fade-in duration-200">
         <div className="bg-indigo-600 p-8 rounded-3xl text-white shadow-xl">
-          <h2 className="text-3xl font-black tracking-tight">Langata Junior Academy</h2>
+          <h2 className="text-3xl font-black tracking-tight">
+            {data?.school_name || 'Loading Institution Details...'}
+          </h2>
           <p className="text-indigo-100 text-sm mt-1">Welcome to our Public Information Hub</p>
         </div>
 
+        {/* DYNAMIC BULLETIN ENGINE LOOP */}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-800 mb-2">Admission Enquiries</h3>
-            <p className="text-xs text-gray-500 leading-relaxed">Applications for the 2026 academic cycle are currently open. Contact administration for enrollment parameter schedules.</p>
-          </div>
-          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-800 mb-2">General Fee Structure</h3>
-            <p className="text-xs text-gray-500 leading-relaxed">High-level statutory fee distribution templates can be requested directly via our corporate office communication lines.</p>
-          </div>
+          {loading ? (
+            <div className="col-span-2 text-center py-12 text-sm font-bold text-gray-400 animate-pulse uppercase">
+              Fetching public board entries...
+            </div>
+          ) : data?.bulletin && data.bulletin.length > 0 ? (
+            data.bulletin.map((item: any, idx: number) => (
+              <div key={idx} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="font-bold text-gray-800 mb-2">{item.title}</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">{item.content}</p>
+                {item.file_url && (
+                  <a href={item.file_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-3 text-[10px] font-black text-indigo-600 uppercase hover:underline">
+                    View Attachment 文件
+                  </a>
+                )}
+              </div>
+            ))
+          ) : (
+            <div className="col-span-2 bg-white p-8 rounded-2xl border border-gray-100 text-center opacity-50">
+              <p className="text-xs italic text-gray-400">No public updates or notice entries published at this time.</p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -88,7 +105,7 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
   };
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !isPublicView) {
       setLoading(false);
       return;
     }
