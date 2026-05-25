@@ -142,12 +142,10 @@ function AppContent() {
   if (bizCategory === 'educational' || isSchoolPath) {
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* Pass both shopId and the global user state straight down */}
-        <PublicSchoolHub shopId={Number(shopId) || 69} user={user} /> 
-        </div>
-      );
-    }
-        
+        <PublicSchoolHub shopId={Number(shopId) || 1} /> 
+      </div>
+    );
+  }
 
   useEffect(() => {
     // If no candidate is selected, open the discovery modal immediately

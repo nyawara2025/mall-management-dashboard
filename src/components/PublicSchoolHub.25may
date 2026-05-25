@@ -17,7 +17,7 @@ interface SchoolData {
   bulletin: any[];
 }
 
-export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }) => {
+export const PublicSchoolHub = ({ shopId }: { shopId: number }) => {
   const [data, setData] = useState<SchoolData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('parent_token'));
