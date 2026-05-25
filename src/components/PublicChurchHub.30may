@@ -8,34 +8,20 @@ import {
   ExternalLink,
   Loader2,
   Lock,
-  LogOut,
-  CreditCard,
-  Smartphone,
-  ArrowLeft,
-  Receipt
+  LogOut
 } from 'lucide-react';
 
 interface SchoolData {
   school_name: string;
   homework: any[];
   bulletin: any[];
-  fee_statement?: any[];
 }
 
 export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }) => {
   const [data, setData] = useState<SchoolData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('parent_token'));
-
-  // NEW: Controls what overlay or sub-page is active
   const [activePortalView, setActivePortalView] = useState<'grid' | 'homework' | 'fees' | 'bulletins'>('grid');     
-
-  // Fee Payment Form Processing States
-  const [amount, setAmount] = useState('');
-  const [feeCategory, setFeeCategory] = useState('Tuition Fees');
-  const [paymentMethod, setPaymentMethod] = useState<'push' | 'manual'>('push');
-  const [manualRefCode, setManualRefCode] = useState('');
-  const [paymentLoading, setPaymentLoading] = useState(false);
 
   // Login Form State
   const [email, setEmail] = useState('');
@@ -156,83 +142,7 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
   // LOGIN VIEW
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl p-10 border border-slate-100">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-6 mx-auto">
-            <Lock size={30} />
-          </div>
-          <h2 className="text-2xl font-black text-center text-slate-900 mb-2">Parent Portal</h2>
-          <p className="text-slate-500 text-center text-sm mb-8">Please sign in to access school records.</p>
-          
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input 
-              type="email" 
-              placeholder="Email Address" 
-              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <input 
-              type="password" 
-              placeholder="Password" 
-              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            {authError && <p className="text-red-500 text-xs font-bold text-center">{authError}</p>}
-            <button 
-              type="submit" 
-              disabled={loading}
-              className="w-full py-4 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2"
-            >
-              {loading ? <Loader2 className="animate-spin" size={20} /> : 'Access Portal'}
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
-  // LOADING VIEW
-  if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-slate-400">
-        <Loader2 className="animate-spin mb-4" size={40} />
-        <p className="font-medium">Loading Student Portal...</p>
-      </div>
-    );
-  }
-
-  if (!data) return <div className="p-20 text-center text-slate-500">No data found for this school.</div>;
-
-  return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-10 font-sans">
-      <div className="max-w-6xl mx-auto">
-        {/* HERO HEADER */}
-        <header className="text-center mb-12 relative">
-          <button 
-            type="button"
-            onClick={handleLogout}
-            className="absolute right-0 top-0 p-3 text-slate-400 hover:text-red-500 transition-colors flex items-center gap-2 text-xs font-bold"
-          >
-            <LogOut size={18} /> Logout
-          </button>
-          <div className="w-20 h-20 bg-blue-600 rounded-3xl mx-auto flex items-center justify-center text-white shadow-xl shadow-blue-200 mb-6">
-            <GraduationCap size={40} />
-          </div>
-          <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
-            {data?.school_name || 'School Dashboard'}
-          </h1>
-          <div className="inline-block mt-2 px-4 py-1 bg-white rounded-full border border-slate-200">
-            <p className="text-blue-600 font-bold tracking-widest uppercase text-[10px]">
-              TeNEAR Education Space
-            </p>
-          </div>
-        </header>
-
-        {/* --- DYNAMIC STAKEHOLDER WORKSPACE ROUTER --- */}
+      {/* --- DYNAMIC STAKEHOLDER CONTAINER ROUTER --- */}
         
         {/* VIEW 1: THE REPLICA MATRIX GRID MENU */}
         {activePortalView === 'grid' && (
@@ -306,6 +216,8 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
         {/* VIEW 2: SUB PANEL - ACTIVE FEES & PAYMENTS BLOCK */}
         {activePortalView === 'fees' && (
           <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 text-left animate-in fade-in duration-200">
+            
+            {/* Header Back Strip */}
             <div className="col-span-1 md:col-span-3">
               <button 
                 type="button" 
@@ -316,6 +228,7 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
               </button>
             </div>
 
+            {/* Left Section: M-PESA Input Desk */}
             <div className="md:col-span-2 bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm space-y-5">
               <div>
                 <h3 className="text-xl font-black text-slate-800 tracking-tight">Remit Tuition Fees</h3>
@@ -363,6 +276,7 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
               </button>
             </div>
 
+            {/* Right Section: Private History Receipts Ledger */}
             <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm h-fit">
               <h3 className="font-bold text-slate-800 text-sm mb-4">Statement Balance</h3>
               {data?.fee_statement && data.fee_statement.length > 0 ? (
