@@ -22,6 +22,33 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('parent_token'));
   
+  // 1. Read the view query parameter safely from the current window location
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPublicView = urlParams.get('view') === 'public';
+
+  // 2. If it is public view, override the loading screen and render public content safely
+  if (isPublicView) {
+    return (
+      <div className="p-8 max-w-4xl mx-auto space-y-6 text-left animate-in fade-in duration-200">
+        <div className="bg-indigo-600 p-8 rounded-3xl text-white shadow-xl">
+          <h2 className="text-3xl font-black tracking-tight">Langata Junior Academy</h2>
+          <p className="text-indigo-100 text-sm mt-1">Welcome to our Public Information Hub (Tenant ID: {shopId})</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <h3 className="font-bold text-gray-800 mb-2">Admission Enquiries</h3>
+            <p className="text-xs text-gray-500 leading-relaxed">Applications for the 2026 academic cycle are currently open. Contact administration for enrollment parameter schedules.</p>
+          </div>
+          <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+            <h3 className="font-bold text-gray-800 mb-2">General Fee Structure</h3>
+            <p className="text-xs text-gray-500 leading-relaxed">High-level statutory fee distribution templates can be requested directly via our corporate office communication lines.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Login Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
