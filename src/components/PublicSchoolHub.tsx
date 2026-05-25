@@ -120,7 +120,10 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}` 
           },
-          body: JSON.stringify({ shop_id: shopId }),
+          body: JSON.stringify({ 
+            shop_id: shopId, 
+            is_public: isPublicView
+          }),
         });
 
         if (response.status === 401) {
@@ -138,7 +141,7 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
       }
     }
     fetchData();
-  }, [shopId, isAuthenticated]);
+  }, [isAuthenticated, isPublicView, shopId]); // Ensure your dependency array closes the hook cleanly
 
   // LOGIN VIEW
   if (!isAuthenticated) {
