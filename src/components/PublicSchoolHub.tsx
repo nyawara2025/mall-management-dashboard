@@ -21,55 +21,15 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
   const [data, setData] = useState<SchoolData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('parent_token'));
-  
-  // 1. Read the view query parameter safely from the current window location
-  const urlParams = new URLSearchParams(window.location.search);
-  const isPublicView = urlParams.get('view') === 'public';
-
-  // 2. If it is public view, override the loading screen and render public content safely
-  if (isPublicView) {
-    return (
-      <div className="p-8 max-w-4xl mx-auto space-y-6 text-left animate-in fade-in duration-200">
-        <div className="bg-indigo-600 p-8 rounded-3xl text-white shadow-xl">
-          <h2 className="text-3xl font-black tracking-tight">
-            {data?.school_name || 'Loading Institution Details...'}
-          </h2>
-          <p className="text-indigo-100 text-sm mt-1">Welcome to our Public Information Hub</p>
-        </div>
-
-        {/* DYNAMIC BULLETIN ENGINE LOOP */}
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {loading ? (
-            <div className="col-span-2 text-center py-12 text-sm font-bold text-gray-400 animate-pulse uppercase">
-              Fetching public board entries...
-            </div>
-          ) : data?.bulletin && data.bulletin.length > 0 ? (
-            data.bulletin.map((item: any, idx: number) => (
-              <div key={idx} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <h3 className="font-bold text-gray-800 mb-2">{item.title}</h3>
-                <p className="text-xs text-gray-500 leading-relaxed">{item.content}</p>
-                {item.file_url && (
-                  <a href={item.file_url} target="_blank" rel="noopener noreferrer" className="inline-block mt-3 text-[10px] font-black text-indigo-600 uppercase hover:underline">
-                    View Attachment 文件
-                  </a>
-                )}
-              </div>
-            ))
-          ) : (
-            <div className="col-span-2 bg-white p-8 rounded-2xl border border-gray-100 text-center opacity-50">
-              <p className="text-xs italic text-gray-400">No public updates or notice entries published at this time.</p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
+     
 
   // Login Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPublicView = urlParams.get('view') === 'public';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -142,6 +102,42 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
     }
     fetchData();
   }, [isAuthenticated, isPublicView, shopId]); // Ensure your dependency array closes the hook cleanly
+
+  // 2. CRITICAL CHANGE: PLACE THE PUBLIC VIEW CHECK ABOVE THE AUTHENTICATION GUARD
+  if (isPublicView) {
+    return (
+      <div className="p-8 max-w-4xl mx-auto space-y-6 text-left animate-in fade-in duration-200">
+        
+        {/* DYNAMIC HEADER */}
+        <div className="bg-indigo-600 p-8 rounded-3xl text-white shadow-xl">
+          <h2 className="text-3xl font-black tracking-tight">
+            {data?.school_name || 'Loading Institution Details...'}
+          </h2>
+          <p className="text-indigo-100 text-sm mt-1">Welcome to our Public Information Hub</p>
+        </div>
+
+        {/* DYNAMIC BULLETIN ENGINE LOOP */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {loading ? (
+            <div className="col-span-2 text-center py-12 text-sm font-bold text-gray-400 animate-pulse uppercase">
+              Fetching public board entries...
+            </div>
+          ) : data?.bulletin && data.bulletin.length > 0 ? (
+            data.bulletin.map((item: any, idx: number) => (
+              <div key={idx} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 className="font-bold text-gray-800 mb-2">{item.title}</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">{item.content}</p>
+              </div>
+            ))
+          ) : (
+            <div className="col-span-2 bg-white p-8 rounded-2xl border border-gray-100 text-center opacity-50">
+              <p className="text-xs italic text-gray-400">No public updates or notice entries published at this time.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // LOGIN VIEW
   if (!isAuthenticated) {
