@@ -32,7 +32,7 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
       <div className="p-8 max-w-4xl mx-auto space-y-6 text-left animate-in fade-in duration-200">
         <div className="bg-indigo-600 p-8 rounded-3xl text-white shadow-xl">
           <h2 className="text-3xl font-black tracking-tight">Langata Junior Academy</h2>
-          <p className="text-indigo-100 text-sm mt-1">Welcome to our Public Information Hub (Tenant ID: {shopId})</p>
+          <p className="text-indigo-100 text-sm mt-1">Welcome to our Public Information Hub</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
