@@ -298,7 +298,7 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
                 </div>
               ) : (
                 /* VIEW B: STANDARD CHECKOUT AREA (Rendered for everything else, including 'Other' non-members) */
-                (selectedKittyId !== '' && subRegionTab !== 'LembDholuo') && (
+                (selectedKittyId !== '' && (selectedKittyId !== 'reg' || subRegionTab === 'Other')) && (
                   <div className="space-y-6 animate-in fade-in duration-200 text-left">
                     <div className="relative">
                       <span className="absolute left-5 top-5 text-gray-400 font-bold">KES</span>
