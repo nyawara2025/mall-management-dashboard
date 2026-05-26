@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 
 interface SchoolData {
+  id?: string;
+  admission_no?: string;
   school_name: string;
   homework: any[];
   bulletin: any[];
@@ -351,7 +353,16 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
                     await fetch('https://n8n.tenear.com/webhook/post-to-school-fees', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ amount, payment_type: paymentMethod, reference_code: manualRefCode, shop_id: shopId }),
+                      body: JSON.stringify({
+                        amount: amount,
+                        payment_type: paymentMethod,
+                        reference_code: manualRefCode,
+                        shop_id: shopId,
+                        // CRITICAL FIX: Explicitly send the true primary database keys & fields
+                        student_id: data?.id || null, // Forwards their actual Supabase UUID character string
+                        admission_no: data?.admission_no || null,
+                        school_term: "Term 2" // Passes current active calendar term directly
+                      }),
                     });
                     alert("Fee parameters synchronized successfully.");
                     setAmount(''); setManualRefCode('');
