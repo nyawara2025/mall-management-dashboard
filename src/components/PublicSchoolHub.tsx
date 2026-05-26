@@ -348,7 +348,7 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
                 onClick={async () => {
                   setPaymentLoading(true);
                   try {
-                    await fetch('https://tenear.com', {
+                    await fetch('https://n8n.tenear.com/webhook/post-to-school-fees', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({ amount, payment_type: paymentMethod, reference_code: manualRefCode, shop_id: shopId }),
