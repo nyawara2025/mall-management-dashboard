@@ -213,7 +213,7 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
   useEffect(() => {
     const loadMpesaData = async () => {
       // Only fetch if MPESA is selected and we have a shop_id
-      if (paymentType === 'MPESA' && user?.shop_id && financeCategory) {
+      if (user?.shop_id && financeCategory) {
 
         try {
           const response = await fetch('https://n8n.tenear.com/webhook/fetch-church-mpesa', {
@@ -239,7 +239,7 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
     };
 
     loadMpesaData();
-  }, [paymentType, user, financeCategory]); // This runs whenever these two values change
+  }, [user, financeCategory]); // This runs whenever these two values change
 
   const handleFinanceSubmit = async () => {
     setIsSubmitting(true);
