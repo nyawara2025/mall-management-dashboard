@@ -5,7 +5,7 @@ import {
   User, ShieldCheck, Users, Activity,
   MessageSquare, Heart, Radio, Wallet, Book, Globe, Bell, ClipboardList,
   Image as ImageIcon, MessageCircle, X, Calendar, TrendingUp,
-  Send, Quote, Sparkles, Hand, HandHelping, Church, HeartHandshake, Award, ScrollText, ListMusic, Store, UsersRound, ListOrdered, Megaphone, BellDot, CalendarRange, Presentation, HandCoins, Gift 
+  Send, Loader2, Quote, Sparkles, Hand, HandHelping, Church, HeartHandshake, Award, ScrollText, ListMusic, Store, UsersRound, ListOrdered, Megaphone, BellDot, CalendarRange, Presentation, HandCoins, Gift 
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import SokoniModal from './SokoniModal';
@@ -997,6 +997,15 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   const [isSacramentOpen, setIsSacramentOpen] = useState(false);
   const [isDocsOpen, setIsDocsOpen] = useState(false);
 
+  // 1. Force extract tracking variables from the active browser address bar
+  const urlParams = new URLSearchParams(window.location.search);
+  const isPublicChurchView = urlParams.get('view') === 'public_church';
+  const queryShopId = parseInt(urlParams.get('shop_id') || "68", 10);
+
+  // 2. Add an independent state hook to hold public data profiles safely
+  const [publicChurchData, setPublicChurchData] = useState<any>(null);
+  const [publicLoading, setPublicLoading] = useState(isPublicChurchView);
+
   const [activeProjectView, setActiveProjectView] = useState<'planned' | 'fundraising' | null>(null);
 
   const handleAccountClick = () => {
@@ -1013,6 +1022,104 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   };
 
    const [isPrayerModalOpen, setIsPrayerModalOpen] = useState(false);
+
+  useEffect(() => {
+  // Guard clause: Only run this fetch routine if the viewer enters through a public link
+  if (!isPublicChurchView) return;
+
+  async function loadPublicChurchNotices() {
+    setPublicLoading(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/fetch-church-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          shop_id: queryShopId,
+          is_public: true 
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Handle both flat objects or indexed array responses cleanly
+        setPublicChurchData(Array.isArray(result) ? result[0] : result);
+      }
+    } catch (err) {
+      console.error("Public notice engine failure:", err);
+    } finally {
+      setPublicLoading(false);
+    }
+  }
+
+  loadPublicChurchNotices();
+}, [isPublicChurchView, queryShopId]);
+
+  
+  // --- PUBLIC VIEW INTERCEPTOR GUARD ---
+if (isPublicChurchView) {
+  return (
+    <div className="bg-slate-50 min-h-screen p-4 md:p-8 max-w-4xl mx-auto space-y-6 text-left animate-in fade-in duration-200">
+      
+      {/* Dynamic Header Box */}
+      <div className="bg-gradient-to-br from-blue-700 to-indigo-900 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
+        <div className="relative z-10 space-y-2">
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black bg-white/20 text-white uppercase tracking-widest">
+            ACK Diocese of Nairobi
+          </span>
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight leading-none">
+            {publicChurchData?.church_name || 'Loading Sanctuary Details...'}
+          </h1>
+          <p className="text-blue-100 text-xs font-medium pt-0.5">Public Notice Board & Information Hub</p>
+        </div>
+        <div className="absolute right-6 bottom-4 opacity-10 pointer-events-none">
+          <Megaphone size={140} />
+        </div>
+      </div>
+
+      {/* Announcements Layout Arena */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 px-1">
+          <Megaphone className="w-4 h-4 text-blue-600" />
+          <h2 className="text-xs font-black text-gray-400 uppercase tracking-widest">Active Notices & Community Events</h2>
+        </div>
+
+        {publicLoading ? (
+          <div className="bg-white p-12 rounded-[2rem] border border-gray-100 flex flex-col items-center justify-center gap-3 text-gray-400 shadow-xs">
+            <Loader2 className="animate-spin text-blue-600" size={24} />
+            <p className="text-[10px] font-black uppercase tracking-wider">Syncing notice board entries...</p>
+          </div>
+        ) : publicChurchData?.announcements && publicChurchData.announcements.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {publicChurchData.announcements.map((notice: any, idx: number) => (
+              <div key={idx} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-xs flex flex-col justify-between hover:shadow-sm transition-all">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2.5 py-1 rounded-xl w-fit text-[10px] font-black uppercase tracking-wider">
+                    <Calendar size={12} /> {notice.event_date || 'Upcoming'}
+                  </div>
+                  <h3 className="font-black text-gray-950 text-base tracking-tight leading-snug">{notice.title}</h3>
+                  <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{notice.content}</p>
+                </div>
+                
+                {/* Meta Anchor parameters extracted from your flyer images */}
+                {(notice.location || notice.time) && (
+                  <div className="mt-4 pt-3 border-t border-gray-50 flex flex-wrap gap-x-4 gap-y-1 text-[9px] font-black text-gray-400 uppercase tracking-wide">
+                    {notice.time && <span className="flex items-center gap-1">⏰ {notice.time}</span>}
+                    {notice.location && <span className="flex items-center gap-1">📍 {notice.location}</span>}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white p-12 rounded-[2rem] border border-gray-100 text-center shadow-xs">
+            <p className="text-xs italic text-gray-400 font-medium">No public updates or notice entries published at this time.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 
   const handleOpenSokoni = async () => {
     setIsSokoniOpen(true);
