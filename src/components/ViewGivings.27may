@@ -233,7 +233,7 @@ export const ViewGivings: React.FC<ViewGivingsProps> = ({ isOpen, onClose, userD
         </div>
 
         {/* Table Content */}
-        <div className="p-6 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-gray-200">
+        <div className="p-6 overflow-y-auto">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Loader2 className="animate-spin text-blue-600" size={40} />
