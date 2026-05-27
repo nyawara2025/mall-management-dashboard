@@ -1090,23 +1090,42 @@ if (isPublicChurchView) {
           </div>
         ) : publicChurchData?.announcements && publicChurchData.announcements.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+
             {publicChurchData.announcements.map((notice: any, idx: number) => (
-              <div key={idx} className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-xs flex flex-col justify-between hover:shadow-sm transition-all">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2.5 py-1 rounded-xl w-fit text-[10px] font-black uppercase tracking-wider">
-                    <Calendar size={12} /> {notice.event_date || 'Upcoming'}
-                  </div>
-                  <h3 className="font-black text-gray-950 text-base tracking-tight leading-snug">{notice.title}</h3>
-                  <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{notice.content}</p>
-                </div>
+              <div key={idx} className="bg-white rounded-[2rem] border border-gray-100 shadow-xs flex flex-col overflow-hidden hover:shadow-sm transition-all">
                 
-                {/* Meta Anchor parameters extracted from your flyer images */}
-                {(notice.location || notice.time) && (
-                  <div className="mt-4 pt-3 border-t border-gray-50 flex flex-wrap gap-x-4 gap-y-1 text-[9px] font-black text-gray-400 uppercase tracking-wide">
-                    {notice.time && <span className="flex items-center gap-1">⏰ {notice.time}</span>}
-                    {notice.location && <span className="flex items-center gap-1">📍 {notice.location}</span>}
+                {/* 🚀 FLYER IMAGE BANNER BLOCK */}
+                {notice.image_url && notice.image_url.trim() !== "" && (
+                  <div className="w-full max-h-64 overflow-hidden border-b border-gray-50 bg-slate-100 flex items-center justify-center relative">
+                    <img 
+                      src={notice.image_url} 
+                      alt={notice.title}
+                      className="w-full h-full object-cover object-top hover:scale-[1.01] transition-transform duration-300"
+                      loading="lazy"
+                    />
                   </div>
                 )}
+
+                {/* TEXT CONTENT INNER CONTAINER */}
+                <div className="p-6 space-y-3 flex-1 flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-1.5 text-blue-600 bg-blue-50 px-2.5 py-1 rounded-xl w-fit text-[10px] font-black uppercase tracking-wider">
+                      <Calendar size={12} /> {notice.event_date || 'Upcoming'}
+                    </div>
+                    <h3 className="font-black text-gray-950 text-base tracking-tight leading-snug">{notice.title}</h3>
+                    <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{notice.content}</p>
+                  </div>
+
+                  {/* Card Footer Meta Attributes */}
+                  {(notice.location || notice.time) && (
+                    <div className="mt-4 pt-3 border-t border-gray-50 flex flex-wrap gap-x-4 gap-y-1 text-[9px] font-black text-gray-400 uppercase tracking-wide">
+                      {notice.time && <span className="flex items-center gap-1">⏰ {notice.time}</span>}
+                      {notice.location && <span className="flex items-center gap-1">📍 {notice.location}</span>}
+                    </div>
+                  )}
+                </div>
+
               </div>
             ))}
           </div>
@@ -1119,6 +1138,7 @@ if (isPublicChurchView) {
     </div>
   );
 }
+                
 
 
   const handleOpenSokoni = async () => {
