@@ -167,73 +167,77 @@ export const ViewGivings: React.FC<ViewGivingsProps> = ({ isOpen, onClose, userD
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-6xl rounded-[2.5rem] shadow-2xl flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      {/* 🚀 FIXED: Dynamic max-h block leaves plenty of structural breathing room */}
+      <div className="bg-white w-full max-w-6xl rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl flex flex-col h-[92vh] max-h-[92vh] overflow-hidden">
         
-        {/* Header */}
-        <div className="p-6 border-b flex justify-between items-center bg-blue-50 rounded-t-[2.5rem]">
-          <div className="flex items-center gap-4">
-            <div className="bg-blue-600 p-3 rounded-2xl text-white shadow-lg shadow-blue-200">
-              <FileText size={24} />
+        {/* Header (Condensed Padding) */}
+        <div className="p-4 border-b flex justify-between items-center bg-blue-50 rounded-t-[2.5rem]">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-600 p-2 rounded-xl text-white shadow-md">
+              <FileText size={18} />
             </div>
-            <div>
-              <h2 className="text-2xl font-black text-blue-900 tracking-tight">Canon's Oversight Panel</h2>
-              <p className="text-blue-600 text-[10px] font-black uppercase tracking-widest">Financial Reporting Hub</p>
+            <div className="text-left">
+              <h2 className="text-lg font-black text-blue-900 tracking-tight leading-tight">Canon's Oversight Panel</h2>
+              <p className="text-blue-600 text-[9px] font-black uppercase tracking-widest">Financial Reporting Hub</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white rounded-full transition-colors">
-            <X size={28} className="text-blue-900" />
+          <button onClick={onClose} className="p-1.5 hover:bg-white rounded-full transition-colors">
+            <X size={22} className="text-blue-900" />
           </button>
         </div>
 
-        {/* Filter & Summary Bar */}
-        <div className="p-6 bg-gray-50 border-b flex flex-wrap lg:flex-nowrap items-end gap-4">
-          <div className="flex-1 min-w-[140px]">
-            <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Date From</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full p-3 rounded-2xl border-none shadow-sm bg-white font-bold text-sm" />
-          </div>
-          <div className="flex-1 min-w-[140px]">
-            <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Date To</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full p-3 rounded-2xl border-none shadow-sm bg-white font-bold text-sm" />
-          </div>
-          <div className="flex-1 min-w-[140px]">
-            <label className="text-[9px] font-black uppercase text-gray-400 ml-1">Type</label>
-            <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="w-full p-3 rounded-2xl border-none shadow-sm bg-white font-bold text-sm">
-              {['All', 'Tithe', 'Offertory', 'Contribution', 'Giving', 'Other'].map(t => <option key={t}>{t}</option>)}
-            </select>
+        {/* 🚀 COMPACT FILTER BAR: Structured as a compact layout to maximize table room */}
+        <div className="p-4 bg-gray-50 border-b space-y-3">
+          {/* Inputs Row */}
+          <div className="grid grid-cols-3 gap-2 text-left">
+            <div>
+              <label className="text-[8px] font-black uppercase text-gray-400 ml-1">Date From</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full p-2 rounded-xl border border-gray-100 shadow-2xs bg-white font-bold text-xs outline-none" />
+            </div>
+            <div>
+              <label className="text-[8px] font-black uppercase text-gray-400 ml-1">Date To</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full p-2 rounded-xl border border-gray-100 shadow-2xs bg-white font-bold text-xs outline-none" />
+            </div>
+            <div>
+              <label className="text-[8px] font-black uppercase text-gray-400 ml-1">Type</label>
+              <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)} className="w-full p-2 rounded-xl border border-gray-100 shadow-2xs bg-white font-bold text-xs outline-none">
+                {['All', 'Tithe', 'Offertory', 'Giving', 'Other'].map(t => <option key={t}>{t}</option>)}
+              </select>
+            </div>
           </div>
 
-          <div className="flex items-center gap-3 lg:ml-auto">
-            {/* Record Count Badge */}
-            <div className="bg-white border-2 border-blue-100 px-4 py-2 rounded-2xl flex flex-col items-center justify-center shadow-sm">
-               <span className="text-[8px] font-black uppercase text-gray-400">Entries</span>
-               <div className="flex items-center gap-1 text-blue-600">
-                  <Hash size={12} strokeWidth={3} />
-                  <span className="text-lg font-black tracking-tighter">{recordCount}</span>
-               </div>
+          {/* Aggregates Summary Row */}
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-200/50">
+            <div className="flex items-center gap-2 flex-1">
+              {/* Entries Count */}
+              <div className="bg-white border border-blue-100 px-3 py-1 rounded-xl flex items-center gap-1.5 shadow-2xs">
+                <span className="text-[9px] font-black text-gray-400 uppercase">Entries:</span>
+                <span className="text-sm font-black text-blue-600 tracking-tighter">#{recordCount}</span>
+              </div>
+              {/* Total Display */}
+              <div className="bg-blue-900 text-white px-3 py-1 rounded-xl flex items-center gap-2 shadow-sm flex-1 justify-between">
+                <span className="text-[9px] font-black uppercase opacity-75">Total:</span>
+                <span className="text-sm font-black tracking-tight">
+                  KES {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </span>
+              </div>
             </div>
-
-            {/* Total Display */}
-            <div className="bg-blue-900 text-white px-6 py-2 rounded-2xl flex flex-col items-end min-w-[200px] shadow-lg shadow-blue-100">
-              <span className="text-[8px] font-black uppercase opacity-60">Total for Period</span>
-              <span className="text-xl font-black">
-                KES {totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-              </span>
-            </div>
-            
-            <div className="flex gap-2">
-              <button onClick={downloadCSV} className="p-4 bg-white text-gray-700 rounded-2xl shadow-sm hover:text-green-600 transition-all border border-gray-100">
-                <TableIcon size={20} />
+            {/* Action Buttons */}
+            <div className="flex gap-1">
+              <button onClick={downloadCSV} className="p-2.5 bg-white text-gray-700 rounded-xl shadow-2xs hover:text-green-600 border border-gray-100">
+                <TableIcon size={16} />
               </button>
-              <button onClick={downloadPDF} disabled={exporting} className="p-4 bg-white text-gray-700 rounded-2xl shadow-sm hover:text-red-600 transition-all border border-gray-100 flex items-center">
-                {exporting ? <Loader2 size={20} className="animate-spin" /> : <FileDown size={20} />}
+              <button onClick={downloadPDF} disabled={exporting} className="p-2.5 bg-white text-gray-700 rounded-xl shadow-2xs hover:text-red-600 border border-gray-100">
+                {exporting ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
               </button>
             </div>
           </div>
         </div>
 
+
         {/* Table Content */}
-        <div className="p-6 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-gray-200">
+        <div className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-200">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20 gap-4">
               <Loader2 className="animate-spin text-blue-600" size={40} />
