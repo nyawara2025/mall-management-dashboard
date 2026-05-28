@@ -1077,9 +1077,9 @@ if (isPublicChurchView) {
           {publicChurchData?.logo_url && publicChurchData.logo_url.trim() !== "" ? (
             <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-white/10 backdrop-blur-md border-2 border-white/30 p-1 shadow-2xl overflow-hidden flex items-center justify-center">
               <img 
-                src={publicChurchData.logo_url} 
+                src={publicChurchData.logo_url.split('http')[1] ? 'http' + publicChurchData.logo_url.split('http')[1] : publicChurchData.logo_url} 
                 alt={`${publicChurchData?.church_name || 'Church'} Logo`} 
-                className="w-full h-full object-cover rounded-full bg-white"
+                className="w-full h-full object-contain p-1 bg-white rounded-full"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}
