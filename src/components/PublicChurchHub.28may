@@ -1064,33 +1064,15 @@ if (isPublicChurchView) {
       <div className="bg-gradient-to-br from-blue-700 to-indigo-900 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
         <div className="relative z-10 space-y-2">
           <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black bg-white/20 text-white uppercase tracking-widest">
-            Church Portal
+            ACK Diocese of Nairobi
           </span>
           <h1 className="text-2xl md:text-3xl font-black tracking-tight leading-none">
             {publicChurchData?.church_name || 'Loading Sanctuary Details...'}
           </h1>
           <p className="text-blue-100 text-xs font-medium pt-0.5">Public Notice Board & Information Hub</p>
         </div>
-        
-        {/* DYNAMIC MULTI-TENANT BRANDING LOGO */}
-        <div className="relative z-10 order-1 md:order-2 flex-shrink-0 self-start md:self-center">
-          {publicChurchData?.logo_url && publicChurchData.logo_url.trim() !== "" ? (
-            <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-white/10 backdrop-blur-md border-2 border-white/30 p-1 shadow-2xl overflow-hidden flex items-center justify-center">
-              <img 
-                src={publicChurchData.logo_url} 
-                alt={`${publicChurchData?.church_name || 'Church'} Logo`} 
-                className="w-full h-full object-cover rounded-full bg-white"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
-              />
-            </div>
-          ) : (
-            /* Elegant Text-Avatar Fallback if logo_url is completely null/missing */
-            <div className="w-24 h-24 md:w-28 md:h-28 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/20 flex items-center justify-center text-xl font-black tracking-tighter text-white uppercase">
-              {publicChurchData?.church_name ? publicChurchData.church_name.split(' ').map((n: string) => n[0]).join('').substring(0, 3) : 'ACK'}
-            </div>
-          )}
+        <div className="absolute right-6 bottom-4 opacity-10 pointer-events-none">
+          <Megaphone size={140} />
         </div>
       </div>
 
