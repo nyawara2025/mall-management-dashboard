@@ -204,7 +204,7 @@ export const ViewBroadcastsModal = ({ isOpen, onClose, userData }: any) => {
                 <div className="relative flex items-center justify-center w-full bg-white ring-1 ring-gray-100 rounded-xl p-3 hover:bg-gray-50 transition-colors">
                   <input 
                     type="file"
-                    accept="image/*,video/*,application/pdf"
+                    accept="image/*,video/*,application/pdf,.apk,application/vnd.android.package-archive"
                     onChange={e => {
                       if (e.target.files && e.target.files[0]) {
                         setSelectedFile(e.target.files[0]);
