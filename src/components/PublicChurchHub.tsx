@@ -916,22 +916,84 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
               )}
 
               {activeTab === 'attendance' && (
-                <div className="space-y-3 animate-in fade-in duration-100">
-                  <h4 className="font-black text-[10px] uppercase tracking-wider text-gray-400">👥 Confirmed Attendees Registry ({selectedMeeting.attendance_list?.length || 0})</h4>
+                <div className="space-y-4 animate-in fade-in duration-100 text-left">
+                  <div className="flex justify-between items-center border-b border-gray-100 pb-2">
+                    <h4 className="font-black text-[10px] uppercase tracking-wider text-gray-400">
+                      👥 Confirmed Attendees Registry ({selectedMeeting.attendance_list?.length || 0})
+                    </h4>
+                    
+                    {/* 🚀 THE LIVE ATTENDANCE INTERACTIVE TRIGGgER BUTTON */}
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        // 1. Safe extraction of current list array
+                        let currentList = Array.isArray(selectedMeeting.attendance_list) ? [...selectedMeeting.attendance_list] : [];
+                        const myKey = userData?.phone_number || userData?.email || "254716300197";
+                        
+                        // 2. Automated evaluation check (Toggle Sign-In / Leave mechanisms)
+                        const isAlreadySigned = currentList.some((m: any) => m.phone === myKey);
+                        if (isAlreadySigned) {
+                          currentList = currentList.filter((m: any) => m.phone !== myKey);
+                        } else {
+                          currentList.push({
+                            name: `${userData?.first_name || 'Parish'} ${userData?.last_name || 'Member'}`.trim(),
+                            phone: myKey,
+                            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                          });
+                        }
+
+                        // 3. Dispatch the complete payload directly to your backend network pipeline
+                        try {
+                          const response = await fetch('https://n8n.tenear.com/webhook/update-church-meeting-attendance', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              meeting_id: selectedMeeting.id,
+                              attendance_list: currentList
+                            })
+                          });
+                          if (response.ok) {
+                            // Instantly re-hydrate client views dynamically without reloading page
+                            setSelectedMeeting({ ...selectedMeeting, attendance_list: currentList });
+                          } else {
+                            alert("Attendance sync rejected by gateway.");
+                          }
+                        } catch (err) {
+                          console.error("Attendance synchronization error:", err);
+                        }
+                      }}
+                      className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border shadow-2xs transition-all active:scale-95 flex items-center gap-1 ${
+                        (selectedMeeting.attendance_list || []).some((m: any) => m.phone === (userData?.phone_number || userData?.email || "254716300197"))
+                          ? 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
+                          : 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                      }`}
+                    >
+                      {(selectedMeeting.attendance_list || []).some((m: any) => m.phone === (userData?.phone_number || userData?.email || "254716300197")) 
+                        ? '❌ Cancel Attendance' 
+                        : '✍️ Sign Present'}
+                    </button>
+                  </div>
+
+                  {/* ATTENDEE LIST ROW RENDER MATRIX */}
                   <div className="bg-gray-50 border rounded-2xl divide-y overflow-hidden max-h-44 overflow-y-auto">
                     {selectedMeeting.attendance_list && selectedMeeting.attendance_list.length > 0 ? (
                       selectedMeeting.attendance_list.map((m: any, i: number) => (
                         <div key={i} className="p-3 bg-white flex justify-between items-center text-xs px-4">
                           <p className="font-bold text-gray-800">{m.name}</p>
-                          <span className="text-[10px] text-gray-400 font-bold">{m.time || 'Signed Present'}</span>
+                          <span className="text-[10px] text-gray-400 font-bold bg-gray-50 px-2 py-0.5 border rounded-md">
+                            ⏰ {m.time || 'Verified'}
+                          </span>
                         </div>
                       ))
                     ) : (
-                      <p className="text-center py-8 text-xs font-medium text-gray-400 italic">No attendance records found.</p>
+                      <p className="text-center py-8 text-xs font-medium text-gray-400 italic bg-white">
+                        No attendance records found. Tap 'Sign Present' above to check-in right now!
+                      </p>
                     )}
                   </div>
                 </div>
               )}
+
             </div>
 
             {/* Leader Documentation Committal Footer Action Trigger */}
