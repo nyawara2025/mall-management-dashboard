@@ -82,11 +82,17 @@ interface ChurchService {
 interface Meeting {
   id: string;
   title: string;
+  content: string;
+  recipient_type: string;
+  recipient_value: string;
   meeting_date: string;
   meeting_time: string;
-  category: 'All Church' | 'Zonal' | 'Regional' | 'Ministry' | 'Ad hoc';
+  category: string;
   location: string;
-  shop_id: number; // Add this line
+  agenda?: string;
+  meeting_notes?: string;
+  attendance_list?: any[];
+  shop_id: number;
 }
 
 interface MeetingsModalProps {
@@ -636,6 +642,13 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+
+  // 🚀 PLAN STEP 1: Insert state engines for Agenda, Notes, and Attendance tracking
+  const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
+  const [activeTab, setActiveTab] = useState<'agenda' | 'notes' | 'attendance'>('agenda');
+  const [editedAgenda, setEditedAgenda] = useState('');
+  const [editedNotes, setEditedNotes] = useState('');
+  const [updating, setUpdating] = useState(false);
   
   // Form State for Admins
   const [newMeeting, setNewMeeting] = useState({
@@ -700,108 +713,242 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
     }
   };
 
+  // 🚀 PLAN STEP 2: Handle data committal back to the database via n8n
+  const handleUpdateDocumentation = async () => {
+    if (!selectedMeeting) return;
+    setUpdating(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/update-church-meeting-docs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          meeting_id: selectedMeeting.id,
+          agenda: editedAgenda,
+          meeting_notes: editedNotes
+        })
+      });
+      
+      if (response.ok) {
+        // Synchronize local states instantly
+        setSelectedMeeting({ 
+          ...selectedMeeting, 
+          agenda: editedAgenda, 
+          meeting_notes: editedNotes 
+        });
+        alert("Meeting records updated successfully!");
+        fetchMeetings(); // Silently refresh the list array background
+      } else {
+        alert("Server rejected the update.");
+      }
+    } catch (err) {
+      console.error("Documentation update error:", err);
+      alert("Error committing documentation updates.");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // 🚀 FIXED: Simple, flat variable declaration placed right before your open check guard
+  const isLeader = userData?.role?.toLowerCase() === 'canon' || userData?.is_ministry_leader || userData?.is_zone_leader;
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-        <div className="p-8 border-b border-gray-100 flex justify-between items-center">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 text-left animate-in fade-in duration-150">
+      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl flex flex-col h-[82vh] max-h-[82vh] overflow-hidden">
+        
+        {/* PANEL HEADER BANNER BOX */}
+        <div className="p-6 border-b flex justify-between items-center bg-gray-50/50">
           <div>
-            <h3 className="text-2xl font-black text-gray-900">Meetings</h3>
-            <p className="text-sm text-gray-500">Scheduled gatherings & sessions</p>
+            <h2 className="text-xl font-black text-gray-900 tracking-tight">
+              {selectedMeeting ? "Session Workdesk" : "Meetings Hub"}
+            </h2>
+            <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">
+              {selectedMeeting ? selectedMeeting.title : "Parish gatherings schedule registry"}
+            </p>
           </div>
-          <button onClick={onClose} className="p-2 bg-gray-100 rounded-full hover:bg-gray-200"><X size={20} /></button>
+          <button 
+            onClick={() => selectedMeeting ? setSelectedMeeting(null) : onClose()} 
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+          >
+            <X size={20} className="text-gray-500" />
+          </button>
         </div>
 
-        <div className="p-8 overflow-y-auto">
-          {/* Admin Create Section */}
-          {userData?.role === 'leader' && (
-            <button 
-              onClick={() => setIsCreating(!isCreating)}
-              className="w-full mb-6 p-4 bg-blue-50 text-blue-600 rounded-2xl font-bold flex items-center justify-center gap-2 border-2 border-dashed border-blue-200"
-            >
-              {isCreating ? 'Cancel' : '+ Schedule New Meeting'}
-            </button>
-          )}
-
-          {isCreating && (
-            <div className="space-y-4 mb-8 bg-gray-50 p-6 rounded-3xl border border-gray-100">
-              <input 
-                className="w-full p-4 rounded-xl border-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500" 
-                placeholder="Meeting Title" 
-                onChange={e => setNewMeeting({...newMeeting, title: e.target.value})}
-              />
-              <div className="grid grid-cols-2 gap-3">
-                <input type="date" className="p-4 rounded-xl ring-1 ring-gray-200" onChange={e => setNewMeeting({...newMeeting, date: e.target.value})}/>
-                <input type="time" className="p-4 rounded-xl ring-1 ring-gray-200" onChange={e => setNewMeeting({...newMeeting, time: e.target.value})}/>
-              </div>
-              <select 
-                className="w-full p-4 rounded-xl ring-1 ring-gray-200"
-                onChange={e => {
-                  const [selectedCategory, selectedLocation] = e.target.value.split('|');
-                  setNewMeeting({
-                    ...newMeeting, 
-                    category: selectedCategory,
-                    location: selectedLocation
-                  });
-                }}
+        {/* COMPONENT ROUTER PANEL MATRIX */}
+        {!selectedMeeting ? (
+          /* 📋 SUB-VIEW A: DYNAMIC INDEX MEETINGS LIST VIEW */
+          <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-thin">
+            {isLeader && (
+              <button 
+                onClick={() => setIsCreating(!isCreating)}
+                className="w-full py-3.5 border-2 border-dashed border-blue-200 bg-blue-50/40 text-blue-600 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 hover:bg-blue-50 transition-all active:scale-99"
               >
-                {/* General Universal Selection Choices */}
-                <option value="All Church|General Sanctuary">All Church Meeting</option>
-                <option value="Regional|Regional Headquarters">Regional Meeting</option>
-                <option value="Ad hoc|Committee Room">Ad hoc Meeting</option>
+                {isCreating ? 'Dismiss Creator Form' : '+ Schedule New Meeting Session'}
+              </button>
+            )}
 
-                {/* Secure dynamic rendering layout matching your user parameters context metadata */}
-                {userData?.zone_name && (
-                  <option value={`Zonal|${userData.zone_name}`}>
-                    Zonal Meeting ({userData.zone_name})
-                  </option>
-                )}
-
-                {/* Comma separation string mapping extraction utility */}
-                {userData?.ministry_name && userData.ministry_name.split(',').map((ministryName: string, idx: number) => {
-                  const cleanMinistryName = ministryName.trim();
-                  return (
-                    <option key={idx} value={`Ministry|${cleanMinistryName}`}>
-                      Ministry Meeting ({cleanMinistryName})
-                    </option>
-                  );
-                })}
-              </select>
-
-              <button onClick={handleCreateMeeting} className="w-full bg-blue-600 text-white p-4 rounded-xl font-bold shadow-md hover:bg-blue-700 transition-colors">Post Meeting</button>
-            </div>
-          )}
-
-          {/* Meetings List (Members & Admins) */}
-          <div className="space-y-4">
-            {loading ? <p className="text-center text-gray-400">Loading schedules...</p> : 
-             meetings.length === 0 ? <p className="text-center text-gray-400 py-10">No upcoming meetings</p> :
-             meetings.map((m) => (
-              <div key={m.id} className="p-5 border border-gray-100 rounded-3xl bg-white shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex justify-between items-start mb-2">
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                    m.category === 'All Church' ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-orange-600'
-                  }`}>
-                    {m.category}
-                  </span>
-                  <div className="flex items-center text-gray-400 text-xs gap-1">
-                    <CalendarDays size={14} /> {m.meeting_date}
+            {/* Admin Creator Drawer form injection spot hook */}
+            {isCreating && isLeader && (
+              <div className="p-5 bg-gray-50 rounded-3xl border border-gray-100 space-y-3 animate-in fade-in duration-150">
+                <div>
+                  <label className="text-[9px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Gathering Title Header</label>
+                  <input type="text" placeholder="Type title..." value={newMeeting.title} onChange={e => setNewMeeting({...newMeeting, title: e.target.value})} className="w-full p-3 rounded-xl border-none bg-white text-sm font-medium outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[9px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Date</label>
+                    <input type="date" value={newMeeting.date} onChange={e => setNewMeeting({...newMeeting, date: e.target.value})} className="w-full p-3 rounded-xl border-none bg-white text-sm font-medium outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Time</label>
+                    <input type="time" value={newMeeting.time} onChange={e => setNewMeeting({...newMeeting, time: e.target.value})} className="w-full p-3 rounded-xl border-none bg-white text-sm font-medium outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500" />
                   </div>
                 </div>
-                <h4 className="font-bold text-gray-900 text-lg">{m.title}</h4>
-                <div className="flex items-center gap-4 mt-3 text-sm text-gray-500">
-                  <span className="flex items-center gap-1"><ClipboardList size={14}/> {m.meeting_time}</span>
-                  <span className="flex items-center gap-1"><MapPin size={14}/> {m.location}</span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[9px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Category Target Scope</label>
+                    <select value={newMeeting.category} onChange={e => setNewMeeting({...newMeeting, category: e.target.value})} className="w-full p-3 rounded-xl border-none bg-white text-sm font-medium outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500">
+                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-[9px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Location / Sanctuary Venue</label>
+                    <input type="text" placeholder="e.g. Main Hall..." value={newMeeting.location} onChange={e => setNewMeeting({...newMeeting, location: e.target.value})} className="w-full p-3 rounded-xl border-none bg-white text-sm font-medium outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500" />
+                  </div>
                 </div>
+                <button type="button" onClick={handleCreateMeeting} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase tracking-wider shadow-md shadow-blue-50 hover:bg-blue-700 transition-colors mt-2">Publish Gathering Notice</button>
               </div>
-            ))}
+            )}
+
+            {loading ? (
+              <p className="text-center py-12 text-xs font-bold text-gray-400 uppercase tracking-widest animate-pulse">Syncing parish registry calendar...</p>
+            ) : meetings.length === 0 ? (
+              <p className="text-center py-12 text-xs italic text-gray-400 font-medium">No meetings scheduled matching your membership profile permissions.</p>
+            ) : (
+              <div className="space-y-3">
+                {meetings.map((meet, idx) => (
+                  <div 
+                    key={idx}
+                    onClick={() => {
+                      setSelectedMeeting(meet);
+                      setEditedAgenda(meet.agenda || '');
+                      setEditedNotes(meet.meeting_notes || '');
+                      setActiveTab('agenda');
+                    }}
+                    className="p-5 bg-white border border-gray-100 rounded-[2rem] shadow-2xs hover:border-blue-100 transition-all cursor-pointer space-y-2 group"
+                  >
+                    <div className="flex justify-between text-[9px] font-black uppercase tracking-wider">
+                      <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md border border-blue-100">
+                        {meet.recipient_value || 'All Church'}
+                      </span>
+                      <span className="text-gray-400">📅 {meet.meeting_date} at {meet.meeting_time || 'TBA'}</span>
+                    </div>
+                    <h3 className="font-black text-gray-900 text-sm group-hover:text-blue-600 transition-colors">{meet.title}</h3>
+                    <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{meet.content || meet.location}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        ) : (
+          /* 📥 SUB-VIEW B: ADVANCED TABBED DOCUMENTATION SYSTEM CANVAS VIEW */
+          <div className="flex-1 flex flex-col overflow-hidden animate-in fade-in duration-150">
+            
+            {/* Top Internal Tab Selectors Bar */}
+            <div className="flex border-b px-6 bg-gray-50/30 gap-4 text-[10px] font-black uppercase tracking-widest">
+              {(['agenda', 'notes', 'attendance'] as const).map(tab => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setActiveTab(tab)}
+                  className={`py-3 border-b-2 transition-all ${
+                    activeTab === tab ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            {/* Selected Active Content Canvas Area */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {activeTab === 'agenda' && (
+                <div className="space-y-3 animate-in fade-in duration-100">
+                  <h4 className="font-black text-[10px] uppercase tracking-wider text-gray-400">🎬 Agenda Outlines</h4>
+                  {isLeader ? (
+                    <textarea 
+                      value={editedAgenda} onChange={e => setEditedAgenda(e.target.value)}
+                      className="w-full p-4 rounded-xl border border-gray-100 bg-gray-50/50 font-medium text-xs text-gray-700 h-44 resize-none outline-none focus:bg-white focus:ring-2 focus:ring-blue-600 transition-all"
+                      placeholder="Compile agenda discussion headers..."
+                    />
+                  ) : (
+                    <p className="p-4 bg-gray-50 border rounded-2xl text-xs text-gray-600 whitespace-pre-line leading-relaxed font-medium">
+                      {selectedMeeting.agenda || "No agenda details published yet for this gathering session."}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'notes' && (
+                <div className="space-y-3 animate-in fade-in duration-100">
+                  <h4 className="font-black text-[10px] uppercase tracking-wider text-gray-400">📖 Minutes & Resolutions</h4>
+                  {isLeader ? (
+                    <textarea 
+                      value={editedNotes} onChange={e => setEditedNotes(e.target.value)}
+                      className="w-full p-4 rounded-xl border border-gray-100 bg-gray-50/50 font-medium text-xs text-gray-700 h-44 resize-none outline-none focus:bg-white focus:ring-2 focus:ring-blue-600 transition-all"
+                      placeholder="Log session decisions, notes or meeting minutes resolution logs here..."
+                    />
+                  ) : (
+                    <p className="p-4 bg-gray-50 border rounded-2xl text-xs text-gray-600 whitespace-pre-line leading-relaxed font-medium">
+                      {selectedMeeting.meeting_notes || "Meeting minutes have not been published by the secretary yet."}
+                    </p>
+                  )}  
+                </div>
+              )}
+
+              {activeTab === 'attendance' && (
+                <div className="space-y-3 animate-in fade-in duration-100">
+                  <h4 className="font-black text-[10px] uppercase tracking-wider text-gray-400">👥 Confirmed Attendees Registry ({selectedMeeting.attendance_list?.length || 0})</h4>
+                  <div className="bg-gray-50 border rounded-2xl divide-y overflow-hidden max-h-44 overflow-y-auto">
+                    {selectedMeeting.attendance_list && selectedMeeting.attendance_list.length > 0 ? (
+                      selectedMeeting.attendance_list.map((m: any, i: number) => (
+                        <div key={i} className="p-3 bg-white flex justify-between items-center text-xs px-4">
+                          <p className="font-bold text-gray-800">{m.name}</p>
+                          <span className="text-[10px] text-gray-400 font-bold">{m.time || 'Signed Present'}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-center py-8 text-xs font-medium text-gray-400 italic">No attendance records found.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Leader Documentation Committal Footer Action Trigger */}
+            {isLeader && activeTab !== 'attendance' && (
+              <div className="p-4 border-t bg-gray-50/50 px-6 flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleUpdateDocumentation}
+                  disabled={updating}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:bg-blue-700 transition-all disabled:opacity-50 shadow-md shadow-blue-50 active:scale-95"
+                >
+                  {updating ? 'Saving Changes...' : 'Commit Modifications'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
       </div>
     </div>
   );
-};
+};  
+           
+
+
 
 const GalleryModal = ({ isOpen, onClose, userData, shopId }: { isOpen: boolean, onClose: () => void, userData: MemberData | null, shopId: number }) => {
   const [images, setImages] = useState<any[]>([]);
