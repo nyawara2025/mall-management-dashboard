@@ -723,6 +723,8 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           meeting_id: selectedMeeting.id,
+          org_id: userData?.org_id,
+          shop_id: userData?.shop_id,
           agenda: editedAgenda,
           meeting_notes: editedNotes
         })
