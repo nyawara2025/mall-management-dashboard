@@ -1132,7 +1132,31 @@ if (isPublicChurchView) {
                       <Calendar size={12} /> {notice.event_date || 'Upcoming'}
                     </div>
                     <h3 className="font-black text-gray-950 text-base tracking-tight leading-snug">{notice.title}</h3>
-                    <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line">{notice.content}</p>
+                    
+                    {/* 🚀 FIXED: Dynamic Link Parser Content Body */}
+                    <p className="text-xs text-gray-500 leading-relaxed whitespace-pre-line text-left">
+                      {(() => {
+                        if (!notice.content) return '';
+                        const urlRegex = /(https?:\/\/[^\s]+)/g;
+                        const parts = notice.content.split(urlRegex);
+                        return parts.map((part: string, i: number) => {
+                          if (part.match(urlRegex)) {
+                            return (
+                              <a
+                                key={i}
+                                href={part}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 font-bold underline break-all hover:text-blue-800 transition-colors inline-block"
+                              >
+                                {part}
+                              </a>
+                            );
+                          }
+                          return part;
+                        });
+                      })()}
+                    </p>
                   </div>
 
                   {/* Card Footer Meta Attributes */}
