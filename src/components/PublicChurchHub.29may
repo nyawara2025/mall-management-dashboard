@@ -1119,7 +1119,7 @@ if (isPublicChurchView) {
                     <img 
                       src={notice.image_url} 
                       alt={notice.title}
-                      className="w-full h-auto block object-contain hover:scale-[1.01] transition-transform duration-300"
+                      className="w-full h-full object-cover object-top hover:scale-[1.01] transition-transform duration-300"
                       loading="lazy"
                     />
                   </div>
