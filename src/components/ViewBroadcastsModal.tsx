@@ -159,7 +159,7 @@ export const ViewBroadcastsModal = ({ isOpen, onClose, userData }: any) => {
                   <option value="general|General Notice">General Congregation Notice</option>
                   
                   {/* 🚀 FIXED: Dynamic path option routing directly to your external public notice board queries */}
-                  <option value="public|Public Portal Announcement">🌍 Public Portal Announcement</option>
+                  <option value="public|Public Portal">🌍 Public Portal Announcement</option>
 
                   {/* Dynamic map mapping loop extraction of multiple ministries */}
                   {textMinistries.map((ministryName: string, idx: number) => (
