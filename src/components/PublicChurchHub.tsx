@@ -751,7 +751,13 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
   };
 
   // 🚀 FIXED: Simple, flat variable declaration placed right before your open check guard
-  const isLeader = userData?.role?.toLowerCase() === 'canon' || userData?.is_ministry_leader || userData?.is_zone_leader;
+  const isLeader = 
+    userData?.role?.toLowerCase() === 'canon' ||
+    userData?.role?.toLowerCase() === 'leader' ||
+    userData?.role?.toLowerCase() === 'chairman' ||
+    userData?.role?.toLowerCase() === 'chairperson' ||
+    userData?.is_ministry_leader ||
+    userData?.is_zone_leader;
 
   if (!isOpen) return null;
 
