@@ -1795,7 +1795,7 @@ if (isPublicChurchView) {
                   <ScrollText size={24} />
                 </div>
                 <span className="font-black text-[10px] uppercase tracking-wider text-white">
-                  Newsletters & Notifications
+                  Newsletters & Publications
                 </span>
               </button>
 
@@ -1806,7 +1806,7 @@ if (isPublicChurchView) {
                 <div className="p-4 bg-white-50 text-white rounded-2xl italic">
                   <Calendar size={32} />
                 </div>
-                <span className="text-[10px] font-black text-white uppercase tracking-widest">My Diary</span>
+                <span className="text-[10px] font-black text-white uppercase tracking-widest">The Diary</span>
               </button>
 
               <button 
@@ -1816,7 +1816,7 @@ if (isPublicChurchView) {
                 <div className="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-400 group-hover:bg-blue-50 group-hover:text-blue-600">
                   <User size={28} />
                 </div>
-                <span className="text-xs font-black text-white uppercase tracking-widest text-center">My Account</span>
+                <span className="text-xs font-black text-white uppercase tracking-widest text-center">My Profile</span>
               </button>
 
               <button
@@ -1838,7 +1838,7 @@ if (isPublicChurchView) {
                 <div className="p-4 bg-gray-50 rounded-2xl group-hover:bg-blue-50 transition-colors">
                   <MessageCircle className="text-gray-400 group-hover:text-blue-600" size={32} />
                 </div>
-                <span className="text-[10px] font-black text-white tracking-widest uppercase">Knowledgebase (Church Chat)</span>
+                <span className="text-[10px] font-black text-white tracking-widest uppercase">Knowledgebase (Church Inquiry)</span>
               </button> 
 
               {/* --- Church Financials & Projects Modal --- */}
