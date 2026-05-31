@@ -1790,10 +1790,10 @@ if (isPublicChurchView) {
                 <span className="text-xs font-black text-white uppercase tracking-widest text-center">A MOMENT WITH GOD</span>
               </button>
 
-              {/* 🌍 NEW DYNAMIC ACTION TRIGGER CARD BUTTON */}
+              {/* 🌍 FIXED: col-span-1 locks it into a balanced grid layout without bleeding sideways */}
               <button
                 onClick={() => setIsDioceseOpen(true)}
-                className="w-full p-6 bg-blue-600 text-white rounded-[2rem] shadow-md shadow-blue-50 hover:bg-blue-700 transition-all flex flex-col items-center justify-center gap-2 font-black text-xs uppercase tracking-widest group col-span-1 md:col-span-2 text-center"
+                className="w-full p-6 bg-blue-600 text-white rounded-[2rem] shadow-md shadow-blue-50 hover:bg-blue-700 transition-all flex flex-col items-center justify-center gap-2 font-black text-xs uppercase tracking-widest group col-span-1 text-center"
               >
                 <div className="bg-white/10 p-2.5 rounded-2xl group-hover:scale-105 transition-transform border border-white/10">
                   <svg xmlns="http://w3.org" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
