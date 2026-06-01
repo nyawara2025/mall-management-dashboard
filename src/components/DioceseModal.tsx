@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, ChevronDown, Upload, Loader2, FileText, CheckCircle2, AlertCircle, Star, Award } from 'lucide-react';
 
 // Configure your uniform backend gateway entry point
-const N8N_WEBHOOK_URL = 'https://tenear.com';
+const N8N_WEBHOOK_URL = 'https://n8n.tenear.com/webhook/church-nairobi-diocese';
 
 interface DioceseModalProps {
   isOpen: boolean;
