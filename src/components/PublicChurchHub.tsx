@@ -2127,7 +2127,9 @@ if (isPublicChurchView) {
       {/* 🚀 Mounts the Diocesan Information Center overlay sheet dynamically when clicked */}
       <DioceseModal 
         isOpen={isDioceseOpen} 
-        onClose={() => setIsDioceseOpen(false)} 
+        onClose={() => setIsDioceseOpen(false)}
+        userData={userData}
+        shopId={activeShopId}  
       />
 
       <MemberMediaAccess 

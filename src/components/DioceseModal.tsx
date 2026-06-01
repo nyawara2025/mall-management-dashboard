@@ -6,8 +6,8 @@ const N8N_WEBHOOK_URL = 'https://n8n.tenear.com/webhook/church-nairobi-diocese';
 interface DioceseModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userId?: string | null;     // Handled and passed down from parent PublicChurchHub.tsx
-  dioceseId?: string;         // Handled and passed down from parent PublicChurchHub.tsx
+  userData?: any;
+  shopId?: string | number;
 }
 
 // Custom data definitions matching indicator forms
@@ -290,13 +290,17 @@ const InteractivePillarForm = ({
 export const DioceseModal = ({ 
   isOpen, 
   onClose, 
-  userId, 
-  dioceseId = "68" 
+  userData,
+  shopId 
 }: DioceseModalProps) => {
   const [activeTab, setActiveTab] = useState<'pillars' | 'programmes'>('pillars');
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   if (!isOpen) return null;
+
+  // Dynamically extract the unique identifier string safely
+  const activeMemberIdentifier = userData?.phone_number || userData?.id?.toString() || "anonymous_member";
+  const dynamicShopId = shopId?.toString() || userData?.shop_id?.toString() || "68";
 
   const strategicPillars = [
     { title: "Mission, Evangelism and Spiritual Growth", desc: "Driving spiritual transformation across parishes through targeted crusades, church planting, and family discipleship mentorship groups." },
@@ -387,8 +391,8 @@ export const DioceseModal = ({
                     
                     <InteractivePillarForm 
                       title={item.title} 
-                      userId={userId || "anonymous_church_member"} 
-                      dioceseId={dioceseId} 
+                      userId={activeMemberIdentifier} 
+                      dioceseId={dynamicShopId} 
                     />
                   </div>
                 )}
