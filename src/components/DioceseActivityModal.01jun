@@ -197,8 +197,9 @@ export const DioceseActivitiesModal = ({ isOpen, onClose, shopId, userData }: Di
             </button>
           </div>
         </div>
-        {/* 3. Central Ledger Data Registry Canvas Table - Responsive Updates */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-white min-h-0 print:p-0">
+
+        {/* 3. Central Ledger Data Registry Canvas Table */}
+        <div className="flex-1 overflow-auto p-6 bg-white print:p-0">
           {loading ? (
             <div className="h-48 flex flex-col items-center justify-center text-gray-400 gap-2 print:hidden">
               <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
@@ -209,37 +210,34 @@ export const DioceseActivitiesModal = ({ isOpen, onClose, shopId, userData }: Di
               No quantitative framework entries discovered matching selected ledger filtering scopes.
             </div>
           ) : (
-            /* 📱 Added horizontal scroll handling for mobile screens specifically */
-            <div className="border border-gray-200 rounded-xl overflow-x-auto shadow-sm bg-white print:border-none print:shadow-none w-full">
-              <table className="w-full text-left border-collapse min-w-[700px] table-auto">
+            <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white print:border-none print:shadow-none">
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 text-[10px] font-bold text-gray-600 uppercase tracking-wider print:bg-gray-100">
-                    <th className="p-3 whitespace-nowrap">Member Phone</th>
-                    <th className="p-3">Category Name</th>
-                    <th className="p-3">Performance Matrix</th>
-                    <th className="p-3">Impact Analysis</th>
-                    <th className="p-3">Evidence</th>
+                 <tr className="bg-gray-50 border-b border-gray-200 text-[10px] font-bold text-gray-600 uppercase tracking-wider print:bg-gray-100">
+                    <th className="p-3.5">Member Phone</th>
+                    <th className="p-3.5">{activeTab === 'pillars' ? 'Strategic Pillar Category' : 'Community Initiative Category'}</th>
+                    <th className="p-3.5">Indicator Performance Matrix</th>
+                    <th className="p-3.5">Impact Analysis & Evidence</th>
+                    <th className="p-3.5">Evidence Attachments</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
                   {reportData.map((record, index) => (
                     <tr key={index} className="hover:bg-gray-50/40 transition-colors print:break-inside-avoid">
-                      <td className="p-3 font-semibold text-gray-900 whitespace-nowrap">{record.member_phone}</td>
-                      <td className="p-3 font-bold text-blue-900 max-w-[150px] break-words">
-                        {activeTab === 'pillars' ? record.pillar_name : record.programme_name}
-                      </td>
-                      <td className="p-3 space-y-1.5 min-w-[180px]">
+                      <td className="p-3.5 font-semibold text-gray-900 whitespace-nowrap">{record.member_phone}</td>
+                      <td className="p-3.5 font-bold text-blue-900 max-w-[200px]">{activeTab === 'pillars' ? record.pillar_name : record.programme_name}</td>
+                      <td className="p-3.5 space-y-1.5 min-w-[220px]">
                         {record.indicators?.map((ind: any, i: number) => (
-                          <div key={i} className="bg-gray-50 p-2 rounded border border-gray-100/80">
-                            <span className="block text-[9px] uppercase font-bold text-gray-500 leading-tight">{ind.label}</span>
-                            <span className="font-semibold text-gray-800 break-words">{ind.value || <span className="text-gray-300 italic">Not logged</span>}</span>
+                          <div key={i} className="bg-gray-50 p-1.5 rounded border border-gray-100/80">
+                            <span className="block text-[10px] uppercase font-bold text-gray-500">{ind.label}</span>
+                            <span className="font-semibold text-gray-800">{ind.value || <span className="text-gray-300 italic">Not logged</span>}</span>
                           </div>
                         ))}
                       </td>
-                      <td className="p-3 text-gray-600 font-medium leading-relaxed min-w-[180px] max-w-[240px] break-words">
+                      <td className="p-3.5 text-gray-600 font-medium leading-relaxed max-w-[260px] break-words">
                         {record.impact_evidence || <span className="text-gray-300 italic">No evidence statement submitted.</span>}
                       </td>
-                      <td className="p-3 whitespace-nowrap space-y-1">
+                      <td className="p-3.5 whitespace-nowrap space-y-1">
                         {record.file_urls && record.file_urls.length > 0 ? (
                           record.file_urls.map((url: string, uIdx: number) => (
                             <a 
@@ -247,13 +245,13 @@ export const DioceseActivitiesModal = ({ isOpen, onClose, shopId, userData }: Di
                               href={url} 
                               target="_blank" 
                               rel="noreferrer" 
-                              className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-100 block print:hidden"
+                              className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-100 block print:hidden"
                             >
-                              📎 Link #{uIdx + 1}
+                              Acknowledge Link
                             </a>
                           ))
                         ) : (
-                          <span className="text-gray-300 italic">No files</span>
+                          <span className="text-gray-300 italic">No file links</span>
                         )}
                         {record.file_urls?.map((url: string, uIdx: number) => (
                           <span key={uIdx} className="hidden print:block text-[9px] text-gray-500 truncate max-w-[150px]">{url}</span>
