@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronDown, Upload, Loader2, FileText, CheckCircle2, AlertCircle, Star, Award } from 'lucide-react';
 
+// Configure your uniform backend gateway entry point
 const N8N_WEBHOOK_URL = 'https://n8n.tenear.com/webhook/church-nairobi-diocese';
 
 interface DioceseModalProps {
@@ -10,12 +11,9 @@ interface DioceseModalProps {
   dioceseId?: string;         // Handled and passed down from parent PublicChurchHub.tsx
 }
 
-// Custom data definitions matching indicator forms
-interface IndicatorRow {
-  label: string;
-  value: string;
-}
-
+// ==========================================
+// Isolated Form Component Using Strict n8n POST Routes
+// ==========================================
 const InteractivePillarForm = ({ 
   title, 
   userId, 
@@ -25,59 +23,16 @@ const InteractivePillarForm = ({
   userId: string; 
   dioceseId: string; 
 }) => {
-  const [indicators, setIndicators] = useState<IndicatorRow[]>([]);
-  const [impactEvidence, setImpactEvidence] = useState<string>('');
+  const [content, setContent] = useState<string>('');
   const [fileUrls, setFileUrls] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Read multi-tenant context parameters straight from browser location variables
-  const queryParams = new URLSearchParams(window.location.search);
-  const shopId = queryParams.get('shop_id') || dioceseId || '68';
-
-  // Initialize explicit structures depending on row name matching
+  // 1. Load active database parameters via n8n query on row accordion open
   useEffect(() => {
-    const initializeStructure = () => {
-      let structure: string[] = [];
-      
-      if (title.includes("Mission")) {
-        structure = [
-          "Evangelism Activities Conducted",
-          "New Members / Converts",
-          "Discipleship Programs",
-          "Home Cells Fellowships"
-        ];
-      } else if (title.includes("Welfare")) {
-        structure = [
-          "Welfare Support Cases Assisted",
-          "Counseling Sessions",
-          "Health Programs Conducted",
-          "Clergy & Staff Welfare Initiatives"
-        ];
-      } else if (title.includes("Governance")) {
-        structure = [
-          "PCC/Finance Meetings Held",
-          "Policy Compliance Level",
-          "Leadership Trainings",
-          "Accountability Structures Strengthened"
-        ];
-      } else {
-        // Dynamic generic fallback pattern matching standard operational schemas
-        structure = [
-          "Activities Conducted",
-          "Total Registered Attendants",
-          "Operational Framework Milestones",
-          "Resources Mobilized"
-        ];
-      }
-
-      setIndicators(structure.map(label => ({ label, value: '' })));
-    };
-
-    // 1. Fetch live metrics from n8n backend endpoint matrix
     const fetchRowData = async () => {
-      if (!userId) return;
+      if (!userId || !dioceseId) return;
       try {
         const response = await fetch(N8N_WEBHOOK_URL, {
           method: 'POST',
@@ -85,38 +40,26 @@ const InteractivePillarForm = ({
           body: JSON.stringify({
             action: 'get_pillar_data',
             userId,
-            shop_id: shopId,
+            dioceseId,
             pillarName: title
           })
         });
 
         if (response.ok) {
           const data = await response.json();
-          if (data && data.indicators) {
-            setIndicators(data.indicators);
-            setImpactEvidence(data.impact_evidence || '');
+          if (data) {
+            setContent(data.content || '');
             setFileUrls(data.file_urls || []);
-          } else {
-            initializeStructure();
           }
-        } else {
-          initializeStructure();
         }
       } catch (err) {
-        console.error('Failed fetching payload data context:', err);
-        initializeStructure();
+        console.error('Failed fetching data via n8n hook:', err);
       }
     };
-
     fetchRowData();
-  }, [title, userId, shopId]);
+  }, [title, userId, dioceseId]);
 
-  const handleInputChange = (index: number, value: string) => {
-    const updated = [...indicators];
-    updated[index].value = value;
-    setIndicators(updated);
-  };
-
+  // 2. Transmit multipart file binaries to n8n upload workflows
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0 || !userId) return;
     setIsUploading(true);
@@ -125,7 +68,7 @@ const InteractivePillarForm = ({
     const formData = new FormData();
     formData.append('action', 'upload_pillar_files');
     formData.append('userId', userId);
-    formData.append('shop_id', shopId);
+    formData.append('dioceseId', dioceseId);
     formData.append('pillarName', title);
 
     for (let i = 0; i < e.target.files.length; i++) {
@@ -152,9 +95,10 @@ const InteractivePillarForm = ({
     }
   };
 
+  // 3. Commit text nodes and file collections to database records via n8n
   const handleSaveData = async () => {
-    if (!userId) {
-      setMessage({ type: 'error', text: 'Session context missing.' });
+    if (!userId || !dioceseId) {
+      setMessage({ type: 'error', text: 'Session context missing. Please log in.' });
       return;
     }
 
@@ -168,17 +112,16 @@ const InteractivePillarForm = ({
         body: JSON.stringify({
           action: 'save_pillar_data',
           userId: userId,
-          shop_id: shopId,
+          dioceseId: dioceseId,
           pillarName: title,
-          indicators: indicators,
-          impact_evidence: impactEvidence,
+          content: content,
           file_urls: fileUrls
         })
       });
 
       if (!response.ok) throw new Error('Backend failed to commit save update.');
 
-      setMessage({ type: 'success', text: 'Data saved successfully!' });
+      setMessage({ type: 'success', text: 'Workspace successfully saved!' });
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed saving content via n8n.' });
     } finally {
@@ -187,61 +130,35 @@ const InteractivePillarForm = ({
   };
 
   return (
-    <div className="mt-4 p-5 bg-gray-50 rounded-xl border border-gray-200/60 space-y-5">
-      
-      {/* 1. Quantitative Metrics Table Layout */}
+    <div className="mt-3 p-4 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
+      {/* Activity Input Field Area */}
       <div>
-        <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-3 bg-gray-100/50 p-2 rounded-t-lg">
-          <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Indicator Metric Checkpoint</span>
-          <span className="text-xs font-bold text-gray-700 uppercase tracking-wider pr-4">Result / Status</span>
-        </div>
-
-        <div className="space-y-2.5">
-          {indicators.map((item, idx) => (
-            <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-2">
-              <label className="text-sm font-medium text-gray-700 sm:max-w-[60%]">
-                {item.label}
-              </label>
-              <input
-                type="text"
-                value={item.value}
-                onChange={(e) => handleInputChange(idx, e.target.value)}
-                placeholder="Enter results achieved..."
-                className="w-full sm:w-[35%] p-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all shadow-sm"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 2. Qualitative Impact Block Input */}
-      <div>
-        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-          Impact (Spiritual & Well-being Growth Evidence Analysis)
+        <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
+          Activity Updates / Content Notes
         </label>
         <textarea
           rows={3}
-          value={impactEvidence}
-          onChange={(e) => setImpactEvidence(e.target.value)}
-          placeholder="Provide evidence of real transformation, community impacts, or organizational achievements here..."
-          className="w-full p-3 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all shadow-sm"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="Type active milestones, operational requests, or feedback notes for this group..."
+          className="w-full p-3 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all"
         />
       </div>
 
-      {/* 3. Media Attachments Input Row */}
-      <div className="pt-2 border-t border-gray-200/50">
-        <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
-          Supporting Files & Reports Evidence
+      {/* Attachments Section */}
+      <div>
+        <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-2">
+          Supporting Files & Reports
         </label>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <label className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <label className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
             {isUploading ? (
               <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
             ) : (
               <Upload className="w-4 h-4 text-gray-500" />
             )}
-            <span className="text-sm text-gray-600 font-semibold">
+            <span className="text-sm text-gray-600 font-medium">
               {isUploading ? 'Uploading records...' : 'Attach documents / images'}
             </span>
             <input 
@@ -253,7 +170,8 @@ const InteractivePillarForm = ({
             />
           </label>
 
-          <div className="flex flex-col justify-center space-y-1.5 bg-white p-2 rounded-lg border border-gray-100">
+          {/* Staged File List Displays */}
+          <div className="flex flex-col justify-center space-y-1">
             {fileUrls.length === 0 ? (
               <p className="text-xs text-gray-400 italic px-1">No file attachments linked yet.</p>
             ) : (
@@ -263,9 +181,9 @@ const InteractivePillarForm = ({
                   href={url} 
                   target="_blank" 
                   rel="noreferrer" 
-                  className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline font-semibold truncate max-w-[280px]"
+                  className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline font-medium truncate max-w-[280px]"
                 >
-                  <FileText className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" /> Attachment #{index + 1}
+                  <FileText className="w-3 h-3 flex-shrink-0" /> Attachment #{index + 1}
                 </a>
               ))
             )}
@@ -273,9 +191,9 @@ const InteractivePillarForm = ({
         </div>
       </div>
 
-      {/* 4. Action Alerts and Buttons Footer */}
-      <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-        <div className="flex items-center gap-1.5">
+      {/* Processing Status Action Row Bar */}
+      <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+        <div className="flex items-center gap-1">
           {message && (
             <>
               {message.type === 'success' ? (
@@ -283,7 +201,7 @@ const InteractivePillarForm = ({
               ) : (
                 <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
               )}
-              <span className={`text-xs font-bold ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`text-xs font-medium ${message.type === 'success' ? 'text-green-600' : 'text-red-600'}`}>
                 {message.text}
               </span>
             </>
@@ -294,10 +212,10 @@ const InteractivePillarForm = ({
           type="button"
           onClick={handleSaveData}
           disabled={isSaving || isUploading}
-          className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-md transition-all disabled:opacity-40"
+          className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-semibold shadow-sm transition-all disabled:opacity-40"
         >
           {isSaving && <Loader2 className="w-3 h-3 animate-spin" />}
-          Save Entry Data
+          Save Framework
         </button>
       </div>
     </div>
@@ -368,14 +286,12 @@ export const DioceseModal = ({
         {/* Tab Selection */}
         <div className="flex border-b border-gray-100 bg-gray-50/50 px-4 pt-2">
           <button 
-            type="button"
             onClick={() => { setActiveTab('pillars'); setExpandedIndex(null); }}
             className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all ${activeTab === 'pillars' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
             Strategic Pillars ({strategicPillars.length})
           </button>
           <button 
-            type="button"
             onClick={() => { setActiveTab('programmes'); setExpandedIndex(null); }}
             className={`px-4 py-3 text-sm font-semibold border-b-2 transition-all ${activeTab === 'programmes' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
           >
@@ -405,12 +321,17 @@ export const DioceseModal = ({
                   <div className="px-4 pb-4 bg-white text-sm text-gray-600 border-t border-gray-50 pt-3">
                     <p className="text-gray-500 italic mb-2">{item.desc}</p>
                     
-                    {/* The Interactive Form instantly loads here since login checker fallback is removed */}
-                    <InteractivePillarForm 
-                      title={item.title} 
-                      userId={userId || "authenticated_member"} 
-                      dioceseId={dioceseId} 
-                    />
+                    {userId ? (
+                      <InteractivePillarForm 
+                        title={item.title} 
+                        userId={userId} 
+                        dioceseId={dioceseId} 
+                      />
+                    ) : (
+                      <div className="mt-2 p-3 bg-amber-50 rounded-lg text-amber-700 text-xs font-medium border border-amber-100">
+                        Please sign in to update content reports or upload supporting media files.
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -421,7 +342,3 @@ export const DioceseModal = ({
     </div>
   );
 };
-
-
-
-
