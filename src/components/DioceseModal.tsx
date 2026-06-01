@@ -32,6 +32,8 @@ const InteractivePillarForm = ({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  const [stagedFiles, setStagedFiles] = useState<{name: string, type: string, base64: string}[]>([]);
+
   // Extract multi-tenant platform values from browser URL parameters
   const queryParams = new URLSearchParams(window.location.search);
   const shopId = queryParams.get('shop_id') || dioceseId || '68';
@@ -101,7 +103,7 @@ const InteractivePillarForm = ({
 
     try {
       const fileList = e.target.files;
-      const uploadedStagedUrls: string[] = [...fileUrls];
+      const newFiles = [...stagedFiles];
 
       for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
@@ -114,32 +116,17 @@ const InteractivePillarForm = ({
           reader.onerror = (error) => reject(error);
         });
 
-        const response = await fetch(N8N_WEBHOOK_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'upload_pillar_files',
-            userId,
-            shop_id: shopId,
-            pillarName: title,
-            fileName: file.name,
-            fileType: file.type,
-            fileData: base64Data
-          })
+        newFiles.push({
+          name: file.name,
+          type: file.type,
+          base64: base64Data
         });
-
-        if (!response.ok) throw new Error(`Upload wrapper failed for file: ${file.name}`);
-        
-        const data = await response.json();
-        if (data && data.url) {
-          uploadedStagedUrls.push(data.url);
-        }
       }
 
-      setFileUrls(uploadedStagedUrls);
-      setMessage({ type: 'success', text: 'Attachments processed and linked successfully!' });
+      setStagedFiles(newFiles);
+      setMessage({ type: 'success', text: `${newFiles.length} file(s) attached to report.` });
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message || 'File upload stream interrupted.' });
+      setMessage({ type: 'error', text: 'Local file preparation failed.' });
     } finally {
       setIsUploading(false);
     }
@@ -160,12 +147,14 @@ const InteractivePillarForm = ({
           pillarName: title,
           indicators: indicators,
           impact_evidence: impactEvidence,
-          file_urls: fileUrls
+          file_urls: fileUrls,
+          attachments: stagedFiles // NEW: Your raw base64 arrays hitting n8n directly here!
         })
       });
 
       if (!response.ok) throw new Error('Backend failed to commit framework save update.');
 
+      setStagedFiles([]);
       setMessage({ type: 'success', text: 'Pillar records successfully saved!' });
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed saving content logs via n8n.' });
@@ -239,20 +228,29 @@ const InteractivePillarForm = ({
           </label>
 
           <div className="flex flex-col justify-center space-y-1.5 bg-white p-2 rounded-lg border border-gray-100">
-            {fileUrls.length === 0 ? (
+            {fileUrls.map((url, index) => (
+              <a 
+                key={index} 
+                href={url} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline font-semibold truncate max-w-[280px]"
+              >
+                <FileText className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" /> Attachment #{index + 1}
+              </a>
+            ))}
+
+            {/* 2. NEW: Staged Files awaiting saving operation */}
+            {stagedFiles.map((file, idx) => (
+              <span key={idx} className="inline-flex items-center gap-1.5 text-xs text-amber-600 font-semibold truncate max-w-[280px] bg-amber-50/60 px-1.5 py-0.5 rounded border border-amber-100/50 animate-pulse">
+                ⏳ Ready to Save: {file.name}
+              </span>
+            ))}
+
+            {/* 3. Empty State Fallback if absolutely nothing is attached or staged */}
+            {fileUrls.length === 0 && stagedFiles.length === 0 && (
               <p className="text-xs text-gray-400 italic px-1">No file attachments linked yet.</p>
-            ) : (
-              fileUrls.map((url, index) => (
-                <a 
-                  key={index} 
-                  href={url} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  className="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline font-semibold truncate max-w-[280px]"
-                >
-                  <FileText className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" /> Attachment #{index + 1}
-                </a>
-              ))
+
             )}
           </div>
         </div>
