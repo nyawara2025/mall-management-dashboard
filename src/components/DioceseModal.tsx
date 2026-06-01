@@ -189,25 +189,26 @@ const InteractivePillarForm = ({
   return (
     <div className="mt-4 p-5 bg-gray-50 rounded-xl border border-gray-200/60 space-y-5">
       
-      {/* 1. Quantitative Metrics Table Layout */}
+      {/* 1. Quantitative Metrics Layout - Transformed into spacious full-width textareas */}
       <div>
-        <div className="flex items-center justify-between border-b border-gray-200 pb-2 mb-3 bg-gray-100/50 p-2 rounded-t-lg">
-          <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Indicator Metric Checkpoint</span>
-          <span className="text-xs font-bold text-gray-700 uppercase tracking-wider pr-4">Result / Status</span>
+        <div className="border-b border-gray-200 pb-2 mb-3 bg-gray-100/60 p-3 rounded-lg">
+          <span className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
+            Strategic Pillar Performance & Indicator Results
+          </span>
         </div>
 
-        <div className="space-y-2.5">
+        <div className="space-y-4">
           {indicators.map((item, idx) => (
-            <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100 pb-2">
-              <label className="text-sm font-medium text-gray-700 sm:max-w-[60%]">
+            <div key={idx} className="flex flex-col gap-1.5 bg-white p-3.5 rounded-xl border border-gray-100 shadow-sm">
+              <label className="text-xs font-bold text-gray-600 uppercase tracking-wide">
                 {item.label}
               </label>
-              <input
-                type="text"
+              <textarea
+                rows={2}
                 value={item.value}
                 onChange={(e) => handleInputChange(idx, e.target.value)}
-                placeholder="Enter results achieved..."
-                className="w-full sm:w-[35%] p-2 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all shadow-sm"
+                placeholder={`Document specific results or status logs for: ${item.label}...`}
+                className="w-full p-2.5 text-sm bg-gray-50/50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 focus:border-transparent transition-all outline-none resize-y min-h-[55px] text-gray-800 font-medium"
               />
             </div>
           ))}
