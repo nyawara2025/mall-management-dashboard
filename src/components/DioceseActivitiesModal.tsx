@@ -92,154 +92,118 @@ export const DioceseActivitiesModal = ({ isOpen, onClose, shopId, userData }: Di
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm print:p-0 print:bg-white">
-      <div className="w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] print:max-h-full print:shadow-none print:rounded-none">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+      {/* 🚀 MATCHES FINANCIAL VIEW GIVINGS SHEET BOUNDARY EXACTLY */}
+      <div className="bg-white w-full max-w-6xl rounded-t-[2.5rem] sm:rounded-[2.5rem] shadow-2xl flex flex-col h-[92vh] max-h-[92vh] overflow-hidden">
         
-        {/* Header Ribbon Layout */}
-        <div className="bg-[#1e3a8a] p-5 text-white flex items-center justify-between print:bg-white print:text-black print:border-b print:border-gray-300">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-white/10 rounded-lg print:hidden">
-              <BarChart4 className="w-5 h-5 text-white" />
+        {/* Header - Condensed Padding matching theme */}
+        <div className="p-4 border-b flex justify-between items-center bg-blue-50 rounded-t-[2.5rem]">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-600 p-2 rounded-xl text-white shadow-md">
+              <BarChart4 size={18} />
             </div>
-            <div>
-              <h2 className="text-lg font-bold tracking-tight">Diocesan Activities Insight Registry</h2>
-              <p className="text-[11px] text-blue-200 uppercase tracking-wider font-semibold print:text-gray-500">Canon Reporting Profile Dashboard</p>
+            <div className="text-left">
+              <h2 className="text-lg font-black text-blue-900 tracking-tight leading-tight">Diocesan Activities Insights</h2>
+              <p className="text-blue-600 text-[9px] font-black uppercase tracking-widest">Canon Reporting Profile Registry</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors print:hidden">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="p-1.5 hover:bg-white rounded-full transition-colors">
+            <X size={22} className="text-blue-900" />
           </button>
         </div>
 
-        {/* 1. Dynamic Control Filter Operations Bar */}
-        <div className="p-4 bg-gray-50 border-b border-gray-100 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 print:hidden">
-          <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
-              <Filter className="w-3 h-3" /> Filter Member Phone
-            </label>
-            <input 
-              type="text" 
-              value={filterPhone}
-              onChange={(e) => setFilterPhone(e.target.value)}
-              placeholder="e.g. 2547..."
-              className="w-full p-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-600 bg-white"
-            />
+        {/* 🚀 COMPACT FILTER BAR LAYOUT MATCH: Split tightly on one line to yield table height */}
+        <div className="p-4 bg-gray-50 border-b space-y-3">
+          <div className="grid grid-cols-3 gap-2 text-left">
+            <div>
+              <label className="text-[8px] font-black uppercase text-gray-400 ml-1">Filter Phone</label>
+              <input type="text" value={filterPhone} onChange={(e) => setFilterPhone(e.target.value)} placeholder="e.g. 2547..." className="w-full p-2 rounded-xl border border-gray-100 shadow-2xs bg-white font-bold text-xs outline-none" />
+            </div>
+            <div>
+              <label className="text-[8px] font-black uppercase text-gray-400 ml-1">Date From</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full p-2 rounded-xl border border-gray-100 shadow-2xs bg-white font-bold text-xs outline-none" />
+            </div>
+            <div>
+              <label className="text-[8px] font-black uppercase text-gray-400 ml-1">Date To</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full p-2 rounded-xl border border-gray-100 shadow-2xs bg-white font-bold text-xs outline-none" />
+            </div>
           </div>
 
-          <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
-              <Calendar className="w-3 h-3" /> Start Date
-            </label>
-            <input 
-              type="date" 
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full p-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-600 bg-white"
-            />
-          </div>
+          {/* Aggregates Summary Controls and Document Download Toggles Row */}
+          <div className="flex items-center justify-between gap-2 pt-1 border-t border-gray-200/50">
+            <div className="flex border-b border-transparent gap-1">
+              <button 
+                type="button"
+                onClick={() => setActiveTab('pillars')}
+                className={`py-1 px-2.5 text-[11px] font-black rounded-xl transition-all ${activeTab === 'pillars' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white border border-gray-100 text-gray-500 hover:text-gray-700'}`}
+              >
+                Pillars
+              </button>
+              <button 
+                type="button"
+                onClick={() => setActiveTab('programmes')}
+                className={`py-1 px-2.5 text-[11px] font-black rounded-xl transition-all ${activeTab === 'programmes' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white border border-gray-100 text-gray-500 hover:text-gray-700'}`}
+              >
+                Programmes ({reportData.length})
+              </button>
+            </div>
 
-          <div>
-            <label className="block text-[10px] font-bold text-gray-500 uppercase mb-1 flex items-center gap-1">
-              <Calendar className="w-3 h-3" /> End Date
-            </label>
-            <input 
-              type="date" 
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full p-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-600 bg-white"
-            />
-          </div>
-
-          <div className="flex items-end gap-2">
-            <button
-              type="button"
-              onClick={fetchReportLogs}
-              disabled={loading}
-              className="flex-1 p-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md text-xs transition-all flex items-center justify-center gap-1"
-            >
-              {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-              Apply Filter
-            </button>
+            <div className="flex gap-1">
+              <button onClick={fetchReportLogs} disabled={loading} className="p-2 bg-white text-blue-600 rounded-xl shadow-2xs border border-gray-100 flex items-center gap-1 text-[11px] font-black uppercase">
+                {loading ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} Search
+              </button>
+              <button onClick={exportToExcelCSV} disabled={reportData.length === 0} className="p-2 bg-white text-green-600 rounded-xl shadow-2xs border border-gray-100 flex items-center gap-1 text-[11px] font-black uppercase">
+                <Download size={12} /> Excel
+              </button>
+              <button onClick={() => window.print()} disabled={reportData.length === 0} className="p-2 bg-white text-red-600 rounded-xl shadow-2xs border border-gray-100 flex items-center gap-1 text-[11px] font-black uppercase">
+                <FileText size={12} /> PDF
+              </button>
+            </div>
           </div>
         </div>
 
-        {/* 2. Interactive Document Export Panel & Tab Selection Link Row */}
-        <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center px-6 py-2 border-b border-gray-100 bg-gray-50/30 gap-2 print:hidden">
-          <div className="flex border-b border-transparent gap-2">
-            <button 
-              onClick={() => setActiveTab('pillars')}
-              className={`py-2 px-3 text-xs font-bold transition-all border-b-2 ${activeTab === 'pillars' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-            >
-              Strategic Pillars Metrics
-            </button>
-            <button 
-              onClick={() => setActiveTab('programmes')}
-              className={`py-2 px-3 text-xs font-bold transition-all border-b-2 ${activeTab === 'programmes' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
-            >
-              Community Programmes Logs
-            </button>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={exportToExcelCSV}
-              disabled={reportData.length === 0}
-              className="px-2.5 py-1.5 bg-green-700 hover:bg-green-800 disabled:opacity-40 text-white rounded-md text-xs font-semibold flex items-center gap-1 transition-all"
-            >
-              <Download className="w-3.5 h-3.5" /> Export Excel XLS/CSV
-            </button>
-            <button
-              onClick={exportToPDFPrint}
-              disabled={reportData.length === 0}
-              className="px-2.5 py-1.5 bg-gray-800 hover:bg-gray-900 disabled:opacity-40 text-white rounded-md text-xs font-semibold flex items-center gap-1 transition-all"
-            >
-              <FileText className="w-3.5 h-3.5" /> Generate PDF Report
-            </button>
-          </div>
-        </div>
-        {/* 3. Central Ledger Data Registry Canvas Table - Responsive Updates */}
-        <div className="flex-1 overflow-y-auto p-3 sm:p-6 bg-white min-h-0 print:p-0">
+        {/* 🚀 THE INDEPENDENTLY SCROLLING DATA MATRIX CONTAINER CONTAINER */}
+        <div className="flex-1 overflow-y-auto p-4 bg-white min-h-0">
           {loading ? (
-            <div className="h-48 flex flex-col items-center justify-center text-gray-400 gap-2 print:hidden">
-              <Loader2 className="w-7 h-7 text-blue-600 animate-spin" />
-              <span className="text-xs font-medium">Aggregating multi-tenant database records...</span>
+            <div className="h-48 flex flex-col items-center justify-center text-gray-400 gap-2">
+              <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+              <span className="text-xs font-semibold">Syncing tracking parameters...</span>
             </div>
           ) : reportData.length === 0 ? (
-            <div className="h-48 flex items-center justify-center text-xs text-gray-400 font-medium italic border border-dashed border-gray-200 rounded-xl bg-gray-50/50 print:border-none">
-              No quantitative framework entries discovered matching selected ledger filtering scopes.
+            <div className="h-32 flex items-center justify-center text-xs text-gray-400 font-bold italic border border-dashed border-gray-200 rounded-[1.5rem] bg-gray-50/50">
+              No entries discovered matching filters.
             </div>
           ) : (
-            /* 📱 Added horizontal scroll handling for mobile screens specifically */
-            <div className="border border-gray-200 rounded-xl overflow-x-auto shadow-sm bg-white print:border-none print:shadow-none w-full">
+            <div className="border border-gray-200 rounded-[1.5rem] overflow-x-auto shadow-2xs bg-white w-full">
               <table className="w-full text-left border-collapse min-w-[700px] table-auto">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-200 text-[10px] font-bold text-gray-600 uppercase tracking-wider print:bg-gray-100">
+                  <tr className="bg-blue-50/50 border-b border-gray-200 text-[9px] font-black text-blue-900 uppercase tracking-wider">
                     <th className="p-3 whitespace-nowrap">Member Phone</th>
                     <th className="p-3">Category Name</th>
                     <th className="p-3">Performance Matrix</th>
-                    <th className="p-3">Impact Analysis</th>
-                    <th className="p-3">Evidence</th>
+                    <th className="p-3">Impact Analysis Evidence</th>
+                    <th className="p-3">Attachments</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 text-xs text-gray-700">
                   {reportData.map((record, index) => (
-                    <tr key={index} className="hover:bg-gray-50/40 transition-colors print:break-inside-avoid">
-                      <td className="p-3 font-semibold text-gray-900 whitespace-nowrap">{record.member_phone}</td>
-                      <td className="p-3 font-bold text-blue-900 max-w-[150px] break-words">
+                    <tr key={index} className="hover:bg-gray-50/30 transition-colors">
+                      <td className="p-3 font-bold text-gray-900 whitespace-nowrap">{record.member_phone}</td>
+                      <td className="p-3 font-black text-blue-900 max-w-[150px] break-words">
                         {activeTab === 'pillars' ? record.pillar_name : record.programme_name}
                       </td>
                       <td className="p-3 space-y-1.5 min-w-[180px]">
                         {record.indicators?.map((ind: any, i: number) => (
-                          <div key={i} className="bg-gray-50 p-2 rounded border border-gray-100/80">
-                            <span className="block text-[9px] uppercase font-bold text-gray-500 leading-tight">{ind.label}</span>
-                            <span className="font-semibold text-gray-800 break-words">{ind.value || <span className="text-gray-300 italic">Not logged</span>}</span>
+                          <div key={i} className="bg-gray-50/60 p-2 rounded-xl border border-gray-100">
+                            <span className="block text-[8px] uppercase font-black text-gray-400 leading-tight">{ind.label}</span>
+                            <span className="font-bold text-gray-800 break-words">{ind.value || <span className="text-gray-300 italic">Not logged</span>}</span>
                           </div>
                         ))}
                       </td>
-                      <td className="p-3 text-gray-600 font-medium leading-relaxed min-w-[180px] max-w-[240px] break-words">
+                      <td className="p-3 text-gray-600 font-semibold leading-relaxed min-w-[180px] max-w-[240px] break-words">
                         {record.impact_evidence || <span className="text-gray-300 italic">No evidence statement submitted.</span>}
                       </td>
-                      <td className="p-3 whitespace-nowrap space-y-1">
+                      <td className="p-3 whitespace-nowrap">
                         {record.file_urls && record.file_urls.length > 0 ? (
                           record.file_urls.map((url: string, uIdx: number) => (
                             <a 
@@ -247,17 +211,14 @@ export const DioceseActivitiesModal = ({ isOpen, onClose, shopId, userData }: Di
                               href={url} 
                               target="_blank" 
                               rel="noreferrer" 
-                              className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline font-bold bg-blue-50 px-2 py-0.5 rounded border border-blue-100 block print:hidden"
+                              className="inline-flex items-center gap-1 text-[10px] text-blue-600 hover:underline font-black bg-blue-50 px-2 py-0.5 rounded-lg border border-blue-100 block"
                             >
                               📎 Link #{uIdx + 1}
                             </a>
                           ))
                         ) : (
-                          <span className="text-gray-300 italic">No files</span>
+                          <span className="text-gray-300 font-bold italic">No files</span>
                         )}
-                        {record.file_urls?.map((url: string, uIdx: number) => (
-                          <span key={uIdx} className="hidden print:block text-[9px] text-gray-500 truncate max-w-[150px]">{url}</span>
-                        ))}
                       </td>
                     </tr>
                   ))}
