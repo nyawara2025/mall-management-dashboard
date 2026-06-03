@@ -32,15 +32,38 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
   const [selectedStartDate, setSelectedStartDate] = useState<string>('');
   const [selectedEndDate, setSelectedEndDate] = useState<string>('');
 
+
+  // --- MANUAL INPUT STATE TRACKERS FOR BULLETINS ---
+  const [manualCashTithes, setManualCashTithes] = useState<number>(0);
+  const [manualCashGiving, setManualCashGiving] = useState<number>(0);
+  const [manualCashOffertory, setManualCashOffertory] = useState<number>(0);
+  
+  const [manualChqTithes, setManualChqTithes] = useState<number>(0);
+  const [manualChqGiving, setManualChqGiving] = useState<number>(0);
+  const [manualChqOffertory, setManualChqOffertory] = useState<number>(0);
+  
+  const [manualPdqTithes, setManualPdqTithes] = useState<number>(0);
+  const [manualPdqGiving, setManualPdqGiving] = useState<number>(0);
+  const [manualPdqOffertory, setManualPdqOffertory] = useState<number>(0);
+
   const handleExtractData = async () => {
     try {
       const response = await fetch('https://n8n.tenear.com/webhook/fetch-church-bio', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          shop_id: user?.shop_id, 
+          shop_id: user?.shop_id,
+          action: "fetch_pending_mpesa",
+          category: "tithes",
+          webhookurl: "https://n8n.tenear.com/webhook/fetch-church-mpesa",
+          executionmode: "production",
           start_date: selectedStartDate, 
-          end_date: selectedEndDate
+          end_date: selectedEndDate,
+          manual_adjustments: {
+            cash: { tithes: manualCashTithes, giving: manualCashGiving, offertory: manualCashOffertory },
+            chq: { tithes: manualChqTithes, giving: manualChqGiving, offertory: manualChqOffertory },
+            pdq: { tithes: manualPdqTithes, giving: manualPdqGiving, offertory: manualPdqOffertory }
+          }
         }),
       });
     
@@ -55,7 +78,7 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
       // Create a temporary link to trigger the download
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Church_Report_68.pdf`;
+      a.download = `Weekly_Bulletin_Report_${user?.shop_id || 68}.pdf`;
       document.body.appendChild(a);
       a.click();
     
@@ -210,13 +233,6 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
   const [selectedMpesaTx, setSelectedMpesaTx] = useState<MpesaTransaction | null>(null);
   const [mpesaTransactions, setMpesaTransactions] = useState<MpesaTransaction[]>([]);
 
-  // ADD THESE NEW STATES HERE:
-  const [pdqReference, setPdqReference] = useState('');
-  const [pdqAmount, setPdqAmount] = useState('');
-  const [cheques, setCheques] = useState<Array<{ chequeNumber: string; bankName: string; amount: string }>>([
-    { chequeNumber: '', bankName: '', amount: '' }
-  ]);
-
   useEffect(() => {
     const loadMpesaData = async () => {
       // Only fetch if MPESA is selected and we have a shop_id
@@ -249,67 +265,37 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
   }, [user, financeCategory]); // This runs whenever these two values change
 
   const handleFinanceSubmit = async () => {
-    // 1. Precise validations before firing the network request
+
+    // Prevent empty clicks
     if (paymentType === 'Cash' && !cashTotal) {
-      alert("Please enter the total cash amount.");
+      alert("Please enter a total cash counted amount.");
       return;
-    }
-    if (paymentType === 'PDQ' && (!pdqReference || !pdqAmount)) {
-      alert("Please enter both the terminal reference and the swiped amount.");
-      return;
-    }
-    if (paymentType === 'Cheque') {
-      const hasEmptyCheque = cheques.some(c => !c.chequeNumber || !c.bankName || !c.amount);
-      if (hasEmptyCheque) {
-        alert("Please completely fill out all added cheque rows.");
-        return;
-      }
     }
 
     setIsSubmitting(true);
-
-    // 2. Build explicit field parameters based on the manual channel selection
-    let calculatedAmount: number = 0;
-    let extraFields: any = {};
-
-    if (paymentType === 'Cash') {
-      calculatedAmount = parseFloat(cashTotal) || 0;
-    } else if (paymentType === 'PDQ') {
-      calculatedAmount = parseFloat(pdqAmount) || 0;
-      extraFields = {
-        pdq_reference: pdqReference
-      };
-    } else if (paymentType === 'Cheque') {
-      // Calculate the sum of all cheques to keep the main amount field relevant
-      calculatedAmount = cheques.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-      extraFields = {
-        cheques_list: cheques.map(c => ({
-          cheque_number: c.chequeNumber,
-          bank_name: c.bankName,
-          amount: parseFloat(c.amount) || 0
-        }))
-      };
-    }
-
     try {
-      await fetch('https://n8n.tenear.com/webhook/post-tithe', {
+      await fetch('https://n8n.tenear.com/webhook/fetch-tithing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           category: financeCategory,
           payment_method: paymentType,
-          amount: calculatedAmount,
+          amount: paymentType === 'Cash' ? parseFloat(cashTotal) : selectedMpesaTx?.amount,
+          mpesa_receipt: paymentType === 'MPESA' ? selectedMpesaTx?.mpesa_code : null,
           shop_id: user?.shop_id,
           recorded_by: (user as any)?.username || 'Admin',
-          timestamp: new Date().toISOString(),
-          ...extraFields                  // Appends cheques_list array or pdq_reference string
+
+          // Also pass along the matrix totals context just in case n8n needs it here
+          manual_adjustments: {
+            cash: { tithes: manualCashTithes, giving: manualCashGiving, offertory: manualCashOffertory },
+            chq: { tithes: manualChqTithes, giving: manualChqGiving, offertory: manualChqOffertory },
+            pdq: { tithes: manualPdqTithes, giving: manualPdqGiving, offertory: manualPdqOffertory }
+          }
+
         }),
       });
       alert("Record saved successfully!");
       setCashTotal('');
-      setPdqReference('');
-      setPdqAmount('');
-      setCheques([{ chequeNumber: '', bankName: '', amount: '' }]);
     } catch (error) {
       alert("Error saving financial record.");
     } finally {
@@ -318,235 +304,249 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
   };
 
   // --- UI RENDER ---
-  <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
-    <div className="flex items-center justify-between mb-4">
-      <h3 className="font-black text-gray-900 flex items-center gap-2">
-        <DollarSign className="w-5 h-5 text-green-600" /> Contributions
-      </h3>
-      
-      {/* NEW BUTTON GROUP */}
-      <div className="flex gap-2">
-        <button 
-          onClick={handleExtractData}
-          className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-bold hover:bg-blue-100 transition-colors"
-        >
-          <FileText className="w-3.5 h-3.5" /> Extract Data
-        </button>
-      
-        <button 
-          onClick={handleLinkWhatsApp}
-          className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-[10px] font-bold hover:bg-green-100 transition-colors"
-        >
-          <MessageSquare className="w-3.5 h-3.5" /> Link WhatsApp
-        </button>
-      </div>
-    </div>
-
-    <div className="space-y-3">
-      {/* Category Selection */}
-      <div className="grid grid-cols-2 gap-2">
-        {['Offertory', 'Tithes', 'Givings', 'Other'].map(cat => (
+  return (
+    <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-black text-gray-900 flex items-center gap-2">
+          <DollarSign className="w-5 h-5 text-green-600" /> Contributions
+        </h3>
+        
+        {/* ACTION BUTTON GROUP */}
+        <div className="flex gap-2">
           <button 
-            key={cat}
-            onClick={() => setFinanceCategory(cat)}
-            className={`py-2 text-[11px] font-bold rounded-xl border transition-all ${
-              financeCategory === cat ? 'bg-green-600 text-white border-green-600' : 'bg-gray-50 text-gray-500 border-gray-100'
-            }`}
+            onClick={handleExtractData}
+            className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg text-[10px] font-bold hover:bg-blue-100 transition-colors"
           >
-            {cat}
+            <FileText className="w-3.5 h-3.5" /> Extract Data
           </button>
-        ))}
-      </div>
-
-      {/* Payment Type Toggle */}
-      <div className="flex p-1 bg-gray-100 rounded-xl">
-        {['Cash', 'Cheque', 'PDQ'].map(type => (
-          <button
-            key={type}
-            onClick={() => setPaymentType(type)}
-            className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${
-              paymentType === type ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'
-            }`}
+        
+          <button 
+            onClick={handleLinkWhatsApp}
+            className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-[10px] font-bold hover:bg-green-100 transition-colors"
           >
-            {type}
+            <MessageSquare className="w-3.5 h-3.5" /> Link WhatsApp
           </button>
-        ))}
-      </div>
-
-      {/* Dynamic Input based on Payment Type */}
-      {paymentType === 'Cash' ? (
-        <div className="animate-in fade-in slide-in-from-top-1">
-          <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Total from Cashier</label>
-          <input 
-            type="number" 
-            placeholder="Enter KES total..."
-            className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-green-500"
-            value={cashTotal}
-            onChange={(e) => setCashTotal(e.target.value)}
-          />
         </div>
-      ) : paymentType === 'Cheque' ? (
-        <div className="space-y-2 max-h-52 overflow-y-auto pr-1 animate-in fade-in slide-in-from-top-1">
-          <div className="flex justify-between items-center mb-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Cheque Log Records</label>
-            <button
-              type="button"
-              onClick={() => setCheques([...cheques, { chequeNumber: '', bankName: '', amount: '' }])}
-              className="text-[10px] font-black text-blue-600 hover:underline"
+      </div>
+
+
+      {/* --- NEW MATRIX MANUAL ADJUSTMENTS FORM CONTAINER --- */}
+      <div className="mb-5 p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-3">
+        <div className="grid grid-cols-4 gap-2 items-center text-[10px] font-black uppercase tracking-wider text-gray-400 pb-1 border-b border-gray-200">
+          <div>Type</div>
+          <div>Tithes</div>
+          <div>T. Giving</div>
+          <div>Offertory</div>
+        </div>
+
+        {/* Cash Input Fields */}
+        <div className="grid grid-cols-4 gap-2 items-center">
+          <div className="text-[11px] font-bold text-gray-700">Cash</div>
+          <input type="number" placeholder="0" value={manualCashTithes || ''} onChange={e => setManualCashTithes(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-green-600 text-right" />
+          <input type="number" placeholder="0" value={manualCashGiving || ''} onChange={e => setManualCashGiving(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-green-600 text-right" />
+          <input type="number" placeholder="0" value={manualCashOffertory || ''} onChange={e => setManualCashOffertory(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-green-600 text-right" />
+        </div>
+
+        {/* Cheques Input Fields */}
+        <div className="grid grid-cols-4 gap-2 items-center">
+          <div className="text-[11px] font-bold text-gray-700">CHQ</div>
+          <input type="number" placeholder="0" value={manualChqTithes || ''} onChange={e => setManualChqTithes(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 text-right" />
+          <input type="number" placeholder="0" value={manualChqGiving || ''} onChange={e => setManualChqGiving(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 text-right" />
+          <input type="number" placeholder="0" value={manualChqOffertory || ''} onChange={e => setManualChqOffertory(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 text-right" />
+        </div>
+
+        {/* PDQ Inputs Fields */}
+        <div className="grid grid-cols-4 gap-2 items-center">
+          <div className="text-[11px] font-bold text-gray-700">PDQ</div>
+          <input type="number" placeholder="0" value={manualPdqTithes || ''} onChange={e => setManualPdqTithes(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-purple-600 text-right" />
+          <input type="number" placeholder="0" value={manualPdqGiving || ''} onChange={e => setManualPdqGiving(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-purple-600 text-right" />
+          <input type="number" placeholder="0" value={manualPdqOffertory || ''} onChange={e => setManualPdqOffertory(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-purple-600 text-right" />
+        </div>
+      </div>
+
+
+      <div className="space-y-3">
+        {/* Category Selection */}
+        <div className="grid grid-cols-2 gap-2">
+          {['Offertory', 'Tithes', 'Givings', 'Other'].map(cat => (
+            <button 
+              key={cat}
+              onClick={() => setFinanceCategory(cat)}
+              className={`py-2 text-[11px] font-bold rounded-xl border transition-all ${
+                financeCategory === cat ? 'bg-green-600 text-white border-green-600' : 'bg-gray-50 text-gray-500 border-gray-100'
+              }`}
             >
-              + Add Row
+              {cat}
             </button>
-          </div>
-          {cheques.map((item, idx) => (
-            <div key={idx} className="p-2.5 bg-gray-50 rounded-xl border border-gray-100 space-y-1.5 relative">
-              {cheques.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setCheques(cheques.filter((_, i) => i !== idx))}
-                  className="absolute top-2 right-2 text-[10px] text-red-500 font-bold"
-                >
-                  Remove
-                </button>
-              )}
-              <input 
-                type="text" 
-                placeholder="Cheque Number"
-                className="w-full p-2 bg-white border border-gray-100 rounded-lg text-xs"
-                value={item.chequeNumber}
-                onChange={(e) => {
-                  const updated = [...cheques];
-                  updated[idx].chequeNumber = e.target.value;
-                  setCheques(updated);
-                }}
-              />
-              <div className="grid grid-cols-2 gap-1.5">
-                <input 
-                  type="text" 
-                  placeholder="Bank Name"
-                  className="w-full p-2 bg-white border border-gray-100 rounded-lg text-xs"
-                  value={item.bankName}
-                  onChange={(e) => {
-                    const updated = [...cheques];
-                    updated[idx].bankName = e.target.value;
-                    setCheques(updated);
-                  }}
-                />
-                <input 
-                  type="number" 
-                  placeholder="Amount KES"
-                  className="w-full p-2 bg-white border border-gray-100 rounded-lg text-xs"
-                  value={item.amount}
-                  onChange={(e) => {
-                    const updated = [...cheques];
-                    updated[idx].amount = e.target.value;
-                    setCheques(updated);
-                  }}
-                />
-              </div>
-            </div>
           ))}
         </div>
-      ) : paymentType === 'PDQ' ? (
-        <div className="space-y-2 animate-in fade-in slide-in-from-top-1">
-          <div>
-            <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Terminal Trace Reference</label>
-            <input 
-              type="text" 
-              placeholder="Receipt / Reference No..."
-              className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-green-500"
-              value={pdqReference}
-              onChange={(e) => setPdqReference(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Card Amount Counted</label>
+
+        {/* Payment Type Toggle */}
+        <div className="flex p-1 bg-gray-100 rounded-xl">
+          {['Cash', 'MPESA', 'Cheque', 'PDQ'].map(type => (
+            <button
+              key={type}
+              onClick={() => setPaymentType(type)}
+              className={`flex-1 py-2 text-xs font-black rounded-lg transition-all ${
+                paymentType === type ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'
+              }`}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+
+        {/* Dynamic Input based on Payment Type */}
+        {paymentType === 'Cash' ? (
+          <div className="animate-in fade-in slide-in-from-top-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Total from Cashier</label>
             <input 
               type="number" 
-              placeholder="Enter KES amount..."
+              placeholder="Enter KES total..."
               className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-green-500"
-              value={pdqAmount}
-              onChange={(e) => setPdqAmount(e.target.value)}
+              value={cashTotal}
+              onChange={(e) => setCashTotal(e.target.value)}
             />
           </div>
-        </div>
-      ) : null}
+        ) : paymentType === 'MPESA' ? (
+          <div className="bg-green-50 p-3 rounded-xl border border-green-100">
+            <label className="text-[10px] font-bold text-green-700 uppercase">Select Paybill Transaction</label>
+            <select 
+              className="w-full mt-1 p-2 bg-white rounded-lg text-xs border-none outline-none"
+              onChange={(e) => {
+              if (e.target.value) setSelectedMpesaTx(JSON.parse(e.target.value));
+            }}
+          >
+          
+            {/* If data is empty, show the loading state */}
+            {!Array.isArray(mpesaTransactions) || mpesaTransactions.length === 0 ? (
+              <option value="">Searching for transactions...</option>
+            ) : (
+              <>
+                <option value="">Select a transaction...</option>
+                {mpesaTransactions.map((tx, index) => (
+                  <option key={index} value={JSON.stringify(tx)}>
+                    {tx.mpesa_code} - KES {tx.amount} ({tx.sender_phone})
+                  </option>
+               ))}
+             </>
+           )}
+         </select>
+       </div>
+     ) : null}
 
-      <button 
-        onClick={handleFinanceSubmit}
-        disabled={isSubmitting}
-        className="w-full bg-gray-900 text-white font-black py-3 rounded-xl hover:bg-black transition-all text-sm mt-2"
-      >
-        {isSubmitting ? 'Recording...' : 'Save Contribution'}
-      </button>
-    </div>
-  </div>
+     <button 
+       onClick={handleFinanceSubmit}
+       disabled={isSubmitting}
+       className="w-full bg-gray-900 text-white font-black py-3 rounded-xl hover:bg-black transition-all text-sm mt-2"
+     >
+       {isSubmitting ? 'Recording...' : 'Save Contribution'}
+     </button>
+   
+ 
+     {/* --- NEW SECTION: MATRIX MANUAL ADJUSTMENTS FORM CONTAINER --- */}
+     <div className="mt-4 p-4 bg-gray-50 border border-gray-100 rounded-2xl space-y-3">
+       <div className="grid grid-cols-4 gap-2 items-center text-[10px] font-black uppercase tracking-wider text-gray-400 pb-1 border-b border-gray-200">
+         <div>Type</div>
+         <div>Tithes</div>
+         <div>T. Giving</div>
+         <div>Offertory</div>
+       </div>
 
-  // --- STATE FOR NEWSLETTER ---
-  const [newsletterContent, setNewsletterContent] = useState('');
-  const [isSendingNewsletter, setIsSendingNewsletter] = useState(false);
+       {/* Cash Input Fields */}
+       <div className="grid grid-cols-4 gap-2 items-center">
+         <div className="text-[11px] font-bold text-gray-700">Cash</div>
+         <input type="number" placeholder="0" value={manualCashTithes || ''} onChange={e => setManualCashTithes(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-green-600 text-right" />
+         <input type="number" placeholder="0" value={manualCashGiving || ''} onChange={e => setManualCashGiving(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-green-600 text-right" />
+         <input type="number" placeholder="0" value={manualCashOffertory || ''} onChange={e => setManualCashOffertory(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-green-600 text-right" />
+       </div>
 
-  const handleNewsletterSubmit = async () => {
-    if (!newsletterContent.trim()) {
-      alert("Please enter a message for the newsletter.");
-      return;
-    }
+       {/* Cheques Input Fields */}
+       <div className="grid grid-cols-4 gap-2 items-center">
+         <div className="text-[11px] font-bold text-gray-700">CHQ</div>
+         <input type="number" placeholder="0" value={manualChqTithes || ''} onChange={e => setManualChqTithes(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 text-right" />
+         <input type="number" placeholder="0" value={manualChqGiving || ''} onChange={e => setManualChqGiving(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 text-right" />
+         <input type="number" placeholder="0" value={manualChqOffertory || ''} onChange={e => setManualChqOffertory(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-blue-600 text-right" />
+       </div>
 
-    setIsSendingNewsletter(true);
-    try {
-      const response = await fetch('https://n8n.tenear.com/webhook/send-newsletter', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: newsletterContent,
-          shop_id: user?.shop_id,
-          church_name: "St. Barnabas Anglican Church",
-          category: "NEWSLETTER",
-          sent_by: (user as any)?.username || 'Admin'
-        }),
-      });
+       {/* PDQ Inputs Fields */}
+       <div className="grid grid-cols-4 gap-2 items-center">
+         <div className="text-[11px] font-bold text-gray-700">PDQ</div>
+         <input type="number" placeholder="0" value={manualPdqTithes || ''} onChange={e => setManualPdqTithes(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-purple-600 text-right" />
+         <input type="number" placeholder="0" value={manualPdqGiving || ''} onChange={e => setManualPdqGiving(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-purple-600 text-right" />
+         <input type="number" placeholder="0" value={manualPdqOffertory || ''} onChange={e => setManualPdqOffertory(parseFloat(e.target.value) || 0)} className="p-1.5 bg-white border border-gray-200 rounded-lg text-xs font-semibold focus:outline-none focus:border-purple-600 text-right" />
+       </div>
+     </div>
+   </div>
+ );
 
-      if (!response.ok) throw new Error(`Gateway Error: ${response.status}`);
 
-      alert("WhatsApp Newsletter queued for delivery!");
-      setNewsletterContent(''); // Clear the input
-    } catch (error) {
-      console.error("Newsletter Error:", error);
-      alert("Failed to send WhatsApp broadcast.");
-    } finally {
-      setIsSendingNewsletter(false);
-    }
-  };
+ // --- STATE FOR NEWSLETTER ---
+ const [newsletterContent, setNewsletterContent] = useState('');
+ const [isSendingNewsletter, setIsSendingNewsletter] = useState(false);
 
-  // Intercept layout painting to render the Member Directory Spreadsheet view instead
-  if (currentSubView === 'member_directory') {
-    const filteredDirectoryRows = churchMembers.filter(m => 
-      `${m.first_name} ${m.last_name} ${m.membership_number}`.toLowerCase().includes(memberSearchQuery.toLowerCase())
-    );
+ const handleNewsletterSubmit = async () => {
+   if (!newsletterContent.trim()) {
+     alert("Please enter a message for the newsletter.");
+     return;
+   }
 
-    return (
-      <div className="bg-orange-50 min-h-screen p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-200">
-        {/* Header Navigation Section */}
-        <div className="flex justify-between items-center bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
-          <div>
-            <button 
-              onClick={() => setCurrentSubView('dashboard')}
-              className="text-xs font-bold text-blue-600 uppercase tracking-wider hover:underline"
-            >
-              ← Back to Administration Panel
-            </button>
-            <h2 className="text-xl font-black text-gray-900 mt-1">Master Members Directory</h2>
-          </div>
-          <input 
-            type="text"
-            placeholder="Search members by name or registration ID..."
-            value={memberSearchQuery}
-            onChange={(e) => setMemberSearchQuery(e.target.value)}
-            className="p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none text-sm font-medium w-80 focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+   setIsSendingNewsletter(true);
+   try {
+     const response = await fetch('https://n8n.tenear.com/webhook/send-newsletter', {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({
+           message: newsletterContent,
+           shop_id: user?.shop_id,
+           church_name: "St. Barnabas Anglican Church",
+           category: "NEWSLETTER",
+           sent_by: (user as any)?.username || 'Admin'
+         }),
+       });
 
-        {/* Master Registry Table Grid */}
-        <div className="bg-white border border-gray-100 rounded-[2rem] shadow-sm overflow-hidden">
+       if (!response.ok) throw new Error(`Gateway Error: ${response.status}`);
+
+       alert("WhatsApp Newsletter queued for delivery!");
+       setNewsletterContent(''); // Clear the input
+     } catch (error) {
+       console.error("Newsletter Error:", error);
+       alert("Failed to send WhatsApp broadcast.");
+     } finally {
+       setIsSendingNewsletter(false);
+     }
+   };
+
+   // Intercept layout painting to render the Member Directory Spreadsheet view instead
+   if (currentSubView === 'member_directory') {
+     const filteredDirectoryRows = churchMembers.filter(m => 
+       `${m.first_name} ${m.last_name} ${m.membership_number}`.toLowerCase().includes(memberSearchQuery.toLowerCase())
+     );
+
+     return (
+       <div className="bg-orange-50 min-h-screen p-6 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-200">
+         {/* Header Navigation Section */}
+         <div className="flex justify-between items-center bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm">
+           <div>
+             <button 
+               onClick={() => setCurrentSubView('dashboard')}
+               className="text-xs font-bold text-blue-600 uppercase tracking-wider hover:underline"
+             >
+               ← Back to Administration Panel
+              </button>
+             <h2 className="text-xl font-black text-gray-900 mt-1">Master Members Directory</h2>
+           </div>
+           <input 
+             type="text"
+             placeholder="Search members by name or registration ID..."
+             value={memberSearchQuery}
+             onChange={(e) => setMemberSearchQuery(e.target.value)}
+             className="p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none text-sm font-medium w-80 focus:ring-2 focus:ring-blue-500"
+           />
+         </div>
+
+         {/* Master Registry Table Grid */}
+         <div className="bg-white border border-gray-100 rounded-[2rem] shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -783,7 +783,7 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
             <div>
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Payment Method</label>
               <div className="flex p-1 bg-gray-100 rounded-xl">
-                {['Cash', 'Cheque', 'PDQ'].map(type => (
+                {['Cash', 'Cheque'].map(type => (
                   <button
                     key={type}
                     type="button"
@@ -810,101 +810,29 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
                   onChange={(e) => setCashTotal(e.target.value)}
                 />
               </div>
-            ) : paymentType === 'Cheque' ? (
-              <div className="space-y-2 max-h-52 overflow-y-auto pr-1 animate-in fade-in duration-150 text-left">
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Cheque Log Records</label>
-                  <button
-                    type="button"
-                    onClick={() => setCheques([...cheques, { chequeNumber: '', bankName: '', amount: '' }])}
-                    className="text-[10px] font-black text-blue-600 hover:underline"
-                  >
-                    + Add Row
-                  </button>
-                </div>
-                {cheques.map((item, idx) => (
-                  <div key={idx} className="p-2.5 bg-gray-50 rounded-xl border border-gray-100 space-y-1.5 relative">
-                    {cheques.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => setCheques(cheques.filter((_, i) => i !== idx))}
-                        className="absolute top-2 right-2 text-[10px] text-red-500 font-bold"
-                      >
-                        Remove
-                      </button>
-                    )}
-                    <input 
-                      type="text" 
-                      placeholder="Cheque Number"
-                      className="w-full p-2 bg-white border border-gray-100 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500"
-                      value={item.chequeNumber}
-                      onChange={(e) => {
-                        const updated = [...cheques];
-                        updated[idx].chequeNumber = e.target.value;
-                        setCheques(updated);
-                      }}
-                    />
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <input 
-                        type="text" 
-                        placeholder="Bank Name"
-                        className="w-full p-2 bg-white border border-gray-100 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500"
-                        value={item.bankName}
-                        onChange={(e) => {
-                          const updated = [...cheques];
-                          updated[idx].bankName = e.target.value;
-                          setCheques(updated);
-                        }}
-                      />
-                      <input 
-                        type="number" 
-                        placeholder="Amount KES"
-                        className="w-full p-2 bg-white border border-gray-100 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500"
-                        value={item.amount}
-                        onChange={(e) => {
-                          const updated = [...cheques];
-                          updated[idx].amount = e.target.value;
-                          setCheques(updated);
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : paymentType === 'PDQ' ? (
-              <div className="space-y-2 animate-in fade-in duration-150 text-left">
+          ) : (
+              <div className="space-y-3 animate-in fade-in duration-150">
                 <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Terminal Trace Reference</label>
-                  <input 
-                    type="text" 
-                    placeholder="Receipt / Reference No..."
-                    className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-                    value={pdqReference}
-                    onChange={(e) => setPdqReference(e.target.value)}
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Card Amount Counted</label>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Cheque Face Amount (KES)</label>
                   <input 
                     type="number" 
-                    placeholder="Enter KES amount..."
+                    placeholder="0.00"
                     className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-blue-600 transition-all"
-                    value={pdqAmount}
-                    onChange={(e) => setPdqAmount(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Cheque Serial Number</label>
+                  <input 
+                    type="text" 
+                    placeholder="Enter bank routing code..."
+                    className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-medium outline-none"
                   />
                 </div>
               </div>
-            ) : null}
+            )}
 
-
-            {/* WIRING UP BUTTON EXPLICITLY TO ACTION FOR EXTENSION HANDLERS */}
-            <button 
-              type="button" 
-              onClick={handleFinanceSubmit}
-              disabled={isSubmitting}
-              className="w-full py-3 bg-gray-900 text-white text-xs font-black rounded-xl hover:bg-black transition-all uppercase tracking-wider shadow-sm disabled:bg-gray-400 mt-4"
-            >
-              {isSubmitting ? 'Posting Records...' : 'Post Counter Records'}
+            <button type="button" className="w-full py-3 bg-gray-900 text-white text-xs font-black rounded-xl hover:bg-gray-800 transition-colors uppercase tracking-wider shadow-sm pt-3">
+              Post Counter Records
             </button>
           </div>
 
