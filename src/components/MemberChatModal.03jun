@@ -90,7 +90,11 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     const combinedRecipients: any[] = [];
 
     // 1. Add the original sender to the reply array if it's not the current user
-    if (msg.sender_id !== userData?.id) {
+    if (msg.sender_id && msg.sender_id !== userData?.id) {
+
+      const senderFullName = (msg.sender_name || 'Member').trim();
+      const nameParts = senderFullName.split(' ');
+
       combinedRecipients.push({
         id: msg.sender_id,
         first_name: msg.sender_name?.split(' ')[0] || 'Member',
@@ -100,18 +104,41 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     }
 
     // 2. Add all other original recipients (excluding the current user)
-    if (Array.isArray(msg.all_recipients)) {
-      msg.all_recipients.forEach((rec: any) => {
-        if (rec.id !== userData?.id && rec.id !== msg.sender_id) {
-          combinedRecipients.push(rec);
+    if (msg.all_recipients_json) {
+      try {
+        const parsedRecipients = typeof msg.all_recipients_json === 'string'
+          ? JSON.parse(msg.all_recipients_json)
+          : msg.all_recipients_json;
+
+        if (Array.isArray(msg.all_recipients)) {
+          parsedRecipients.forEach((rec: any) => {
+            if (rec.id !== userData?.id && rec.id !== msg.sender_id) {
+              const recFullName = (rec.name || '').trim();
+              const recNameParts = recFullName.split(' ');
+
+              combinedRecipients.push({
+                id: rec.id,
+                first_name: recNameParts[0] || 'Member',
+                last_name: recNameParts.slice(1).join(' ') || '',
+                phone_number: rec.phone || rec.phone_number || ''
+              });
+            }
+          });
         }
-      });
+
+      } catch (err) {
+        console.error("Failed to extract co-recipients for active composition layout:", err);
+      }
     }
 
     setSelectedRecipients(combinedRecipients);
-    
-    // Set a visual anchor context showing who is part of this group response thread
-    setActiveGroupContext(`Group Reply to: ${msg.sender_name} and ${combinedRecipients.length - 1} others`);
+    const countOthers = combinedRecipients.length - 1;
+    setActiveGroupContext(
+      countOthers > 0 
+        ? `Group Reply to: ${msg.sender_name?.trim()} and ${countOthers} other${countOthers > 1 ? 's' : ''}`
+        : `Reply to: ${msg.sender_name?.trim()}`
+    );
+
     setActiveTab('contacts');
   };
 

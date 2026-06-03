@@ -92,13 +92,13 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     // 1. Add the original sender to the reply array if it's not the current user
     if (msg.sender_id && msg.sender_id !== userData?.id) {
 
-      const senderFullName = (msg.sender_name || 'Member').trim();
-      const nameParts = senderFullName.split(' ');
+      const cleanSenderName = (msg.sender_name || 'Member').trim();
+      const senderParts = cleanSenderName.split(/\s+/); // Splits reliably by any number of spaces
 
       combinedRecipients.push({
         id: msg.sender_id,
-        first_name: msg.sender_name?.split(' ')[0] || 'Member',
-        last_name: msg.sender_name?.split(' ').slice(1).join(' ') || '',
+        first_name: senderParts[0] || cleanSenderName,
+        last_name: senderParts.slice(1).join(' ') || '',
         phone_number: msg.sender_phone || ''
       });
     }
@@ -112,35 +112,40 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
 
         if (Array.isArray(msg.all_recipients)) {
           parsedRecipients.forEach((rec: any) => {
-            if (rec.id !== userData?.id && rec.id !== msg.sender_id) {
-              const recFullName = (rec.name || '').trim();
-              const recNameParts = recFullName.split(' ');
+            // Guard rule: Skip the current user and avoid duplicates of the sender
+            if (rec.id && String(rec.id) !== String(userData?.id) && String(rec.id) !== String(msg.sender_id)) {
+              const cleanRecName = (rec.name || '').trim();
+              
+              if (cleanRecName) {
+                const recParts = cleanRecName.split(/\s+/);
 
               combinedRecipients.push({
                 id: rec.id,
-                first_name: recNameParts[0] || 'Member',
-                last_name: recNameParts.slice(1).join(' ') || '',
+                first_name: recParts[0] || cleanRecName,
+                last_name: recParts.slice(1).join(' ') || '',
                 phone_number: rec.phone || rec.phone_number || ''
               });
             }
-          });
-        }
-
-      } catch (err) {
-        console.error("Failed to extract co-recipients for active composition layout:", err);
+          }
+        });
       }
+
+    } catch (err) {
+      console.error("Failed to extract co-recipients for active composition layout:", err);
     }
+  }
 
-    setSelectedRecipients(combinedRecipients);
-    const countOthers = combinedRecipients.length - 1;
-    setActiveGroupContext(
-      countOthers > 0 
-        ? `Group Reply to: ${msg.sender_name?.trim()} and ${countOthers} other${countOthers > 1 ? 's' : ''}`
-        : `Reply to: ${msg.sender_name?.trim()}`
-    );
+  setSelectedRecipients(combinedRecipients);
 
-    setActiveTab('contacts');
-  };
+  const countOthers = combinedRecipients.length - 1;
+  setActiveGroupContext(
+    countOthers > 0 
+      ? `Group Reply to: ${msg.sender_name?.trim()} and ${countOthers} other${countOthers > 1 ? 's' : ''}`
+      : `Reply to: ${msg.sender_name?.trim()}`
+  );
+
+  setActiveTab('contacts');
+};
 
   const dispatchPrivateMessage = async (e: React.FormEvent) => {
     e.preventDefault();
