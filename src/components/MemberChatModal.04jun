@@ -107,9 +107,9 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
         shop_id: userData?.shop_id || 68,
         list_name: newListName.trim(),
         created_by: userData?.id,
-        // Save the structural array data mapping directly
+        // CRUCIAL CORRECTION: Map strictly over selectedRecipients, NOT membersList
         members: selectedRecipients.map(r => ({
-          id: r.id,
+          id: Number(r.id),
           name: `${r.first_name} ${r.last_name}`.trim(),
           phone: r.phone_number || r.phone || ''
         }))
@@ -125,12 +125,14 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
         alert(`Mailing list "${newListName}" saved successfully!`);
         setNewListName('');
         setIsCreatingList(false);
-        fetchMailingLists(); // Refresh lists view drop-downs
+        if (typeof fetchMailingLists === 'function') fetchMailingLists();
       }
     } catch (err) {
       alert("Failed to save mailing list configuration.");
     }
   };
+
+
 
   const handleApplyMailingList = (list: any) => {
     if (!list) return;
@@ -203,67 +205,73 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     setActiveTab('contacts'); 
   };
 
-  // NEW: Reply to All original participants in the thread
   const handleReplyAll = (msg: any) => {
     const combinedRecipients: any[] = [];
+    
+    const currentUserId = userData?.id ? Number(userData.id) : null;
+    const originalSenderId = msg.sender_id ? Number(msg.sender_id) : null;
 
-    // 1. Add the original sender to the reply array if it's not the current user
-    if (msg.sender_id && msg.sender_id !== userData?.id) {
-
+    // 1. Map the Original Sender
+    if (originalSenderId && originalSenderId !== currentUserId) {
       const cleanSenderName = (msg.sender_name || 'Member').trim();
-      const senderParts = cleanSenderName.split(/\s+/); // Splits reliably by any number of spaces
+      const senderParts = cleanSenderName.split(/\s+/);
 
       combinedRecipients.push({
-        id: msg.sender_id,
+        id: originalSenderId,
         first_name: senderParts[0] || cleanSenderName,
         last_name: senderParts.slice(1).join(' ') || '',
         phone_number: msg.sender_phone || ''
       });
     }
 
-    // 2. Add all other original recipients (excluding the current user)
+    // 2. Map the Co-Recipients from the JSON field
     if (msg.all_recipients_json) {
       try {
         const parsedRecipients = typeof msg.all_recipients_json === 'string'
           ? JSON.parse(msg.all_recipients_json)
           : msg.all_recipients_json;
 
-        if (Array.isArray(msg.all_recipients)) {
+        if (Array.isArray(parsedRecipients)) {
           parsedRecipients.forEach((rec: any) => {
-            // Guard rule: Skip the current user and avoid duplicates of the sender
-            if (rec.id && String(rec.id) !== String(userData?.id) && String(rec.id) !== String(msg.sender_id)) {
-              const cleanRecName = (rec.name || '').trim();
+            const recId = rec.id ? Number(rec.id) : null;
+            
+            // Factual rule matching: Skip current user and duplicate sender
+            if (recId && recId !== currentUserId && recId !== originalSenderId) {
+              const cleanRecName = (rec.name || rec.recipient_name || '').trim();
               
               if (cleanRecName) {
                 const recParts = cleanRecName.split(/\s+/);
-
-              combinedRecipients.push({
-                id: rec.id,
-                first_name: recParts[0] || cleanRecName,
-                last_name: recParts.slice(1).join(' ') || '',
-                phone_number: rec.phone || rec.phone_number || ''
-              });
+                
+                combinedRecipients.push({
+                  id: recId,
+                  first_name: recParts[0] || cleanRecName,
+                  last_name: recParts.slice(1).join(' ') || '',
+                  phone_number: rec.phone || rec.phone_number || ''
+                });
+              }
             }
-          }
-        });
+          });
+        }
+      } catch (err) {
+        console.error("Failed to extract co-recipients inside handleReplyAll:", err);
       }
-
-    } catch (err) {
-      console.error("Failed to extract co-recipients for active composition layout:", err);
     }
-  }
 
-  setSelectedRecipients(combinedRecipients);
+    console.log("SUCCESS: Final processed array being passed to UI badges:", combinedRecipients);
+    setSelectedRecipients(combinedRecipients);
+    
+    const countOthers = combinedRecipients.length - 1;
+    setActiveGroupContext(
+      countOthers > 0 
+        ? `Group Reply to: ${(msg.sender_name || '').trim()} and ${countOthers} others`
+        : `Reply to: ${(msg.sender_name || '').trim()}`
+    );
+    
+    setActiveTab('contacts');
+  };
+          
 
-  const countOthers = combinedRecipients.length - 1;
-  setActiveGroupContext(
-    countOthers > 0 
-      ? `Group Reply to: ${msg.sender_name?.trim()} and ${countOthers} other${countOthers > 1 ? 's' : ''}`
-      : `Reply to: ${msg.sender_name?.trim()}`
-  );
 
-  setActiveTab('contacts');
-};
 
   const dispatchPrivateMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,28 +281,28 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     try {
       const formPayload = new FormData();
       formPayload.append('sender_id', userData?.id || '');
-      formPayload.append('sender_name', `${userData?.first_name || 'Member'} ${userData?.last_name || ''}`);
+      formPayload.append('sender_name', `${userData?.first_name || 'Member'} ${userData?.last_name || ''}`.trim());
       formPayload.append('sender_phone', userData?.phone_number || '');
       formPayload.append('message', chatMessage);
       formPayload.append('shop_id', userData?.shop_id || '68');
 
-      // 🛑 EXTRACTION CHANGE: Passes array lists of targets details to n8n 🛑
+      // 1. Structural legacy comma lists
       const recipientIds = selectedRecipients.map(r => r.id).join(',');
-      const recipientNames = selectedRecipients.map(r => `${r.first_name} ${r.last_name}`).join(',');
-      const recipientPhones = selectedRecipients.map(r => r.phone_number || '').join(',');
+      const recipientNames = selectedRecipients.map(r => `${r.first_name} ${r.last_name}`.trim()).join(',');
+      const recipientPhones = selectedRecipients.map(r => r.phone_number || r.phone || '').join(',');
 
       formPayload.append('recipient_ids', recipientIds);
       formPayload.append('recipient_names', recipientNames);
       formPayload.append('recipient_phones', recipientPhones);
 
-      // 2. NEW CRITICAL ADDITION: Structured object array mapped to pass group context
+      // 2. FORCE COMPLETE RECIPIENT LOG MATRIX FOR EVERY METHOD SELECTION
       const fullRecipientsArray = selectedRecipients.map(r => ({
-        id: r.id,
+        id: Number(r.id),
         name: `${r.first_name} ${r.last_name}`.trim(),
-        phone: r.phone_number || ''
+        phone: r.phone_number || r.phone || ''
       }));
       
-      // Serialize array to a JSON string string so FormData can carry it across HTTP safely
+      // Ensure it is stringified cleanly into a text row block field property
       formPayload.append('all_recipients_json', JSON.stringify(fullRecipientsArray));
 
       const generatedPathName = selectedFile 
@@ -312,12 +320,13 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
       });
 
       if (response.ok) {
-        alert(`Message sent successfully to ${selectedRecipients.length} recipients!`);
+        alert(`Message broadcast successfully to ${selectedRecipients.length} recipients!`);
         setChatMessage('');
         setSelectedFile(null);
         setSelectedRecipients([]);
-        setActiveGroupContext(''); // Reset the group context tracking state upon delivery
+        setActiveGroupContext('');
         setActiveTab('history'); 
+        if (activeTab === 'history') fetchReceivedChatHistory(); // Force dynamic reload refresh
       }
     } catch (err) {
       alert("Failed to deliver your message.");
@@ -325,6 +334,9 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
       setTransmitting(false);
     }
   };
+
+
+
 
   if (!isOpen) return null;
 

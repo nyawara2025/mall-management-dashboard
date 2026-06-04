@@ -490,32 +490,54 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                 <div className="max-h-[16vh] overflow-y-auto space-y-1.5 pr-1">
                   {loading ? (
                     <p className="text-center py-4 text-xs font-bold uppercase animate-pulse text-gray-400">Loading congregation records...</p>
-                  ) : filteredContacts.filter(member => !selectedRecipients.some(r => r.id === member.id)).length === 0 ? (
-                    <p className="text-center py-4 text-xs italic text-gray-400">No unselected members found.</p>
                   ) : (
                     filteredContacts
-                      // CRITICAL FIX: Actively subtracts selected contacts out of the unselected list stack
-                      .filter(member => !selectedRecipients.some(r => r.id === member.id))
+                      .filter(member => {
+                        const isGroupActive = selectedRecipients.length > 1 || activeGroupContext !== '';
+                        const isMatched = selectedRecipients.some(r => Number(r.id) === Number(member.id));
+                        return isGroupActive ? isMatched : !isMatched;
+                      })
                       .map(member => {
+                        const isChosen = selectedRecipients.some(r => Number(r.id) === Number(member.id));
+                        
                         return (
                           <div 
                             key={member.id}
                             onClick={() => handleToggleRecipient(member)}
-                            className="p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all bg-white border-gray-100 hover:bg-gray-50"
+                            className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all bg-white ${
+                              isChosen 
+                                ? 'border-indigo-200 bg-indigo-50/20 shadow-sm' 
+                                : 'border-gray-100 hover:bg-gray-50'
+                            }`}
                           >
                             <div>
                               <p className="font-bold text-gray-900 text-xs">{member.first_name} {member.last_name}</p>
                               <p className="text-[9px] text-gray-400 font-medium">{member.department || 'Congregation'}</p>
                             </div>
-                            <span className="text-[10px] text-indigo-600 font-bold px-2 py-0.5 bg-indigo-50/40 rounded-md border border-indigo-100/30">
-                              Add +
+                            
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                              isChosen
+                                ? 'text-indigo-700 bg-indigo-100 border-indigo-200'
+                                : 'text-gray-400 bg-gray-50 border-gray-100'
+                            }`}>
+                              {isChosen ? 'Selected ✓' : 'Add +'}
                             </span>
                           </div>
                         );
                       })
                   )}
+
+                  {/* Empty fallback display notice check */}
+                  {!loading && filteredContacts.filter(member => {
+                    const isGroupActive = selectedRecipients.length > 1 || activeGroupContext !== '';
+                    const isMatched = selectedRecipients.some(r => Number(r.id) === Number(member.id));
+                    return isGroupActive ? isMatched : !isMatched;
+                  }).length === 0 && (
+                    <p className="text-center py-4 text-xs italic text-gray-400">No matching thread members found.</p>
+                  )}
                 </div>
               </div>
+            ) : null (
 
 
               {/* Composition inputs field */}
