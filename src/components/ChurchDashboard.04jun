@@ -217,8 +217,6 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
     { chequeNumber: '', bankName: '', amount: '' }
   ]);
 
-  const [serviceName, setServiceName] = useState('English Service');
-
   useEffect(() => {
     const loadMpesaData = async () => {
       // Only fetch if MPESA is selected and we have a shop_id
@@ -303,7 +301,6 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
           amount: calculatedAmount,
           shop_id: user?.shop_id,
           recorded_by: (user as any)?.username || 'Admin',
-          service_name: serviceName,
           timestamp: new Date().toISOString(),
           ...extraFields                  // Appends cheques_list array or pdq_reference string
         }),
@@ -761,30 +758,6 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
               <h3 className="font-black text-gray-900 flex items-center gap-2 text-sm">
                 <DollarSign className="w-4 h-4 text-green-600" /> Manual Counter Postings
               </h3>
-            </div>
-
-             {/* NEW: Church Service Dropdown Menu */}
-            <div>
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Select Service</label>
-              <div className="relative">
-                <select
-                  value={serviceName}
-                  onChange={(e) => setServiceName(e.target.value)}
-                  className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-600 transition-all appearance-none cursor-pointer"
-                >
-                  <option value="Morning Glory">Morning Glory</option>
-                  <option value="Youth Service">Youth Service</option>
-                  <option value="English Service">English Service</option>
-                  <option value="Kiswahili Service">Kiswahili Service</option>
-                  <option value="Kufuga Sanctuary">Kufuga Sanctuary</option>
-                </select>
-                {/* Visual anchor chevron arrow decoration */}
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400">
-                  <svg className="fill-current h-4 w-4" xmlns="http://w3.org" viewBox="0 0 20 20">
-                    <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
-                  </svg>
-                </div>
-              </div>
             </div>
 
             {/* Category Selection */}
