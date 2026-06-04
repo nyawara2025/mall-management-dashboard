@@ -273,28 +273,28 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     try {
       const formPayload = new FormData();
       formPayload.append('sender_id', userData?.id || '');
-      formPayload.append('sender_name', `${userData?.first_name || 'Member'} ${userData?.last_name || ''}`);
+      formPayload.append('sender_name', `${userData?.first_name || 'Member'} ${userData?.last_name || ''}`.trim());
       formPayload.append('sender_phone', userData?.phone_number || '');
       formPayload.append('message', chatMessage);
       formPayload.append('shop_id', userData?.shop_id || '68');
 
-      // 🛑 EXTRACTION CHANGE: Passes array lists of targets details to n8n 🛑
+      // 1. Structural legacy comma lists
       const recipientIds = selectedRecipients.map(r => r.id).join(',');
-      const recipientNames = selectedRecipients.map(r => `${r.first_name} ${r.last_name}`).join(',');
-      const recipientPhones = selectedRecipients.map(r => r.phone_number || '').join(',');
+      const recipientNames = selectedRecipients.map(r => `${r.first_name} ${r.last_name}`.trim()).join(',');
+      const recipientPhones = selectedRecipients.map(r => r.phone_number || r.phone || '').join(',');
 
       formPayload.append('recipient_ids', recipientIds);
       formPayload.append('recipient_names', recipientNames);
       formPayload.append('recipient_phones', recipientPhones);
 
-      // 2. NEW CRITICAL ADDITION: Structured object array mapped to pass group context
+      // 2. FORCE COMPLETE RECIPIENT LOG MATRIX FOR EVERY METHOD SELECTION
       const fullRecipientsArray = selectedRecipients.map(r => ({
-        id: r.id,
+        id: Number(r.id),
         name: `${r.first_name} ${r.last_name}`.trim(),
-        phone: r.phone_number || ''
+        phone: r.phone_number || r.phone || ''
       }));
       
-      // Serialize array to a JSON string string so FormData can carry it across HTTP safely
+      // Ensure it is stringified cleanly into a text row block field property
       formPayload.append('all_recipients_json', JSON.stringify(fullRecipientsArray));
 
       const generatedPathName = selectedFile 
@@ -312,12 +312,13 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
       });
 
       if (response.ok) {
-        alert(`Message sent successfully to ${selectedRecipients.length} recipients!`);
+        alert(`Message broadcast successfully to ${selectedRecipients.length} recipients!`);
         setChatMessage('');
         setSelectedFile(null);
         setSelectedRecipients([]);
-        setActiveGroupContext(''); // Reset the group context tracking state upon delivery
+        setActiveGroupContext('');
         setActiveTab('history'); 
+        if (activeTab === 'history') fetchReceivedChatHistory(); // Force dynamic reload refresh
       }
     } catch (err) {
       alert("Failed to deliver your message.");
@@ -325,6 +326,9 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
       setTransmitting(false);
     }
   };
+
+
+
 
   if (!isOpen) return null;
 
