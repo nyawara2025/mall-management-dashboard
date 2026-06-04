@@ -135,13 +135,28 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
   // Helper to load an entire mailing list straight into the active compose selection box
   const handleApplyMailingList = (list: any) => {
     // Transform list members to match the specific first_name / last_name structure expected by the badges
+
+    if (!list || !Array.isArray(list.members)) {
+      alert("Invalid mailing list structural data configuration.");
+      return;
+    }
+
+    console.log("Loading mailing list selection into DOM state context:", list);
+
     const mappedRecipients = list.members.map((m: any) => {
-      const parts = m.name.split(' ');
+      
+      // 1. Resolve full name string dynamically across all potential property variations
+      const rawFullName = m.name || m.recipient_name || m.sender_name || `${m.first_name || ''} ${m.last_name || ''}`.trim() || 'Member';
+      const cleanFullName = String(rawFullName).trim();
+      
+      // 2. Safe string splitting utilizing regular expression parameters
+      const parts = cleanFullName.split(/\s+/);
+
       return {
         id: m.id,
         first_name: parts[0] || 'Member',
         last_name: parts.slice(1).join(' ') || '',
-        phone_number: m.phone || ''
+        phone_number: m.phone || m.recipient_phone || m.sender_phone || m.phone_number || ''
       };
     });
 
