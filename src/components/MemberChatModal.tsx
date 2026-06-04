@@ -132,36 +132,54 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     }
   };
 
-  // Helper to load an entire mailing list straight into the active compose selection box
   const handleApplyMailingList = (list: any) => {
-    // Transform list members to match the specific first_name / last_name structure expected by the badges
+    if (!list) return;
 
-    if (!list || !Array.isArray(list.members)) {
-      alert("Invalid mailing list structural data configuration.");
+    // 1. Log the raw object directly to the inspect panel console for quick diagnosis
+    console.log("CRITICAL CONTEXT - Raw mailing list object clicked:", list);
+
+    // 2. Resolve the members payload across string, object, or alternative key names
+    let rawMembersMaterial = list.members || list.members_list || list.all_recipients || list.payload || list;
+
+    // If the database row stringified the JSONB data, parse it back into a JavaScript array
+    if (typeof rawMembersMaterial === 'string') {
+      try {
+        rawMembersMaterial = JSON.parse(rawMembersMaterial);
+      } catch (e) {
+        console.error("Failed to parse stringified members field:", e);
+      }
+    }
+
+    // 3. Fallback: If it's not a direct list array, check if it's nested inside the row data object properties
+    const finalMembersArray = Array.isArray(rawMembersMaterial) 
+      ? rawMembersMaterial 
+      : (Array.isArray(list) ? list : []);
+
+    if (finalMembersArray.length === 0) {
+      console.error("Data Extraction Mapping Error: No usable participant array located inside payload structure.", list);
+      alert("Could not extract member list arrays. Check console logs for response format details.");
       return;
     }
 
-    console.log("Loading mailing list selection into DOM state context:", list);
-
-    const mappedRecipients = list.members.map((m: any) => {
-      
-      // 1. Resolve full name string dynamically across all potential property variations
+    // 4. Map the identified array content safely to your recipient tokens badges
+    const mappedRecipients = finalMembersArray.map((m: any) => {
       const rawFullName = m.name || m.recipient_name || m.sender_name || `${m.first_name || ''} ${m.last_name || ''}`.trim() || 'Member';
       const cleanFullName = String(rawFullName).trim();
-      
-      // 2. Safe string splitting utilizing regular expression parameters
       const parts = cleanFullName.split(/\s+/);
-
+      
       return {
-        id: m.id,
-        first_name: parts[0] || 'Member',
+        id: m.id || m.recipient_id || m.member_id,
+        first_name: parts[0] || cleanFullName,
         last_name: parts.slice(1).join(' ') || '',
         phone_number: m.phone || m.recipient_phone || m.sender_phone || m.phone_number || ''
       };
     });
 
+    console.log("Successfully compiled recipients matrix passed to badges:", mappedRecipients);
     setSelectedRecipients(mappedRecipients);
   };
+
+
 
   // Toggles selection state of a member in the recipients array
   const handleToggleRecipient = (member: any) => {
