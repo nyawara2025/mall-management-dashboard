@@ -13,6 +13,7 @@ export const ChurchDocumentsModal: React.FC<ChurchDocumentsModalProps> = ({ isOp
     { title: 'Wedding Booking Form', desc: 'Schedule counseling and marriage liturgy', icon: HeartIcon },
     { title: 'Church Hall Booking', desc: 'Hire main hall or meeting rooms for events', icon: Landmark },
     { title: 'Funeral Service Planning', desc: 'Coordinate mass schedules and family support', icon: ScrollText },
+    { title: 'The Past Week Tithes & Offertoty', desc: 'The Past Week Givings, Offertory & Tithes', icon: ScrollText }
   ];
 
   return (
