@@ -493,17 +493,29 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                   ) : (
                     filteredContacts
                       .filter(member => {
-                        // 1. Check if this member has been selected by the user
+                        // 🟢 STEP 1: Evaluate if this person matches what the user typed in the search bar
+                        const matchesSearch = 
+                          member.first_name?.toLowerCase().includes(search.toLowerCase()) ||
+                          member.last_name?.toLowerCase().includes(search.toLowerCase());
+
+                        // 🟢 STEP 2: Evaluate if this person has been selected
                         const isChosen = selectedRecipients.some(r => Number(r.id) === Number(member.id));
-        
-                        // 2. If a specific mailing list group is actively chosen via template triggers, show only those matching group members
+
+                        // 🟢 STEP 3: If searching, show matching available contacts (even if not chosen yet)
+                        if (search.trim() !== '') {
+                          return matchesSearch;
+                        }
+
+                        // 🟢 STEP 4: If a mailing list group template is active, show only those chosen group members
                         if (activeGroupContext !== '') {
                           return isChosen;
                         }
 
-                        // 3. DEFAULT BEHAVIOR: Show only the recipients that have been selected
-                        return isChosen;
+                        // 🟢 STEP 5: Default state (no search, no group template clicked)
+                        // Show already selected badges + unselected directory rows so the user can see everything
+                        return true; 
                       })
+
                       .map(member => {
                         const isChosen = selectedRecipients.some(r => Number(r.id) === Number(member.id));
         
