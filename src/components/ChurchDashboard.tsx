@@ -774,8 +774,11 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
                 >
                   <option value="Morning Glory">Morning Glory</option>
                   <option value="Youth Service">Youth Service</option>
+                  <option value="Teens Service">Teens Service</option>
+                  <option value="Children's Ministry">Children's Ministry</option>
                   <option value="English Service">English Service</option>
                   <option value="Kiswahili Service">Kiswahili Service</option>
+                  <option value="Friday Service">Friday Service</option>
                   <option value="Kufuga Sanctuary">Kufuga Sanctuary</option>
                 </select>
                 {/* Visual anchor chevron arrow decoration */}
