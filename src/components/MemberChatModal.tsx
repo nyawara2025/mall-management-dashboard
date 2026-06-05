@@ -385,6 +385,52 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
         <div className="p-6 flex flex-col flex-1 overflow-y-auto min-h-[40vh] max-h-[55vh]">
           {activeTab === 'contacts' ? (
             <div className="space-y-4">
+
+              {/* 🟢 STEP 1: Bring the Composition Message Input Form to the very top */}
+              {selectedRecipients.length > 0 && (
+                <form onSubmit={dispatchPrivateMessage} className="space-y-4 animate-in fade-in duration-200 text-left bg-indigo-50/10 p-3.5 border border-indigo-100/40 rounded-2xl">
+                  <div>
+                    <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Message Details</label>
+                    <textarea
+                      rows={3}
+                      value={chatMessage}
+                      onChange={e => setChatMessage(e.target.value)}
+                      placeholder="Write your private message here..."
+                      className="w-full p-4 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-gray-700 resize-none shadow-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Attach Document / Photo (Optional)</label>
+                    <div className="relative flex items-center justify-center w-full bg-white ring-1 ring-gray-200/50 rounded-xl p-3 hover:bg-gray-100/70 transition-colors shadow-sm">
+                      <input 
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={e => {
+                          if (e.target.files && e.target.files[0]) {
+                            setSelectedFile(e.target.files[0]);
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                      <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+                        {selectedFile ? <Paperclip size={14} className="text-indigo-600" /> : <Upload size={14} />}
+                        <span>{selectedFile ? selectedFile.name : 'Choose attachment...'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={transmitting || !chatMessage.trim()}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 text-white font-bold py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2 text-sm transition-all"
+                  >
+                    {transmitting ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
+                    Send to {selectedRecipients.length} Members
+                  </button>
+                </form>
+              )}
+
               {/* Directory Contact Picker Box */}
               <div className="border border-gray-100 rounded-2xl p-4 bg-gray-50/50 space-y-3">
                 <label className="text-[10px] font-black text-gray-400 uppercase block tracking-wider">
@@ -565,55 +611,8 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                 }).length === 0 && (
                   <p className="text-center py-4 text-xs italic text-gray-400">No matching thread members found.</p>
                 )}
-
               </div>
-
-              {/* Composition inputs field (Kept cleanly inside the contacts tab stream) */}
-              {selectedRecipients.length > 0 && (
-                <form onSubmit={dispatchPrivateMessage} className="space-y-4 animate-in fade-in duration-200 text-left">
-                  <div>
-                    <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Message Details</label>
-                    <textarea
-                      rows={3}
-                      value={chatMessage}
-                      onChange={e => setChatMessage(e.target.value)}
-                      placeholder="Write your private message here..."
-                      className="w-full p-4 bg-gray-50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-gray-700 resize-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Attach Document / Photo (Optional)</label>
-                    <div className="relative flex items-center justify-center w-full bg-gray-50 ring-1 ring-gray-200/50 rounded-xl p-3 hover:bg-gray-100/70 transition-colors">
-                      <input 
-                        type="file"
-                        accept="image/*,application/pdf"
-                        onChange={e => {
-                          if (e.target.files && e.target.files[0]) {
-                            setSelectedFile(e.target.files[0]);
-                          }
-                        }}
-                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                      />
-                      <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
-                        {selectedFile ? <Paperclip size={14} className="text-indigo-600" /> : <Upload size={14} />}
-                        <span>{selectedFile ? selectedFile.name : 'Choose attachment...'}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={transmitting || !chatMessage.trim()}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 text-sm transition-all"
-                  >
-                    {transmitting ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
-                    Send to {selectedRecipients.length} Members
-                  </button>
-                </form>
-              )}
             </div>
-
           ) : (
             /* Inbox Received Messaging Logs view */
             <div className="overflow-y-auto space-y-3 pr-1">
