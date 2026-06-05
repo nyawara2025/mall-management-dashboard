@@ -20,6 +20,8 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
   
   // --- CHANGED TO ARRAY FOR MULTI-SELECT ---
   const [selectedRecipients, setSelectedRecipients] = useState<any[]>([]);
+
+  const [chatSubject, setChatSubject] = useState('');
   
   const [chatMessage, setChatMessage] = useState('');
   const [transmitting, setTransmitting] = useState(false);
@@ -314,6 +316,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
       formPayload.append('sender_name', `${userData?.first_name || 'Member'} ${userData?.last_name || ''}`.trim());
       formPayload.append('sender_phone', userData?.phone_number || '');
       formPayload.append('message', chatMessage);
+      formPayload.append('subject', chatSubject);
       formPayload.append('shop_id', userData?.shop_id || '68');
 
       // 1. Structural legacy comma lists
@@ -355,6 +358,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
         setSelectedFile(null);
         setSelectedRecipients([]);
         setActiveGroupContext('');
+        setChatSubject('');
         setActiveTab('history'); 
         if (activeTab === 'history') fetchReceivedChatHistory(); // Force dynamic reload refresh
       }
@@ -419,6 +423,31 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
               {/* 🟢 STEP 1: Bring the Composition Message Input Form to the very top */}
               {selectedRecipients.length > 0 && (
                 <form onSubmit={dispatchPrivateMessage} className="space-y-4 animate-in fade-in duration-200 text-left bg-indigo-50/10 p-3.5 border border-indigo-100/40 rounded-2xl">
+
+                  {/* 🟢 NEW: SUBJECT INPUT ROW FIELD */}
+                  <div>
+                    <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Subject / Purpose</label>
+                    <input 
+                      type="text"
+                      value={chatSubject}
+                      onChange={e => setChatSubject(e.target.value)}
+                      placeholder="Enter message subject (e.g. Choir Rehearsal Notice)..."
+                      className="w-full p-3.5 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-bold text-gray-700 shadow-sm transition-all"
+                    />
+                  </div>
+
+                  {/* Existing Message Details textarea block follows seamlessly below */}
+                  <div>
+                    <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Message Details</label>
+                    <textarea
+                      rows={3}
+                      value={chatMessage}
+                      onChange={e => setChatMessage(e.target.value)}
+                      placeholder="Write your private message here..."
+                      className="w-full p-4 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-gray-700 resize-none shadow-sm"
+                    />
+                  </div>
+
                   <div>
                     <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Message Details</label>
                     <textarea

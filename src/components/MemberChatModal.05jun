@@ -14,6 +14,9 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
   const [receivedMessages, setReceivedMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [showToastAlert, setShowToastAlert] = useState<{show: boolean; message: string} | null>(null);
   
   // --- CHANGED TO ARRAY FOR MULTI-SELECT ---
   const [selectedRecipients, setSelectedRecipients] = useState<any[]>([]);
@@ -62,6 +65,33 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
       setLoading(false);
     }
   };
+
+  // 🟢 INSERT THE STEP 2 UNREAD TRACKER AND ALERT NOTIFIER HERE
+  useEffect(() => {
+    if (Array.isArray(receivedMessages) && receivedMessages.length > 0) {
+      // 1. Calculate unread count using an explicit property boolean flag check
+      const currentUnread = receivedMessages.filter((msg: any) => msg.is_read === false || msg.is_read === 0).length;
+      
+      // 2. Alert engine check: Trigger toast if a new unread payload enters state memory
+      if (currentUnread > unreadCount) {
+        const newestMsg = receivedMessages[0]; // Fetches newest incoming message entry details
+        
+        setShowToastAlert({
+          show: true,
+          message: `New message from ${newestMsg?.sender_name || 'Church Member'}`
+        });
+
+        // Dismiss the notification box banner automatically after 4 seconds
+        setTimeout(() => {
+          setShowToastAlert(null);
+        }, 4000);
+      }
+
+      setUnreadCount(currentUnread);
+    } else if (receivedMessages.length === 0) {
+      setUnreadCount(0);
+    }
+  }, [receivedMessages]);
 
   // --- MAILING LIST FUNCTIONALITY STATE MATRIX ---
   const [mailingLists, setMailingLists] = useState<any[]>([]);
