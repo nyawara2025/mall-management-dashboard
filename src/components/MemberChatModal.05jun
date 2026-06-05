@@ -516,17 +516,6 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                         return true; 
                       })
 
-                      // 🟢 ADD THIS SORT BLOCK HERE TO PUSH CHOSEN NAMES TO THE TOP
-                      .sort((a, b) => {
-                        const aChosen = selectedRecipients.some(r => Number(r.id) === Number(a.id));
-                        const bChosen = selectedRecipients.some(r => Number(r.id) === Number(b.id));
-                        
-                        // If 'a' is chosen and 'b' is not, move 'a' up (returns -1)
-                        // If 'b' is chosen and 'a' is not, move 'b' up (returns 1)
-                        return (aChosen === bChosen) ? 0 : aChosen ? -1 : 1;
-                      })
-                      // 🟢 THE EXISTING MAP BLOCK SEAMLESSLY CONTINUES UNTOUCHED BELOW        
-
                       .map(member => {
                         const isChosen = selectedRecipients.some(r => Number(r.id) === Number(member.id));
         
