@@ -725,7 +725,19 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                           {new Date(msg.created_at).toLocaleDateString()}
                         </span>
                       </div>
-                      
+                        
+                      {/* 🟢 NEW: RENDER SUBJECT LINE IF AVAILABLE IN DATA PROPERTIES */}
+                      {msg.subject && msg.subject.trim() !== "" && (
+                        <div className="bg-indigo-50/40 border border-indigo-100/30 px-2.5 py-1.5 rounded-xl">
+                          <p className="text-[10px] uppercase font-black tracking-wider text-indigo-500 block mb-0.5">
+                            Subject / Purpose
+                          </p>
+                          <p className="text-xs font-bold text-gray-800 leading-snug">
+                            {msg.subject}
+                          </p>
+                        </div>
+                      )}
+
                       <p className="text-sm text-gray-700 font-medium leading-relaxed break-words">{msg.message}</p>
                       
                       <div className="pt-2 border-t border-gray-200/60 flex items-center justify-between mt-1 gap-2">
