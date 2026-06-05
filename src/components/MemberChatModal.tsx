@@ -673,19 +673,55 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                           <span className="text-[9px] font-bold text-gray-300">No Attachment</span>
                         )}
 
-                        <div className="flex gap-1.5">
+                         <div className="flex gap-1.5">
                           <button
                             type="button"
-                            onClick={() => handleToggleRecipient({
-                              id: msg.sender_id,
-                              first_name: msg.sender_name?.split('')[0] || 'Sender',
-                              last_name: msg.sender_name?.split('')[1] || ''
-                            })}
+                            onClick={() => {
+                              setActiveGroupContext('');
+                              setSelectedRecipients([{
+                                id: msg.sender_id,
+                                first_name: msg.sender_name?.split(' ')[0] || 'Sender',
+                                last_name: msg.sender_name?.split(' ')[1] || ''
+                              }]);
+                              setActiveTab('contacts');
+                            }}
                             className="text-[9px] bg-indigo-50 hover:bg-indigo-600 border border-indigo-100 font-black text-indigo-600 hover:text-white px-2.5 py-1.5 rounded-lg transition-colors"
                           >
                             Reply
                           </button>
+
+                          {hasMultipleRecipients && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                try {
+                                  const parsedRecipients = typeof msg.all_recipients_json === 'string'
+                                    ? JSON.parse(msg.all_recipients_json)
+                                    : msg.all_recipients_json;
+
+                                  if (Array.isArray(parsedRecipients)) {
+                                    const threadTargets = parsedRecipients.map((r: any) => ({
+                                      id: r.id,
+                                      first_name: r.name?.split(' ')[0] || r.first_name || '',
+                                      last_name: r.name?.split(' ')[1] || r.last_name || ''
+                                    }));
+                                    setSelectedRecipients(threadTargets);
+                                    setActiveGroupContext('reply_all_context');
+                                    setActiveTab('contacts');
+                                  }
+                                } catch (err) {
+                                  console.error("Failed to parse reply all thread recipient targets:", err);
+                                }
+                              }}
+                              className="text-[9px] bg-indigo-600 hover:bg-indigo-700 font-black text-white px-2.5 py-1.5 rounded-lg transition-colors shadow-sm"
+                            >
+                              Reply All
+                            </button>
+                          )}
                         </div>
+
+
+
                       </div>
                     </div>
                   );
