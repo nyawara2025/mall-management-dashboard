@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, FileText, ScrollText, Landmark, Loader2, ArrowLeft } from 'lucide-react';
 
 // 🟢 MATCHED PATTERN: Explicitly matching the signature of your other modals
@@ -14,52 +14,13 @@ export const ChurchDocumentsModal: React.FC<ChurchDocumentsModalProps> = ({ isOp
 
   const [activeHtmlReport, setActiveHtmlReport] = useState<string | null>(null);
   const [loadingReport, setLoadingReport] = useState<boolean>(false);
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  const [bookingTab, setBookingTab] = useState<'current' | 'hall' | 'boardroom'>('current');
-  const [bookingsList, setBookingsList] = useState<any[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Form States for Hall Booking
-  const [hallDate, setHallDate] = useState('');
-  const [hallAttendance, setHallAttendance] = useState('');
-  const [hallPurpose, setHallPurpose] = useState('');
-
-  // Form States for Boardroom Booking
-  const [boardroomDate, setBoardroomDate] = useState('');
-  const [boardroomStartTime, setBoardroomStartTime] = useState('');
-  const [boardroomEndTime, setBoardroomEndTime] = useState('');
-  const [boardroomAgenda, setBoardroomAgenda] = useState('');
 
   const docs = [
     { title: 'Wedding Booking Form', desc: 'Schedule counseling and marriage liturgy', icon: HeartIcon },
-    { title: 'Church Hall & Boardroom Booking', desc: 'Hire main hall or meeting rooms for events', icon: Landmark },
+    { title: 'Church Hall Booking', desc: 'Hire main hall or meeting rooms for events', icon: Landmark },
     { title: 'Funeral Service Planning', desc: 'Coordinate mass schedules and family support', icon: ScrollText },
-    { title: 'Your Givings from the past week', desc: 'The Past Week Givings, Offertory & Tithes', icon: ScrollText }
+    { title: 'The Past Week Tithes & Offertoty', desc: 'The Past Week Givings, Offertory & Tithes', icon: ScrollText }
   ];
-
-  // Fetch current upcoming reservations from backend
-  const fetchCurrentBookings = async () => {
-    try {
-      const response = await fetch('https://n8n.tenear.com/webhook/fetch-church-facility-bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shop_id: shopId || userData?.shop_id || 68 })
-      });
-      const data = await response.json();
-      setBookingsList(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Failed fetching space schedule matrix:", err);
-    }
-  };
-
-  // Trigger schedule loader whenever the 'current' listings tab mounts
-  useEffect(() => {
-    if (isBookingModalOpen && bookingTab === 'current') {
-      fetchCurrentBookings();
-    }
-  }, [isBookingModalOpen, bookingTab]);
-
-
 
   const handleViewTithesReport = async () => {
     setLoadingReport(true);
@@ -88,63 +49,6 @@ export const ChurchDocumentsModal: React.FC<ChurchDocumentsModalProps> = ({ isOp
       alert("System connection timeout. Could not synchronize church financial ledger records.");
     } finally {
       setLoadingReport(false);
-    }
-  };
-
-  const handleBookingSubmit = async (e: React.FormEvent, facilityType: 'Hall' | 'Boardroom') => {
-    e.preventDefault();
-    
-    // Form field validaitons
-    if (facilityType === 'Hall' && (!hallDate || !hallAttendance || !hallPurpose)) {
-      alert("Please fill out all fields for the Church Hall booking.");
-      return;
-    }
-    if (facilityType === 'Boardroom' && (!boardroomDate || !boardroomStartTime || !boardroomEndTime || !boardroomAgenda)) {
-      alert("Please fill out all fields for the Boardroom booking.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    const payload = facilityType === 'Hall' ? {
-      facility: 'Church Hall',
-      event_date: hallDate,
-      attendance: parseInt(hallAttendance),
-      purpose: hallPurpose
-    } : {
-      facility: 'Boardroom',
-      event_date: boardroomDate,
-      start_time: boardroomStartTime,
-      end_time: boardroomEndTime,
-      purpose: boardroomAgenda
-    };
-
-    try {
-      const response = await fetch('https://n8n.tenear.com/webhook/book-church-facility', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...payload,
-          shop_id: shopId || userData?.shop_id || 68,
-          member_name: userData?.username || userData?.name || 'Parish Member',
-          member_id: userData?.id || 'Unknown',
-          timestamp: new Date().toISOString()
-        })
-      });
-
-      if (!response.ok) throw new Error('Submission rejected');
-
-      alert(`${facilityType} reservation request logged successfully!`);
-      
-      // Clear forms
-      setHallDate(''); setHallAttendance(''); setHallPurpose('');
-      setBoardroomDate(''); setBoardroomStartTime(''); setBoardroomEndTime(''); setBoardroomAgenda('');
-      
-      // Switch back to view list
-      setBookingTab('current');
-    } catch (error) {
-      alert("Error dispatching booking request to reservation desk.");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -230,147 +134,6 @@ export const ChurchDocumentsModal: React.FC<ChurchDocumentsModalProps> = ({ isOp
             </div>
           )}
         </div>
-
-
-        {isBookingModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl border border-gray-100 overflow-hidden text-left flex flex-col max-h-[85vh]">
-      
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-700 to-indigo-800 p-6 text-white flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-black tracking-wide">Church Facility Reservations</h3>
-                <p className="text-xs opacity-80 font-medium">Manage and request allocations for church communal spaces</p>
-              </div>
-              <button 
-                onClick={() => setIsBookingModalOpen(false)}
-                className="p-2 hover:bg-white/10 rounded-full transition-colors text-white font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Tab Selectors */}
-            <div className="flex border-b border-gray-100 bg-gray-50/50 p-2 gap-1">
-              {[
-                { id: 'current', label: 'Current Bookings' },
-                { id: 'hall', label: 'Book the Church Hall' },
-                { id: 'boardroom', label: 'Book the Boardroom' }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setBookingTab(tab.id as any)}
-                  className={`flex-1 py-2.5 text-xs font-black rounded-xl transition-all ${
-                    bookingTab === tab.id 
-                      ? 'bg-white text-blue-700 shadow-sm border border-gray-100' 
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100/50'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Dynamic Tab Panel Body Content */}
-            <div className="p-6 flex-1 overflow-y-auto">
-        
-              {/* TAB 1: Current Bookings */}
-              {bookingTab === 'current' && (
-                <div className="space-y-3 animate-in fade-in duration-150">
-                  <h4 className="text-xs font-black text-gray-400 uppercase tracking-wider mb-2">Upcoming Schedule</h4>
-                  {bookingsList.length === 0 ? (
-                    <div className="text-center py-8 border-2 border-dashed border-gray-100 rounded-2xl text-gray-400 text-xs font-medium">
-                      No active reservations scheduled for this period.
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {/* Dynamically mapped reservation rows populate here */}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* TAB 2: Book the Church Hall */}
-              {bookingTab === 'hall' && (
-                <form className="space-y-4 animate-in fade-in duration-150">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Event Date</label>
-                      <input type="date" className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-blue-600" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Expected Attendance</label>
-                      <input type="number" placeholder="e.g. 150" className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-blue-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Event Purpose / Description</label>
-                    <textarea rows={3} placeholder="Provide details about the event or ministry gathering..." className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-blue-600 resize-none" />
-                  </div>
-                  <button type="submit" className="w-full py-3 bg-blue-600 text-white font-black rounded-xl text-xs tracking-wider shadow-md hover:bg-blue-700 transition-colors">
-                    SUBMIT CHURCH HALL REQUEST
-                  </button>
-                </form>
-              )}
-
-              {/* TAB 3: Book the Boardroom */}
-              {bookingTab === 'boardroom' && (
-                <form onSubmit={(e) => handleBookingSubmit(e, 'Boardroom')} className="space-y-4 animate-in fade-in duration-150">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Meeting Date</label>
-                      <input 
-                        type="date" 
-                        value={boardroomDate}
-                        onChange={(e) => setBoardroomDate(e.target.value)}
-                        className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-blue-600" 
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Start Time</label>
-                        <input 
-                          type="time" 
-                          value={boardroomStartTime}
-                          onChange={(e) => setBoardroomStartTime(e.target.value)}
-                          className="w-full mt-1 p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-blue-600" 
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">End Time</label>
-                        <input 
-                          type="time" 
-                          value={boardroomEndTime}
-                          onChange={(e) => setBoardroomEndTime(e.target.value)}
-                          className="w-full mt-1 p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-blue-600" 
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">Committee / Meeting Agenda</label>
-                    <textarea 
-                      rows={3} 
-                      placeholder="Specify board meeting purpose or leadership committee name..." 
-                      value={boardroomAgenda}
-                      onChange={(e) => setBoardroomAgenda(e.target.value)}
-                      className="w-full mt-1 p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-blue-600 resize-none" 
-                    />
-                  </div>
-                  <button 
-                    type="submit" 
-                    disabled={isSubmitting}
-                    className="w-full py-3 bg-indigo-600 text-white font-black rounded-xl text-xs tracking-wider shadow-md hover:bg-indigo-700 transition-colors disabled:opacity-50"
-                  >
-                    {isSubmitting ? 'PROCESSING REQUEST...' : 'SUBMIT BOARDROOM REQUEST'}
-                  </button>
-                </form>
-              )}
-
-            </div>
-          </div>
-        </div>
-      )}
 
       </div>
     </div>
