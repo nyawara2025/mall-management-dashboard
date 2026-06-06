@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Users, Church, DollarSign, Music, UserPlus, FileText, MessageSquare, Milestone, Smartphone, Search, Plus } from 'lucide-react';
+import { Heart, Users, Church, DollarSign, Music, UserPlus, Calendar, FileText, MessageSquare, Milestone, Smartphone, Search, Plus } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
 import { useAuth } from '../contexts/AuthContext';
+import { BookingApprovalsModal } from './BookingApprovalsModal';
 import { ServicePlanner } from './ServicePlanner';
 
 interface StatItem {
@@ -157,6 +158,9 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [memberSearchQuery, setMemberSearchQuery] = useState('');
   const [editingDirectoryMember, setEditingDirectoryMember] = useState<any | null>(null);
+
+  // --- NEW STATE FOR FACILITY APPROVALS MODAL ---
+  const [isApprovalsOpen, setIsApprovalsOpen] = useState(false);
 
   // Fetches master data from the members_welfare database table
   const fetchChurchMembers = async () => {
@@ -747,9 +751,24 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
             <Users className="w-6 h-6 text-white" />
           </div>
         </div>
-        {/* Placeholder spacer ensures the blue button stays nicely confined */}
-        <div className="hidden lg:block" />
+        
+        {/* NEW CARD: Replaces your old hidden spacer row directly to the right */}
+        <div 
+          onClick={() => setIsApprovalsOpen(true)}
+          className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-[2rem] p-6 text-white cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.01] flex items-center justify-between"
+        >
+          <div className="space-y-1 text-left">
+            <h3 className="text-sm font-black uppercase tracking-wider">Facility Requests</h3>
+            <p className="text-[11px] opacity-75 font-medium leading-relaxed">
+              Review, approve, or reject active hall & boardroom schedule logs
+            </p>
+          </div>
+          <div className="bg-white/10 p-3 rounded-xl self-center">
+            <Calendar className="w-5 h-5 text-white" />
+          </div>
+        </div>
       </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-6">
         {/* COLUMN 1 & 2 COMBINED: Unified Contributions Panel */}
@@ -1077,7 +1096,13 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
               </button>
             </div>
           </div>
-                   
+           
+
+          <BookingApprovalsModal 
+            isOpen={isApprovalsOpen} 
+            onClose={() => setIsApprovalsOpen(false)} 
+            shopId={user?.shop_id || 68} 
+          />        
 
         </div>
       </div>

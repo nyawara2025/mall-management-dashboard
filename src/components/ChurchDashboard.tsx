@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Users, Church, DollarSign, Music, UserPlus, Calendar, FileText, MessageSquare, Milestone, Smartphone, Search, Plus } from 'lucide-react';
+import { Heart, Users, Church, DollarSign, Music, Award, UserPlus, Calendar, FileText, MessageSquare, Milestone, Smartphone, Search, Plus } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'; // Import useNavigate for redirection
 import { useAuth } from '../contexts/AuthContext';
+import { SacramentApprovalsModal } from './SacramentApprovalsModal';
 import { BookingApprovalsModal } from './BookingApprovalsModal';
 import { ServicePlanner } from './ServicePlanner';
 
@@ -32,6 +33,8 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
 
   const [selectedStartDate, setSelectedStartDate] = useState<string>('');
   const [selectedEndDate, setSelectedEndDate] = useState<string>('');
+
+  const [isSacramentsOpen, setIsSacramentsOpen] = useState(false);
 
   const handleExtractData = async () => {
     try {
@@ -752,6 +755,8 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
           </div>
         </div>
         
+
+
         {/* NEW CARD: Replaces your old hidden spacer row directly to the right */}
         <div 
           onClick={() => setIsApprovalsOpen(true)}
@@ -767,6 +772,19 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
             <Calendar className="w-5 h-5 text-white" />
           </div>
         </div>
+
+        {/* Card 3: NEW! Sacrament Intake Registry */}
+        <div 
+          onClick={() => setIsSacramentsOpen(true)}
+          className="bg-gradient-to-br from-purple-700 to-indigo-900 rounded-[2rem] p-6 text-white cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.01] flex items-center justify-between"
+        >
+          <div className="space-y-1 text-left">
+            <h3 className="text-xs font-black uppercase tracking-wider">Sacrament Desk</h3>
+            <p className="text-[11px] opacity-75 font-medium leading-relaxed">Endorse incoming Baptism and Confirmation requests</p>
+          </div>
+          <div className="bg-white/10 p-3 rounded-xl self-center"><Award className="w-5 h-5 text-white" /></div>
+        </div>
+
       </div>
 
 
@@ -1103,6 +1121,12 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
             onClose={() => setIsApprovalsOpen(false)} 
             shopId={user?.shop_id || 68} 
           />        
+
+          <SacramentApprovalsModal
+            isOpen={isSacramentsOpen}
+            onClose={() => setIsSacramentsOpen(false)}
+            shopId={user?.shop_id || 68}
+          />
 
         </div>
       </div>
