@@ -78,6 +78,7 @@ export const ScreenDisplay: React.FC = () => {
           ref={videoRef}
           src={streamState.url}
           autoPlay
+          muted
           controls={false}
           playsInline
           className="w-full h-full object-contain bg-black"
