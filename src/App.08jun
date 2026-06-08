@@ -42,7 +42,6 @@ import { AgriDashboard } from './components/AgriDashboard';
 import { NGODashboard } from './components/NGODashboard';
 import { PublicGivingPage } from './components/PublicGivingPage';
 import { VisitorWelcomePage } from './components/VisitorWelcomePage';
-import { ScreenDisplay } from './components/ScreenDisplay';
 import SettingsPage from './pages/SettingsPage';
 import './index.css';
 
@@ -96,13 +95,6 @@ function AppContent() {
 
     setIsDiscoveryModalOpen(false);
   };
-
-  //  =========================================================================
-  // 🔀 HIGH-PRIORITY REAL-TIME DISPLAY INTERCEPTOR
-  // =========================================================================
-  if (window.location.pathname === '/screen') {
-    return <ScreenDisplay />;
-  }
 
   // 2. VISITOR REDIRECT LOGIC (Before Auth/Protected Routes)
   // If a voter arrives with the political category, show them the campaign hub
