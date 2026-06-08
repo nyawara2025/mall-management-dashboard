@@ -8,7 +8,7 @@ export const AppDownloadWidget: React.FC = () => {
   const apkDownloadUrl = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/ChurchMate.apk";
   
   // Fixed template literal syntax and correct qrserver API path
-  const qrImageUrl = `https://qrserver.com{encodeURIComponent(apkDownloadUrl)}`;
+  const qrImageUrl = `https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/product_images/1780024060.095_StBarnabaRegistrationQR_Code.jpg`;
 
   return (
     <div className="bg-gradient-to-br from-slate-800 to-slate-950 rounded-[2.5rem] p-6 md:p-8 text-white shadow-xl border border-slate-800 max-w-2xl mx-auto my-6 text-left animate-in fade-in duration-200">
