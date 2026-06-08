@@ -35,6 +35,7 @@ import { BaptismConfirmationModal } from './BaptismConfirmationModal';
 import { ChurchDocumentsModal } from './ChurchDocumentsModal';
 import { LeaderCreateBroadcast } from './LeaderCreateBroadcast';
 import { DioceseActivitiesModal } from './DioceseActivitiesModal';
+import { AppDownloadWidget } from './AppDownloadWidget'; 
 import { ConsentSection } from './ConsentSection';
 
 // --- TYPES ---
@@ -1316,6 +1317,9 @@ if (isPublicChurchView) {
           )}
         </div>
       </div>
+
+      {/* 📥 NEWLY INJECTED APP DOWNLOAD WIDGET */}
+      <AppDownloadWidget />
 
       {/* Announcements Layout Arena */}
       <div className="space-y-4">
