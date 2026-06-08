@@ -59,6 +59,24 @@ export const ScreenDisplay: React.FC = () => {
     }
   }, [streamState]);
 
+  // =========================================================================
+  // 🛡️ SAFE YOUTUBE ID EXTRACTOR ENGINE (NO NESTED BRACKETS IN JSX)
+  // =========================================================================
+  let youtubeId = '';
+  const currentUrl = streamState.url || '';
+  
+  if (currentUrl.includes('youtu.be/')) {
+    const pieces = currentUrl.split('youtu.be/');
+    const rightSide = pieces.pop() || '';
+    youtubeId = rightSide.split('?').shift() || '';
+  } else if (currentUrl.includes('v=')) {
+    const pieces = currentUrl.split('v=');
+    const rightSide = pieces.pop() || '';
+    youtubeId = rightSide.split('&').shift() || '';
+  }
+
+  const isYouTube = currentUrl.includes('youtube.com') || currentUrl.includes('youtu.be');
+
   return (
     <div className="fixed inset-0 bg-black text-white w-screen h-screen overflow-hidden flex flex-col items-center justify-center select-none font-sans">
       
@@ -90,11 +108,8 @@ export const ScreenDisplay: React.FC = () => {
         <div className="w-full h-screen absolute inset-0 bg-black animate-in fade-in duration-300">
           <iframe
             className="w-full h-full border-0 pointer-events-none"
-            src={`https://youtube.com{
-              streamState.url.includes('youtu.be/') 
-                ? streamState.url.split('youtu.be/')[1].split('?')[0] 
-                : streamState.url.split('v=')[1].split('&')[0]
-            }?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&loop=1`}
+            src={"https://youtube.com" + youtubeId + "?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&loop=1"}
+      
             allow="autoplay; encrypted-media"
           />
         </div>
