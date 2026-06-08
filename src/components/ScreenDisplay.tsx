@@ -9,7 +9,6 @@ interface ProjectionPayload {
 
 export const ScreenDisplay: React.FC = () => {
   const [searchParams] = useSearchParams();
-  // Unique identity marker for this screen (e.g., ?id=living_room or ?id=altar)
   const screenId = searchParams.get('id') || 'living_room';
   const shopId = searchParams.get('shop_id') || '68';
 
@@ -17,38 +16,45 @@ export const ScreenDisplay: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    // 1. Establish a real-time event pipeline stream to your n8n orchestration broker
-    // We append shop_id and screen_id as query parameters so n8n isolates the traffic
-    const sseUrl = `https://tenear.com{shopId}&screen_id=${screenId}`;
-    const eventSource = new EventSource(sseUrl);
+    console.log(`📺 TV Polling Active: Querying [${screenId}] every 2 seconds.`);
 
-    console.log(`📺 TV Screen Engine Active: Listening to channel [${screenId}]`);
-
-    // 2. Listen for incoming projection events
-    eventSource.onmessage = (event) => {
+    const checkForMediaUpdates = async () => {
       try {
-        const data: ProjectionPayload = JSON.parse(event.data);
-        setStreamState(data);
+        // Spelled out target endpoint destination:
+        // h t t p s : / / n 8 n . t e n e a r . c o m / w e b h o o k / s c r e e n - s t r e a m - g a t e w a y ? a c t i o n = g e t
+        const targetUrl = `https://n8n.tenear.com/webhook/screen-stream-gateway?action=get`;
+        
+        const response = await fetch(targetUrl, { method: 'GET' });
+        
+        if (response.ok) {
+          const data: ProjectionPayload = await response.json();
+          
+          // Only change state memory layers if incoming payload variables differ
+          setStreamState((prevState) => {
+            if (prevState.url === data.url && prevState.type === data.type && prevState.content === data.content) {
+              return prevState;
+            }
+            return data;
+          });
+        }
       } catch (err) {
-        console.error("Failed to parse incoming streaming frame:", err);
+        console.error("Polling database network mismatch error:", err);
       }
     };
 
-    eventSource.onerror = (err) => {
-      console.error("SSE connection dropped. Retrying automatically...", err);
-    };
+    // Run verification instantly on load, then loop every 2000 milliseconds
+    checkForMediaUpdates();
+    const intervalId = setInterval(checkForMediaUpdates, 2000);
 
-    return () => {
-      eventSource.close();
-    };
+    return () => clearInterval(intervalId);
   }, [screenId, shopId]);
 
-  // 3. Force browser autoplay rules whenever a new video URL arrives
+  // Handle browser video player reloading rules
   useEffect(() => {
     if (streamState.type === 'video' && videoRef.current) {
       videoRef.current.load();
       videoRef.current.play().catch((error) => {
-        console.warn("Autoplay blocked by TV browser security policies. Awaiting user interaction gesture.", error);
+        console.warn("Autoplay blocked by standard browser security limits.", error);
       });
     }
   }, [streamState]);
@@ -56,17 +62,17 @@ export const ScreenDisplay: React.FC = () => {
   return (
     <div className="fixed inset-0 bg-black text-white w-screen h-screen overflow-hidden flex flex-col items-center justify-center select-none font-sans">
       
-      {/* IDLE STATE: Displayed when no media is actively projected */}
+      {/* 🟢 IDLE STATE */}
       {streamState.type === 'idle' && (
         <div className="text-center space-y-3 animate-pulse">
           <div className="w-4 h-4 bg-emerald-500 rounded-full mx-auto shadow-[0_0_15px_#10b981]" />
           <p className="text-[11px] font-black tracking-widest uppercase text-slate-600">
-            {screenId} Display Ready • Awaiting Command Cue
+            {screenId} Display Ready • Awaiting Command
           </p>
         </div>
       )}
 
-      {/* VIDEO STATE: HTML5 Video Player covering the full canvas viewport */}
+      {/* 🎬 VIDEO PLAYER CANVAS SCREEN */}
       {streamState.type === 'video' && streamState.url && (
         <video
           ref={videoRef}
@@ -74,14 +80,14 @@ export const ScreenDisplay: React.FC = () => {
           autoPlay
           controls={false}
           playsInline
-          className="w-full h-full object-contain bg-black animate-in fade-in duration-300"
+          className="w-full h-full object-contain bg-black"
         />
       )}
 
-      {/* TEXT STATE: High-contrast overlay for emergency alerts or bible scripture drops */}
+      {/* 📝 OVERLAY CAPTIONS LAYOUT SCREEN */}
       {streamState.type === 'text' && streamState.content && (
-        <div className="p-12 text-center max-w-5xl animate-in zoom-in-95 duration-200">
-          <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-snug bg-gradient-to-r from-blue-400 to-indigo-200 bg-clip-text text-transparent">
+        <div className="p-12 text-center max-w-5xl">
+          <h1 className="text-4xl md:text-6xl font-black text-white leading-snug">
             {streamState.content}
           </h1>
         </div>

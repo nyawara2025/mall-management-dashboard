@@ -6,7 +6,6 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { ChurchBranding } from './ChurchBranding';
 import { LivePrayerFeed } from './LivePrayerFeed';
-import { MediaControlsCard } from './MediaControlsCard';
 import { EngagementHeatmap } from './EngagementHeatmap';
 
 const DEPARTMENTS = [
@@ -280,8 +279,22 @@ export const MediaDashboard = () => {
           <LivePrayerFeed shopId={user?.shop_id || 101} />
         </div>
 
-        {/* 3. 🎬 NEW MEDIA CONTROLS CARD MOUNTED HERE */}
-        <MediaControlsCard />
+        {/* 3. Lower Thirds / Overlays */}
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
+          <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <Type className="w-5 h-5 text-blue-500" /> Screen Overlays
+          </h3>
+          <p className="text-[10px] text-gray-400 uppercase font-bold mb-2">Display Text (Bible Verse/Name)</p>
+          <textarea 
+            className="w-full p-3 bg-gray-50 border-none rounded-xl text-sm h-24"
+            placeholder="Enter text..."
+            value={overlayText}
+            onChange={(e) => setOverlayText(e.target.value)}
+          />
+          <button className="mt-3 w-full py-2 bg-blue-50 text-blue-600 rounded-xl text-sm font-bold border border-blue-100">
+            Push to Screen
+          </button>
+        </div>
 
         {/* Place this inside your grid in MediaDashboard.tsx */}
         <div className="md:col-span-2 lg:col-span-3">
