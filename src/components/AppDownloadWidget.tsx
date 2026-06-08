@@ -5,7 +5,7 @@ export const AppDownloadWidget: React.FC = () => {
   const [showQr, setShowQr] = useState(false);
 
   // Cache-busting parameter ensures clients always pull the freshest upload
-  const apkDownloadUrl = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/ChurchMate.apk" + new Date().getTime();
+  const apkDownloadUrl = "https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/ChurchMate.apk";
   
   // Fixed template literal syntax and correct qrserver API path
   const qrImageUrl = `https://qrserver.com{encodeURIComponent(apkDownloadUrl)}`;
