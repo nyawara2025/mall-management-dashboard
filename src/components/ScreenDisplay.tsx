@@ -85,6 +85,21 @@ export const ScreenDisplay: React.FC = () => {
         />
       )}
 
+      {/* 📺 NEW: YOUTUBE EMBED MODULE SPECIFICALLY FOR SMART TV HARDWARE COMPATIBILITY */}
+      {streamState.type === 'video' && streamState.url && (streamState.url.includes('youtube.com') || streamState.url.includes('youtu.be')) && (
+        <div className="w-full h-screen absolute inset-0 bg-black animate-in fade-in duration-300">
+          <iframe
+            className="w-full h-full border-0 pointer-events-none"
+            src={`https://youtube.com{
+              streamState.url.includes('youtu.be/') 
+                ? streamState.url.split('youtu.be/')[1].split('?')[0] 
+                : streamState.url.split('v=')[1].split('&')[0]
+            }?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&loop=1`}
+            allow="autoplay; encrypted-media"
+          />
+        </div>
+      )}
+
       {/* 📝 OVERLAY CAPTIONS LAYOUT SCREEN */}
       {streamState.type === 'text' && streamState.content && (
         <div className="p-12 text-center max-w-5xl">
