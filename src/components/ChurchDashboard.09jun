@@ -225,8 +225,6 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
     { chequeNumber: '', bankName: '', amount: '' }
   ]);
 
-  const [subCategory, setSubCategory] = useState<string>('');
-
   const [serviceName, setServiceName] = useState('English Service');
 
   useEffect(() => {
@@ -304,41 +302,32 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
     }
 
     try {
-      // 1. Combine Main Category and Sub-Category safely if "Other" is selected
-      const finalizedCategory = financeCategory === 'Other' 
-        ? `Other: ${subCategory || 'General'}` 
-        : financeCategory;
-
       await fetch('https://n8n.tenear.com/webhook/post-tithe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          category: finalizedCategory, // <--- Now carries "Other: Hall Booking", etc.
+          category: financeCategory,
           payment_method: paymentType,
           amount: calculatedAmount,
           shop_id: user?.shop_id,
           recorded_by: (user as any)?.username || 'Admin',
           service_name: serviceName,
           timestamp: new Date().toISOString(),
-          ...extraFields 
+          ...extraFields                  // Appends cheques_list array or pdq_reference string
         }),
       });
-
       alert("Record saved successfully!");
-  
-      // 2. Reset your new subCategory state alongside your other input cleanups
       setCashTotal('');
       setPdqReference('');
       setPdqAmount('');
-      setSubCategory(''); // Clears the sub-category dropdown menu upon success
       setCheques([{ chequeNumber: '', bankName: '', amount: '' }]);
-
     } catch (error) {
       alert("Error saving financial record.");
     } finally {
       setIsSubmitting(false);
     }
-  }
+  };
+
   // --- UI RENDER ---
   <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100">
     <div className="flex items-center justify-between mb-4">
@@ -364,61 +353,21 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
       </div>
     </div>
 
-    {/* Category Selection */} 
-    <div> 
-      <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Select Allocation</label> 
-      {/* Changed grid-cols-3 to grid-cols-4 to cleanly fit the 4th button */}
-      <div className="grid grid-cols-4 gap-1.5"> 
-        {['Offertory', 'Tithes', 'Givings', 'Other'].map(cat => ( 
+    <div className="space-y-3">
+      {/* Category Selection */}
+      <div className="grid grid-cols-2 gap-2">
+        {['Offertory', 'Tithes', 'Givings', 'Other'].map(cat => (
           <button 
-            key={cat} 
-            type="button" 
-            onClick={() => {
-              setFinanceCategory(cat);
-              if (cat !== 'Other') setSubCategory(''); // Clears sub-category if switching back to Tithes/Offertory
-            }} 
-            className={`py-2 text-[10px] font-black rounded-xl border transition-all ${ 
-              financeCategory === cat 
-                ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
-                : 'bg-gray-50 text-gray-500 border-gray-100 hover:bg-gray-100' 
-            }`} 
-          > 
-            {cat} 
-          </button> 
-        ))} 
-      </div> 
-
-      {/* NEW: Conditional Sub-Category Dropdown Rendering */}
-      {financeCategory === 'Other' && (
-        <div className="mt-3 space-y-1 animate-fadeIn">
-          <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block">
-            Specify Sub-Category
-          </label>
-          <div className="relative">
-            <select 
-              value={subCategory} 
-              onChange={(e) => setSubCategory(e.target.value)} 
-              className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-600 transition-all appearance-none cursor-pointer"
-            >
-              <option value="">-- Select Purpose --</option>
-              <option value="Hall Booking">Hall Booking</option>
-              <option value="General Donation">General Donation</option>
-              <option value="Fund Raising">Fund Raising</option>
-              <option value="Welfare / Benevolence">Welfare / Benevolence</option>
-            </select>
-            {/* Visual anchor chevron arrow decoration */} 
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400"> 
-              <svg className="fill-current h-4 w-4"
-                xmlns="http://w3.org"
-                viewBox="0 0 20 20"
-              > 
-                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/> 
-              </svg>  
-            </div>
-          </div>
-        </div>
-      )}
- 
+            key={cat}
+            onClick={() => setFinanceCategory(cat)}
+            className={`py-2 text-[11px] font-bold rounded-xl border transition-all ${
+              financeCategory === cat ? 'bg-green-600 text-white border-green-600' : 'bg-gray-50 text-gray-500 border-gray-100'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
 
       {/* Payment Type Toggle */}
       <div className="flex p-1 bg-gray-100 rounded-xl">
@@ -901,62 +850,24 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
               </div>
             </div>
 
-            {/* Category Selection */} 
-            <div> 
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Select Allocation</label> 
-              {/* Changed grid-cols-3 to grid-cols-4 to cleanly fit the 4th button */}
-              <div className="grid grid-cols-4 gap-1.5"> 
-                {['Offertory', 'Tithes', 'Givings', 'Other'].map(cat => ( 
+            {/* Category Selection */}
+            <div>
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block mb-1">Select Allocation</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {['Offertory', 'Tithes', 'Givings'].map(cat => (
                   <button 
-                    key={cat} 
-                    type="button" 
-                    onClick={() => {
-                      setFinanceCategory(cat);
-                      if (cat !== 'Other') setSubCategory(''); // Clears sub-category if switching back to Tithes/Offertory
-                    }} 
-                    className={`py-2 text-[10px] font-black rounded-xl border transition-all ${ 
-                      financeCategory === cat 
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
-                        : 'bg-gray-50 text-gray-500 border-gray-100 hover:bg-gray-100' 
-                    }`} 
-                  > 
-                    {cat} 
-                  </button> 
-                ))} 
-              </div> 
-
-              {/* NEW: Conditional Sub-Category Dropdown Rendering */}
-              {financeCategory === 'Other' && (
-                <div className="mt-3 space-y-1 animate-fadeIn">
-                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-wider block">
-                    Specify Sub-Category
-                  </label>
-                  <div className="relative">
-                    <select 
-                      value={subCategory} 
-                      onChange={(e) => setSubCategory(e.target.value)} 
-                      className="w-full p-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs font-bold text-gray-700 outline-none focus:ring-2 focus:ring-blue-600 transition-all appearance-none cursor-pointer"
-                    >
-                      <option value="">-- Select Purpose --</option>
-                      <option value="Hall Booking">Hall Booking</option>
-                      <option value="General Donation">General Donation</option>
-                      <option value="Fund Raising">Fund Raising</option>
-                      <option value="Welfare / Benevolence">Welfare / Benevolence</option>
-                    </select>
-                    {/* Visual anchor chevron arrow decoration */} 
-                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-400"> 
-                      <svg className="fill-current h-4 w-4" 
-                        xmlns="http://w3.org" 
-                        viewBox="0 0 20 20"
-                      > 
-                        <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/> 
-                      </svg> 
-                    </div>
-                  </div>
-                </div>
-              )}
+                    key={cat}
+                    type="button"
+                    onClick={() => setFinanceCategory(cat)}
+                    className={`py-2 text-[10px] font-black rounded-xl border transition-all ${
+                      financeCategory === cat ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-gray-50 text-gray-500 border-gray-100 hover:bg-gray-100'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
             </div>
-
 
             {/* Manual Payment Mode Toggle */}
             <div>
