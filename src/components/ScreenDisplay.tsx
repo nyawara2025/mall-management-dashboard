@@ -6,11 +6,11 @@ export const ScreenDisplay: React.FC = () => {
   const shopId = searchParams.get('shop_id') || '68';
 
   // Create a completely unique, secure meeting room hash for this church branch
-  const roomName = "TeNEAR-Church-Presentation-Channel-" + shopId;
+  const streamRoomId = "TeNEAR-Sanctuary-Cast-Channel-" + shopId;
 
   // Build the clean stream path using the public global Jitsi network infrastructure
   // We append configuration variables directly to the URL string to force a silent, full-screen layout
-  const streamUrl = "https://jit.si" + roomName + "#config.startWithAudioMuted=true&config.startWithVideoMuted=true&config.prejoinPageEnabled=false&interfaceConfig.TOOLBAR_BUTTONS=[]&interfaceConfig.SHOW_JITSI_WATERMARK=false";
+  const streamUrl = "https://vdo.ninja" + streamRoomId + "&autoplay=1&cleanoutput&transparent&mute=1";
 
   return (
     <div className="fixed inset-0 bg-black w-screen h-screen overflow-hidden z-[999]">
