@@ -4,10 +4,10 @@ import { useAuth } from '../contexts/AuthContext';
 export const MediaPresentationController: React.FC = () => {
   const { user } = useAuth();
   const shopId = user?.shop_id || 68;
-  const roomName = `TeNEAR-Church-Presentation-Channel-${shopId}`;
+  const roomName = "TeNEAR-Church-Presentation-Channel-" + shopId;
 
   // The controller URL template includes full toolbars so the media team can control the screen share
-  const controllerUrl = `https://jit.si{roomName}#config.prejoinPageEnabled=false&config.startWithAudioMuted=true`;
+  const controllerUrl = "https://jit.si" + roomName + "#config.prejoinPageEnabled=false&config.startWithAudioMuted=true";
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans">
