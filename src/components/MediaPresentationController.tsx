@@ -7,7 +7,7 @@ export const MediaPresentationController: React.FC = () => {
   const streamRoomId = "TeNEAR-Sanctuary-Cast-Channel-" + shopId;
 
   // The controller URL template includes full toolbars so the media team can control the screen share
-  const controllerUrl = "https://vdo.ninja" + streamRoomId + "&autostart&screenshare&cleanoutput&mute";
+  const controllerUrl = "https://vdo.ninja/?push=TeNEAR-Sanctuary-Cast-Channel-68&autostart&screenshare&cleanoutput&mute";
 
   return (
     <div className="min-h-screen bg-slate-950 text-white flex flex-col font-sans">

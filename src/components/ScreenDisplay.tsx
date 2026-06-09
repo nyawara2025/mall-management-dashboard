@@ -10,7 +10,7 @@ export const ScreenDisplay: React.FC = () => {
 
   // Build the clean stream path using the public global Jitsi network infrastructure
   // We append configuration variables directly to the URL string to force a silent, full-screen layout
-  const streamUrl = "https://vdo.ninja" + streamRoomId + "&autoplay=1&cleanoutput&transparent&mute=1";
+  const streamUrl = "https://vdo.ninja/?view=TeNEAR-Sactuary-Cast-Channel-68&autoplay=1&cleanoutput&transparent&mute=1";
 
   return (
     <div className="fixed inset-0 bg-black w-screen h-screen overflow-hidden z-[999]">
