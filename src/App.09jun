@@ -43,7 +43,6 @@ import { NGODashboard } from './components/NGODashboard';
 import { PublicGivingPage } from './components/PublicGivingPage';
 import { VisitorWelcomePage } from './components/VisitorWelcomePage';
 import { ScreenDisplay } from './components/ScreenDisplay';
-import { MediaPresentationController } from './components/MediaPresentationController';
 import SettingsPage from './pages/SettingsPage';
 import './index.css';
 
@@ -104,11 +103,6 @@ function AppContent() {
   if (window.location.pathname === '/screen') {
     return <ScreenDisplay />;
   }
-
-  if (window.location.pathname === '/broadcast-console') {
-    return <MediaPresentationController />;
-  }
-
 
   // 2. VISITOR REDIRECT LOGIC (Before Auth/Protected Routes)
   // If a voter arrives with the political category, show them the campaign hub
