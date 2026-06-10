@@ -1238,6 +1238,7 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
             isOpen={isSacramentsOpen}
             onClose={() => setIsSacramentsOpen(false)}
             shopId={user?.shop_id || 68}
+            user={user}
           />
 
         </div>

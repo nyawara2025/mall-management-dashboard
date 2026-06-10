@@ -5,9 +5,15 @@ interface SacramentApprovalsModalProps {
   isOpen: boolean;
   onClose: () => void;
   shopId: string | number;
+  user: any; // 🟢 ADD THIS LINE TO THE PROPS INTERFACE
 }
 
-export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = ({ isOpen, onClose, shopId }) => {
+export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  shopId,
+  user
+}) => {
  ;
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -53,26 +59,51 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
       reasonText = inputReason.trim();
     }
 
+    // Locates the clicked row from your local state array cleanly
+    const currentApp = applications.find(item => item.id === id);
+    if (!currentApp) {
+      alert("Application data context lost. Please refresh the dashboard.");
+      return;
+    }
+
     setActioningId(id);
     try {
       const response = await fetch('https://n8n.tenear.com/webhook/church-update-sacrament', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ application_id: id, status: targetStatus, shop_id: shopId, rejection_reason: reasonText })
-      });
+        body: JSON.stringify({
+          application_id: id,
+          status: targetStatus, 
+          shop_id: shopId, 
+          rejection_reason: reasonText,
 
-      if (response.ok) {
-        alert(`Application successfully ${targetStatus.toLowerCase()}!`);
-        setApplications(prev => prev.filter(item => item.id !== id));
-      } else {
-        throw new Error("Server error");
-      }
-    } catch (err) {
-      alert("Failed to update record state.");
-    } finally {
-      setActioningId(null);
+          // 🟢 KEYS PERFECTLY MATCHING YOUR ATTACHED SCHEMA
+          member_id: currentApp.member_id, // e.g., 104
+          actioned_by: user?.username || 'Admin Staff', // Active approver name
+
+          candidate_name: currentApp.candidate_name,
+          sacrament: currentApp.sacrament,
+          father_name: currentApp.father_name,
+          mother_name: currentApp.mother_name,
+        
+          // Dynamic fallback fallback if phone number is joined inside your component state
+          phone_number: currentApp.phone_number || currentApp.member_phone || '' 
+      })
+
+    });
+
+    if (response.ok) {
+      alert(`Application successfully ${targetStatus.toLowerCase()}!`);
+      setApplications(prev => prev.filter(item => item.id !== id));
+    } else {
+      throw new Error("Server error");
     }
-  };
+  } catch (err) {
+    alert("Failed to update record state.");
+  } finally {
+    setActioningId(null);
+  }
+};
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
