@@ -64,7 +64,7 @@ export const ChurchDocumentsModal: React.FC<ChurchDocumentsModalProps> = ({ isOp
     setLoadingReport(true);
     try {
 
-      const activeShopId = shopId || userData?.shop_id;
+      const activeShopId = userData?.shop_id || shopId;
 
       // 2. Strict Safety Gate: Throw an alert if no valid session context is resolved
       if (!activeShopId) {
