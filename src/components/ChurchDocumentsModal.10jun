@@ -64,7 +64,7 @@ export const ChurchDocumentsModal: React.FC<ChurchDocumentsModalProps> = ({ isOp
     setLoadingReport(true);
     try {
 
-      const activeShopId = shopId || userData?.shop_id;
+      const activeShopId = shopId || (user as any)?.shop_id || userData?.shop_id;
 
       // 2. Strict Safety Gate: Throw an alert if no valid session context is resolved
       if (!activeShopId) {
@@ -77,7 +77,7 @@ export const ChurchDocumentsModal: React.FC<ChurchDocumentsModalProps> = ({ isOp
         headers: { 'Content-Type': 'application/json' },
         // 🟢 FIXED PAYLOAD: Explicitly uses your component props variable naming
         body: JSON.stringify({ 
-          shop_id: activeShopId,
+          shop_id: shopId || userData?.shop_id || 68,
           action: 'fetch_weekly_report'
         })
       });
