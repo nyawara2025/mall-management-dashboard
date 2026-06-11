@@ -812,6 +812,37 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
     }
   };
 
+  
+    // 🟢 VIDEO CONFERENCE DISCONNECT HOOK
+    const handleEndCall = async () => {
+      if (!window.confirm("Are you sure you want to disconnect and close this live fellowship room for everyone?")) return;
+
+      // 1. If the user is an authorized leader, notify n8n to shut down the live state row in Supabase
+      const isLeader = userData?.role === 'leader' || userData?.role === 'admin' || userData?.is_ministry_leader || userData?.is_zone_leader;
+    
+      if (isLeader && selectedMeeting) {
+        try {
+          await fetch('https://n8n.tenear.com/webhook/church-end-live-call', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              meeting_id: selectedMeeting.id,
+              shop_id: userData?.shop_id,
+              vdo_url: null,   // Clears out the channel tracking string
+              is_live: false   // Flips the live database state switch to false
+            })
+          });
+          fetchMeetings(); // Refresh list layout states instantly
+        } catch (err) {
+          console.error("Failed to propagate disconnect signaling rules:", err);
+        }
+      }
+
+      // 2. Shut down the local viewport container state layers
+      setActiveCallUrl(null);
+      setActiveCallTitle('');
+    };
+
   if (!isOpen) return null;
 
   return (
@@ -843,7 +874,7 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
             <IntegratedVideoConference 
               activeCallUrl={activeCallUrl}
               activeCallTitle={activeCallTitle}
-              onDisconnect={() => setActiveCallUrl(null)}
+              onDisconnect={handleEndCall}
             />
           </div>
         ) : !selectedMeeting ? (
