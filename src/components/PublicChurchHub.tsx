@@ -896,32 +896,75 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
             ) : meetings.length === 0 ? (
               <p className="text-center py-12 text-xs italic text-gray-400 font-medium">No meetings scheduled matching your membership profile permissions.</p>
             ) : (
-              <div className="space-y-3">
-                {meetings.map((meet, idx) => (
-                  <div 
-                    key={idx}
-                    onClick={() => {
-                      setSelectedMeeting(meet);
-                      setEditedAgenda(meet.agenda || '');
-                      setEditedNotes(meet.meeting_notes || '');
-                      setActiveTab('agenda');
-                    }}
-                    className="p-5 bg-white border border-gray-100 rounded-[2rem] shadow-2xs hover:border-blue-100 transition-all cursor-pointer space-y-2 group"
-                  >
-                    <div className="flex justify-between text-[9px] font-black uppercase tracking-wider">
-                      <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md border border-blue-100">
-                        {meet.recipient_value || 'All Church'}
-                      </span>
-                      <span className="text-gray-400">📅 {meet.meeting_date} at {meet.meeting_time || 'TBA'}</span>
-                    </div>
-                    <h3 className="font-black text-gray-900 text-sm group-hover:text-blue-600 transition-colors">{meet.title}</h3>
-                    <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{meet.content || meet.location}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+              <div className="space-y-3"> 
+                {meetings.map((meet: any, idx) => {
+                  // 1. Identify authorization scopes using your explicit MemberData properties
+                  const isLeader = userData?.role === 'leader' || userData?.role === 'admin' || userData?.is_ministry_leader || userData?.is_zone_leader;
+              
+                  return (
+                    <div 
+                      key={idx} 
+                      onClick={() => { 
+                        setSelectedMeeting(meet); 
+                        setEditedAgenda(meet.agenda || ''); 
+                        setEditedNotes(meet.meeting_notes || ''); 
+                        setActiveTab('agenda'); 
+                      }} 
+                      className="p-5 bg-white border border-gray-100 rounded-[2rem] shadow-2xs hover:border-blue-100 transition-all cursor-pointer space-y-2 group relative"
+                    > 
+                      <div className="flex justify-between items-start text-[9px] font-black uppercase tracking-wider"> 
+                        <div className="flex flex-col gap-1.5 items-start">
+                          <span className="bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md border border-blue-100"> 
+                            {meet.recipient_value || 'All Church'} 
+                          </span> 
+                          <span className="text-gray-400">📅 {meet.meeting_date} at {meet.meeting_time || 'TBA'}</span> 
+                        </div>
+
+                        {/* 🟢 THE VIDEO CONFERENCE CONTROL SWITCH AND BUTTONS PANEL */}
+                        <div className="flex items-center gap-1.5">
+                          {/* Control Option A: Authorised Leader sees the 'Go Live' switch if call is offline */}
+                          {isLeader && !meet.is_live && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation(); // 🔐 Blocks parent modal panel navigation click
+                                handleToggleLiveCall(meet, 'start');
+                              }}
+                              className="px-3 py-1.5 bg-blue-600 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-sm hover:bg-blue-700 transition-all"
+                            >
+                              🎥 Go Live
+                            </button>
+                          )}
+
+                          {/* Control Option B: All regular members see a glowing 'Join Live' pulse button once activated */}
+                          {meet.is_live && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation(); // 🔐 Blocks parent modal panel navigation click
+                                handleToggleLiveCall(meet, 'join');
+                              }}
+                              className="px-3 py-1.5 bg-gradient-to-r from-red-600 to-orange-600 text-white font-black text-[9px] uppercase tracking-wider rounded-xl shadow-sm animate-pulse flex items-center gap-1 hover:brightness-110 transition-all"
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-white block"></span>
+                              Join Live Call
+                            </button>
+                          )}
+                        </div>
+                      </div> 
+
+                      <h3 className="font-black text-gray-900 text-sm group-hover:text-blue-600 transition-colors">{meet.title}</h3> 
+                      <p className="text-xs text-gray-500 line-clamp-2 leading-relaxed">{meet.content || meet.location}</p> 
+                    </div> 
+                  );
+                })} 
+              </div> 
+            )} 
+          </div> 
         ) : (
+
+
+
           /* 📥 SUB-VIEW B: ADVANCED TABBED DOCUMENTATION SYSTEM CANVAS VIEW */
           <div className="flex-1 flex flex-col overflow-hidden animate-in fade-in duration-150">
             
