@@ -7,7 +7,6 @@ import { SacramentApprovalsModal } from './SacramentApprovalsModal';
 import { BookingApprovalsModal } from './BookingApprovalsModal';
 import { AdminDocUploadCard } from './AdminDocUploadCard';
 import { ServicePlanner } from './ServicePlanner';
-import { ChurchBranding } from './ChurchBranding';
 
 interface StatItem {
   label: string;
@@ -749,8 +748,29 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
       {/* HEADER: Title, Subtitle, and Logo */}
       <div className="flex justify-between items-center mb-2"> {/* Items center & reduced margin */}
         <div>
-          <ChurchBranding departmentName="Admin Desk" />
+          <h1 className="text-2xl font-blue italic text-gray-700 tracking-tight font-['Century_Gothic']">
+            Church Administration
+          </h1>
+          <h2 className="text-lg font-semibold italic text-blue-600 mt-0 font-['Century_Gothic']">
+            St. Barnabas Anglican Church, Otiende - The home of encouragement!
+          </h2>
         </div>
+
+        {user?.shop_id && (
+          <div className="flex items-center">
+             <img
+              src="https://ufrrlfcxuovxgizxuowh.supabase.co/storage/v1/object/public/church_material/ACKChurchLogo.png"
+              alt="Church Logo"
+              /* REMOVED: bg-white, rounded-3xl, shadow, and border */
+              /* REDUCED: Height/Width from 60 to 28 */
+              className="h-30 w-40 object-contain" 
+              onError={(e) =>  {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "/default-church.png";
+              }}
+            />
+          </div>
+        )}
       </div>
 
       {/* Stats Row - Scaled Down */}
