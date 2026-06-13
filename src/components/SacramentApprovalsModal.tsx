@@ -8,13 +8,7 @@ interface SacramentApprovalsModalProps {
   user: any; // 🟢 ADD THIS LINE TO THE PROPS INTERFACE
 }
 
-export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = ({ 
-  isOpen, 
-  onClose, 
-  shopId,
-  user
-}) => {
- ;
+export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = ({ isOpen, onClose, shopId, user }) => {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [actioningId, setActioningId] = useState<number | null>(null);
@@ -48,7 +42,6 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
 
   const handleUpdateStatus = async (id: number, targetStatus: 'Approved' | 'Declined') => {
     let reasonText = null;
-
     if (targetStatus === 'Declined') {
       const inputReason = prompt("Reason for application rejection:");
       if (inputReason === null) return;
@@ -73,113 +66,167 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           application_id: id,
-          status: targetStatus, 
-          shop_id: shopId, 
+          status: targetStatus,
+          shop_id: shopId,
           rejection_reason: reasonText,
-
           // 🟢 KEYS PERFECTLY MATCHING YOUR ATTACHED SCHEMA
           member_id: currentApp.member_id, // e.g., 104
           actioned_by: user?.username || 'Admin Staff', // Active approver name
-
           candidate_name: currentApp.candidate_name,
           sacrament: currentApp.sacrament,
           father_name: currentApp.father_name,
           mother_name: currentApp.mother_name,
-        
-          // Dynamic fallback fallback if phone number is joined inside your component state
-          phone_number: currentApp.phone_number || currentApp.member_phone || '' 
-      })
+          // Dynamic fallback if phone number is joined inside your component state
+          phone_number: currentApp.phone_number || currentApp.member_phone || ''
+        })
+      });
 
-    });
-
-    if (response.ok) {
-      alert(`Application successfully ${targetStatus.toLowerCase()}!`);
-      setApplications(prev => prev.filter(item => item.id !== id));
-    } else {
-      throw new Error("Server error");
+      if (response.ok) {
+        alert(`Application successfully ${targetStatus.toLowerCase()}!`);
+        setApplications(prev => prev.filter(item => item.id !== id));
+      } else {
+        throw new Error("Server error");
+      }
+    } catch (err) {
+      alert("Failed to update record state.");
+    } finally {
+      setActioningId(null);
     }
-  } catch (err) {
-    alert("Failed to update record state.");
-  } finally {
-    setActioningId(null);
-  }
-};
+  };
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden max-h-[85vh] flex flex-col text-left">
+      <div className="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden max-h-[85vh] flex flex-col text-left">
         
-        <div className="p-6 bg-slate-800 text-white flex justify-between items-center">
+        {/* Header */}
+        <div className="p-6 bg-blue-600 text-white flex justify-between items-center">
           <div>
             <h3 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
-              <Award size={20} /> Sacrament Intake Registry
+              <Award size={22} /> Sacrament Approvals
             </h3>
-            <p className="text-xs text-slate-300 uppercase font-medium mt-0.5">Review Baptism and Confirmation Submissions</p>
+            <p className="text-xs text-blue-100 uppercase font-medium mt-0.5">Pending Church Intake Verification</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-700 rounded-full transition-colors"><X size={20} /></button>
+          <button onClick={onClose} className="p-2 hover:bg-blue-500 rounded-full transition-colors">
+            <X size={20}/>
+          </button>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1 bg-gray-50/40">
+        {/* Applications List Area */}
+        <div className="p-6 flex-1 overflow-y-auto space-y-6 bg-gray-50">
           {loading ? (
-            <div className="py-20 flex flex-col items-center justify-center gap-3 text-slate-400">
-              <Loader2 size={36} className="animate-spin text-blue-600" />
-              <p className="text-xs font-black uppercase tracking-widest animate-pulse">Streaming Applications...</p>
+            <div className="flex flex-col items-center justify-center py-12 text-gray-400 gap-2">
+              <Loader2 className="animate-spin text-blue-600" size={32} />
+              <p className="text-xs font-bold uppercase tracking-wider">Loading Requests...</p>
             </div>
           ) : applications.length === 0 ? (
-            <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-[2rem] bg-white text-gray-400 text-xs font-medium px-4">
-              🎉 No pending sacrament applications requiring review.
+            <div className="text-center py-12 text-gray-400">
+              <p className="text-sm font-bold uppercase tracking-wider">No pending applications found.</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              {applications.map((item) => (
-                <div key={item.id} className="p-5 bg-white border border-gray-100 rounded-3xl shadow-sm flex flex-col justify-between gap-4 animate-in slide-in-from-top-2 duration-200">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
-                        item.sacrament === 'Baptism' ? 'bg-emerald-50 text-emerald-700' : 'bg-purple-50 text-purple-700'
-                      }`}>
-                        {item.sacrament} {item.sacrament === 'Baptism' ? '(Infant)' : ''}
+            applications.map((currentApp) => {
+              // Simple, unbreakable flat assignments mapped by n8n
+              const dynamicChurchName = currentApp?.church_name || "SACRAMENT INTAKE RECORD";
+              const candidateFullName = currentApp?.candidate_name || "N/A";
+              const dob = currentApp?.dob || "N/A";
+              const residentialAddress = currentApp?.residential_address || "N/A";
+  
+              const poBox = currentApp?.po_box || "N/A";
+              const officeTel = currentApp?.office_tel || "N/A";
+              const houseTel = currentApp?.house_tel || "N/A";
+              const attendsRegularly = currentApp?.attends_regularly || "N/A";
+
+              const fatherName = currentApp?.father_name || "N/A";
+              const motherName = currentApp?.mother_name || "N/A";
+
+              const sponsor1 = currentApp?.sponsor_name_1 || "N/A";
+              const isAnglican1 = currentApp?.sponsor_is_anglican_1 || "N/A";
+              const sponsor2 = currentApp?.sponsor_name_2 || "N/A";
+              const isAnglican2 = currentApp?.sponsor_is_anglican_2 || "N/A";
+
+              return (
+                <div key={currentApp.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between gap-6 items-start">
+                  
+                  {/* Detailed Information Grid */}
+                  <div className="flex-1 space-y-4 w-full">
+                    <div>
+                      <span className="inline-block bg-blue-50 text-blue-700 text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md mb-2">
+                        {currentApp?.sacrament || 'BAPTISM'}
                       </span>
+                      <h4 className="text-base font-black text-gray-800 uppercase tracking-wide border-b pb-1">
+                        {dynamicChurchName}
+                      </h4>
                     </div>
 
-                    <h4 className="font-black text-gray-900 text-sm flex items-center gap-1">
-                      <User size={14} className="text-gray-400" /> Candidate: {item.candidate_name}
-                    </h4>
-
-                    <p className="text-[11px] text-gray-500 font-bold flex items-center gap-1">
-                      <Calendar size={12} /> DoB: {item.date_of_birth}
-                    </p>
-
-                    {item.sacrament === 'Baptism' && (
-                      <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-gray-600 font-medium">
-                        <div><span className="text-gray-400 block text-[9px] uppercase font-black">Father</span> {item.father_name}</div>
-                        <div><span className="text-gray-400 block text-[9px] uppercase font-black">Mother</span> {item.mother_name}</div>
-                        <div><span className="text-gray-400 block text-[9px] uppercase font-black">Godparent</span> {item.godparent_name}</div>
+                    {/* Grid Columns layout */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Candidate Column */}
+                      <div className="space-y-1 text-sm font-medium text-gray-700 bg-gray-50 p-3.5 rounded-xl">
+                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1">1. Candidate Info</p>
+                        <div><span className="text-xs font-bold text-gray-400 uppercase">Full Name:</span> {candidateFullName}</div>
+                        <div><span className="text-xs font-bold text-gray-400 uppercase">DOB:</span> {dob}</div>
+                        <div><span className="text-xs font-bold text-gray-400 uppercase">Residence:</span> {residentialAddress}</div>
+                        <div><span className="text-xs font-bold text-gray-400 uppercase">P.O. Box:</span> {poBox}</div>
+                        <div className="text-xs pt-1 border-t border-dashed border-gray-200 flex gap-4 text-gray-500 mt-1">
+                          <span>Off: {officeTel}</span>
+                          <span>House: {houseTel}</span>
+                        </div>
+                        <div className="pt-1.5">
+                          <span className="text-xs font-bold text-gray-400 uppercase">Regular Attendee: </span>
+                          <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md ${attendsRegularly === 'yes' ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'}`}>
+                            {attendsRegularly}
+                          </span>
+                        </div>
                       </div>
-                    )}
+
+                      {/* Family/Sponsors Column */}
+                      <div className="space-y-3.5">
+                        {/* Parents nested */}
+                        <div className="space-y-1 text-sm font-medium text-gray-700 bg-gray-50 p-3 rounded-xl">
+                          <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1">2. Parents Info</p>
+                          <div><span className="text-xs font-bold text-gray-400 uppercase">Father:</span> {fatherName}</div>
+                          <div><span className="text-xs font-bold text-gray-400 uppercase">Mother:</span> {motherName}</div>
+                        </div>
+
+                        {/* Sponsors nested */}
+                        <div className="space-y-1 text-sm font-medium text-gray-700 bg-gray-50 p-3 rounded-xl">
+                          <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-1">3. Witnesses / Sponsors</p>
+                          <div className="border-b border-dashed border-gray-200 pb-1 mb-1">
+                            <span className="text-xs font-bold text-gray-400 uppercase">S1:</span> {sponsor1} 
+                            <span className="text-[10px] ml-1.5 font-extrabold uppercase text-gray-500">(Anglican: {isAnglican1})</span>
+                          </div>
+                          <div>
+                            <span className="text-xs font-bold text-gray-400 uppercase">S2:</span> {sponsor2} 
+                            <span className="text-[10px] ml-1.5 font-extrabold uppercase text-gray-500">(Anglican: {isAnglican2})</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-2 justify-end border-t border-gray-50 pt-3">
+                  {/* Actions Column */}
+                  <div className="flex md:flex-col gap-2 w-full md:w-auto md:self-stretch justify-end md:justify-center border-t md:border-t-0 pt-3 md:pt-0 border-gray-100">
                     <button
+                      onClick={() => handleUpdateStatus(currentApp.id, 'Approved')}
                       disabled={actioningId !== null}
-                      onClick={() => handleUpdateStatus(item.id, 'Declined')}
-                      className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition-colors disabled:opacity-40"
+                      className="flex-1 md:flex-initial bg-green-600 hover:bg-green-700 text-white font-bold px-4 py-3 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider transition-all"
                     >
-                      <XCircle size={18} />
+                      {actioningId === currentApp.id ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle size={14} />} Approve
                     </button>
                     <button
+                      onClick={() => handleUpdateStatus(currentApp.id, 'Declined')}
                       disabled={actioningId !== null}
-                      onClick={() => handleUpdateStatus(item.id, 'Approved')}
-                      className="px-4 py-2 bg-blue-600 text-white text-xs font-black rounded-xl hover:bg-blue-700 shadow-md transition-colors flex items-center gap-1.5 disabled:opacity-40"
+                      className="flex-1 md:flex-initial bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-3 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider transition-all"
                     >
-                      <CheckCircle size={14} /> Endorse Application
+                      {actioningId === currentApp.id ? <Loader2 className="animate-spin" size={14} /> : <XCircle size={14} />} Decline
                     </button>
                   </div>
+
                 </div>
-              ))}
-            </div>
+              );
+            })
           )}
         </div>
+
       </div>
     </div>
   );
