@@ -770,64 +770,70 @@ export const ChurchDashboard = ({ onViewChange }: { onViewChange: (view: string)
       </div>
 
       {/* 🛑 MANAGEMENT & OPERATIONS GRID BOARD 🛑 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-2 items-start">
-  
-        {/* CARD 1: Church Membership Registry */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-2">
+        
+        {/* CARD 1: Church Membership Registry (Reduced to Single Width) */}
         <div 
-          onClick={() => { setCurrentSubView('member_directory'); fetchChurchMembers(); }} 
-          className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[1.5rem] p-4 text-white cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.01] flex flex-col justify-between min-h-[110px] group"
+          onClick={() => {
+            setCurrentSubView('member_directory');
+            fetchChurchMembers();
+          }}
+          className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2rem] p-6 text-white cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.01] flex flex-col justify-between min-h-[140px] group"
         >
-          <div className="space-y-0.5 text-left">
-            <h3 className="text-xs font-black uppercase tracking-wider">Membership Registry</h3>
-            <p className="text-[11px] opacity-80 font-medium leading-tight line-clamp-2">
+          <div className="space-y-1 text-left">
+            <h3 className="text-sm font-black uppercase tracking-wider">Membership Registry</h3>
+            <p className="text-[11px] opacity-80 font-medium leading-tight">
               Manage master member files, roles, status flags, and update directories.
             </p>
           </div>
-          <div className="flex justify-end mt-1">
-            <div className="bg-white/20 p-1.5 rounded-lg group-hover:bg-white/30 transition-all">
-              <Users className="w-4 h-4 text-white" />
+          <div className="flex justify-end mt-2">
+            <div className="bg-white/20 p-2.5 rounded-xl group-hover:bg-white/30 transition-all">
+              <Users className="w-5 h-5 text-white" />
             </div>
           </div>
         </div>
 
         {/* CARD 2: Sacrament Desk */}
         <div 
-          onClick={() => setIsSacramentsOpen(true)} 
-          className="bg-gradient-to-br from-purple-700 to-indigo-900 rounded-[1.5rem] p-4 text-white cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.01] flex flex-col justify-between min-h-[110px] group"
+          onClick={() => setIsSacramentsOpen(true)}
+          className="bg-gradient-to-br from-purple-700 to-indigo-900 rounded-[2rem] p-6 text-white cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.01] flex flex-col justify-between min-h-[140px] group"
         >
-          <div className="space-y-0.5 text-left">
-            <h3 className="text-xs font-black uppercase tracking-wider">Sacrament Desk</h3>
-            <p className="text-[11px] opacity-75 font-medium leading-tight line-clamp-2">
+          <div className="space-y-1 text-left">
+            <h3 className="text-sm font-black uppercase tracking-wider">Sacrament Desk</h3>
+            <p className="text-[11px] opacity-75 font-medium leading-tight">
               Endorse incoming Baptism and Confirmation requests.
             </p>
           </div>
-          <div className="flex justify-end mt-1">
-            <div className="bg-white/10 p-1.5 rounded-lg group-hover:bg-white/20 transition-all">
-              <Award className="w-4 h-4 text-white" />
+          <div className="flex justify-end mt-2">
+            <div className="bg-white/10 p-2.5 rounded-xl group-hover:bg-white/20 transition-all">
+              <Award className="w-5 h-5 text-white" />
             </div>
           </div>
         </div>
 
-        {/* CARD 3: Knowledge RAG Upload Engine Core */}
-        <div className="w-full max-h-[110px] overflow-hidden rounded-[1.5rem]">
-          {/* Mount your upload card component directly here */}
-          <AdminDocUploadCard shopId={user?.shop_id || 68} userId={user?.id || 0} />
+        {/* CARD 3: NEW! Knowledge RAG Upload Engine Core */}
+        <div className="h-full">
+          {/* Mount your new upload card component directly here */}
+          <AdminDocUploadCard
+            shopId={user?.shop_id || 68} 
+            userId={user?.id || 0}
+          />
         </div>
 
         {/* CARD 4: Facility Requests */}
         <div 
-          onClick={() => setIsApprovalsOpen(true)} 
-          className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-[1.5rem] p-4 text-white cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.01] flex flex-col justify-between min-h-[110px] group"
+          onClick={() => setIsApprovalsOpen(true)}
+          className="bg-gradient-to-br from-slate-700 to-slate-800 rounded-[2rem] p-6 text-white cursor-pointer shadow-xl transition-all duration-300 hover:scale-[1.01] flex flex-col justify-between min-h-[140px] group"
         >
-          <div className="space-y-0.5 text-left">
-            <h3 className="text-xs font-black uppercase tracking-wider">Facility Requests</h3>
-            <p className="text-[11px] opacity-75 font-medium leading-tight line-clamp-2">
+          <div className="space-y-1 text-left">
+            <h3 className="text-sm font-black uppercase tracking-wider">Facility Requests</h3>
+            <p className="text-[11px] opacity-75 font-medium leading-tight">
               Review, approve, or reject active hall & boardroom schedule logs.
             </p>
           </div>
-          <div className="flex justify-end mt-1">
-            <div className="bg-white/10 p-1.5 rounded-lg group-hover:bg-white/20 transition-all">
-              <Calendar className="w-4 h-4 text-white" />
+          <div className="flex justify-end mt-2">
+            <div className="bg-white/10 p-2.5 rounded-xl group-hover:bg-white/20 transition-all">
+              <Calendar className="w-5 h-5 text-white" />
             </div>
           </div>
         </div>
