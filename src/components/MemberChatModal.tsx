@@ -588,155 +588,85 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
           /* TAB 2: SEND NEW / CONTACTS COMPOSITION COMPONENT VIEW */
           <div className="space-y-4 w-full">
             
-            {/* Message Composition Input Form Section */}
-            {selectedRecipients.length > 0 && (
-              <form onSubmit={dispatchPrivateMessage} className="space-y-4 animate-in fade-in duration-200 text-left bg-indigo-50/10 p-3.5 border border-indigo-100/40 rounded-2xl">
-                {/* Subject / Purpose Row */}
-                <div>
-                  <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Subject / Purpose</label>
-                  <input 
-                    type="text" 
-                    value={chatSubject} 
-                    onChange={e => setChatSubject(e.target.value)} 
-                    placeholder="Enter message subject (e.g. Choir Rehearsal Notice)..." 
-                    className="w-full p-3.5 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-bold text-gray-700 shadow-sm transition-all" 
-                  />
-                </div>
-
-                {/* Message Details Textarea */}
-                <div>
-                  <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Message Details</label>
-                  <textarea 
-                    rows={3} 
-                    value={chatMessage} 
-                    onChange={e => setChatMessage(e.target.value)} 
-                    placeholder="Write your private message here..." 
-                    className="w-full p-4 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-gray-700 resize-none shadow-sm" 
-                  />
-                </div>
-
-                {/* Optional File Attachment Strip */}
-                <div>
-                  <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Attach Document / Photo (Optional)</label>
-                  <div className="relative flex items-center justify-center w-full bg-white ring-1 ring-gray-200/50 rounded-xl p-3 hover:bg-gray-100/70 transition-colors shadow-sm">
-                    <input 
-                      type="file" 
-                      accept="image/*,application/pdf" 
-                      onChange={e => { if (e.target.files && e.target.files[0]) { setSelectedFile(e.target.files[0]); } }} 
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
-                    />
-                    <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
-                      {selectedFile ? <Paperclip size={14} className="text-indigo-600" /> : <Upload size={14} />}
-                      <span>{selectedFile ? selectedFile.name : 'Choose attachment...'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dispatch Trigger Button */}
-                <button 
-                  type="submit" 
-                  disabled={transmitting || !chatMessage.trim()} 
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 text-white font-bold py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2 text-sm transition-all" 
-                >
-                  {transmitting ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} 
-                  Send to {selectedRecipients.length} Members
-                </button>
-              </form>
-            )}
-
-            {/* Directory Contact Picker Context Box */}
-            <div className="border border-gray-100 rounded-2xl p-4 bg-gray-50/50 space-y-3">
-              <label className="text-[10px] font-black text-gray-400 uppercase block tracking-wider">
-                Select Recipients ({selectedRecipients.length} Chosen)
-              </label>
-
-              {/* Mailing List Template Shortcuts Selection Box */}
-              <div className="bg-white border border-gray-100 p-2.5 rounded-xl space-y-2 text-xs">
-                <div className="flex justify-between items-center">
-                  <span className="font-bold text-gray-500 text-[10px] uppercase">Mailing Lists Templates</span>
-                  {selectedRecipients.length > 0 && !isCreatingList && (
-                    <button 
-                      type="button" 
-                      onClick={() => setIsCreatingList(true)} 
-                      className="text-[10px] font-black text-indigo-600 hover:underline"
-                    >
-                      Save Current Selection as List
-                    </button>
-                  )}
-                </div>
-
-                {isCreatingList ? (
-                  <div className="flex gap-1.5 items-center animate-in fade-in duration-100">
-                    <input 
-                      type="text" 
-                      placeholder="List name (e.g. Choir Group)..." 
-                      className="flex-1 p-1.5 bg-gray-50 border border-gray-200 rounded-md text-[11px] font-medium outline-none" 
-                      value={newListName} 
-                      onChange={e => setNewListName(e.target.value)} 
-                    />
-                    <button type="button" onClick={handleSaveMailingList} className="bg-indigo-600 text-white px-2 py-1.5 rounded-md font-bold text-[10px]">Save</button>
-                    <button type="button" onClick={() => { setIsCreatingList(false); setNewListName(''); }} className="text-gray-400 px-1 font-bold text-[10px]">Cancel</button>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-1">
-                    {isLoadingLists ? (
-                      <span className="text-[10px] text-gray-400 italic">Syncing groups...</span>
-                    ) : mailingLists.length === 0 ? (
-                      <span className="text-[10px] text-gray-300 italic">No saved lists found. Select members to save a shortcut.</span>
-                    ) : (
-                      // 🟢 ITEM 5: Filter lists so members only see shortcuts they are a member of
-                      mailingLists
-                        .filter((list: any) => {
-                          if (!list.members) return false;
-                          // Parse JSON array string if needed or scan array entries
-                          const roster = typeof list.members === 'string' ? JSON.parse(list.members) : list.members;
-                          return Array.isArray(roster) && roster.some((m: any) => Number(m.id || m.member_id) === Number(userData?.id));
-                        })
-                        .map((list: any) => (
-                          <button 
-                            key={list.id} 
-                            type="button" 
-                            onClick={() => handleApplyMailingList(list)} 
-                            className="bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 text-gray-700 hover:text-indigo-700 px-2 py-1 rounded-md text-[10px] font-bold transition-all"
-                          >
-                            👥 {list.list_name} ({list.members?.length || 0})
-                          </button>
-                        ))
-                    )}
-                  </div>
+            {/* 1. RECIPIENT SELECTION CONTROLS CARDS PLACED AT THE VERY TOP */}
+            <div className="border border-gray-100 rounded-2xl p-4 bg-gray-50/50 space-y-3 flex-shrink-0">
+              <div className="flex justify-between items-center">
+                <label className="text-[10px] font-black text-gray-400 uppercase block tracking-wider">
+                  Select Recipients ({selectedRecipients.length} Chosen)
+                </label>
+                {selectedRecipients.length > 0 && !isCreatingList && !chatSubject.trim() && !chatMessage.trim() && (
+                  <button type="button" onClick={() => setIsCreatingList(true)} className="text-[10px] font-black text-indigo-600 hover:underline">
+                    Save As List Template
+                  </button>
                 )}
               </div>
 
-              {/* Dynamic Live Filtering Search Input Row */}
-              <div className="relative">
-                <Search className="absolute left-3 top-3 text-gray-400 w-3.5 h-3.5" />
-                <input 
-                  type="text" 
-                  placeholder="Search member by name..." 
-                  value={search} 
-                  onChange={e => setSearch(e.target.value)} 
-                  className="w-full pl-9 pr-4 p-2 bg-white border border-gray-200 rounded-lg font-medium text-xs outline-none focus:ring-2 focus:ring-indigo-500" 
-                />
-              </div>
+              {/* Hide mailing lists template boxes once member starts typing message detail columns */}
+              {!chatSubject.trim() && !chatMessage.trim() && (
+                <div className="bg-white border border-gray-100 p-2.5 rounded-xl space-y-2 text-xs animate-in fade-in duration-200">
+                  <span className="font-bold text-gray-500 text-[10px] uppercase block">Mailing Lists Templates</span>
+                  {isCreatingList ? (
+                    <div className="flex gap-1.5 items-center">
+                      <input type="text" placeholder="List name (e.g. Choir Group)..." className="flex-1 p-1.5 bg-gray-50 border border-gray-200 rounded-md text-[11px] font-medium outline-none text-slate-800" value={newListName} onChange={e => setNewListName(e.target.value)} />
+                      <button type="button" onClick={handleSaveMailingList} className="bg-indigo-600 text-white px-2 py-1.5 rounded-md font-bold text-[10px]">Save</button>
+                      <button type="button" onClick={() => { setIsCreatingList(false); setNewListName(''); }} className="text-gray-400 px-1 font-bold text-[10px]">Cancel</button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {isLoadingLists ? (
+                        <span className="text-[10px] text-gray-400 italic">Syncing groups...</span>
+                      ) : mailingLists.length === 0 ? (
+                        <span className="text-[10px] text-gray-300 italic">No saved lists found. Select members to save a shortcut.</span>
+                      ) : (
+                        mailingLists
+                          .filter((list: any) => {
+                            if (!list.members) return false;
+                            const roster = typeof list.members === 'string' ? JSON.parse(list.members) : list.members;
+                            return Array.isArray(roster) && roster.some((m: any) => Number(m.id || m.member_id) === Number(userData?.id));
+                          })
+                          .map((list: any) => (
+                            <button key={list.id} type="button" onClick={() => handleApplyMailingList(list)} className="bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 text-gray-700 hover:text-indigo-700 px-2 py-1 rounded-md text-[10px] font-bold transition-all">
+                              👥 {list.list_name} ({list.members?.length || 0})
+                            </button>
+                          ))
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
-              {/* Active Badges List for Chosen Recipients */}
+              {/* Hide Live Filter Search row field block completely while member types text parameters */}
+              {!chatSubject.trim() && !chatMessage.trim() && (
+                <div className="relative animate-in fade-in duration-200">
+                  <Search className="absolute left-3 top-3 text-gray-400 w-3.5 h-3.5" />
+                  <input type="text" placeholder="Search member by name..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-9 pr-4 p-2 bg-white border border-gray-200 rounded-lg font-medium text-xs outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800" />
+                </div>
+              )}
+
+              {/* Selected Badges Array Strip Grid */}
               {selectedRecipients.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 p-2 bg-white border border-gray-100 rounded-xl max-h-[10vh] overflow-y-auto animate-in fade-in duration-150">
+                <div className="flex flex-wrap gap-1.5 p-2 bg-white border border-gray-100 rounded-xl max-h-[10vh] overflow-y-auto">
                   {selectedRecipients.map(recipient => (
                     <span key={recipient.id} className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-indigo-100">
                       {recipient.first_name} {recipient.last_name}
-                      <button type="button" onClick={() => handleToggleRecipient(recipient)} className="hover:bg-indigo-200/60 ml-0.5 px-1 rounded text-indigo-500 hover:text-indigo-700 font-black text-xs">&times;</button>
+                      {!chatSubject.trim() && !chatMessage.trim() && (
+                        <button type="button" onClick={() => handleToggleRecipient(recipient)} className="hover:bg-indigo-200/60 ml-0.5 px-1 rounded text-indigo-500 hover:text-indigo-700 font-black text-xs">&times;</button>
+                      )}
                     </span>
                   ))}
                 </div>
               )}
 
-              {/* Checklist Multi-Select List Picker Array View Grid Layout */}
-              <div className="max-h-[16vh] overflow-y-auto space-y-1.5 pr-1">
+              {/* Selection checklist view loop row items grid area */}
+              <div className="max-h-[14vh] overflow-y-auto space-y-1.5 pr-1">
                 {loading ? (
-                  <p className="text-center py-4 text-xs font-bold uppercase animate-pulse text-gray-400">Loading congregation records...</p>
+                  <p className="text-center py-4 text-xs font-bold uppercase animate-pulse text-gray-400">Loading records...</p>
+                ) : chatSubject.trim() || chatMessage.trim() ? (
+                  <p className="text-left py-1 text-[11px] font-semibold text-slate-400 italic animate-in fade-in">
+                    Directory selector collapsed. Clear text fields below to modify recipient list selection.
+                  </p>
                 ) : filteredContacts.length === 0 ? (
-                  <p className="text-center py-4 text-xs italic text-gray-400">No matching thread members found.</p>
+                  <p className="text-center py-4 text-xs italic text-gray-400">No matching members found.</p>
                 ) : (
                   filteredContacts
                     .filter(member => {
@@ -754,20 +684,12 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                     .map(member => {
                       const isChosen = selectedRecipients.some(r => Number(r.id) === Number(member.id));
                       return (
-                        <div 
-                          key={member.id} 
-                          onClick={() => handleToggleRecipient(member)} 
-                          className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all bg-white ${
-                            isChosen ? 'border-indigo-200 bg-indigo-50/20 shadow-sm' : 'border-gray-100 hover:bg-gray-50'
-                          }`}
-                        >
+                        <div key={member.id} onClick={() => handleToggleRecipient(member)} className={`p-2 rounded-xl border flex items-center justify-between cursor-pointer transition-all bg-white ${isChosen ? 'border-indigo-200 bg-indigo-50/20 shadow-sm' : 'border-gray-100 hover:bg-gray-50'}`}>
                           <div>
                             <p className="font-bold text-gray-900 text-xs">{member.first_name} {member.last_name}</p>
                             <p className="text-[9px] text-gray-400 font-medium">{member.department || 'Congregation'}</p>
                           </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-                            isChosen ? 'text-indigo-700 bg-indigo-100 border-indigo-200' : 'text-gray-400 bg-gray-50 border-gray-100'
-                          }`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${isChosen ? 'text-indigo-700 bg-indigo-100 border-indigo-200' : 'text-gray-400 bg-gray-50 border-gray-100'}`}>
                             {isChosen ? 'Selected ✓' : 'Add +'}
                           </span>
                         </div>
@@ -776,9 +698,48 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                 )}
               </div>
             </div>
-          </div>
-        )}
 
+            {/* 2. MESSAGE COMPOSITION INPUT TEXT FORM FIELDS MOVED SECURELY BELOW */}
+            {selectedRecipients.length > 0 && (
+              <form onSubmit={dispatchPrivateMessage} className="space-y-4 animate-in fade-in duration-200 text-left bg-indigo-50/10 p-3.5 border border-indigo-100/40 rounded-2xl pb-4">
+                <div>
+                  <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Subject / Purpose</label>
+                  <input type="text" value={chatSubject} onChange={e => setChatSubject(e.target.value)} placeholder="Enter message subject..." className="w-full p-3.5 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-bold text-gray-700 shadow-sm transition-all text-slate-800" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Message Details</label>
+                  <textarea rows={3} value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Write your private message here..." className="w-full p-4 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-gray-700 resize-none shadow-sm text-slate-800" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Attach Document / Photo (Optional)</label>
+                  <div className="relative flex items-center justify-center w-full bg-white ring-1 ring-gray-200/50 rounded-xl p-3 hover:bg-gray-100/70 transition-colors shadow-sm">
+                  <input 
+                      type="file" 
+                      accept="image/*,application/pdf" 
+                      onChange={e => { if (e.target.files && e.target.files[0]) { setSelectedFile(e.target.files[0]); } }} 
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
+                    />
+                    <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+                      {selectedFile ? <Paperclip size={14} className="text-indigo-600" /> : <Upload size={14} />}
+                      <span>{selectedFile ? selectedFile.name : 'Choose attachment...'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button 
+                  type="submit" 
+                  disabled={transmitting || !chatMessage.trim()} 
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 text-white font-bold py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2 text-sm transition-all" 
+                >
+                  {transmitting ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} 
+                  Send to {selectedRecipients.length} Members
+                </button>
+              </form>
+            )}
+
+          </div>
+            
+        )}
       </div>
 
       {/* 🟢 ITEM 7: THREAD EMAIL CONVERSATION HISTORY INSPECTION OVERLAY */} 
