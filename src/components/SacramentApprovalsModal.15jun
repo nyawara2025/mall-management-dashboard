@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Award, Calendar, User, Heart, CheckCircle, FileText, XCircle, Loader2 } from 'lucide-react';
+import { X, Award, Calendar, User, Heart, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 interface SacramentApprovalsModalProps {
   isOpen: boolean;
@@ -12,8 +12,6 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [actioningId, setActioningId] = useState<number | null>(null);
- 
-  const [reviewingApp, setReviewingApp] = useState<any | null>(null);
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -221,12 +219,6 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
                     >
                       {actioningId === currentApp.id ? <Loader2 className="animate-spin" size={14} /> : <XCircle size={14} />} Decline
                     </button>
-                    
-                    {/* NEW! THIRD BUTTON: REVIEW RECORD */}
-                    <button onClick={() => setReviewingApp(currentApp)} className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs uppercase tracking-wider transition-all border border-slate-200" >
-                      <FileText size={14} /> Review Record
-                    </button>
-
                   </div>
 
                 </div>
@@ -235,74 +227,7 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
           )}
         </div>
 
-        {/* READ-ONLY REVIEW MODAL SCREEN OVERLAY */}
-        {reviewingApp && (
-          <div className="absolute inset-0 bg-white z-50 flex flex-col animate-in slide-in-from-right duration-200 text-slate-800">
-            <div className="p-6 bg-slate-900 text-white flex justify-between items-center flex-shrink-0">
-              <div>
-                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 bg-blue-500 rounded text-white">
-                  {reviewingApp?.sacrament || 'BAPTISM'} FILE
-                </span>
-                <h3 className="text-lg font-black uppercase tracking-tight mt-1">
-                  {reviewingApp?.candidate_name || 'Review Intake Record'}
-                </h3>
-              </div>
-              <button onClick={() => setReviewingApp(null)} className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white">
-                <X size={20}/>
-              </button>
-            </div>
-
-            <div className="p-6 flex-1 overflow-y-auto space-y-6 bg-slate-50 text-xs">
-              <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
-                <div>
-                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-2">1. Master Candidate Record</p>
-                  <div className="grid grid-cols-2 gap-y-2 gap-x-4 border-b pb-3 border-dashed">
-                    <div><span className="font-bold text-slate-400 uppercase block text-[10px]">Full Name</span> <p className="font-semibold text-slate-800 text-sm mt-0.5">{reviewingApp?.candidate_name || "N/A"}</p></div>
-                    <div><span className="font-bold text-slate-400 uppercase block text-[10px]">Date of Birth</span> <p className="font-semibold text-slate-800 text-sm mt-0.5">{reviewingApp?.dob || "N/A"}</p></div>
-                    <div><span className="font-bold text-slate-400 uppercase block text-[10px]">Residence</span> <p className="font-semibold text-slate-800 text-sm mt-0.5">{reviewingApp?.residential_address || "N/A"}</p></div>
-                    <div><span className="font-bold text-slate-400 uppercase block text-[10px]">P.O. Box</span> <p className="font-semibold text-slate-800 text-sm mt-0.5">{reviewingApp?.po_box || "N/A"}</p></div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 pt-3 text-slate-700">
-                    <div><span className="font-bold text-slate-400 uppercase block text-[10px]">Office Tel</span> {reviewingApp?.office_tel || "N/A"}</div>
-                    <div><span className="font-bold text-slate-400 uppercase block text-[10px]">House Tel</span> {reviewingApp?.house_tel || "N/A"}</div>
-                    <div><span className="font-bold text-slate-400 uppercase block text-[10px]">Regularity Flag</span> <span className="font-bold text-blue-600 uppercase">{reviewingApp?.attends_regularly || "N/A"}</span></div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-2">
-                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-2">2. Biological Parents Info</p>
-                  <div><span className="font-bold text-slate-400 uppercase block text-[10px]">Father's Full Name</span> <p className="font-semibold text-slate-800 mt-0.5">{reviewingApp?.father_name || "N/A"}</p></div>  
-                  <div className="pt-2"><span className="font-bold text-slate-400 uppercase block text-[10px]">Mother's Full Name</span> <p className="font-semibold text-slate-800 mt-0.5">{reviewingApp?.mother_name || "N/A"}</p></div>
-                </div>
-
-                <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-2">
-                  <p className="text-[10px] font-black text-blue-600 uppercase tracking-wider mb-2">3. Witnesses & Godparents</p>
-                  <div className="border-b border-dashed pb-2">
-                    <span className="font-bold text-slate-400 uppercase block text-[10px]">First Witness (S1)</span>
-                    <p className="font-semibold text-slate-800 mt-0.5">{reviewingApp?.sponsor_name_1 || "N/A"}</p>
-                    <span className="text-[10px] font-bold text-slate-500">Anglican Communicant: {reviewingApp?.sponsor_is_anglican_1 || "N/A"}</span>
-                  </div>
-                  <div className="pt-1">
-                    <span className="font-bold text-slate-400 uppercase block text-[10px]">Second Witness (S2)</span>
-                    <p className="font-semibold text-slate-800 mt-0.5">{reviewingApp?.sponsor_name_2 || "N/A"}</p>
-                    <span className="text-[10px] font-bold text-slate-500">Anglican Communicant: {reviewingApp?.sponsor_is_anglican_2 || "N/A"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-4 bg-slate-100 border-t flex justify-end flex-shrink-0">
-              <button onClick={() => setReviewingApp(null)} className="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-colors">
-                Close Inspection
-              </button>
-            </div>
-          </div>
-        )}
-
       </div>
     </div>
   );
 };
-
