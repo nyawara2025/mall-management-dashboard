@@ -658,7 +658,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
               )}
 
               {/* Selection checklist view loop row items grid area */}
-              <div className="max-h-[14vh] overflow-y-auto space-y-1.5 pr-1">
+              <div className="h-[22vh] max-h-[160px] overflow-y-auto space-y-1.5 pr-1 text-slate-800 bg-white rounded-xl p-1">
                 {loading ? (
                   <p className="text-center py-4 text-xs font-bold uppercase animate-pulse text-gray-400">Loading records...</p>
                 ) : chatSubject.trim() || chatMessage.trim() ? (
