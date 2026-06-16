@@ -586,85 +586,75 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
         ) : (
 
           /* TAB 2: SEND NEW / CONTACTS COMPOSITION COMPONENT VIEW */
-          <div className="space-y-4 w-full">
+          <div className="space-y-4 w-full flex-1 flex flex-col">
             
-            {/* 1. RECIPIENT SELECTION CONTROLS CARDS PLACED AT THE VERY TOP */}
+            {/* CARD 1: RECIPIENT SELECTION BOX (Stays locked at the top of the view) */}
             <div className="border border-gray-100 rounded-2xl p-4 bg-gray-50/50 space-y-3 flex-shrink-0">
               <div className="flex justify-between items-center">
                 <label className="text-[10px] font-black text-gray-400 uppercase block tracking-wider">
                   Select Recipients ({selectedRecipients.length} Chosen)
                 </label>
-                {selectedRecipients.length > 0 && !isCreatingList && !chatSubject.trim() && !chatMessage.trim() && (
+                {selectedRecipients.length > 0 && !isCreatingList && (
                   <button type="button" onClick={() => setIsCreatingList(true)} className="text-[10px] font-black text-indigo-600 hover:underline">
-                    Save As List Template
+                    Save Current Selection as List
                   </button>
                 )}
               </div>
 
-              {/* Hide mailing lists template boxes once member starts typing message detail columns */}
-              {!chatSubject.trim() && !chatMessage.trim() && (
-                <div className="bg-white border border-gray-100 p-2.5 rounded-xl space-y-2 text-xs animate-in fade-in duration-200">
-                  <span className="font-bold text-gray-500 text-[10px] uppercase block">Mailing Lists Templates</span>
-                  {isCreatingList ? (
-                    <div className="flex gap-1.5 items-center">
-                      <input type="text" placeholder="List name (e.g. Choir Group)..." className="flex-1 p-1.5 bg-gray-50 border border-gray-200 rounded-md text-[11px] font-medium outline-none text-slate-800" value={newListName} onChange={e => setNewListName(e.target.value)} />
-                      <button type="button" onClick={handleSaveMailingList} className="bg-indigo-600 text-white px-2 py-1.5 rounded-md font-bold text-[10px]">Save</button>
-                      <button type="button" onClick={() => { setIsCreatingList(false); setNewListName(''); }} className="text-gray-400 px-1 font-bold text-[10px]">Cancel</button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-wrap gap-1">
-                      {isLoadingLists ? (
-                        <span className="text-[10px] text-gray-400 italic">Syncing groups...</span>
-                      ) : mailingLists.length === 0 ? (
-                        <span className="text-[10px] text-gray-300 italic">No saved lists found. Select members to save a shortcut.</span>
-                      ) : (
-                        mailingLists
-                          .filter((list: any) => {
-                            if (!list.members) return false;
-                            const roster = typeof list.members === 'string' ? JSON.parse(list.members) : list.members;
-                            return Array.isArray(roster) && roster.some((m: any) => Number(m.id || m.member_id) === Number(userData?.id));
-                          })
-                          .map((list: any) => (
-                            <button key={list.id} type="button" onClick={() => handleApplyMailingList(list)} className="bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 text-gray-700 hover:text-indigo-700 px-2 py-1 rounded-md text-[10px] font-bold transition-all">
-                              👥 {list.list_name} ({list.members?.length || 0})
-                            </button>
-                          ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Mailing List Shortcuts Selection Row */}
+              <div className="bg-white border border-gray-100 p-2.5 rounded-xl space-y-2 text-xs">
+                <span className="font-bold text-gray-500 text-[10px] uppercase block">Mailing Lists Templates</span>
+                {isCreatingList ? (
+                  <div className="flex gap-1.5 items-center animate-in fade-in duration-100">
+                    <input type="text" placeholder="List name (e.g. Choir Group)..." className="flex-1 p-1.5 bg-gray-50 border border-gray-200 rounded-md text-[11px] font-medium outline-none text-slate-800" value={newListName} onChange={e => setNewListName(e.target.value)} />
+                    <button type="button" onClick={handleSaveMailingList} className="bg-indigo-600 text-white px-2 py-1.5 rounded-md font-bold text-[10px]">Save</button>
+                    <button type="button" onClick={() => { setIsCreatingList(false); setNewListName(''); }} className="text-gray-400 px-1 font-bold text-[10px]">Cancel</button>
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-1">
+                    {isLoadingLists ? (
+                      <span className="text-[10px] text-gray-400 italic">Syncing groups...</span>
+                    ) : mailingLists.length === 0 ? (
+                      <span className="text-[10px] text-gray-300 italic">No saved lists found.</span>
+                    ) : (
+                      mailingLists
+                        .filter((list: any) => {
+                          if (!list.members) return false;
+                          const roster = typeof list.members === 'string' ? JSON.parse(list.members) : list.members;
+                          return Array.isArray(roster) && roster.some((m: any) => Number(m.id || m.member_id) === Number(userData?.id));
+                        })
+                        .map((list: any) => (
+                          <button key={list.id} type="button" onClick={() => handleApplyMailingList(list)} className="bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 text-gray-700 hover:text-indigo-700 px-2 py-1 rounded-md text-[10px] font-bold transition-all">
+                            👥 {list.list_name} ({list.members?.length || 0})
+                          </button>
+                        ))
+                    )}
+                  </div>
+                )}
+              </div>
 
-              {/* Hide Live Filter Search row field block completely while member types text parameters */}
-              {!chatSubject.trim() && !chatMessage.trim() && (
-                <div className="relative animate-in fade-in duration-200">
-                  <Search className="absolute left-3 top-3 text-gray-400 w-3.5 h-3.5" />
-                  <input type="text" placeholder="Search member by name..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-9 pr-4 p-2 bg-white border border-gray-200 rounded-lg font-medium text-xs outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800" />
-                </div>
-              )}
+              {/* Live Filtering Search Input Row */}
+              <div className="relative">
+                <Search className="absolute left-3 top-3 text-gray-400 w-3.5 h-3.5" />
+                <input type="text" placeholder="Search member by name..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-9 pr-4 p-2 bg-white border border-gray-200 rounded-lg font-medium text-xs outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800" />
+              </div>
 
-              {/* Selected Badges Array Strip Grid */}
+              {/* Selected Recipient Badges Display Box */}
               {selectedRecipients.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 p-2 bg-white border border-gray-100 rounded-xl max-h-[10vh] overflow-y-auto">
+                <div className="flex flex-wrap gap-1.5 p-2 bg-white border border-gray-100 rounded-xl max-h-[8vh] overflow-y-auto animate-in fade-in duration-150">
                   {selectedRecipients.map(recipient => (
                     <span key={recipient.id} className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-indigo-100">
                       {recipient.first_name} {recipient.last_name}
-                      {!chatSubject.trim() && !chatMessage.trim() && (
-                        <button type="button" onClick={() => handleToggleRecipient(recipient)} className="hover:bg-indigo-200/60 ml-0.5 px-1 rounded text-indigo-500 hover:text-indigo-700 font-black text-xs">&times;</button>
-                      )}
+                      <button type="button" onClick={() => handleToggleRecipient(recipient)} className="hover:bg-indigo-200/60 ml-0.5 px-1 rounded text-indigo-500 hover:text-indigo-700 font-black text-xs">&times;</button>
                     </span>
                   ))}
                 </div>
               )}
 
-              {/* Selection checklist view loop row items grid area */}
-              <div className="h-[22vh] max-h-[160px] overflow-y-auto space-y-1.5 pr-1 text-slate-800 bg-white rounded-xl p-1">
+              {/* Vertical Checklist Member Directory (Fixed height and scrollable) */}
+              <div className="h-[18vh] max-h-[140px] overflow-y-auto space-y-1.5 pr-1 bg-white rounded-xl p-1 border border-gray-100 shadow-inner">
                 {loading ? (
                   <p className="text-center py-4 text-xs font-bold uppercase animate-pulse text-gray-400">Loading records...</p>
-                ) : chatSubject.trim() || chatMessage.trim() ? (
-                  <p className="text-left py-1 text-[11px] font-semibold text-slate-400 italic animate-in fade-in">
-                    Directory selector collapsed. Clear text fields below to modify recipient list selection.
-                  </p>
                 ) : filteredContacts.length === 0 ? (
                   <p className="text-center py-4 text-xs italic text-gray-400">No matching members found.</p>
                 ) : (
@@ -699,9 +689,9 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
               </div>
             </div>
 
-            {/* 2. MESSAGE COMPOSITION INPUT TEXT FORM FIELDS MOVED SECURELY BELOW */}
+            {/* CARD 2: MESSAGE COMPOSITION FIELDS (Sits cleanly below the recipient selection tools) */}
             {selectedRecipients.length > 0 && (
-              <form onSubmit={dispatchPrivateMessage} className="space-y-4 animate-in fade-in duration-200 text-left bg-indigo-50/10 p-3.5 border border-indigo-100/40 rounded-2xl pb-4">
+              <form onSubmit={dispatchPrivateMessage} className="space-y-4 animate-in fade-in duration-200 text-left bg-indigo-50/10 p-3.5 border border-indigo-100/40 rounded-2xl pb-4 overflow-y-visible">
                 <div>
                   <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Subject / Purpose</label>
                   <input type="text" value={chatSubject} onChange={e => setChatSubject(e.target.value)} placeholder="Enter message subject..." className="w-full p-3.5 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-bold text-gray-700 shadow-sm transition-all text-slate-800" />
@@ -710,10 +700,12 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                   <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Message Details</label>
                   <textarea rows={3} value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Write your private message here..." className="w-full p-4 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-gray-700 resize-none shadow-sm text-slate-800" />
                 </div>
+   
+
                 <div>
                   <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Attach Document / Photo (Optional)</label>
                   <div className="relative flex items-center justify-center w-full bg-white ring-1 ring-gray-200/50 rounded-xl p-3 hover:bg-gray-100/70 transition-colors shadow-sm">
-                  <input 
+                    <input 
                       type="file" 
                       accept="image/*,application/pdf" 
                       onChange={e => { if (e.target.files && e.target.files[0]) { setSelectedFile(e.target.files[0]); } }} 
@@ -725,20 +717,11 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                     </div>
                   </div>
                 </div>
+             
 
-                <button 
-                  type="submit" 
-                  disabled={transmitting || !chatMessage.trim()} 
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 text-white font-bold py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2 text-sm transition-all" 
-                >
-                  {transmitting ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />} 
-                  Send to {selectedRecipients.length} Members
-                </button>
-              </form>
-            )}
-
+             </form>
+            )} 
           </div>
-            
         )}
       </div>
 
