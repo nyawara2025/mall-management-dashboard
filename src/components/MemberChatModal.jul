@@ -8,7 +8,7 @@ interface MemberChatModalProps {
 }
 
 export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClose, userData }) => {
-  const [activeTab, setActiveTab] = useState('history');
+  const [activeTab, setActiveTab] = useState<'contacts' | 'history'>('contacts');
   
   const [membersList, setMembersList] = useState<any[]>([]);
   const [receivedMessages, setReceivedMessages] = useState<any[]>([]);
@@ -397,21 +397,21 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
         <div className="flex border-b border-gray-100 p-2 gap-2 bg-gray-50">
           <button
             type="button"
-            onClick={() => setActiveTab('history')}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'history' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            <History size={14} /> Inbox Mailbox
-          </button>
-          <button
-            type="button"
             onClick={() => setActiveTab('contacts')}
             className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
               activeTab === 'contacts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
             <MessageCircle size={14} /> Send New
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('history')}
+            className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+              activeTab === 'history' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            <History size={14} /> Inbox Mailbox
           </button>
         </div>
 
