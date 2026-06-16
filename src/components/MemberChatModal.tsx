@@ -8,12 +8,8 @@ interface MemberChatModalProps {
 }
 
 export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClose, userData }) => {
-  const [activeTab, setActiveTab] = useState<'history' | 'contacts'>('history');
+  const [activeTab, setActiveTab] = useState<'contacts' | 'history'>('contacts');
   
-  // 2. Thread History Inspection State
-  // When a member clicks a message, we'll store it here to open the thread depth view
-  const [selectedThreadMsg, setSelectedThreadMsg] = useState<any | null>(null);
-
   const [membersList, setMembersList] = useState<any[]>([]);
   const [receivedMessages, setReceivedMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -401,53 +397,302 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
         <div className="flex border-b border-gray-100 p-2 gap-2 bg-gray-50">
           <button
             type="button"
-            onClick={() => {
-              setActiveTab('history');
-              setSelectedThreadMsg(null);
-            }}
+            onClick={() => setActiveTab('contacts')}
+            className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+              activeTab === 'contacts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            <MessageCircle size={14} /> Send New
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('history')}
             className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
               activeTab === 'history' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
             <History size={14} /> Inbox Mailbox
           </button>
-
-          <button 
-            type="button" 
-            onClick={() => {
-              setActiveTab('contacts');
-              setSelectedThreadMsg(null);
-            }} 
-            className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'contacts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-
-            <MessageCircle size={14} /> Send New
-          </button>
         </div>
 
-        {activeTab === 'history' ? (
-          <div className="overflow-y-auto space-y-3 pr-1 flex-1">
-            {loading ? (
-              <p className="text-center py-10 text-xs font-bold uppercase animate-pulse text-gray-400">Opening mailbox...</p>
-            ) : receivedMessages.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
-                <History size={36} className="mx-auto mb-2 opacity-30" />
-                <p className="text-xs font-bold uppercase tracking-wider">Your Inbox is Empty</p>
-                <p className="text-[11px] text-gray-400 mt-1">Messages sent to you will appear here.</p>
+        {/* Layout Panels Content Area */}
+        <div className="p-6 flex flex-col flex-1 overflow-y-auto min-h-[40vh] max-h-[55vh]">
+          {activeTab === 'contacts' ? (
+            <div className="space-y-4">
+
+              {/* 🟢 STEP 1: Bring the Composition Message Input Form to the very top */}
+              {selectedRecipients.length > 0 && (
+                <form onSubmit={dispatchPrivateMessage} className="space-y-4 animate-in fade-in duration-200 text-left bg-indigo-50/10 p-3.5 border border-indigo-100/40 rounded-2xl">
+
+                  {/* 🟢 NEW: SUBJECT INPUT ROW FIELD */}
+                  <div>
+                    <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Subject / Purpose</label>
+                    <input 
+                      type="text"
+                      value={chatSubject}
+                      onChange={e => setChatSubject(e.target.value)}
+                      placeholder="Enter message subject (e.g. Choir Rehearsal Notice)..."
+                      className="w-full p-3.5 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-bold text-gray-700 shadow-sm transition-all"
+                    />
+                  </div>
+
+                  {/* Existing Message Details textarea block follows seamlessly below */}
+                  <div>
+                    <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Message Details</label>
+                    <textarea
+                      rows={3}
+                      value={chatMessage}
+                      onChange={e => setChatMessage(e.target.value)}
+                      placeholder="Write your private message here..."
+                      className="w-full p-4 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-gray-700 resize-none shadow-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Message Details</label>
+                    <textarea
+                      rows={3}
+                      value={chatMessage}
+                      onChange={e => setChatMessage(e.target.value)}
+                      placeholder="Write your private message here..."
+                      className="w-full p-4 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-gray-700 resize-none shadow-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Attach Document / Photo (Optional)</label>
+                    <div className="relative flex items-center justify-center w-full bg-white ring-1 ring-gray-200/50 rounded-xl p-3 hover:bg-gray-100/70 transition-colors shadow-sm">
+                      <input 
+                        type="file"
+                        accept="image/*,application/pdf"
+                        onChange={e => {
+                          if (e.target.files && e.target.files[0]) {
+                            setSelectedFile(e.target.files[0]);
+                          }
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                      <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
+                        {selectedFile ? <Paperclip size={14} className="text-indigo-600" /> : <Upload size={14} />}
+                        <span>{selectedFile ? selectedFile.name : 'Choose attachment...'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={transmitting || !chatMessage.trim()}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-200 text-white font-bold py-3.5 rounded-xl shadow-md flex items-center justify-center gap-2 text-sm transition-all"
+                  >
+                    {transmitting ? <Loader2 className="animate-spin" size={16} /> : <Send size={16} />}
+                    Send to {selectedRecipients.length} Members
+                  </button>
+                </form>
+              )}
+
+              {/* Directory Contact Picker Box */}
+              <div className="border border-gray-100 rounded-2xl p-4 bg-gray-50/50 space-y-3">
+                <label className="text-[10px] font-black text-gray-400 uppercase block tracking-wider">
+                  Select Recipients ({selectedRecipients.length} Chosen)
+                </label>
+                
+                {/* --- NEW: MAILING LIST MANAGEMENT CONTEXT PANEL --- */}
+                <div className="bg-white border border-gray-100 p-2.5 rounded-xl space-y-2 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-gray-500 text-[10px] uppercase">Mailing Lists Templates</span>
+                    {selectedRecipients.length > 0 && !isCreatingList && (
+                      <button
+                        type="button"
+                        onClick={() => setIsCreatingList(true)}
+                        className="text-[10px] font-black text-indigo-600 hover:underline"
+                      >
+                        Save Current Selection as List
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Form to name and save a list */}
+                  {isCreatingList ? (
+                    <div className="flex gap-1.5 items-center animate-in fade-in duration-100">
+                      <input 
+                        type="text"
+                        placeholder="List name (e.g. Choir Group)..."
+                        className="flex-1 p-1.5 bg-gray-50 border border-gray-200 rounded-md text-[11px] font-medium outline-none"
+                        value={newListName}
+                        onChange={e => setNewListName(e.target.value)}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={handleSaveMailingList} 
+                        className="bg-indigo-600 text-white px-2 py-1.5 rounded-md font-bold text-[10px]"
+                      >
+                        Save
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => { setIsCreatingList(false); setNewListName(''); }} 
+                        className="text-gray-400 px-1 font-bold text-[10px]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    /* Display list templates selection triggers */
+                    <div className="flex flex-wrap gap-1">
+                      {isLoadingLists ? (
+                        <span className="text-[10px] text-gray-400 italic">Syncing groups...</span>
+                      ) : mailingLists.length === 0 ? (
+                        <span className="text-[10px] text-gray-300 italic">No saved lists found. Select members to save a shortcut.</span>
+                      ) : (
+                        mailingLists.map((list) => (
+                          <button
+                            key={list.id}
+                            type="button"
+                            onClick={() => handleApplyMailingList(list)}
+                            className="bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 text-gray-700 hover:text-indigo-700 px-2 py-1 rounded-md text-[10px] font-bold transition-all"
+                          >
+                            👥 {list.list_name} ({list.members?.length || 0})
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 text-gray-400 w-3.5 h-3.5" />
+                  <input 
+                    type="text"
+                    placeholder="Search member by name..."
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 p-2 bg-white border border-gray-200 rounded-lg font-medium text-xs outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {/* NEW: Dedicated display layout block for Selected Recipients Badges */}
+                {selectedRecipients.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 p-2 bg-white border border-gray-100 rounded-xl max-h-[10vh] overflow-y-auto animate-in fade-in duration-150">
+                    {selectedRecipients.map(recipient => (
+                      <span 
+                        key={recipient.id} 
+                        className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-indigo-100"
+                      >
+                        {recipient.first_name} {recipient.last_name}
+                        <button
+                          type="button"
+                          onClick={() => handleToggleRecipient(recipient)}
+                          className="hover:bg-indigo-200/60 ml-0.5 px-1 rounded text-indigo-500 hover:text-indigo-700 font-black text-xs"
+                        >
+                          &times;
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Vertical checklist view layout grid tracking */}
+                <div className="max-h-[16vh] overflow-y-auto space-y-1.5 pr-1">
+                  {loading ? (
+                    <p className="text-center py-4 text-xs font-bold uppercase animate-pulse text-gray-400">Loading congregation records...</p>
+                  ) : (
+                    filteredContacts
+                      .filter(member => {
+                        // 🟢 STEP 1: Evaluate if this person matches what the user typed in the search bar
+                        const matchesSearch = 
+                          member.first_name?.toLowerCase().includes(search.toLowerCase()) ||
+                          member.last_name?.toLowerCase().includes(search.toLowerCase());
+
+                        // 🟢 STEP 2: Evaluate if this person has been selected
+                        const isChosen = selectedRecipients.some(r => Number(r.id) === Number(member.id));
+
+                        // 🟢 STEP 3: If searching, show matching available contacts (even if not chosen yet)
+                        if (search.trim() !== '') {
+                          return matchesSearch;
+                        }
+
+                        // 🟢 STEP 4: If a mailing list group template is active, show only those chosen group members
+                        if (activeGroupContext !== '') {
+                          return isChosen;
+                        }
+
+                        // 🟢 STEP 5: Default state (no search, no group template clicked)
+                        // Show already selected badges + unselected directory rows so the user can see everything
+                        return true; 
+                      })
+
+                      // 🟢 ADD THIS SORT BLOCK HERE TO PUSH CHOSEN NAMES TO THE TOP
+                      .sort((a, b) => {
+                        const aChosen = selectedRecipients.some(r => Number(r.id) === Number(a.id));
+                        const bChosen = selectedRecipients.some(r => Number(r.id) === Number(b.id));
+                        
+                        // If 'a' is chosen and 'b' is not, move 'a' up (returns -1)
+                        // If 'b' is chosen and 'a' is not, move 'b' up (returns 1)
+                        return (aChosen === bChosen) ? 0 : aChosen ? -1 : 1;
+                      })
+                      // 🟢 THE EXISTING MAP BLOCK SEAMLESSLY CONTINUES UNTOUCHED BELOW        
+
+                      .map(member => {
+                        const isChosen = selectedRecipients.some(r => Number(r.id) === Number(member.id));
+        
+                        return (
+                          <div 
+                            key={member.id}
+                            onClick={() => handleToggleRecipient(member)}
+                            className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all bg-white ${
+                              isChosen 
+                                ? 'border-indigo-200 bg-indigo-50/20 shadow-sm' 
+                                : 'border-gray-100 hover:bg-gray-50'
+                            }`}
+                          >
+                            <div>
+                              <p className="font-bold text-gray-900 text-xs">{member.first_name} {member.last_name}</p>
+                              <p className="text-[9px] text-gray-400 font-medium">{member.department || 'Congregation'}</p>
+                            </div>
+            
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                              isChosen
+                                ? 'text-indigo-700 bg-indigo-100 border-indigo-200'
+                                : 'text-gray-400 bg-gray-50 border-gray-100'
+                            }`}>
+                              {isChosen ? 'Selected ✓' : 'Add +'}
+                            </span>
+                          </div>
+                        );
+                      })
+                  )}
+                </div>
+
+                  
+                  {/* Empty fallback display notice check */}
+                {!loading && filteredContacts.filter(member => {
+                  return selectedRecipients.some(r => Number(r.id) === Number(member.id));
+                }).length === 0 && (
+                  <p className="text-center py-4 text-xs italic text-gray-400">No matching thread members found.</p>
+                )}
               </div>
-            ) : (
-              // 🟢 ITEM 3: Sort array dynamically to ensure newest message dates appear on top
-              [...receivedMessages]
-                .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                .map((msg: any) => {
+            </div>
+          ) : (
+            /* Inbox Received Messaging Logs view */
+            <div className="overflow-y-auto space-y-3 pr-1">
+              {loading ? (
+                <p className="text-center py-10 text-xs font-bold uppercase animate-pulse text-gray-400">Opening mailbox...</p>
+              ) : receivedMessages.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <History size={36} className="mx-auto mb-2 opacity-30" />
+                  <p className="text-xs font-bold uppercase tracking-wider">Your Inbox is Empty</p>
+                  <p className="text-[11px] text-gray-400 mt-1">Messages sent to you will appear here.</p>
+                </div>
+              ) : (
+                receivedMessages.map((msg: any) => {
                   let coRecipients: string[] = [];
                   let hasMultipleRecipients = false;
-                  
+
                   try {
                     if (msg.all_recipients_json) {
-                      const parsed = typeof msg.all_recipients_json === 'string' ? JSON.parse(msg.all_recipients_json) : msg.all_recipients_json;
+                      const parsed = typeof msg.all_recipients_json === 'string' 
+                        ? JSON.parse(msg.all_recipients_json) 
+                        : msg.all_recipients_json;
                       if (Array.isArray(parsed)) {
                         coRecipients = parsed
                           .filter((r: any) => r.id !== userData?.id)
@@ -457,6 +702,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                       const names = msg.recipient_names.split(',');
                       const ids = msg.recipient_ids.split(',');
                       const userIdx = ids.indexOf(userData?.id?.toString());
+                      
                       coRecipients = names.filter((_: any, idx: number) => idx !== userIdx);
                     }
                     hasMultipleRecipients = coRecipients.length > 0;
@@ -464,32 +710,11 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                     console.error("Error evaluating recipient metadata:", e);
                   }
 
-                  // Check for unread status flag properties
-                  const isUnread = msg.is_read === false || msg.status === 'unread';
-
                   return (
-                    <div 
-                      key={msg.id} 
-                      onClick={() => setSelectedThreadMsg(msg)} // Clicking opens depth history thread view
-                      className={`p-4 rounded-2xl border text-left animate-in fade-in duration-100 cursor-pointer transition-all hover:border-indigo-200 ${
-                        isUnread ? 'bg-indigo-50/30 border-indigo-100 shadow-sm' : 'bg-gray-50 border-gray-100'
-                      }`}
-                    >
-                      {/* Meta Envelope Strip */}
+                    <div key={msg.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2 text-left animate-in fade-in duration-100">
                       <div className="flex justify-between items-start text-[10px] font-black text-indigo-600 uppercase">
                         <div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span>From: {msg.sender_name || 'Anonymous Member'}</span>
-                            
-                            {/* 🟢 ITEM 6: Dynamic Visual Unread Indicators Badge */}
-                            {isUnread && (
-                              <span className="bg-indigo-600 text-white text-[8px] font-black tracking-widest px-1.5 py-0.5 rounded uppercase animate-pulse">
-                                New
-                              </span>
-                            )}
-                          </div>
-                          
-                          {/* Item 4 Context: Displaying other recipients on the mailing list to the member */}
+                          <span>From: {msg.sender_name || 'Anonymous Member'}</span>
                           {hasMultipleRecipients && (
                             <span className="text-[9px] text-gray-400 font-medium block mt-0.5 normal-case max-w-[260px] truncate">
                               <span className="font-bold text-gray-500">To:</span> You, {coRecipients.join(', ')}
@@ -500,22 +725,22 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                           {new Date(msg.created_at).toLocaleDateString()}
                         </span>
                       </div>
-
-                      {/* Subject Context Block */}
+                        
+                      {/* 🟢 NEW: RENDER SUBJECT LINE IF AVAILABLE IN DATA PROPERTIES */}
                       {msg.subject && msg.subject.trim() !== "" && (
-                        <div className="bg-white border border-gray-100 px-2.5 py-1.5 rounded-xl mt-1.5">
-                          <p className="text-[10px] uppercase font-black tracking-wider text-indigo-500 block mb-0.5">Subject / Purpose</p>
-                          <p className="text-xs font-bold text-gray-800 leading-snug">{msg.subject}</p>
+                        <div className="bg-indigo-50/40 border border-indigo-100/30 px-2.5 py-1.5 rounded-xl">
+                          <p className="text-[10px] uppercase font-black tracking-wider text-indigo-500 block mb-0.5">
+                            Subject / Purpose
+                          </p>
+                          <p className="text-xs font-bold text-gray-800 leading-snug">
+                            {msg.subject}
+                          </p>
                         </div>
                       )}
 
-                      {/* Snippet message body */}
-                      <p className="text-sm text-gray-700 font-medium leading-relaxed break-words py-1 line-clamp-2 mt-1">
-                        {msg.message}
-                      </p>
-
-                      {/* Action Row Footer Controls */}
-                      <div className="pt-2 border-t border-gray-200/40 flex items-center justify-between mt-1 gap-2" onClick={e => e.stopPropagation()}>
+                      <p className="text-sm text-gray-700 font-medium leading-relaxed break-words">{msg.message}</p>
+                      
+                      <div className="pt-2 border-t border-gray-200/60 flex items-center justify-between mt-1 gap-2">
                         {msg.pdf_url && msg.pdf_url.trim() !== "" ? (
                           <a 
                             href={msg.pdf_url} 
@@ -529,277 +754,64 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                           <span className="text-[9px] font-bold text-gray-300">No Attachment</span>
                         )}
 
-                        <div className="flex gap-1.5">
-                          {/* 1-on-1 Direct Reply */}
-                          <button 
-                            type="button" 
+                         <div className="flex gap-1.5">
+                          <button
+                            type="button"
                             onClick={() => {
                               setActiveGroupContext('');
-                              setSelectedRecipients([{ 
-                                id: msg.sender_id, 
-                                first_name: msg.sender_name?.split(' ')[0] || 'Sender', 
-                                last_name: msg.sender_name?.split(' ')[1] || '' 
+                              setSelectedRecipients([{
+                                id: msg.sender_id,
+                                first_name: msg.sender_name?.split(' ')[0] || 'Sender',
+                                last_name: msg.sender_name?.split(' ')[1] || ''
                               }]);
-                              setChatSubject(msg.subject ? `Re: ${msg.subject.replace(/^Re:\s*/i, '')}` : 'Re: Private Message');
                               setActiveTab('contacts');
-                            }} 
+                            }}
                             className="text-[9px] bg-indigo-50 hover:bg-indigo-600 border border-indigo-100 font-black text-indigo-600 hover:text-white px-2.5 py-1.5 rounded-lg transition-colors"
                           >
                             Reply
                           </button>
 
-                          {/* 👥 Group Reply All */}
                           {hasMultipleRecipients && (
-                            <button 
-                              type="button" 
+                            <button
+                              type="button"
                               onClick={() => {
                                 try {
-                                  const parsedRecipients = typeof msg.all_recipients_json === 'string' ? JSON.parse(msg.all_recipients_json) : msg.all_recipients_json;
+                                  const parsedRecipients = typeof msg.all_recipients_json === 'string'
+                                    ? JSON.parse(msg.all_recipients_json)
+                                    : msg.all_recipients_json;
+
                                   if (Array.isArray(parsedRecipients)) {
-                                    const threadTargets = parsedRecipients.map((r: any) => ({ 
-                                      id: r.id, 
-                                      first_name: r.name?.split(' ')[0] || r.first_name || '', 
-                                      last_name: r.name?.split(' ')[1] || r.last_name || '' 
+                                    const threadTargets = parsedRecipients.map((r: any) => ({
+                                      id: r.id,
+                                      first_name: r.name?.split(' ')[0] || r.first_name || '',
+                                      last_name: r.name?.split(' ')[1] || r.last_name || ''
                                     }));
                                     setSelectedRecipients(threadTargets);
-                                    setChatSubject(msg.subject ? `Re: ${msg.subject.replace(/^Re:\s*/i, '')}` : 'Re: Private Message');
                                     setActiveGroupContext('reply_all_context');
                                     setActiveTab('contacts');
                                   }
                                 } catch (err) {
                                   console.error("Failed to parse reply all thread recipient targets:", err);
                                 }
-                              }} 
+                              }}
                               className="text-[9px] bg-indigo-600 hover:bg-indigo-700 font-black text-white px-2.5 py-1.5 rounded-lg transition-colors shadow-sm"
                             >
                               Reply All
                             </button>
                           )}
                         </div>
-                      </div>
 
+
+
+                      </div>
                     </div>
                   );
                 })
-            )}
-          </div>
-        ) : (
-
-          /* TAB 2: SEND NEW / CONTACTS COMPOSITION COMPONENT VIEW */
-          <div className="space-y-4 w-full flex-1 flex flex-col">
-            
-            {/* CARD 1: RECIPIENT SELECTION BOX (Stays locked at the top of the view) */}
-            <div className="border border-gray-100 rounded-2xl p-4 bg-gray-50/50 space-y-3 flex-shrink-0">
-              <div className="flex justify-between items-center">
-                <label className="text-[10px] font-black text-gray-400 uppercase block tracking-wider">
-                  Select Recipients ({selectedRecipients.length} Chosen)
-                </label>
-                {selectedRecipients.length > 0 && !isCreatingList && (
-                  <button type="button" onClick={() => setIsCreatingList(true)} className="text-[10px] font-black text-indigo-600 hover:underline">
-                    Save Current Selection as List
-                  </button>
-                )}
-              </div>
-
-              {/* Mailing List Shortcuts Selection Row */}
-              <div className="bg-white border border-gray-100 p-2.5 rounded-xl space-y-2 text-xs">
-                <span className="font-bold text-gray-500 text-[10px] uppercase block">Mailing Lists Templates</span>
-                {isCreatingList ? (
-                  <div className="flex gap-1.5 items-center animate-in fade-in duration-100">
-                    <input type="text" placeholder="List name (e.g. Choir Group)..." className="flex-1 p-1.5 bg-gray-50 border border-gray-200 rounded-md text-[11px] font-medium outline-none text-slate-800" value={newListName} onChange={e => setNewListName(e.target.value)} />
-                    <button type="button" onClick={handleSaveMailingList} className="bg-indigo-600 text-white px-2 py-1.5 rounded-md font-bold text-[10px]">Save</button>
-                    <button type="button" onClick={() => { setIsCreatingList(false); setNewListName(''); }} className="text-gray-400 px-1 font-bold text-[10px]">Cancel</button>
-                  </div>
-                ) : (
-                  <div className="flex flex-wrap gap-1">
-                    {isLoadingLists ? (
-                      <span className="text-[10px] text-gray-400 italic">Syncing groups...</span>
-                    ) : mailingLists.length === 0 ? (
-                      <span className="text-[10px] text-gray-300 italic">No saved lists found.</span>
-                    ) : (
-                      mailingLists
-                        .filter((list: any) => {
-                          if (!list.members) return false;
-                          const roster = typeof list.members === 'string' ? JSON.parse(list.members) : list.members;
-                          return Array.isArray(roster) && roster.some((m: any) => Number(m.id || m.member_id) === Number(userData?.id));
-                        })
-                        .map((list: any) => (
-                          <button key={list.id} type="button" onClick={() => handleApplyMailingList(list)} className="bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-200 text-gray-700 hover:text-indigo-700 px-2 py-1 rounded-md text-[10px] font-bold transition-all">
-                            👥 {list.list_name} ({list.members?.length || 0})
-                          </button>
-                        ))
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Live Filtering Search Input Row */}
-              <div className="relative">
-                <Search className="absolute left-3 top-3 text-gray-400 w-3.5 h-3.5" />
-                <input type="text" placeholder="Search member by name..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-9 pr-4 p-2 bg-white border border-gray-200 rounded-lg font-medium text-xs outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800" />
-              </div>
-
-              {/* Selected Recipient Badges Display Box */}
-              {selectedRecipients.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 p-2 bg-white border border-gray-100 rounded-xl max-h-[8vh] overflow-y-auto animate-in fade-in duration-150">
-                  {selectedRecipients.map(recipient => (
-                    <span key={recipient.id} className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-700 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-indigo-100">
-                      {recipient.first_name} {recipient.last_name}
-                      <button type="button" onClick={() => handleToggleRecipient(recipient)} className="hover:bg-indigo-200/60 ml-0.5 px-1 rounded text-indigo-500 hover:text-indigo-700 font-black text-xs">&times;</button>
-                    </span>
-                  ))}
-                </div>
               )}
-
-              {/* Vertical Checklist Member Directory (Fixed height and scrollable) */}
-              <div className="h-[18vh] max-h-[140px] overflow-y-auto space-y-1.5 pr-1 bg-white rounded-xl p-1 border border-gray-100 shadow-inner">
-                {loading ? (
-                  <p className="text-center py-4 text-xs font-bold uppercase animate-pulse text-gray-400">Loading records...</p>
-                ) : filteredContacts.length === 0 ? (
-                  <p className="text-center py-4 text-xs italic text-gray-400">No matching members found.</p>
-                ) : (
-                  filteredContacts
-                    .filter(member => {
-                      const matchesSearch = member.first_name?.toLowerCase().includes(search.toLowerCase()) || member.last_name?.toLowerCase().includes(search.toLowerCase());
-                      const isChosen = selectedRecipients.some(r => Number(r.id) === Number(member.id));
-                      if (search.trim() !== '') return matchesSearch;
-                      if (activeGroupContext !== '') return isChosen;
-                      return true;
-                    })
-                    .sort((a, b) => {
-                      const aChosen = selectedRecipients.some(r => Number(r.id) === Number(a.id));
-                      const bChosen = selectedRecipients.some(r => Number(r.id) === Number(b.id));
-                      return (aChosen === bChosen) ? 0 : aChosen ? -1 : 1;
-                    })
-                    .map(member => {
-                      const isChosen = selectedRecipients.some(r => Number(r.id) === Number(member.id));
-                      return (
-                        <div key={member.id} onClick={() => handleToggleRecipient(member)} className={`p-2 rounded-xl border flex items-center justify-between cursor-pointer transition-all bg-white ${isChosen ? 'border-indigo-200 bg-indigo-50/20 shadow-sm' : 'border-gray-100 hover:bg-gray-50'}`}>
-                          <div>
-                            <p className="font-bold text-gray-900 text-xs">{member.first_name} {member.last_name}</p>
-                            <p className="text-[9px] text-gray-400 font-medium">{member.department || 'Congregation'}</p>
-                          </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${isChosen ? 'text-indigo-700 bg-indigo-100 border-indigo-200' : 'text-gray-400 bg-gray-50 border-gray-100'}`}>
-                            {isChosen ? 'Selected ✓' : 'Add +'}
-                          </span>
-                        </div>
-                      );
-                    })
-                )}
-              </div>
             </div>
-
-            {/* CARD 2: MESSAGE COMPOSITION FIELDS (Sits cleanly below the recipient selection tools) */}
-            {selectedRecipients.length > 0 && (
-              <form onSubmit={dispatchPrivateMessage} className="space-y-4 animate-in fade-in duration-200 text-left bg-indigo-50/10 p-3.5 border border-indigo-100/40 rounded-2xl pb-4 overflow-y-visible">
-                <div>
-                  <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Subject / Purpose</label>
-                  <input type="text" value={chatSubject} onChange={e => setChatSubject(e.target.value)} placeholder="Enter message subject..." className="w-full p-3.5 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-xs font-bold text-gray-700 shadow-sm transition-all text-slate-800" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Message Details</label>
-                  <textarea rows={3} value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="Write your private message here..." className="w-full p-4 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-gray-700 resize-none shadow-sm text-slate-800" />
-                </div>
-   
-
-                <div>
-                  <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Attach Document / Photo (Optional)</label>
-                  <div className="relative flex items-center justify-center w-full bg-white ring-1 ring-gray-200/50 rounded-xl p-3 hover:bg-gray-100/70 transition-colors shadow-sm">
-                    <input 
-                      type="file" 
-                      accept="image/*,application/pdf" 
-                      onChange={e => { if (e.target.files && e.target.files[0]) { setSelectedFile(e.target.files[0]); } }} 
-                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full" 
-                    />
-                    <div className="flex items-center gap-2 text-xs font-bold text-gray-500">
-                      {selectedFile ? <Paperclip size={14} className="text-indigo-600" /> : <Upload size={14} />}
-                      <span>{selectedFile ? selectedFile.name : 'Choose attachment...'}</span>
-                    </div>
-                  </div>
-                </div>
-             
-
-             </form>
-            )} 
-          </div>
-        )}
+          )}
+        </div>
       </div>
-
-      {/* 🟢 ITEM 7: THREAD EMAIL CONVERSATION HISTORY INSPECTION OVERLAY */} 
-      {selectedThreadMsg && ( 
-        <div className="absolute inset-0 bg-white z-50 flex flex-col animate-in slide-in-from-right duration-200 text-slate-800"> 
-          
-          {/* Thread Subject Header */} 
-          <div className="p-6 bg-slate-900 text-white flex justify-between items-center flex-shrink-0"> 
-            <div> 
-              <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 bg-indigo-600 rounded text-white"> 
-                Conversation Thread 
-              </span> 
-              <h3 className="text-base font-black uppercase tracking-tight mt-1 truncate max-w-[280px]"> 
-                {selectedThreadMsg.subject || 'Private Message'} 
-              </h3> 
-            </div> 
-            <button onClick={() => setSelectedThreadMsg(null)} className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all"> 
-              <X size={18}/> 
-            </button> 
-          </div> 
-
-          {/* Chronological Chat Flow Container */} 
-          <div className="p-4 flex-1 overflow-y-auto space-y-4 bg-slate-50"> 
-            {[...receivedMessages] 
-              .filter((m: any) => m.sender_id === selectedThreadMsg.sender_id || m.subject === selectedThreadMsg.subject) 
-              .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) 
-              .map((historicalMsg: any) => { 
-                const isOriginator = historicalMsg.sender_id !== userData?.id; 
-                return ( 
-                  <div key={historicalMsg.id} className={`p-3.5 rounded-2xl max-w-[85%] border shadow-sm flex flex-col text-left transition-all ${isOriginator ? 'bg-white border-slate-100 mr-auto' : 'bg-indigo-600 text-white border-indigo-500 ml-auto'}`} > 
-                    <div className="flex justify-between items-center gap-4 text-[9px] font-black uppercase opacity-60 mb-1"> 
-                      <span>{isOriginator ? historicalMsg.sender_name : 'You'}</span> 
-                      <span>{new Date(historicalMsg.created_at).toLocaleDateString()}</span> 
-                    </div> 
-                    <p className="text-xs font-medium leading-relaxed break-words">{historicalMsg.message}</p> 
-                    {historicalMsg.pdf_url && historicalMsg.pdf_url.trim() !== "" && ( 
-                      <a href={historicalMsg.pdf_url} target="_blank" rel="noopener noreferrer" className={`text-[9px] font-black px-2 py-1 rounded mt-2 text-center border self-start transition-colors ${isOriginator ? 'bg-slate-50 border-slate-200 text-indigo-600 hover:bg-slate-100' : 'bg-indigo-700 border-indigo-500 text-white hover:bg-indigo-800'}`} > 
-                        View Attachment 
-                      </a> 
-                    )} 
-                  </div> 
-                ); 
-              })} 
-          </div> 
-
-          {/* Thread Drawer Footer Controls */} 
-          <div className="p-4 bg-slate-100 border-t flex justify-between items-center flex-shrink-0"> 
-            <button 
-              type="button"
-              onClick={() => { 
-                const targetMsg = selectedThreadMsg; 
-                setSelectedThreadMsg(null); 
-                setActiveGroupContext(''); 
-                setSelectedRecipients([{ 
-                  id: targetMsg.sender_id, 
-                  first_name: targetMsg.sender_name?.split(' ')[0] || 'Sender', 
-                  last_name: targetMsg.sender_name?.split(' ')[1] || '' 
-                }]); 
-                setChatSubject(targetMsg.subject ? `Re: ${targetMsg.subject.replace(/^Re:\s*/i, '')}` : 'Re: Private Message'); 
-                setActiveTab('contacts'); 
-              }} 
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-colors shadow-sm" 
-            > 
-              Quick Reply 
-            </button> 
-            <button 
-              type="button"
-              onClick={() => setSelectedThreadMsg(null)} 
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-colors"
-            > 
-              Close Thread 
-            </button> 
-          </div> 
-
-        </div> 
-      )} 
-
-    </div>  
-  ); 
+    </div>
+  );
 };
