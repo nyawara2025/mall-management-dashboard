@@ -416,7 +416,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
         </div>
 
         {/* Layout Panels Content Area */}
-        <div className="p-6 flex flex-col flex-1 overflow-y-auto min-h-[40vh] max-h-[55vh]">
+        <div className="p-6 flex flex-col flex-1 overflow-y-auto h-[60vh] max-h-[500px]">
           {activeTab === 'contacts' ? (
             <div className="space-y-4">
 
@@ -684,7 +684,9 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                   <p className="text-[11px] text-gray-400 mt-1">Messages sent to you will appear here.</p>
                 </div>
               ) : (
-                receivedMessages.map((msg: any) => {
+                [...receivedMessages]
+                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                  .map((msg: any) => {
                   let coRecipients: string[] = [];
                   let hasMultipleRecipients = false;
 
