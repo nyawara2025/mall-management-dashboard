@@ -269,43 +269,32 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
           parsedRecipients.forEach((rec: any) => {
             const recId = rec.id ? Number(rec.id) : null;
             
-            // Factual rule matching: Skip current user and duplicate sender
             if (recId && recId !== currentUserId && recId !== originalSenderId) {
               const cleanRecName = (rec.name || rec.recipient_name || '').trim();
-              
               if (cleanRecName) {
                 const recParts = cleanRecName.split(/\s+/);
-                
-                combinedRecipients.push({
-                  id: recId,
-                  first_name: recParts[0] || cleanRecName,
-                  last_name: recParts.slice(1).join(' ') || '',
-                  phone_number: rec.phone || rec.phone_number || ''
-                });
+
+                if (!combinedRecipients.some(r => Number(r.id) === recId)) {
+                  combinedRecipients.push({
+                    id: recId,
+                    first_name: recParts[0] || cleanRecName,
+                    last_name: recParts.slice(1).join(' ') || '',
+                    phone_number: rec.phone || rec.phone_number || ''
+                  });
+                }
               }
             }
           });
-        }
-      } catch (err) {
-        console.error("Failed to extract co-recipients inside handleReplyAll:", err);
-      }
-    }
+         }
+       } catch (err) {
+         console.error("Failed to extract co-recipients inside handleReplyAll:", err);
+       }
+     }
 
-    console.log("SUCCESS: Final processed array being passed to UI badges:", combinedRecipients);
-    setSelectedRecipients(combinedRecipients);
-    
-    const countOthers = combinedRecipients.length - 1;
-    setActiveGroupContext(
-      countOthers > 0 
-        ? `Group Reply to: ${(msg.sender_name || '').trim()} and ${countOthers} others`
-        : `Reply to: ${(msg.sender_name || '').trim()}`
-    );
-    
-    setActiveTab('contacts');
-  };
-          
-
-
+     setSelectedRecipients(combinedRecipients);
+     setActiveGroupContext('');
+     setActiveTab('contacts');
+   };
 
   const dispatchPrivateMessage = async (e: React.FormEvent) => {
     e.preventDefault();

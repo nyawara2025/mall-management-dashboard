@@ -10,6 +10,8 @@ interface MemberChatModalProps {
 export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClose, userData }) => {
   const [activeTab, setActiveTab] = useState('history');
   
+  const [selectedThreadMsg, setSelectedThreadMsg] = useState<any | null>(null);
+
   const [membersList, setMembersList] = useState<any[]>([]);
   const [receivedMessages, setReceivedMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -449,17 +451,6 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Message Details</label>
-                    <textarea
-                      rows={3}
-                      value={chatMessage}
-                      onChange={e => setChatMessage(e.target.value)}
-                      placeholder="Write your private message here..."
-                      className="w-full p-4 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-gray-700 resize-none shadow-sm"
-                    />
-                  </div>
-
-                  <div>
                     <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Attach Document / Photo (Optional)</label>
                     <div className="relative flex items-center justify-center w-full bg-white ring-1 ring-gray-200/50 rounded-xl p-3 hover:bg-gray-100/70 transition-colors shadow-sm">
                       <input 
@@ -713,10 +704,24 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                   }
 
                   return (
-                    <div key={msg.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2 text-left animate-in fade-in duration-100">
+                    <div 
+                      key={msg.id} 
+                      onClick={() => setSelectedThreadMsg(msg)} 
+                      className="p-4 bg-gray-50 hover:bg-indigo-50/40 rounded-2xl border border-gray-100 space-y-2 text-left animate-in fade-in duration-100 cursor-pointer transition-colors"
+                    >
                       <div className="flex justify-between items-start text-[10px] font-black text-indigo-600 uppercase">
                         <div>
-                          <span>From: {msg.sender_name || 'Anonymous Member'}</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span>From: {msg.sender_name || 'Anonymous Member'}</span>
+
+                            {/* 🟢 NEW UNREAD BADGE */}
+                            {(msg.is_read === false || msg.status === 'unread') && (
+                              <span className="bg-indigo-600 text-white text-[8px] font-black tracking-widest px-1.5 py-0.5 rounded uppercase animate-pulse">
+                                New
+                              </span>
+                            )}
+                          </div>
+
                           {hasMultipleRecipients && (
                             <span className="text-[9px] text-gray-400 font-medium block mt-0.5 normal-case max-w-[260px] truncate">
                               <span className="font-bold text-gray-500">To:</span> You, {coRecipients.join(', ')}
@@ -732,7 +737,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                       {msg.subject && msg.subject.trim() !== "" && (
                         <div className="bg-indigo-50/40 border border-indigo-100/30 px-2.5 py-1.5 rounded-xl">
                           <p className="text-[10px] uppercase font-black tracking-wider text-indigo-500 block mb-0.5">
-                            Subject / Purpose
+                            Subject
                           </p>
                           <p className="text-xs font-bold text-gray-800 leading-snug">
                             {msg.subject}
