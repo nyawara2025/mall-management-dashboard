@@ -10,8 +10,6 @@ interface MemberChatModalProps {
 export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClose, userData }) => {
   const [activeTab, setActiveTab] = useState('history');
   
-  const [selectedThreadMsg, setSelectedThreadMsg] = useState<any | null>(null);
-
   const [membersList, setMembersList] = useState<any[]>([]);
   const [receivedMessages, setReceivedMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -715,24 +713,10 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                   }
 
                   return (
-                    <div 
-                      key={msg.id} 
-                      onClick={() => setSelectedThreadMsg(msg)} 
-                      className="p-4 bg-gray-50 hover:bg-indigo-50/40 rounded-2xl border border-gray-100 space-y-2 text-left animate-in fade-in duration-100 cursor-pointer transition-colors"
-                    >
+                    <div key={msg.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2 text-left animate-in fade-in duration-100">
                       <div className="flex justify-between items-start text-[10px] font-black text-indigo-600 uppercase">
                         <div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span>From: {msg.sender_name || 'Anonymous Member'}</span>
-
-                            {/* 🟢 NEW UNREAD BADGE */}
-                            {(msg.is_read === false || msg.status === 'unread') && (
-                              <span className="bg-indigo-600 text-white text-[8px] font-black tracking-widest px-1.5 py-0.5 rounded uppercase animate-pulse">
-                                New
-                              </span>
-                            )}
-                          </div>
-
+                          <span>From: {msg.sender_name || 'Anonymous Member'}</span>
                           {hasMultipleRecipients && (
                             <span className="text-[9px] text-gray-400 font-medium block mt-0.5 normal-case max-w-[260px] truncate">
                               <span className="font-bold text-gray-500">To:</span> You, {coRecipients.join(', ')}
@@ -748,7 +732,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                       {msg.subject && msg.subject.trim() !== "" && (
                         <div className="bg-indigo-50/40 border border-indigo-100/30 px-2.5 py-1.5 rounded-xl">
                           <p className="text-[10px] uppercase font-black tracking-wider text-indigo-500 block mb-0.5">
-                            Subject
+                            Subject / Purpose
                           </p>
                           <p className="text-xs font-bold text-gray-800 leading-snug">
                             {msg.subject}
