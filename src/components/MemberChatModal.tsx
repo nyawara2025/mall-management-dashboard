@@ -241,15 +241,16 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
 
   const handleInitiateReply = (msg: any) => {
     const recipientObj = {
-      id: msg.sender_id,
-      first_name: msg.sender_name.split(' ')[0] || 'Member',
-      last_name: msg.sender_name.split(' ').slice(1).join(' ') || '',
+      id: msg.sender_id ? Number(msg.sender_id) : null,
+      first_name: msg.sender_name?.split(' ')[0] || 'Member',
+      last_name: msg.sender_name?.split(' ').slice(1).join(' ') || '',
       phone_number: msg.sender_phone || ''
     };
-    setSelectedRecipients([recipientObj]); // Wraps in array for compliance
-    setChatSubject(generateReplySubject(msg.subject)); // Auto-fills with "Re: <Subject>"
-    setActiveGroupContext(''); // Reset group context for single threads
-    setActiveTab('contacts'); 
+  
+    setSelectedRecipients([recipientObj]);
+    setChatSubject(generateReplySubject(msg.subject)); // Maps directly to 'subject' column text
+    setActiveGroupContext('');
+    setActiveTab('contacts');
   };
 
   const handleReplyAll = (msg: any) => {
@@ -257,11 +258,10 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     const currentUserId = userData?.id ? Number(userData.id) : null;
     const originalSenderId = msg.sender_id ? Number(msg.sender_id) : null;
 
-    // 1. Map the Original Sender
+    // 1. Map the Original Sender (if they aren't the current replier)
     if (originalSenderId && originalSenderId !== currentUserId) {
       const cleanSenderName = (msg.sender_name || 'Member').trim();
       const senderParts = cleanSenderName.split(/\s+/);
-
       combinedRecipients.push({
         id: originalSenderId,
         first_name: senderParts[0] || cleanSenderName,
@@ -270,40 +270,44 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
       });
     }
 
-    // 2. Map the Co-Recipients from the JSON field
-    if (msg.recipients_ids) {
+    // 2. Parse the text-based JSON column 'all_recipients_json'
+    if (msg.all_recipients_json) {
       try {
-        const idArray = String(msg.recipient_ids).split(',').map(id => id.trim());
-        const nameArray = msg.recipient_names ? String(msg.recipient_names).split(',').map(n => n.trim()) : [];
-        const phoneArray = msg.recipient_phones ? String(msg.recipient_phones).split(',').map(p => p.trim()) : [];
+        // Force JSON parsing because the DB schema defines this column strictly as text
+        const parsedRecipients = typeof msg.all_recipients_json === 'string'
+          ? JSON.parse(msg.all_recipients_json)
+          : msg.all_recipients_json;
 
+        if (Array.isArray(parsedRecipients)) {
+          parsedRecipients.forEach((rec: any) => {
+            const recId = rec.id ? Number(rec.id) : null;
 
-        idArray.forEach((idStr, index) => {
-          const recId = idStr ? Number(idStr) : null;
-            
-          // Skip current user replying and avoid duplicating the original sender
-          if (recId && recId !== currentUserId && recId !== originalSenderId) {
-            const rawName = nameArray[index] || 'Member';
-            const recParts = rawName.split(/\s+/);
-
-            if (!combinedRecipients.some(r => Number(r.id) === recId)) {
-              combinedRecipients.push({
-                id: recId,
-                first_name: recParts[0] || rawName,
-                last_name: recParts.slice(1).join(' ') || '',
-                phone_number: phoneArray[index] || ''
-              });
+            // Exclude the current replier and avoid duplicating the sender
+            if (recId && recId !== currentUserId && recId !== originalSenderId) {
+              const cleanRecName = (rec.name || rec.recipient_name || '').trim();
+              if (cleanRecName) {
+                const recParts = cleanRecName.split(/\s+/);
+              
+                if (!combinedRecipients.some(r => Number(r.id) === recId)) {
+                  combinedRecipients.push({
+                    id: recId,
+                    first_name: recParts[0] || cleanRecName,
+                    last_name: recParts.slice(1).join(' ') || '',
+                    phone_number: rec.phone || rec.phone_number || ''
+                  });
+                }
+              }
             }
-          }
-        });
+          });
+        }
       } catch (err) {
-        console.error("Failed to parse string fields inside handleReplyAll:", err);
+        console.error("Failed to parse all_recipients_json text column:", err);
       }
     }
 
-    // 3. Set state fields to update UI context
+    // 3. Update state hooks
     setSelectedRecipients(combinedRecipients);
-    setChatSubject(generateReplySubject(msg.subject)); // Auto-fills with "Re: <Subject>"
+    setChatSubject(generateReplySubject(msg.subject)); // Maps directly to 'subject' column text
     setActiveGroupContext('');
     setActiveTab('contacts');
   };
