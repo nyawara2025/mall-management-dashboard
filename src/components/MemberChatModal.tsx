@@ -273,16 +273,18 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     // 2. Parse the text-based JSON column 'all_recipients_json'
     if (msg.all_recipients_json) {
       try {
-        // Force JSON parsing because the DB schema defines this column strictly as text
-        const parsedRecipients = typeof msg.all_recipients_json === 'string'
-          ? JSON.parse(msg.all_recipients_json)
-          : msg.all_recipients_json;
+        let parsedRecipients = msg.all_recipients_json;
+      
+        // Loop to unpack nested or double-escaped string payloads from webhooks factually
+        while (typeof parsedRecipients === 'string') {
+          parsedRecipients = JSON.parse(parsedRecipients);
+        }
 
         if (Array.isArray(parsedRecipients)) {
           parsedRecipients.forEach((rec: any) => {
             const recId = rec.id ? Number(rec.id) : null;
 
-            // Exclude the current replier and avoid duplicating the sender
+            // Exclude the active replier and avoid duplicating the original thread sender
             if (recId && recId !== currentUserId && recId !== originalSenderId) {
               const cleanRecName = (rec.name || rec.recipient_name || '').trim();
               if (cleanRecName) {
@@ -301,19 +303,21 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
           });
         }
       } catch (err) {
-        console.error("Failed to parse all_recipients_json text column:", err);
+        console.error("Failed to parse double-escaped JSON string field:", err);
       }
     }
 
-    // 3. Update state hooks
+    // 3. Set the state fields cleanly removing whitespace padding bugs
     setSelectedRecipients(combinedRecipients);
-    setChatSubject(generateReplySubject(msg.subject)); // Maps directly to 'subject' column text
+  
+    const rawSubject = msg.subject || msg.chat_subject || '';
+    const cleanSubjectText = rawSubject.trim();
+    const structuredSubject = /^re:/i.test(cleanSubjectText) ? cleanSubjectText : `Re: ${cleanSubjectText || '(No Subject)'}`;
+  
+    setChatSubject(structuredSubject);
     setActiveGroupContext('');
     setActiveTab('contacts');
   };
-
-     
-
 
 
   const dispatchPrivateMessage = async (e: React.FormEvent) => {
