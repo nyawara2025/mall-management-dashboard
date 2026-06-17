@@ -227,6 +227,18 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     }
   };
 
+
+  // Helper utility to safely construct standard email-style reply prefixes
+  const generateReplySubject = (originalSubject: string) => {
+    const cleanSub = (originalSubject || '').trim();
+    if (!cleanSub) return 'Re: (No Subject)';
+  
+    // Checks case-insensitively if the subject already starts with "Re:"
+    return /^re:/i.test(cleanSub) ? cleanSub : `Re: ${cleanSub}`;
+  };
+
+
+
   const handleInitiateReply = (msg: any) => {
     const recipientObj = {
       id: msg.sender_id,
@@ -235,13 +247,13 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
       phone_number: msg.sender_phone || ''
     };
     setSelectedRecipients([recipientObj]); // Wraps in array for compliance
+    setChatSubject(generateReplySubject(msg.subject)); // Auto-fills with "Re: <Subject>"
     setActiveGroupContext(''); // Reset group context for single threads
     setActiveTab('contacts'); 
   };
 
   const handleReplyAll = (msg: any) => {
     const combinedRecipients: any[] = [];
-    
     const currentUserId = userData?.id ? Number(userData.id) : null;
     const originalSenderId = msg.sender_id ? Number(msg.sender_id) : null;
 
@@ -259,42 +271,46 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     }
 
     // 2. Map the Co-Recipients from the JSON field
-    if (msg.all_recipients_json) {
+    if (msg.recipients_ids) {
       try {
-        const parsedRecipients = typeof msg.all_recipients_json === 'string'
-          ? JSON.parse(msg.all_recipients_json)
-          : msg.all_recipients_json;
+        const idArray = String(msg.recipient_ids).split(',').map(id => id.trim());
+        const nameArray = msg.recipient_names ? String(msg.recipient_names).split(',').map(n => n.trim()) : [];
+        const phoneArray = msg.recipient_phones ? String(msg.recipient_phones).split(',').map(p => p.trim()) : [];
 
-        if (Array.isArray(parsedRecipients)) {
-          parsedRecipients.forEach((rec: any) => {
-            const recId = rec.id ? Number(rec.id) : null;
+
+        idArray.forEach((idStr, index) => {
+          const recId = idStr ? Number(idStr) : null;
             
-            if (recId && recId !== currentUserId && recId !== originalSenderId) {
-              const cleanRecName = (rec.name || rec.recipient_name || '').trim();
-              if (cleanRecName) {
-                const recParts = cleanRecName.split(/\s+/);
+          // Skip current user replying and avoid duplicating the original sender
+          if (recId && recId !== currentUserId && recId !== originalSenderId) {
+            const rawName = nameArray[index] || 'Member';
+            const recParts = rawName.split(/\s+/);
 
-                if (!combinedRecipients.some(r => Number(r.id) === recId)) {
-                  combinedRecipients.push({
-                    id: recId,
-                    first_name: recParts[0] || cleanRecName,
-                    last_name: recParts.slice(1).join(' ') || '',
-                    phone_number: rec.phone || rec.phone_number || ''
-                  });
-                }
-              }
+            if (!combinedRecipients.some(r => Number(r.id) === recId)) {
+              combinedRecipients.push({
+                id: recId,
+                first_name: recParts[0] || rawName,
+                last_name: recParts.slice(1).join(' ') || '',
+                phone_number: phoneArray[index] || ''
+              });
             }
-          });
-         }
-       } catch (err) {
-         console.error("Failed to extract co-recipients inside handleReplyAll:", err);
-       }
-     }
+          }
+        });
+      } catch (err) {
+        console.error("Failed to parse string fields inside handleReplyAll:", err);
+      }
+    }
 
-     setSelectedRecipients(combinedRecipients);
-     setActiveGroupContext('');
-     setActiveTab('contacts');
-   };
+    // 3. Set state fields to update UI context
+    setSelectedRecipients(combinedRecipients);
+    setChatSubject(generateReplySubject(msg.subject)); // Auto-fills with "Re: <Subject>"
+    setActiveGroupContext('');
+    setActiveTab('contacts');
+  };
+
+     
+
+
 
   const dispatchPrivateMessage = async (e: React.FormEvent) => {
     e.preventDefault();
