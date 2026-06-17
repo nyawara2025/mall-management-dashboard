@@ -1387,11 +1387,16 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
   async function loadPublicChurchNotices() {
     setPublicLoading(true);
     try {
+
+      // FACTUAL TENANT DETERMINATION: Prioritize logged-in member data over URL parameters
+      const activeShopId = userData?.shop_id ? Number(userData.shop_id) : Number(queryShopId);
+
+
       const response = await fetch('https://n8n.tenear.com/webhook/fetch-church-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          shop_id: queryShopId,
+          shop_id: activeShopId,
           is_public: true 
         }),
       });
