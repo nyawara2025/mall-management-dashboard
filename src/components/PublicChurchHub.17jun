@@ -1602,31 +1602,13 @@ if (isPublicChurchView) {
  
 
   useEffect(() => {
-    // 1. First, determine if there is an existing session in storage for the current URL view
-    const initialShopId = queryShopId ? Number(queryShopId) : null;
-
     const savedAuth = localStorage.getItem(`church_auth_${activeShopId}`);
     const savedUser = localStorage.getItem(`church_user_${activeShopId}`);
 
-    let currentShopId = initialShopId;
-    let activeUser = null;
-
     if (savedAuth === 'true' && savedUser) {
-
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        activeUser = Array.isArray(parsedUser) ? parsedUser[0] : parsedUser;
-
-        setIsAuthenticated(true);
-        setUserData(activeUser);
-
-        // Factually update our tracking reference to the member's true tenant ID
-        if (activeUser?.shop_id) {
-          currentShopId = Number(activeUser.shop_id);
-        }
-      } catch (e) {
-        console.error("Failed to parse initial user storage", e);
-      }
+      setIsAuthenticated(true);
+      const parsedUser = JSON.parse(savedUser);
+      setUserData(Array.isArray(parsedUser) ? parsedUser[0] : parsedUser);
     }
 
     async function fetchHubData() {
@@ -1635,26 +1617,15 @@ if (isPublicChurchView) {
         return;
       }
 
-      if (!currentShopId) {
-        setLoading(false);
-        return;
-      }
-
       setLoading(true);
       try {
-        const { data } = await supabase
-          .from('churches')
-          .select('*')
-          .eq('shop_id', activeShopId);
-
-        if (data && data.length > 0) {
-          setChurch(data[0]);
-        }
+        const { data } = await supabase.from('churches').select('*').eq('shop_id', activeShopId);
+        if (data && data.length > 0) setChurch(data[0]);
 
         const response = await fetch('https://n8n.tenear.com/webhook/fetch-public-service-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shop_id: currentShopId }),
+          body: JSON.stringify({ shop_id: activeShopId }),
         });
 
         if (response.ok) {
@@ -1670,7 +1641,7 @@ if (isPublicChurchView) {
     }
 
     fetchHubData();
-  }, [queryShopId, isAuthenticated, userData?.shop_id]);
+  }, [activeShopId, isAuthenticated]);
 
   const handleLogout = () => {
     localStorage.removeItem(`church_auth_${activeShopId}`);
