@@ -451,17 +451,6 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Message Details</label>
-                    <textarea
-                      rows={3}
-                      value={chatMessage}
-                      onChange={e => setChatMessage(e.target.value)}
-                      placeholder="Write your private message here..."
-                      className="w-full p-4 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-gray-700 resize-none shadow-sm"
-                    />
-                  </div>
-
-                  <div>
                     <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Attach Document / Photo (Optional)</label>
                     <div className="relative flex items-center justify-center w-full bg-white ring-1 ring-gray-200/50 rounded-xl p-3 hover:bg-gray-100/70 transition-colors shadow-sm">
                       <input 
