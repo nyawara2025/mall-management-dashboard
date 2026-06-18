@@ -389,9 +389,20 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
               {/* FINANCIAL METRICS CALCULATION CARDS */}
               {data?.fee_statement && data.fee_statement.length > 0 ? (() => {
   
-                // 1. INVOICES / BILLING CARDS
-                // Strict matching: Only count it as billed if transaction_type explicitly states it,
-                // and completely ignore it if it explicitly matches any known payment type.
+                // 1. CASH REMITTANCES / PAYMENTS RECEIVED
+                // Explicitly sums payments by parsing string decimals directly into true numeric floats
+                const totalPaid = data.fee_statement
+                  .filter((row: any) => {
+                    const type = String(row.transaction_type || '').toLowerCase().trim();
+                    return type === 'push' || type === 'manual' || type === 'payment' || type === 'credit';
+                  })
+                  .reduce((sum: number, row: any) => {
+                    const parsedAmount = parseFloat(String(row.amount || '0'));
+                    return sum + (isNaN(parsedAmount) ? 0 : Math.abs(parsedAmount));
+                  }, 0);
+
+                // 2. INVOICES / BILLING CARDS
+                // Explicitly sums invoices with identical defensive float casting rules
                 const totalInvoiced = data.fee_statement
                   .filter((row: any) => {
                     const type = String(row.transaction_type || '').toLowerCase().trim();
@@ -400,16 +411,10 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
                     }
                     return type === 'invoice' || type === 'debit';
                   })
-                  .reduce((sum: number, row: any) => sum + Math.abs(Number(row.amount || 0)), 0);
-
-                // 2. CASH REMITTANCES / PAYMENTS RECEIVED
-                // Explicitly counts rows whose types are defined payments
-                const totalPaid = data.fee_statement
-                  .filter((row: any) => {
-                    const type = String(row.transaction_type || '').toLowerCase().trim();
-                    return type === 'push' || type === 'manual' || type === 'payment' || type === 'credit';
-                  })
-                  .reduce((sum: number, row: any) => sum + Math.abs(Number(row.amount || 0)), 0);
+                  .reduce((sum: number, row: any) => {
+                    const parsedAmount = parseFloat(String(row.amount || '0'));
+                    return sum + (isNaN(parsedAmount) ? 0 : Math.abs(parsedAmount));
+                  }, 0);
 
                 const netBalance = totalInvoiced - totalPaid;
 
