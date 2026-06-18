@@ -390,20 +390,21 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
               {data?.fee_statement && data.fee_statement.length > 0 ? (() => {
   
                 // 1. INVOICES / BILLING CARDS
-                // Identifies invoices by explicit type names, or if a valid invoice_id relationship exists
+                // Explicitly excludes rows that are known payment types ('push' or 'manual')
                 const totalInvoiced = data.fee_statement
                   .filter((row: any) => {
                     const type = String(row.transaction_type || '').toLowerCase();
+                    if (type === 'push' || type === 'manual' || type === 'payment') return false;
                     return type === 'invoice' || type === 'debit' || row.invoice_id !== null;
                   })
                   .reduce((sum: number, row: any) => sum + Math.abs(Number(row.amount || 0)), 0);
 
                 // 2. CASH REMITTANCES / PAYMENTS RECEIVED
-                // Maps perfectly against your 'push' and 'manual' transaction entries shown in the DB
+                // Strictly isolates your true backend transactional values
                 const totalPaid = data.fee_statement
                   .filter((row: any) => {
                     const type = String(row.transaction_type || '').toLowerCase();
-                    return type === 'payment' || type === 'credit' || type === 'push' || type === 'manual';
+                    return type === 'push' || type === 'manual' || type === 'payment' || type === 'credit';
                   })
                   .reduce((sum: number, row: any) => sum + Math.abs(Number(row.amount || 0)), 0);
 
@@ -444,7 +445,8 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
                           .map((row: any, idx: number) => {
                             // Map dynamically against exact schema transaction_type
                             const type = String(row.transaction_type || '').toLowerCase();
-                            const isInvoice = type === 'invoice' || type === 'debit' || row.invoice_id !== null;
+                            const isInvoice = !(type === 'push' || type === 'manual' || type === 'payment') && 
+                                              (type === 'invoice' || type === 'debit' || row.invoice_id !== null);
     
                             // Defensive normalization for the PostgreSQL timestamp without time zone string
                             const rawDate = row.transaction_date || row.created_at;
