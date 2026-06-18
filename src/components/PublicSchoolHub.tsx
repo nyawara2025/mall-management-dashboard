@@ -390,20 +390,23 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
               {data?.fee_statement && data.fee_statement.length > 0 ? (() => {
   
                 // 1. INVOICES / BILLING CARDS
-                // Explicitly excludes rows that are known payment types ('push' or 'manual')
+                // Strict matching: Only count it as billed if transaction_type explicitly states it,
+                // and completely ignore it if it explicitly matches any known payment type.
                 const totalInvoiced = data.fee_statement
                   .filter((row: any) => {
-                    const type = String(row.transaction_type || '').toLowerCase();
-                    if (type === 'push' || type === 'manual' || type === 'payment') return false;
-                    return type === 'invoice' || type === 'debit' || row.invoice_id !== null;
+                    const type = String(row.transaction_type || '').toLowerCase().trim();
+                    if (type === 'push' || type === 'manual' || type === 'payment' || type === 'credit') {
+                      return false;
+                    }
+                    return type === 'invoice' || type === 'debit';
                   })
                   .reduce((sum: number, row: any) => sum + Math.abs(Number(row.amount || 0)), 0);
 
                 // 2. CASH REMITTANCES / PAYMENTS RECEIVED
-                // Strictly isolates your true backend transactional values
+                // Explicitly counts rows whose types are defined payments
                 const totalPaid = data.fee_statement
                   .filter((row: any) => {
-                    const type = String(row.transaction_type || '').toLowerCase();
+                    const type = String(row.transaction_type || '').toLowerCase().trim();
                     return type === 'push' || type === 'manual' || type === 'payment' || type === 'credit';
                   })
                   .reduce((sum: number, row: any) => sum + Math.abs(Number(row.amount || 0)), 0);
@@ -443,12 +446,11 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
                             return timeB - timeA;
                           })
                           .map((row: any, idx: number) => {
-                            // Map dynamically against exact schema transaction_type
-                            const type = String(row.transaction_type || '').toLowerCase();
-                            const isInvoice = !(type === 'push' || type === 'manual' || type === 'payment') && 
-                                              (type === 'invoice' || type === 'debit' || row.invoice_id !== null);
+                            const type = String(row.transaction_type || '').toLowerCase().trim();
     
-                            // Defensive normalization for the PostgreSQL timestamp without time zone string
+                            // Strict conditional assessment: It is only an invoice if it matches these exact strings
+                            const isInvoice = type === 'invoice' || type === 'debit';
+    
                             const rawDate = row.transaction_date || row.created_at;
                             const cleanDateString = rawDate && typeof rawDate === 'string' ? rawDate.replace(' ', 'T') : rawDate;
                             const parsedDate = cleanDateString ? new Date(cleanDateString) : null;
