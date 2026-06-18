@@ -380,27 +380,91 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
               </button>
             </div>
 
-            <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm h-fit">
-              <h3 className="font-bold text-slate-800 text-sm mb-4">Statement Balance</h3>
-              {data?.fee_statement && data.fee_statement.length > 0 ? (
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {data.fee_statement.map((row: any, idx: number) => (
-                    <div key={idx} className="p-3 bg-slate-50 border rounded-xl flex justify-between items-center text-xs">
-                      <div>
-                        <p className="font-black text-slate-800">{row.fee_category || 'Tuition'}</p>
-                        <p className="text-[9px] text-gray-400 font-bold">{row.created_at}</p>
-                      </div>
-                      <p className="font-black text-slate-900">KES {row.amount}</p>
+            <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm h-fit space-y-5">
+              <div>
+                <h3 className="font-black text-slate-800 text-sm uppercase tracking-wide">Statement Summary</h3>
+                <p className="text-[10px] text-slate-400 uppercase font-bold mt-0.5">Live Ledger Accounting</p>
+              </div>
+
+              {/* FINANCIAL METRICS CALCULATION CARDS */}
+              {data?.fee_statement && data.fee_statement.length > 0 ? (() => {
+                // Factual Math calculations aggregated directly from state memory data lines
+                const totalInvoiced = data.fee_statement
+                  .filter((row: any) => String(row.transaction_type || '').toLowerCase() === 'invoice' || Number(row.amount) < 0)
+                  .reduce((sum: number, row: any) => sum + Math.abs(Number(row.amount || 0)), 0);
+
+                const totalPaid = data.fee_statement
+                  .filter((row: any) => String(row.transaction_type || '').toLowerCase() === 'payment' || Number(row.amount) > 0)
+                  .reduce((sum: number, row: any) => sum + Number(row.amount || 0), 0);
+
+                const netBalance = totalInvoiced - totalPaid;
+
+                return (
+                  <div className="space-y-4 animate-in fade-in duration-200">
+                    {/* Outstanding Running Balance Badge */}
+                    <div className={`p-4 rounded-2xl border text-left ${netBalance > 0 ? 'bg-red-50/40 border-red-100/60' : 'bg-emerald-50/40 border-emerald-100/60'}`}>
+                      <span className="text-[9px] font-black text-slate-400 block uppercase tracking-wider">Net Outstanding Balance</span>
+                      <span className={`text-xl font-black ${netBalance > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                        KES {netBalance.toLocaleString()}
+                      </span>
                     </div>
-                  ))}
+
+                    {/* Mini Breakdown Flex Row grid layout */}
+                    <div className="grid grid-cols-2 gap-2 text-left">
+                      <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl">
+                        <span className="text-[8px] font-black text-gray-400 block uppercase">Total Billed</span>
+                        <span className="text-xs font-black text-slate-700">KES {totalInvoiced.toLocaleString()}</span>
+                      </div>
+                      <div className="bg-slate-50 border border-slate-100 p-3 rounded-xl">
+                        <span className="text-[8px] font-black text-gray-400 block uppercase">Total Remitted</span>
+                        <span className="text-xs font-black text-slate-700">KES {totalPaid.toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    {/* SCROLLING ITEMIZED HISTORICAL LEDGER GRID */}
+                    <div>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Transaction Logs</span>
+                      <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                        {[...data.fee_statement]
+                          .sort((a, b) => new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime())
+                          .map((row: any, idx: number) => {
+                            const isInvoice = String(row.transaction_type || '').toLowerCase() === 'invoice' || Number(row.amount) < 0;
+                            return (
+                              <div key={idx} className="p-3 bg-white border border-slate-100 rounded-xl flex justify-between items-center text-xs shadow-sm hover:bg-slate-50/50 transition-colors">
+                                <div className="text-left">
+                                  <p className="font-black text-slate-800 leading-tight">
+                                    {row.fee_category || row.description || 'Tuition Fee'}
+                                  </p>
+                                  <p className="text-[9px] text-gray-400 font-bold mt-0.5">
+                                    {row.created_at ? new Date(row.created_at).toLocaleDateString() : 'Active Term'}
+                                    {row.reference_code && ` • Ref: ${row.reference_code}`}
+                                  </p>
+                                </div>
+                                <div className="text-right">
+                                  <p className={`font-black ${isInvoice ? 'text-red-500' : 'text-emerald-600'}`}>
+                                    {isInvoice ? '-' : '+'} KES {Math.abs(Number(row.amount || 0)).toLocaleString()}
+                                  </p>
+                                  <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${isInvoice ? 'bg-red-50 text-red-600 border border-red-100/40' : 'bg-emerald-50 text-emerald-600 border border-emerald-100/40'}`}>
+                                    {isInvoice ? 'Debit' : 'Credit'}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })() : (
+                <div className="p-6 bg-slate-50/50 rounded-2xl border border-dashed text-center">
+                  <p className="text-xs italic text-gray-400 max-w-[180px] mx-auto leading-relaxed">
+                    No payment data lines ledger recorded this term.
+                  </p>
                 </div>
-              ) : (
-                <p className="text-xs italic text-gray-400 text-center py-6">No payment data lines ledger recorded this term.</p>
               )}
             </div>
           </div>
         )}
-
         {/* VIEW 3: SUB PANEL - ASSIGNMENTS & HOMEWORK LAYOUT */}
         {activePortalView === 'homework' && (
           <div className="max-w-2xl mx-auto space-y-4 text-left animate-in fade-in duration-200">

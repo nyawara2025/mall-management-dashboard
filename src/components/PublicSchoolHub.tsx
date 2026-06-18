@@ -388,14 +388,24 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
 
               {/* FINANCIAL METRICS CALCULATION CARDS */}
               {data?.fee_statement && data.fee_statement.length > 0 ? (() => {
-                // Factual Math calculations aggregated directly from state memory data lines
+  
+                // 1. INVOICES / BILLING CARDS
+                // Identifies invoices by explicit type names, or if a valid invoice_id relationship exists
                 const totalInvoiced = data.fee_statement
-                  .filter((row: any) => String(row.transaction_type || '').toLowerCase() === 'invoice' || Number(row.amount) < 0)
+                  .filter((row: any) => {
+                    const type = String(row.transaction_type || '').toLowerCase();
+                    return type === 'invoice' || type === 'debit' || row.invoice_id !== null;
+                  })
                   .reduce((sum: number, row: any) => sum + Math.abs(Number(row.amount || 0)), 0);
 
+                // 2. CASH REMITTANCES / PAYMENTS RECEIVED
+                // Maps perfectly against your 'push' and 'manual' transaction entries shown in the DB
                 const totalPaid = data.fee_statement
-                  .filter((row: any) => String(row.transaction_type || '').toLowerCase() === 'payment' || Number(row.amount) > 0)
-                  .reduce((sum: number, row: any) => sum + Number(row.amount || 0), 0);
+                  .filter((row: any) => {
+                    const type = String(row.transaction_type || '').toLowerCase();
+                    return type === 'payment' || type === 'credit' || type === 'push' || type === 'manual';
+                  })
+                  .reduce((sum: number, row: any) => sum + Math.abs(Number(row.amount || 0)), 0);
 
                 const netBalance = totalInvoiced - totalPaid;
 
@@ -426,9 +436,21 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block mb-2">Transaction Logs</span>
                       <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
                         {[...data.fee_statement]
-                          .sort((a, b) => new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime())
+                          .sort((a, b) => {
+                            const timeB = new Date(b.transaction_date || b.created_at || 0).getTime();
+                            const timeA = new Date(a.transaction_date || a.created_at || 0).getTime();
+                            return timeB - timeA;
+                          })
                           .map((row: any, idx: number) => {
-                            const isInvoice = String(row.transaction_type || '').toLowerCase() === 'invoice' || Number(row.amount) < 0;
+                            // Map dynamically against exact schema transaction_type
+                            const type = String(row.transaction_type || '').toLowerCase();
+                            const isInvoice = type === 'invoice' || type === 'debit' || row.invoice_id !== null;
+    
+                            // Defensive normalization for the PostgreSQL timestamp without time zone string
+                            const rawDate = row.transaction_date || row.created_at;
+                            const cleanDateString = rawDate && typeof rawDate === 'string' ? rawDate.replace(' ', 'T') : rawDate;
+                            const parsedDate = cleanDateString ? new Date(cleanDateString) : null;
+
                             return (
                               <div key={idx} className="p-3 bg-white border border-slate-100 rounded-xl flex justify-between items-center text-xs shadow-sm hover:bg-slate-50/50 transition-colors">
                                 <div className="text-left">
@@ -436,8 +458,10 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
                                     {row.fee_category || row.description || 'Tuition Fee'}
                                   </p>
                                   <p className="text-[9px] text-gray-400 font-bold mt-0.5">
-                                    {row.created_at ? new Date(row.created_at).toLocaleDateString() : 'Active Term'}
-                                    {row.reference_code && ` • Ref: ${row.reference_code}`}
+                                    {parsedDate && !isNaN(parsedDate.getTime()) 
+                                      ? parsedDate.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' }) 
+                                      : 'Active Term'}
+                                    {row.reference_number && ` • Ref: ${row.reference_number}`}
                                   </p>
                                 </div>
                                 <div className="text-right">
@@ -451,6 +475,8 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
                               </div>
                             );
                           })}
+
+
                       </div>
                     </div>
                   </div>
