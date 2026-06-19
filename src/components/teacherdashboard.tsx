@@ -183,13 +183,23 @@ export const TeacherDashboard = ({ shopId, teacherUser, onBack }: TeacherDashboa
             <h2 className="text-xl font-black tracking-tight mt-1">{teacherUser.name}</h2>
             <p className="text-slate-300 text-[10px] font-medium">{teacherUser.assigned_class} Curator</p>
           </div>
-          {activeTab !== 'menu' && (
+
+          {activeTab !== 'menu' ? (
             <button 
               onClick={() => setActiveTab('menu')} 
               className="p-2.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-xl transition-colors text-slate-200"
             >
-              <ArrowLeft size={16} />
+              <ArrowLeft size={16} /> Back
             </button>
+
+          ) : (
+            <button
+              onClick={onBack} // Calls handleLogout from PublicSchoolHub.tsx
+              className="p-2.5 bg-red-950/40 border border-red-500/30 hover:bg-red-900/40 rounded-xl transition-colors text-red-400 flex items-center gap-1.5 text-xs font-bold"
+            >
+              <X size={16} /> Logout
+            </button>  
+
           )}
         </div>
       </div>

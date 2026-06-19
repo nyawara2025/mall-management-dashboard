@@ -123,7 +123,10 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
 
   const handleLogout = () => {
     localStorage.removeItem('parent_token');
+    localStorage.removeItem('teacher_token');
+    setCurrentUser(null);
     setIsAuthenticated(false);
+    setActivePortalView('grid');
     setData(null);
   };
 
@@ -213,7 +216,7 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
           <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white mb-6 mx-auto">
             <Lock size={30} />
           </div>
-          <h2 className="text-2xl font-black text-center text-slate-900 mb-2">Parent Portal</h2>
+          <h2 className="text-2xl font-black text-center text-slate-900 mb-2">School Portal</h2>
           <p className="text-slate-500 text-center text-sm mb-8">Please sign in to access school records.</p>
           
           <form onSubmit={handleLogin} className="space-y-4">
