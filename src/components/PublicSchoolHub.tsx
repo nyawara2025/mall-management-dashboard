@@ -81,7 +81,14 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
         if (userData?.educational_role === 'teacher') {
           // --- TEACHER ROUTING ---
           localStorage.setItem('teacher_token', authResult.token);
-        
+       
+          // 2. Hydrate tenant school data so parent-level checks pass
+          setData({
+            school_name: authResult.data?.school_name || "Institution Space",
+            homework: [],
+            bulletin: []
+          });
+ 
           setCurrentUser({
             id: userData.id,
             name: userData.full_name || 'Teacher',
@@ -90,6 +97,9 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
             educational_role: 'teacher'
           });
         
+
+          // 4. Force screen transitions
+          setIsAuthenticated(true); // Sets authorization state to true 
           setActivePortalView('teacher-dashboard');
         } else {
           // --- PARENT ROUTING ---
