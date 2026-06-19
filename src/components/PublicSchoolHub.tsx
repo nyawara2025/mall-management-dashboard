@@ -26,7 +26,7 @@ interface SchoolData {
   fee_statement?: any[];
 }
 
-export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }) => {
+export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number; user?: any }) => {
   const [data, setData] = useState<SchoolData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('parent_token'));
@@ -34,16 +34,9 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
   // NEW: Controls what overlay or sub-page is active
   const [activePortalView, setActivePortalView] = useState<'grid' | 'homework' | 'fees' | 'bulletins' | 'teacher-dashboard'>('grid');     
 
-  // --- AUTOMATIC ROLE ROUTING ---
-  useEffect(() => {
-    // Adjust these paths depending on where your backend stores the role strings
-    const isTeacherRole = user?.role === 'teacher';
-    const isTeacherMetadata = user?.user_metadata?.role === 'teacher' || user?.user_metadata?.business_category === 'teacher';
+  // 👇 ADD THIS LOCAL STATE VARIABLE HERE
+  const [currentUser, setCurrentUser] = useState<any>(initialUser || null);
 
-    if (user && (isTeacherRole || isTeacherMetadata)) {
-      setActivePortalView('teacher-dashboard');
-    }
-  }, [user]); // Re-runs whenever the user auth state updates
 
   // Fee Payment Form Processing States
   const [amount, setAmount] = useState('');
@@ -76,19 +69,47 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
           shop_id: resolvedShopId // <-- FIX: Guarantees 87 is passed to authentication node
         }),
       });
-      const result = await response.json();
-      if (response.ok && result.token) {
-        localStorage.setItem('parent_token', result.token);
-        setIsAuthenticated(true);
+      
+
+      if (!response.ok) throw new Error('Authentication network request failed.');
+      const authResult = await response.json();
+
+      if (authResult.success) {
+        // Extract the user data payload returned from the single authentication table
+        const userData = authResult.user;
+
+        if (userData?.educational_role === 'teacher') {
+          // --- TEACHER ROUTING ---
+          localStorage.setItem('teacher_token', authResult.token);
+        
+          setCurrentUser({
+            id: userData.id,
+            name: userData.full_name || 'Teacher',
+            assigned_class: userData.assigned_class || 'General',
+            email: userData.email,
+            educational_role: 'teacher'
+          });
+        
+          setActivePortalView('teacher-dashboard');
+        } else {
+          // --- PARENT ROUTING ---
+          localStorage.setItem('parent_token', authResult.token);
+          setData(authResult.data); // Hydrates original parent context dashboard structures
+          setIsAuthenticated(true);
+          setActivePortalView('grid');
+        }
       } else {
-        setAuthError(result.message || 'Invalid credentials. Please try again.');
+        setAuthError(authResult.message || 'Invalid email or password.');
       }
-    } catch (err) {
-      setAuthError('Connection error. Please try again later.');
+    } catch (error: any) {
+      setAuthError(error.message || 'An error occurred during authentication.');
     } finally {
       setLoading(false);
     }
   };
+      
+
+
 
   const handleLogout = () => {
     localStorage.removeItem('parent_token');
@@ -234,10 +255,10 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
         shopId={shopId} 
         onBack={handleLogout} 
         teacherUser={{
-          id: user?.id || 'unknown',
-          name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Teacher',
-          assigned_class: user?.user_metadata?.assigned_class || 'General',
-          email: user?.email || '',
+          id: currentUser?.id || 'unknown',
+          name: currentUser?.name || 'Teacher',
+          assigned_class: currentUser?.assigned_class || 'General',
+          email: currentUser?.email || '',
         }}
       />
     );
