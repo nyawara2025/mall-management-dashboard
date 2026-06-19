@@ -1,10 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { 
-  BookOpen, Send, Plus, Trash2, LayoutGrid, Type, Megaphone, Bell, Users, CheckCircle, Clock, Paperclip, 
-  Bus, MessageCircle, GraduationCap, ClipboardCheck, CreditCard, RefreshCw, Image as ImageIcon, 
-  X, Mail, ShieldCheck, Lock as LockIcon } from 'lucide-react';
-
-import { TeacherDashboard } from './teacherdashboard';
+import { BookOpen, Send, Plus, Trash2, LayoutGrid, Type, Megaphone, Bell, Users, CheckCircle, Clock, Paperclip, Bus, MessageCircle, GraduationCap, ClipboardCheck, CreditCard, RefreshCw, Image as ImageIcon, X } from 'lucide-react';
 
 interface Activity {
   activity_name: string;
@@ -24,67 +19,6 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
   
   const [totalCollected, setTotalCollected] = useState<number>(42500); // Default placeholder fallback
   const [totalOutstanding, setTotalOutstanding] = useState<number>(12400); // Default placeholder fallback
-
-  // --- AUTHENTICATION & ROLE GATE VARIABLES --- 
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [authError, setAuthError] = useState('');
-  const [authLoading, setAuthLoading] = useState(false);
-
-  // --- SUBMIT PORTAL STAFF LOGIN TO BACKEND ---
-  const handlePortalLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    setAuthError('');
-
-    // =========================================================================
-    // CRITICAL REPAIR: CLEAR CACHED TOKENS SO THE FETCH CALL GUARANTEES EXECUTION
-    // =========================================================================
-    localStorage.removeItem('admin_staff_token');
-    localStorage.removeItem('user_role_flag');
-    // =========================================================================
-
-    try {
-      const response = await fetch('https://n8n.tenear.com/webhook/school-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: authEmail.trim().toLowerCase(),
-          password: authPassword,
-          shop_id: shopId
-        })
-      });
-      const result = await response.json();
-
-      if (response.ok && result.token) {
-        localStorage.setItem('admin_staff_token', result.token);
-        localStorage.setItem('user_role_flag', result.role); // Expects 'admin' or 'teacher'
-        
-        setUserRole(result.role);
-        if (result.role === 'teacher') {
-          setTeacherData(result.teacher);
-        } else {
-          setTeacherData(null); // Explicitly clean out teacher row variables if they are an Admin
-        }
-        setIsAuthenticated(true);
-      } else {
-        setAuthError(result.message || 'Invalid staffing credentials for this portal.');
-      }
-    } catch (err) {
-      setAuthError('Connection anomaly. Please verify network access.');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-
-  const handlePortalLogout = () => {
-    localStorage.removeItem('admin_staff_token');
-    localStorage.removeItem('user_role_flag');
-    setIsAuthenticated(false);
-    setUserRole(null);
-    setTeacherData(null);
-  };
 
   const stats = [
     {
@@ -187,42 +121,6 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
     } catch (error) { console.error(error); } finally { setLoading(false); }
   };
 
-  // =========================================================================
-  // NEW INJECTION: TEACHER ROLE ROUTING GATE
-  // =========================================================================
-  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('admin_staff_token'));
-  const [userRole, setUserRole] = useState<string | null>(localStorage.getItem('user_role_flag')); // Stores 'admin' or 'teacher'
-  const [teacherData, setTeacherData] = useState<any>(null); // Holds the logged-in teacher metadata profile
-
-  // If the staff member is logged in and their role flag is explicitly 'teacher', 
-  // bypass the admin layout completely and exit early with the teacher view.
-  if (isAuthenticated && userRole === 'teacher') {
-    return (
-      <div className="min-h-screen bg-slate-50">
-        <TeacherDashboard 
-          shopId={shopId} 
-          teacherUser={teacherData || { id: "legacy-id", name: "Educator", assigned_class: "General Class" }} 
-        />
-        <div className="max-w-md mx-auto px-4 pb-8 bg-slate-50">
-          <button 
-            type="button"
-            onClick={() => {
-              localStorage.removeItem('admin_staff_token');
-              localStorage.removeItem('user_role_flag');
-              setIsAuthenticated(false);
-              setUserRole(null);
-              setTeacherData(null);
-            }} 
-            className="w-full bg-white border border-slate-200 text-slate-500 font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider shadow-sm"
-          >
-            Log Out Session
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-
   const handlePostBulletin = async (e: React.FormEvent) => {
     e.preventDefault();
     setBulletinLoading(true);
@@ -313,74 +211,6 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
       setLoading(false);
     }
   };
-
-  // =========================================================================
-  // INTERFACE RENDER GATE 1: DYNAMIC STAFF AUTHENTICATION SCREEN
-  // =========================================================================
-  if (!isAuthenticated) {
-    return (
-      <div className="max-w-md mx-auto bg-slate-50 min-h-screen flex flex-col justify-center p-6 text-left font-sans">
-        <div className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-xl space-y-6">
-          <div className="text-center space-y-2">
-            <div className="p-4 bg-indigo-50 text-indigo-600 rounded-full w-fit mx-auto"><ShieldCheck size={32} /></div>
-            <h2 className="text-xl font-black text-slate-800 tracking-tight">Staff Portal Login</h2>
-            <p className="text-xs text-slate-400">Integrated gateway for administrators & teachers.</p>
-          </div>
-
-          <form onSubmit={handlePortalLogin} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Official Email Address</label>
-              <div className="relative">
-                <Mail size={14} className="absolute left-4 top-4 text-slate-400" />
-                <input type="email" placeholder="name@school.com" value={authEmail} onChange={e => setAuthEmail(e.target.value)} className="w-full bg-slate-50 border p-3.5 pl-11 rounded-xl text-xs font-bold outline-none" required />
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Security Access Password</label>
-              <div className="relative">
-                <LockIcon size={14} className="absolute left-4 top-4 text-slate-400" />
-                <input type="password" placeholder="••••••••" value={authPassword} onChange={e => setAuthPassword(e.target.value)} className="w-full bg-slate-50 border p-3.5 pl-11 rounded-xl text-xs font-bold outline-none" required />
-              </div>
-            </div>
-
-            {authError && <p className="text-rose-600 text-[11px] font-bold text-center bg-rose-50 p-2.5 rounded-lg border border-rose-100">{authError}</p>}
-
-            <button type="submit" disabled={authLoading} className="w-full bg-slate-900 text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest shadow-md">
-              {authLoading ? 'Verifying Credentials...' : 'Sign In To Console'}
-            </button>
-          </form>
-        </div>
-      </div>
-    );
-  }
-
-  // =========================================================================
-  // INTERFACE RENDER GATE 2: CLASS TEACHER MOBILE SWITCHER
-  // =========================================================================
-  if (userRole === 'teacher') {
-    return (
-      <div>
-        <TeacherDashboard 
-          shopId={shopId} 
-          teacherUser={teacherData || { id: "legacy-id", name: "Educator", assigned_class: "General Class" }} 
-        />
-        <div className="max-w-md mx-auto px-4 pb-6 bg-slate-50">
-          <button 
-            type="button"
-            onClick={handlePortalLogout} 
-            className="w-full bg-white border border-slate-200 text-slate-500 font-bold py-3 rounded-xl text-xs uppercase tracking-wider shadow-sm"
-          >
-            Terminate Session (Logout)
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // =========================================================================
-  // INTERFACE RENDER GATE 3: MAIN ADMIN LAYOUT
-  // =========================================================================
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8 bg-gray-50/50 min-h-screen">

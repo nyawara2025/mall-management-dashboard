@@ -15,8 +15,6 @@ import {
   Receipt
 } from 'lucide-react';
 
-import { TeacherDashboard } from './teacherdashboard';
-
 interface SchoolData {
   id?: string;
   admission_no?: string;
@@ -32,18 +30,7 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('parent_token'));
 
   // NEW: Controls what overlay or sub-page is active
-  const [activePortalView, setActivePortalView] = useState<'grid' | 'homework' | 'fees' | 'bulletins' | 'teacher-dashboard'>('grid');     
-
-  // --- AUTOMATIC ROLE ROUTING ---
-  useEffect(() => {
-    // Adjust these paths depending on where your backend stores the role strings
-    const isTeacherRole = user?.role === 'teacher';
-    const isTeacherMetadata = user?.user_metadata?.role === 'teacher' || user?.user_metadata?.business_category === 'teacher';
-
-    if (user && (isTeacherRole || isTeacherMetadata)) {
-      setActivePortalView('teacher-dashboard');
-    }
-  }, [user]); // Re-runs whenever the user auth state updates
+  const [activePortalView, setActivePortalView] = useState<'grid' | 'homework' | 'fees' | 'bulletins'>('grid');     
 
   // Fee Payment Form Processing States
   const [amount, setAmount] = useState('');
@@ -223,23 +210,6 @@ export const PublicSchoolHub = ({ shopId, user }: { shopId: number; user?: any }
         <Loader2 className="animate-spin mb-4" size={40} />
         <p className="font-medium">Loading Student Portal...</p>
       </div>
-    );
-  }
-
-
-  // 👇 INSERT NEW TEACHER ROUTE HERE (Right before standard data check)
-  if (activePortalView === 'teacher-dashboard') {
-    return (
-      <TeacherDashboard 
-        shopId={shopId} 
-        onBack={handleLogout} 
-        teacherUser={{
-          id: user?.id || 'unknown',
-          name: user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'Teacher',
-          assigned_class: user?.user_metadata?.assigned_class || 'General',
-          email: user?.email || '',
-        }}
-      />
     );
   }
 

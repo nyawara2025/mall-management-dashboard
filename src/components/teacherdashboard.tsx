@@ -12,6 +12,7 @@ interface Student {
 
 interface TeacherDashboardProps {
   shopId: number;
+  onBack: () => void; // 👈 1. ADD THIS LINE
   teacherUser: {
     id: number | string;
     name: string;
@@ -20,7 +21,7 @@ interface TeacherDashboardProps {
   };
 }
 
-export const TeacherDashboard = ({ shopId, teacherUser }: TeacherDashboardProps) => {
+export const TeacherDashboard = ({ shopId, teacherUser, onBack }: TeacherDashboardProps) => {
   // Navigation Track State: 'menu' | 'homework' | 'announcements' | 'attendance' | 'grading' | 'chat'
   const [activeTab, setActiveTab] = useState<'menu' | 'homework' | 'announcements' | 'attendance' | 'grading' | 'chat'>('menu');
   const [students, setStudents] = useState<Student[]>([]);
