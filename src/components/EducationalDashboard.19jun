@@ -36,14 +36,6 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
     e.preventDefault();
     setAuthLoading(true);
     setAuthError('');
-
-    // =========================================================================
-    // CRITICAL REPAIR: CLEAR CACHED TOKENS SO THE FETCH CALL GUARANTEES EXECUTION
-    // =========================================================================
-    localStorage.removeItem('admin_staff_token');
-    localStorage.removeItem('user_role_flag');
-    // =========================================================================
-
     try {
       const response = await fetch('https://n8n.tenear.com/webhook/school-login', {
         method: 'POST',
@@ -63,8 +55,6 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
         setUserRole(result.role);
         if (result.role === 'teacher') {
           setTeacherData(result.teacher);
-        } else {
-          setTeacherData(null); // Explicitly clean out teacher row variables if they are an Admin
         }
         setIsAuthenticated(true);
       } else {
@@ -76,7 +66,6 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
       setAuthLoading(false);
     }
   };
-
 
   const handlePortalLogout = () => {
     localStorage.removeItem('admin_staff_token');
