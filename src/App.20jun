@@ -76,39 +76,24 @@ const Header = ({ onBack, title, user, onLogout, showUserMenu, setShowUserMenu }
 function AppContent() {
 
   // =========================================================================
-  // 🛡️ ZERO-DISRUPTION NATIVE APP URL RESTORER (Domain & Tenant Aware)
+  // 🛡️ ZERO-DISRUPTION NATIVE APP URL RESTORER (Sits above everything)
   // =========================================================================
   const isAndroidWebView = typeof navigator !== 'undefined' && /; wv\)/.test(navigator.userAgent);
   const currentUrl = new URL(window.location.href);
   const urlShopId = currentUrl.searchParams.get('shop_id');
-  
-  // 🌐 Dynamic Domain Detection
-  const hostname = window.location.hostname;
-  const isSchoolDomain = hostname.includes('tenearedu') || hostname.includes('school');
 
   if (urlShopId) {
     // 1. If params exist, back them up instantly for future sessions
     localStorage.setItem('__native_shop_id', urlShopId);
-    localStorage.setItem('__native_biz_cat', currentUrl.searchParams.get('business_category') || (isSchoolDomain ? 'education' : 'church'));
-  } else if (isAndroidWebView || currentUrl.pathname === '/') {
-    // 2. If Android stripped params OR we hit the base root, resolve by hostname context
-    if (isSchoolDomain) {
-      // 🎓 School Hub Fallbacks
-      const cachedShopId = localStorage.getItem('__native_shop_id') || 'YOUR_SCHOOL_DEFAULT_SHOP_ID'; // <-- Put your school shop ID string here
-      const cachedBizCat = localStorage.getItem('__native_biz_cat') || 'education';
+    localStorage.setItem('__native_biz_cat', currentUrl.searchParams.get('business_category') || 'church');
+  } else if (isAndroidWebView) {
+    // 2. If Android stripped params, recover them silently
+    const cachedShopId = localStorage.getItem('__native_shop_id') || '68'; // Default fallback
+    const cachedBizCat = localStorage.getItem('__native_biz_cat') || 'church';
 
-      currentUrl.pathname = '/school';
-      currentUrl.searchParams.set('business_category', cachedBizCat);
-      currentUrl.searchParams.set('shop_id', cachedShopId);
-    } else {
-      // ⛪ Church Hub Fallbacks (Your original logic)
-      const cachedShopId = localStorage.getItem('__native_shop_id') || '68'; 
-      const cachedBizCat = localStorage.getItem('__native_biz_cat') || 'church';
-
-      currentUrl.pathname = '/church';
-      currentUrl.searchParams.set('business_category', cachedBizCat);
-      currentUrl.searchParams.set('shop_id', cachedShopId);
-    }
+    currentUrl.pathname = '/church';
+    currentUrl.searchParams.set('business_category', cachedBizCat);
+    currentUrl.searchParams.set('shop_id', cachedShopId);
 
     // Force an instant clean reload before React renders anything else
     window.location.replace(currentUrl.toString());
