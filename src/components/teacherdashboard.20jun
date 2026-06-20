@@ -13,6 +13,7 @@ interface Student {
 interface TeacherDashboardProps {
   shopId: number;
   onBack: () => void; // 👈 1. ADD THIS LINE
+  schoolName: string; // 👈 1. ADD THIS PROPS PARAMETER
   teacherUser: {
     id: number | string;
     name: string;
@@ -21,7 +22,7 @@ interface TeacherDashboardProps {
   };
 }
 
-export const TeacherDashboard = ({ shopId, teacherUser, onBack }: TeacherDashboardProps) => {
+export const TeacherDashboard = ({ shopId, teacherUser, onBack, schoolName }: TeacherDashboardProps) => {
   // Navigation Track State: 'menu' | 'homework' | 'announcements' | 'attendance' | 'grading' | 'chat'
   const [activeTab, setActiveTab] = useState<'menu' | 'homework' | 'announcements' | 'attendance' | 'grading' | 'chat'>('menu');
   const [students, setStudents] = useState<Student[]>([]);
@@ -177,8 +178,10 @@ export const TeacherDashboard = ({ shopId, teacherUser, onBack }: TeacherDashboa
       <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 text-white rounded-b-[2rem] shadow-xl sticky top-0 z-50">
         <div className="flex justify-between items-center">
           <div>
+            
+            {/* 👇 3. UPDATED BADGE TEXT TO DISPLAY DYNAMIC SCHOOL NAME */}
             <span className="text-[9px] font-black tracking-widest text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 rounded-full uppercase">
-              Teacher Portal
+              {schoolName || 'Teacher Portal'}
             </span>
             <h2 className="text-xl font-black tracking-tight mt-1">{teacherUser.name}</h2>
             <p className="text-slate-300 text-[10px] font-medium">{teacherUser.assigned_class} Curator</p>

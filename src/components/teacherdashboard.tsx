@@ -36,6 +36,10 @@ export const TeacherDashboard = ({ shopId, teacherUser, onBack, schoolName }: Te
   const [announcementTitle, setAnnouncementTitle] = useState('');
   const [announcementBody, setAnnouncementBody] = useState('');
   
+  // 👇 ONLY ADD THESE TWO EXTRA HELPER STATES TO CAPTURE THE KENYAN NUMBER RANGE
+  const [numFrom, setNumFrom] = useState('');
+  const [numTo, setNumTo] = useState('');
+
   // Interactive Mobile Input Track States
   const [attendanceState, setAttendanceState] = useState<Record<string, string>>({});
   const [examScores, setExamScores] = useState<Record<string, string>>({});
@@ -79,15 +83,23 @@ export const TeacherDashboard = ({ shopId, teacherUser, onBack, schoolName }: Te
           shop_id: shopId,
           teacher_id: teacherUser.id,
           class_id: teacherUser.assigned_class,
-          subject: homeworkSubject,
-          title: homeworkTitle,
-          date: homeworkDue
+          
+          // 👇 CLEANLY MAPPED STRUCTURE RESIDE WITHIN YOUR EXISTING SCHEMAS
+          date: new Date().toLocaleDateString('en-KE'), // 1. Date: Automatically today's date
+          subject: homeworkSubject,                      // 2. Subject
+          textbook: homeworkDue,                         // 3. Text Book & 4. Page(s)
+          topic: homeworkTitle,                          // 5. Topic
+          number_range: `Nos. ${numFrom} to ${numTo}`    // 6. Number (from & to)
         }),
       });
       alert("Assignment published directly to Parent Hub channels.");
+      
+      // Reset variables to baseline values cleanly
       setHomeworkSubject('');
       setHomeworkTitle('');
       setHomeworkDue('');
+      setNumFrom('');
+      setNumTo('');
       setActiveTab('menu');
     } catch (err) {
       console.error(err);
@@ -260,20 +272,83 @@ export const TeacherDashboard = ({ shopId, teacherUser, onBack, schoolName }: Te
 
       {/* VIEW B: ASSIGNMENT FORMULATION */}
       {activeTab === 'homework' && (
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-          <div>
-            <h3 className="text-base font-black text-slate-800">New Assignment Task</h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">Bypasses verification to populate parent feeds instantly.</p>
+        <form onSubmit={handlePublishHomework} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4 text-left animate-in fade-in duration-200">
+          <div className="space-y-1">
+            <h3 className="text-lg font-black text-slate-900">New Assignment Task</h3>
+            <p className="text-xs text-slate-400">Due automatically on the next school day.</p>
           </div>
-          <form onSubmit={handlePublishHomework} className="space-y-4">
-            <input type="text" placeholder="Course Subject (e.g., Mathematics)" value={homeworkSubject} onChange={e => setHomeworkSubject(e.target.value)} className="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500" required />
-            <input type="text" placeholder="Due Date Threshold (e.g., Tomorrow, 5 PM)" value={homeworkDue} onChange={e => setHomeworkDue(e.target.value)} className="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-blue-500" required />
-            <textarea placeholder="Write out dynamic instructions parameters or question specifics..." value={homeworkTitle} onChange={e => setHomeworkTitle(e.target.value)} className="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs font-bold h-24 outline-none focus:ring-2 focus:ring-blue-500 resize-none" required />
-            <button type="submit" disabled={actionLoading} className="w-full bg-blue-600 text-white font-black py-4 rounded-xl text-xs uppercase tracking-wider shadow-md disabled:opacity-40">
-              {actionLoading ? 'Broadcasting Archive...' : 'Broadcast Assignment'}
-            </button>
-          </form>
-        </div>
+
+          {/* Subject Input */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Subject</label>
+            <input
+              type="text"
+              placeholder="e.g., Mathematics, Kiswahili, Science"
+              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+              value={homeworkSubject}
+              onChange={(e) => setHomeworkSubject(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Topic Input */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Topic</label>
+            <input
+              type="text"
+              placeholder="e.g., Fractions, Insha, Plants"
+              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+              value={homeworkTitle}
+              onChange={(e) => setHomeworkTitle(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Textbook Input */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Text Book & Page(s)</label>
+            <input
+              type="text"
+              placeholder="e.g., Primary Maths Bk 5 (Pg. 42-43)"
+              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+              value={homeworkDue}
+              onChange={(e) => setHomeworkDue(e.target.value)}
+              required
+            />
+          </div>
+
+          {/* Question Number Ranges */}
+          <div>
+            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Question Numbers</label>
+            <div className="grid grid-cols-2 gap-4 items-center">
+              <input
+                type="number"
+                placeholder="From (e.g., 1)"
+                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                value={numFrom}
+                onChange={(e) => setNumFrom(e.target.value)}
+                required
+              />
+              <input
+                type="number"
+                placeholder="To (e.g., 12)"
+                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                value={numTo}
+                onChange={(e) => setNumTo(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+
+          {/* Submit Action */}
+          <button
+            type="submit"
+            disabled={actionLoading}
+            className="w-full py-4 mt-2 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center justify-center uppercase tracking-wide text-xs"
+          >
+            {actionLoading ? 'Publishing to Parent Hub...' : 'Broadcast Assignment'}
+          </button>
+        </form>
       )}
 
       {/* VIEW C: NOTICE CREATION */}
