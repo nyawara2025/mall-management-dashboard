@@ -266,8 +266,7 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
     return (
       <TeacherDashboard 
         shopId={shopId} 
-        onBack={handleLogout}
-        schoolName={data?.school_name || "Institution Space"} // 👈 ADD THIS PROPLINE 
+        onBack={handleLogout} 
         teacherUser={{
           id: currentUser?.id || 'unknown',
           name: currentUser?.name || 'Teacher',
