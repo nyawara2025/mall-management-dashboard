@@ -84,7 +84,7 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
        
           // 2. Hydrate tenant school data so parent-level checks pass
           setData({
-            school_name: authResult.data?.school_name || "Institution Space",
+            school_name: data?.school_name || "School Portal",
             homework: [],
             bulletin: []
           });
