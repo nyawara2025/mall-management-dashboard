@@ -1,11 +1,13 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+const isSchool = process.env.APP_TARGET === 'school';
+
 const config: CapacitorConfig = {
-  appId: 'com.tenear.churchmate',
-  appName: 'ChurchMate',
+  appId: isSchool ? 'com.tenear.schoolmate' : 'com.tenear.churchmate',
+  appName: isSchool ? 'SchoolMate' : 'ChurchMate',
   webDir: 'dist',
   server: {
-    url: 'https://tenearchurch.pages.dev/church/',
+    url: isSchool ? 'https://tenearedu.pages.dev/school/' : 'https://tenearchurch.pages.dev/church/',
     cleartext: true
   }
 };
