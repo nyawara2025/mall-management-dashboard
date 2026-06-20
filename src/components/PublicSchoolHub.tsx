@@ -83,11 +83,12 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
           localStorage.setItem('teacher_token', authResult.token);
        
           // 2. Hydrate tenant school data so parent-level checks pass
-          setData({
-            school_name: data?.school_name || "School Portal",
+          setData(prevData => ({
+            ...prevData,
+            school_name: prevData?.school_name || "School Portal",
             homework: [],
             bulletin: []
-          });
+          }));
  
           setCurrentUser({
             id: userData.id,
