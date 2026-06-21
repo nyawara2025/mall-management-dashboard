@@ -79,7 +79,6 @@ export const JoinMinistryOrZone: React.FC<JoinProps> = ({ isOpen, onClose, userD
         body: JSON.stringify({
           phone_number: userData.phone_number,
           org_id: userData.org_id,
-          shop_id: userData.shop_id,
           field: activeTab === 'ministry' ? 'ministry_name' : 'zone_name',
           value: newValue
         }),
@@ -112,7 +111,6 @@ export const JoinMinistryOrZone: React.FC<JoinProps> = ({ isOpen, onClose, userD
         body: JSON.stringify({
           phone_number: userData.phone_number,
           org_id: userData.org_id,
-          shop_id: userData.shop_id,
           field: 'ministry_name',
           value: updatedList || 'Not Assigned'
         }),
