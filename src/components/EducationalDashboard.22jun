@@ -597,6 +597,59 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
             </div>
           </div>
 
+          {/* 📊 NEW: DYNAMIC STATISTICAL AGGREGATION PANEL */}
+          {(() => {
+            // Extract the exact subset matching active filters
+            const filteredList = marks.filter(item => {
+              const matchesSearch = item.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) || item.admission_no?.includes(searchTerm);
+              const matchesClass = selectedClass === 'All' || item.class_id === selectedClass;
+              const matchesSubj = selectedSubject === 'All' || item.subject === selectedSubject;
+              return matchesSearch && matchesClass && matchesSubj;
+            });
+
+            const totalPapers = filteredList.length;
+              
+            // Calculate average score dynamically
+            const meanScore = totalPapers > 0 
+              ? Math.round(filteredList.reduce((sum, item) => sum + (item.score || 0), 0) / totalPapers) 
+              : 0;
+
+            // Calculate pass rate percentage based on Kenyan 50% threshold benchmarks
+            const totalPassed = filteredList.filter(item => (item.score || 0) >= 50).length;
+            const passRate = totalPapers > 0 ? Math.round((totalPassed / totalPapers) * 100) : 0;
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm text-left flex flex-col justify-between">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider block">Assessed Entries</span>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-2xl font-black text-slate-800">{totalPapers}</span>
+                    <span className="text-xs font-bold text-slate-400">Graded Papers</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm text-left flex flex-col justify-between">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider block">Mean Score Percentage</span>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className="text-2xl font-black text-blue-600">{meanScore}%</span>
+                    <span className="text-xs font-bold text-slate-400">Cohort Average</span>
+                  </div>
+                </div>
+
+                <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm text-left flex flex-col justify-between">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider block">Passing Threshold Rate</span>
+                  <div className="mt-2 flex items-baseline gap-2">
+                    <span className={`text-2xl font-black ${passRate >= 70 ? 'text-emerald-600' : 'text-amber-500'}`}>{passRate}%</span>
+                    <span className="text-xs font-bold text-slate-400">Score &ge; 50%</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+
+
+
           <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
             {marksLoading ? (
               <div className="text-center py-16 text-gray-400 text-xs font-bold animate-pulse uppercase">Compiling Academic History Matrices...</div>
