@@ -554,48 +554,59 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
 
           {/* School Fees Management Card */}
           <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit text-left">
-            <div className="mb-6">
+            <div className="mb-6 text-left">
               <h3 className="font-black text-2xl text-gray-800 flex items-center gap-3">
                 <CreditCard className="text-emerald-600" size={28} /> Fees Tracker
               </h3>
               <p className="text-gray-500">Collection & Arrears</p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-6 text-left">
               <div className="flex justify-between items-end">
                 <div>
                   <p className="text-[10px] font-black text-gray-400 uppercase">Total Collected</p>
-                  <p className="text-2xl font-black text-gray-800">KES {totalCollected.toLocaleString()}</p>
+                  <p className="text-2xl font-black text-slate-800">
+                    KES {totalCollected.toLocaleString()}
+                  </p>
                 </div>
                 <div className="text-right">
                   <p className="text-[10px] font-black text-gray-400 uppercase text-red-400">Outstanding</p>
-                  <p className="text-2xl font-black text-red-800">KES {totalOutstanding.toLocaleString()}</p>
+                  <p className="text-2xl font-black text-red-800">
+                    KES {totalOutstanding.toLocaleString()}
+                  </p>
                 </div>
               </div>
 
+              {/* 📊 Dynamic Progress Bar Calculation */}
               {(() => {
                 const totalSum = totalCollected + totalOutstanding;
                 const percentage = totalSum > 0 ? Math.round((totalCollected / totalSum) * 100) : 0;
                 return (
                   <div className="space-y-1.5">
                     <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
-                      <div className="bg-emerald-500 h-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
+                      <div 
+                        className="bg-emerald-500 h-full transition-all duration-500" 
+                        style={{ width: `${percentage}%` }}
+                      ></div>
                     </div>
                     <p className="text-[10px] text-gray-400 font-bold text-right">{percentage}% Collection Target Reached</p>
                   </div>
                 );
               })()}
 
-              <button type="button" disabled={loading} onClick={() => handleFetchFees()} className="w-full border-2 border-emerald-600 text-emerald-600 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 disabled:opacity-40 text-sm">
+              <button 
+                type="button"
+                disabled={loading}
+                onClick={() => handleFetchFees()}
+                className="w-full border-2 border-emerald-600 text-emerald-600 py-3 rounded-xl font-bold hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 disabled:opacity-40 text-sm"
+              >
                 <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
                 {loading ? "Syncing..." : "Sync Supabase Data"}
               </button>
             </div>
           </div>
-
         </div>
       )}
-
       {/* --- VIEW B: ADMINISTRATIVE MARKS LEDGER SUITE --- */}
       {activeTab === 'admin-marks' && (
         <div className="space-y-6 text-left animate-in fade-in duration-200">

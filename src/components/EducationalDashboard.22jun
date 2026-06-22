@@ -6,6 +6,8 @@ import {
   Download, Printer, Search, ArrowLeft
 } from 'lucide-react';
 
+import { TransportMapModal } from './TransportMapModal';
+
 interface Activity {
   activity_name: string;
   description: string;
@@ -39,6 +41,10 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
 
   // 🛠️ REFACTORED: Tab tracking state ('dashboard' or 'admin-marks')
   const [activeTab, setActiveTab] = useState<'dashboard' | 'admin-marks'>('dashboard');
+ 
+  // --- Live Mapping Window State Trackers ---
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [activeTrackingRoute, setActiveTrackingRoute] = useState<any | null>(null);
 
   // 🛠️ REFACTORED: Administrative Records analytics states
   const [marks, setMarks] = useState<MarkRecord[]>([]);
@@ -87,6 +93,32 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
   const [bulletin, setBulletin] = useState({ title: '', content: '' });
   const [bulletinFile, setBulletinFile] = useState<{name: string, data: string} | null>(null);
   const [bulletinImage, setBulletinImage] = useState<{name: string, data: string} | null>(null);
+
+  // --- Enhanced Transport State Management ---
+  const [routesList, setRoutesList] = useState<any[]>([]);
+  const [transportLoading, setTransportLoading] = useState(false);
+  const [selectedActiveRoute, setSelectedActiveRoute] = useState<any | null>(null);
+
+  // Automatically fetch transit metrics on baseline grid compilation
+  useEffect(() => {
+    async function fetchTransitLedger() {
+      setTransportLoading(true);
+      try {
+        const response = await fetch('https://n8n.tenear.com/webhook/transport-monitor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shop_id: shopId })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setRoutesList(Array.isArray(data) ? data : []);
+        }
+      } catch (err) { console.error("Error fetching transit parameters:", err); }
+      finally { setTransportLoading(false); }
+    }
+    fetchTransitLedger();
+  }, [shopId]);
+
 
   // 🛠️ REFACTORED: Automated fetch effect hook tied to administrative view transition
   useEffect(() => {
@@ -457,29 +489,67 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
           <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit text-left">
             <div className="mb-6">
               <h3 className="font-black text-2xl text-gray-800 flex items-center gap-3">
-                <Bus className="text-orange-500" size={28} /> Transport
+                <Bus className="text-orange-500" size={28} /> Transport Fleet Index
               </h3>
-              <p className="text-gray-500">Monitor routes & notify parents</p>
+              <p className="text-gray-500">Monitor active routes & broadcast updates to parents.</p>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex bg-gray-100 p-1 rounded-xl">
-                <button className="flex-1 py-2 text-xs font-bold rounded-lg bg-white shadow-sm">School Fleet</button>
-                <button className="flex-1 py-2 text-xs font-bold text-gray-500">Vendors</button>
-              </div>
+            {transportLoading ? (
+              <p className="text-center py-6 text-xs font-bold text-gray-400 animate-pulse">POLLING FLEET COORDINATES...</p>
+            ) : routesList.length === 0 ? (
+              <p className="text-center py-6 text-xs italic text-gray-400">No transit routes configured for this station space.</p>
+            ) : (
+              <div className="space-y-4">
+                {routesList.map((route) => (
+                  <div key={route.route_id} className="p-4 bg-orange-50/60 rounded-2xl border border-orange-100/80 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-black text-orange-700 uppercase tracking-wide">
+                        {route.route_name} ({route.fleet_mode})
+                      </span>
+                      <span className={`flex h-2 w-2 rounded-full ${route.is_active ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></span>
+                    </div>
+                    
+                    <div className="text-xs text-gray-600 space-y-0.5 font-medium">
+                      <p>Driver: <span className="font-bold text-gray-800">{route.driver_name}</span></p>
+                      <p>Ridership volume: <span className="font-bold text-gray-800">{route.student_count} Students</span></p>
+                      {route.last_latitude && (
+                        <p className="text-[10px] text-blue-600 font-mono font-bold mt-1">
+                          📡 GPS Fix: {route.last_latitude}, {route.last_longitude}
+                        </p>
+                      )}
+                    </div>
+            
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <button 
+                        onClick={() => triggerWhatsAppAlert(route.route_id)} 
+                        className="bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                      >
+                        <MessageCircle size={13} /> Notify Parents
+                      </button>
+                      
+                      <button 
+                        type="button"
+                        disabled={!route.last_latitude}
+                        onClick={() => {
+                          setActiveTrackingRoute(route);
+                          setIsMapModalOpen(true);
+                        }}
+                        className="bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 text-slate-700 py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                      >
+                        📍 Track Fleet
+                      </button>
+                    </div>
 
-              <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-black text-orange-700 uppercase">Active Route: North Wing</span>
-                  <span className="animate-pulse flex h-2 w-2 rounded-full bg-green-500"></span>
-                </div>
-                <p className="text-sm text-gray-600 mb-4">Driver: John Doe • 14 Students</p>
-        
-                <button onClick={() => triggerWhatsAppAlert('route_start')} className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all">
-                  <MessageCircle size={18} /> Send WhatsApp Alert
-                </button>
+                    <button 
+                      onClick={() => triggerWhatsAppAlert(route.route_id)} 
+                      className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
+                    >
+                      <MessageCircle size={14} /> Notify Fleet Group
+                    </button>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div> 
 
           {/* School Fees Management Card */}
@@ -695,6 +765,21 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
           </div>
 
         </div>
+      )}
+
+      {/* 🌍 MAP PORTAL INJECTOR: Placed outside structural views but within the main component canvas */}
+      {activeTrackingRoute && (
+        <TransportMapModal 
+          isOpen={isMapModalOpen}
+          onClose={() => {
+            setIsMapModalOpen(false);
+            setActiveTrackingRoute(null);
+          }}
+          routeName={activeTrackingRoute.route_name}
+          driverName={activeTrackingRoute.driver_name}
+          latitude={parseFloat(activeTrackingRoute.last_latitude || '-1.2921')}
+          longitude={parseFloat(activeTrackingRoute.last_longitude || '36.8219')}
+        />
       )}
 
     </div>
