@@ -53,7 +53,7 @@ export const GivingModal = ({
       if (!response.ok) throw new Error("Server error");
 
       if (paymentMode === 'stk') {
-        alert("Please check your phone for the M-PESA prompt to complete payment.");
+        alert("Please hold on for the M-PESA prompt to complete payment.");
       } else {
         alert("Transaction code submitted for verification. Thank you!");
       }

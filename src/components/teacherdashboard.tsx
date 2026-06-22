@@ -6,14 +6,16 @@ import {
 
 interface Student {
   id: string;
-  name: string;
-  admission_no: string;
+  name?: string;
+  first_name?: string;
+  last_name?: string;
+  admission_no?: string;
 }
 
 interface TeacherDashboardProps {
   shopId: number;
-  onBack: () => void; // 👈 1. ADD THIS LINE
-  schoolName: string; // 👈 1. ADD THIS PROPS PARAMETER
+  onBack: () => void;
+  schoolName: string;
   teacherUser: {
     id: number | string;
     name: string;
@@ -23,29 +25,24 @@ interface TeacherDashboardProps {
 }
 
 export const TeacherDashboard = ({ shopId, teacherUser, onBack, schoolName }: TeacherDashboardProps) => {
-  // Navigation Track State: 'menu' | 'homework' | 'announcements' | 'attendance' | 'grading' | 'chat'
   const [activeTab, setActiveTab] = useState<'menu' | 'homework' | 'announcements' | 'attendance' | 'grading' | 'chat'>('menu');
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
 
-  // Form Processing Sub-States
   const [homeworkSubject, setHomeworkSubject] = useState('');
   const [homeworkTitle, setHomeworkTitle] = useState('');
   const [homeworkDue, setHomeworkDue] = useState('');
   const [announcementTitle, setAnnouncementTitle] = useState('');
   const [announcementBody, setAnnouncementBody] = useState('');
   
-  // 👇 ONLY ADD THESE TWO EXTRA HELPER STATES TO CAPTURE THE KENYAN NUMBER RANGE
   const [numFrom, setNumFrom] = useState('');
   const [numTo, setNumTo] = useState('');
 
-  // Interactive Mobile Input Track States
-  const [attendanceState, setAttendanceState] = useState<Record<string, string>>({});
+  const [attendanceState, setAttendanceState] = useState<Record<string, 'present' | 'absent'>>({});
   const [examScores, setExamScores] = useState<Record<string, string>>({});
   const [activeSubject, setActiveSubject] = useState('Mathematics');
 
-  // Fetch Class Roster on Load for Attendance and Grading
   useEffect(() => {
     async function fetchClassRoster() {
       setLoading(true);
@@ -71,7 +68,6 @@ export const TeacherDashboard = ({ shopId, teacherUser, onBack, schoolName }: Te
     fetchClassRoster();
   }, [shopId, teacherUser.assigned_class]);
 
-  // 1. DISPATCH NEW ASSIGNMENT ENTRY (IMMEDIATE VIEW PATTERN)
   const handlePublishHomework = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionLoading(true);
@@ -83,18 +79,14 @@ export const TeacherDashboard = ({ shopId, teacherUser, onBack, schoolName }: Te
           shop_id: shopId,
           teacher_id: teacherUser.id,
           class_id: teacherUser.assigned_class,
-          
-          // 👇 CLEANLY MAPPED STRUCTURE RESIDE WITHIN YOUR EXISTING SCHEMAS
-          date: new Date().toLocaleDateString('en-KE'), // 1. Date: Automatically today's date
-          subject: homeworkSubject,                      // 2. Subject
-          textbook: homeworkDue,                         // 3. Text Book & 4. Page(s)
-          topic: homeworkTitle,                          // 5. Topic
-          number_range: `Nos. ${numFrom} to ${numTo}`    // 6. Number (from & to)
+          date: new Date().toLocaleDateString('en-KE'),
+          subject: homeworkSubject,
+          textbook: homeworkDue,
+          topic: homeworkTitle,
+          number_range: `Nos. ${numFrom} to ${numTo}`
         }),
       });
       alert("Assignment published directly to Parent Hub channels.");
-      
-      // Reset variables to baseline values cleanly
       setHomeworkSubject('');
       setHomeworkTitle('');
       setHomeworkDue('');
@@ -108,7 +100,6 @@ export const TeacherDashboard = ({ shopId, teacherUser, onBack, schoolName }: Te
     }
   };
 
-  // 2. DISPATCH GROUP NOTICE (IMMEDIATE VIEW PATTERN)
   const handlePublishAnnouncement = async (e: React.FormEvent) => {
     e.preventDefault();
     setActionLoading(true);
@@ -135,7 +126,6 @@ export const TeacherDashboard = ({ shopId, teacherUser, onBack, schoolName }: Te
     }
   };
 
-  // 3. PUSH ATTENDANCE RECORD SYSTEM (REAL-TIME SHARED DATA PATTERN)
   const submitDailyAttendance = async () => {
     setActionLoading(true);
     try {
@@ -158,7 +148,6 @@ export const TeacherDashboard = ({ shopId, teacherUser, onBack, schoolName }: Te
     }
   };
 
-  // 4. DISPATCH MARKS FOR APPROVAL (ADMIN GUARD PATTERN)
   const submitMarksForApproval = async () => {
     setActionLoading(true);
     try {
@@ -185,287 +174,252 @@ export const TeacherDashboard = ({ shopId, teacherUser, onBack, schoolName }: Te
 
   return (
     <div className="max-w-md mx-auto bg-slate-50 min-h-screen pb-24 text-left font-sans animate-in fade-in duration-200">
-      
-      {/* PERSISTENT RUNTIME BANNER */}
       <div className="bg-gradient-to-r from-slate-900 to-indigo-950 p-6 text-white rounded-b-[2rem] shadow-xl sticky top-0 z-50">
         <div className="flex justify-between items-center">
           <div>
-            
-            {/* 👇 3. UPDATED BADGE TEXT TO DISPLAY DYNAMIC SCHOOL NAME */}
             <span className="text-[9px] font-black tracking-widest text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-0.5 rounded-full uppercase">
               {schoolName || 'Teacher Portal'}
             </span>
             <h2 className="text-xl font-black tracking-tight mt-1">{teacherUser.name}</h2>
             <p className="text-slate-300 text-[10px] font-medium">{teacherUser.assigned_class} Curator</p>
           </div>
-
           {activeTab !== 'menu' ? (
-            <button 
-              onClick={() => setActiveTab('menu')} 
-              className="p-2.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-xl transition-colors text-slate-200"
-            >
+            <button onClick={() => setActiveTab('menu')} className="p-2.5 bg-slate-800 border border-slate-700 hover:bg-slate-700 rounded-xl transition-colors text-slate-200">
               <ArrowLeft size={16} /> Back
             </button>
-
           ) : (
-            <button
-              onClick={onBack} // Calls handleLogout from PublicSchoolHub.tsx
-              className="p-2.5 bg-red-950/40 border border-red-500/30 hover:bg-red-900/40 rounded-xl transition-colors text-red-400 flex items-center gap-1.5 text-xs font-bold"
-            >
+            <button onClick={onBack} className="p-2.5 bg-red-950/40 border border-red-500/30 hover:bg-red-900/40 rounded-xl transition-colors text-red-400 flex items-center gap-1.5 text-xs font-bold">
               <X size={16} /> Logout
             </button>  
-
           )}
         </div>
       </div>
 
       <div className="p-4">
-        {/* VIEW A: HOMEPAGE MENU CARD GRID */}
         {activeTab === 'menu' && (
-          <div className="space-y-4">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider px-1">Classroom Operations</p>
-            
-            <div className="grid grid-cols-1 gap-4">
-              <button onClick={() => setActiveTab('homework')} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 text-left group">
-                <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all"><BookOpen size={20} /></div>
+          <div className="space-y-3 animate-in slide-in-from-bottom-4 duration-300">
+            <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm mb-4">
+              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Active Modules</h3>
+              <p className="text-xs text-slate-500">Manage classroom operations directly. Changes sync across to parents and administrative backends via n8n.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button onClick={() => setActiveTab('homework')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-indigo-500 transition-all text-left flex flex-col justify-between h-28">
+                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl w-fit"><BookOpen size={20} /></div>
                 <div>
-                  <h3 className="font-black text-slate-800 text-sm">Assignments & Homework</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Launches items directly onto parent tracking views.</p>
+                  <h4 className="text-sm font-bold text-slate-800">Assignments</h4>
+                  <p className="text-[10px] text-slate-400">Publish class metrics</p>
                 </div>
               </button>
-
-              <button onClick={() => setActiveTab('announcements')} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 text-left group">
-                <div className="p-3 bg-purple-50 text-purple-600 rounded-xl group-hover:bg-purple-600 group-hover:text-white transition-all"><Megaphone size={20} /></div>
+              <button onClick={() => setActiveTab('announcements')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-amber-500 transition-all text-left flex flex-col justify-between h-28">
+                <div className="p-2 bg-amber-50 text-amber-600 rounded-xl w-fit"><Megaphone size={20} /></div>
                 <div>
-                  <h3 className="font-black text-slate-800 text-sm">Class Notice Announcements</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Broadcast updates directly to target parent devices.</p>
+                  <h4 className="text-sm font-bold text-slate-800">Bulletins</h4>
+                  <p className="text-[10px] text-slate-400">Notice board updates</p>
                 </div>
               </button>
-
-              <button onClick={() => setActiveTab('attendance')} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 text-left group">
-                <div className="p-3 bg-orange-50 text-orange-600 rounded-xl group-hover:bg-orange-600 group-hover:text-white transition-all"><CheckSquare size={20} /></div>
+              <button onClick={() => setActiveTab('attendance')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-emerald-500 transition-all text-left flex flex-col justify-between h-28">
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl w-fit"><CheckSquare size={20} /></div>
                 <div>
-                  <h3 className="font-black text-slate-800 text-sm">Daily Attendance Roll Call</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Sync present/absent data to Admin & Parents.</p>
+                  <h4 className="text-sm font-bold text-slate-800">Attendance</h4>
+                  <p className="text-[10px] text-slate-400">Track student status</p>
                 </div>
               </button>
-
-              <button onClick={() => setActiveTab('grading')} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 text-left group">
-                <div className="p-3 bg-rose-50 text-rose-600 rounded-xl group-hover:bg-rose-600 group-hover:text-white transition-all"><Award size={20} /></div>
+              <button onClick={() => setActiveTab('grading')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-blue-500 transition-all text-left flex flex-col justify-between h-28">
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl w-fit"><Award size={20} /></div>
                 <div>
-                  <h3 className="font-black text-slate-800 text-sm">Record Exam Scores</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Input raw data lines for Admin approval checkmarks.</p>
+                  <h4 className="text-sm font-bold text-slate-800">Grading</h4>
+                  <p className="text-[10px] text-slate-400">Submit marks for admin review</p>
                 </div>
               </button>
-
-              <button onClick={() => setActiveTab('chat')} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4 text-left group">
-                <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition-all"><MessageSquare size={20} /></div>
-                <div>
-
-                <h3 className="font-black text-slate-800 text-sm">Parent Guardian Chatroom</h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">Launch immediate real-time feedback chats.</p>
-              </div>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* VIEW B: ASSIGNMENT FORMULATION */}
-      {activeTab === 'homework' && (
-        <form onSubmit={handlePublishHomework} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4 text-left animate-in fade-in duration-200">
-          <div className="space-y-1">
-            <h3 className="text-lg font-black text-slate-900">New Assignment Task</h3>
-            <p className="text-xs text-slate-400">Due automatically on the next school day.</p>
-          </div>
-
-          {/* Subject Input */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Subject</label>
-            <input
-              type="text"
-              placeholder="e.g., Mathematics, Kiswahili, Science"
-              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
-              value={homeworkSubject}
-              onChange={(e) => setHomeworkSubject(e.target.value)}
-              required
-            />
-          </div>
-
-          {/* Topic Input */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Topic</label>
-            <input
-              type="text"
-              placeholder="e.g., Fractions, Insha, Plants"
-              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
-              value={homeworkTitle}
-              onChange={(e) => setHomeworkTitle(e.target.value)}
-              required
-            />
-          </div>
-
-          {/* Textbook Input */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Text Book & Page(s)</label>
-            <input
-              type="text"
-              placeholder="e.g., Primary Maths Bk 5 (Pg. 42-43)"
-              className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
-              value={homeworkDue}
-              onChange={(e) => setHomeworkDue(e.target.value)}
-              required
-            />
-          </div>
-
-          {/* Question Number Ranges */}
-          <div>
-            <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Question Numbers</label>
-            <div className="grid grid-cols-2 gap-4 items-center">
-              <input
-                type="number"
-                placeholder="From (e.g., 1)"
-                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
-                value={numFrom}
-                onChange={(e) => setNumFrom(e.target.value)}
-                required
-              />
-              <input
-                type="number"
-                placeholder="To (e.g., 12)"
-                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
-                value={numTo}
-                onChange={(e) => setNumTo(e.target.value)}
-                required
-              />
             </div>
           </div>
+        )}
 
-          {/* Submit Action */}
-          <button
-            type="submit"
-            disabled={actionLoading}
-            className="w-full py-4 mt-2 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center justify-center uppercase tracking-wide text-xs"
-          >
-            {actionLoading ? 'Publishing to Parent Hub...' : 'Broadcast Assignment'}
-          </button>
-        </form>
-      )}
-
-      {/* VIEW C: NOTICE CREATION */}
-      {activeTab === 'announcements' && (
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
-          <div>
-            <h3 className="text-base font-black text-slate-800">Broadcast Notice Board Update</h3>
-            <p className="text-[11px] text-slate-400 mt-0.5">Pins urgent updates directly onto target parent views.</p>
-          </div>
-          <form onSubmit={handlePublishAnnouncement} className="space-y-4">
-            <input type="text" placeholder="Notice Header Title" value={announcementTitle} onChange={e => setAnnouncementTitle(e.target.value)} className="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-purple-500" required />
-            <textarea placeholder="Write full bulletin description or operational notices..." value={announcementBody} onChange={e => setAnnouncementBody(e.target.value)} className="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs font-bold h-32 outline-none focus:ring-2 focus:ring-purple-500 resize-none" required />
-            <button type="submit" disabled={actionLoading} className="w-full bg-purple-600 text-white font-black py-4 rounded-xl text-xs uppercase tracking-wider shadow-md disabled:opacity-40">
-              {actionLoading ? 'Transmitting Notice...' : 'Transmit Board Notice'}
+        {/* VIEW B: ASSIGNMENT FORMULATION */}
+        {activeTab === 'homework' && (
+          <form onSubmit={handlePublishHomework} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4 text-left animate-in fade-in duration-200">
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-slate-900">New Assignment Task</h3>
+              <p className="text-xs text-slate-400">Due automatically on the next school day.</p>
+            </div>
+            <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Subject</label>
+              <input
+                type="text" placeholder="e.g., Mathematics, Kiswahili, Science"
+                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                value={homeworkSubject} onChange={(e) => setHomeworkSubject(e.target.value)} required
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Topic</label>
+              <input
+                type="text" placeholder="e.g., Fractions, Insha, Plants"
+                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                value={homeworkTitle} onChange={(e) => setHomeworkTitle(e.target.value)} required
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Text Book & Page(s)</label>
+              <input
+                type="text" placeholder="e.g., Primary Maths Bk 5 (Pg. 42-43)"
+                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                value={homeworkDue} onChange={(e) => setHomeworkDue(e.target.value)} required
+              />
+            </div>
+            <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Question Numbers</label>
+              <div className="grid grid-cols-2 gap-4 items-center">
+                <input
+                  type="number" placeholder="From (e.g., 1)"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                  value={numFrom} onChange={(e) => setNumFrom(e.target.value)} required
+                />
+                <input
+                  type="number" placeholder="To (e.g., 12)"
+                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                  value={numTo} onChange={(e) => setNumTo(e.target.value)} required
+                />
+              </div>
+            </div>
+            <button
+              type="submit" disabled={actionLoading}
+              className="w-full py-4 mt-2 bg-blue-600 text-white font-bold rounded-2xl hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all flex items-center justify-center uppercase tracking-wide text-xs"
+            >
+              {actionLoading ? 'Publishing to Parent Hub...' : 'Broadcast Assignment'}
             </button>
           </form>
-        </div>
-      )}
+        )}
 
-      {/* VIEW D: MOBILE-TOUCH ROLL CALL INTERFACE */}
-      {activeTab === 'attendance' && (
-        <div className="space-y-3">
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
+        {/* VIEW C: NOTICE CREATION */}
+        {activeTab === 'announcements' && (
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
             <div>
-              <h3 className="text-sm font-black text-slate-800">Class Attendance Roll</h3>
-              <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Roster: {students.length} Learners</p>
+              <h3 className="text-base font-black text-slate-800">Broadcast Notice Board Update</h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">Pins urgent updates directly onto target parent views.</p>
             </div>
-            <Calendar size={18} className="text-slate-400" />
-          </div>
-
-          {loading ? (
-            <p className="text-center py-8 text-xs font-black text-slate-400 animate-pulse">LOADING TARGET ROSTER...</p>
-          ) : (
-            <div className="space-y-2">
-              {students.map((student) => (
-                <div key={student.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex justify-between items-center">
-                  <div>
-                    <p className="font-black text-slate-800 text-xs">{student.name}</p>
-                    <p className="text-[9px] font-mono font-bold text-slate-400 mt-0.5">ADM: {student.admission_no}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button 
-                      onClick={() => setAttendanceState(prev => ({ ...prev, [student.id]: 'present' }))} 
-                      className={`p-2 rounded-lg border transition-all ${attendanceState[student.id] === 'present' ? 'bg-emerald-500 border-emerald-600 text-white shadow' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
-                    >
-                      <Check size={14} />
-                    </button>
-                    <button 
-                      onClick={() => setAttendanceState(prev => ({ ...prev, [student.id]: 'absent' }))} 
-                      className={`p-2 rounded-lg border transition-all ${attendanceState[student.id] === 'absent' ? 'bg-red-500 border-red-600 text-white shadow' : 'bg-slate-50 border-slate-200 text-slate-400'}`}
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-              <button onClick={submitDailyAttendance} disabled={actionLoading || Object.keys(attendanceState).length === 0} className="w-full mt-4 bg-slate-900 text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest shadow-md disabled:opacity-40">
-                {actionLoading ? 'Processing Ledger...' : 'Push Attendance Logs'}
+            <form onSubmit={handlePublishAnnouncement} className="space-y-4">
+              <input type="text" placeholder="Notice Header Title" value={announcementTitle} onChange={e => setAnnouncementTitle(e.target.value)} className="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-purple-500" required />
+              <textarea placeholder="Write full bulletin description or operational notices..." value={announcementBody} onChange={e => setAnnouncementBody(e.target.value)} className="w-full bg-slate-50 border border-slate-200 p-3.5 rounded-xl text-xs font-bold h-32 outline-none focus:ring-2 focus:ring-purple-500 resize-none" required />
+              <button type="submit" disabled={actionLoading} className="w-full bg-purple-600 text-white font-black py-4 rounded-xl text-xs uppercase tracking-wider shadow-md disabled:opacity-40">
+                {actionLoading ? 'Transmitting Notice...' : 'Transmit Board Notice'}
               </button>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* VIEW E: ACCELERATED SCORE ASSIGNATION CONTAINER */}
-      {activeTab === 'grading' && (
-        <div className="space-y-3">
-          <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-2">
-            <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Course Assessment Subject</label>
-            <select value={activeSubject} onChange={e => setActiveSubject(e.target.value)} className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl text-xs font-bold outline-none">
-              <option value="Mathematics">Mathematics</option>
-              <option value="English Language">English Language</option>
-              <option value="Kiswahili">Kiswahili</option>
-              <option value="Science & Tech">Science & Tech</option>
-            </select>
+            </form>
           </div>
+        )}
 
-          {loading ? (
-            <p className="text-center py-8 text-xs font-black text-slate-400 animate-pulse">LOADING LEARNER INDEX...</p>
-          ) : (
-            <div className="space-y-2">
-              {students.map((student) => (
-                <div key={student.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex justify-between items-center">
-                  <span className="font-black text-slate-800 text-xs truncate max-w-[200px]">{student.name}</span>
-                  <div className="flex items-center gap-1">
-                    <input 
-                      type="number" 
-                      placeholder="Marks" 
-                      max="100" 
-                      value={examScores[student.id] || ''} 
-                      onChange={e => setExamScores(prev => ({ ...prev, [student.id]: e.target.value }))} 
-                      className="w-16 bg-slate-50 border border-slate-200 p-2 rounded-lg text-center text-xs font-black outline-none" 
-                    />
-                    <span className="text-xs font-bold text-slate-400">%</span>
-                  </div>
-                </div>
-              ))}
-              <button onClick={submitMarksForApproval} disabled={actionLoading || Object.keys(examScores).length === 0} className="w-full mt-4 bg-blue-600 text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest shadow-md flex items-center justify-center gap-1.5 disabled:opacity-40">
-                <Send size={12} /> Dispatch Marks for Admin Review
-              </button>
+        {/* VIEW D: MOBILE-TOUCH ROLL CALL INTERFACE */}
+        {activeTab === 'attendance' && (
+          <div className="space-y-3">
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center">
+              <div>
+                <h3 className="text-sm font-black text-slate-800">Class Attendance Roll</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Roster: {students.length} Learners</p>
+              </div>
+              <Calendar size={18} className="text-slate-400" />
             </div>
-          )}
-        </div>
-      )}
 
-      {/* VIEW F: CHATROOM STAND-IN VIEW */}
-      {activeTab === 'chat' && (
-        <div className="bg-white p-10 rounded-2xl border border-slate-100 shadow-sm text-center space-y-3">
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-full w-fit mx-auto"><MessageSquare size={24} /></div>
-          <h4 className="font-black text-slate-800 text-sm">Classroom Communication Stream</h4>
-          <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
-            Waiting for the structural specifications of your church communications module to deploy matching components.
-          </p>
-        </div>
-      )}
+            {loading ? (
+              <p className="text-center py-8 text-xs font-black text-slate-400 animate-pulse">LOADING TARGET ROSTER...</p>
+            ) : (
+              <div className="space-y-2">
+                {students.map((student) => {
+                  const currentStatus = attendanceState[student.id] || 'present';
+                  const fullName = student.name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Unknown Learner';
 
+                  return (
+                    <div key={student.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex justify-between items-center">
+                      <div>
+                        <p className="font-black text-slate-800 text-xs truncate max-w-[200px]">{fullName}</p>
+                        <p className="text-[9px] text-slate-400">{student.admission_no || 'No Adm'}</p>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <button 
+                          onClick={() => setAttendanceState(prev => ({ ...prev, [student.id]: 'present' }))}
+                          className={`p-1.5 rounded-lg border transition-colors ${currentStatus === 'present' ? 'bg-emerald-500 border-emerald-600 text-white' : 'bg-white border-slate-200 text-slate-400'}`}
+                        >
+                          <Check size={14} />
+                        </button>
+                        <button 
+                          onClick={() => setAttendanceState(prev => ({ ...prev, [student.id]: 'absent' }))}
+                          className={`p-1.5 rounded-lg border transition-colors ${currentStatus === 'absent' ? 'bg-rose-500 border-rose-600 text-white' : 'bg-white border-slate-200 text-slate-400'}`}
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <button onClick={submitDailyAttendance} disabled={actionLoading} className="w-full mt-4 bg-slate-900 text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest shadow-md disabled:opacity-40">
+                  {actionLoading ? 'Processing Ledger...' : 'Push Attendance Logs'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* VIEW E: ACCELERATED SCORE ASSIGNATION CONTAINER */}
+        {activeTab === 'grading' && (
+          <div className="space-y-3">
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Evaluating Subject</label>
+                <select 
+                  value={activeSubject} onChange={(e) => setActiveSubject(e.target.value)}
+                  className="w-full text-sm px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 font-bold text-slate-700"
+                >
+                  <option value="Mathematics">Mathematics</option>
+                  <option value="English">English</option>
+                  <option value="Kiswahili">Kiswahili</option>
+                  <option value="Science">Science & Technology</option>
+                  <option value="Social Studies">Social Studies</option>
+                </select>
+              </div>
+            </div>
+
+            {loading ? (
+              <p className="text-center py-8 text-xs font-black text-slate-400 animate-pulse">LOADING TARGET ROSTER...</p>
+            ) : (
+              <div className="space-y-2">
+                {students.map((student) => {
+                  const fullName = student.name || `${student.first_name || ''} ${student.last_name || ''}`.trim() || 'Unknown Learner';
+
+                  return (
+                    <div key={student.id} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex justify-between items-center">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-black text-slate-800 text-xs truncate max-w-[200px]">{fullName}</p>
+                        <p className="text-[9px] text-slate-400 font-bold mt-0.5">{student.admission_no || 'No Adm'}</p>
+                      </div>
+                      
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          placeholder="Marks"
+                          max="100"
+                          min="0"
+                          value={examScores[student.id] || ''}
+                          onChange={(e) => setExamScores(prev => ({ ...prev, [student.id]: e.target.value }))}
+                          className="w-16 bg-slate-50 border border-slate-200 p-2 rounded-lg text-center text-xs font-black outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <span className="text-xs font-bold text-slate-400">%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <button 
+                  onClick={submitMarksForApproval} 
+                  disabled={actionLoading || loading} 
+                  className="w-full mt-4 bg-blue-600 text-white font-black py-4 rounded-xl text-xs uppercase tracking-widest shadow-md transition-all hover:bg-blue-700 disabled:opacity-40"
+                >
+                  {actionLoading ? 'Submitting Review...' : 'Submit to Admin for Approval'}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+      </div>
     </div>
-  </div>
-);
+  );
 };
