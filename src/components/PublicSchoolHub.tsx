@@ -146,9 +146,6 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
     }
   };
            
-      
-
-
 
   const handleLogout = () => {
     localStorage.removeItem('parent_token');
@@ -312,7 +309,7 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
     return (
       <DriverPortal 
         user={currentUser} 
-        shopId={resolvedShopId} 
+        shopId={currentUser?.shop_id || resolvedShopId} 
         onLogout={handleLogout} 
       />
     );
