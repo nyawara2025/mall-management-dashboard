@@ -16,8 +16,6 @@ import {
 } from 'lucide-react';
 
 import { TeacherDashboard } from './teacherdashboard';
-import { DriverPortal } from './DriverPortal'; // 🚚 Import DriverPortal component
-
 
 interface SchoolData {
   id?: string;
@@ -34,7 +32,7 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('parent_token'));
 
   // NEW: Controls what overlay or sub-page is active
-  const [activePortalView, setActivePortalView] = useState<'grid' | 'homework' | 'fees' | 'bulletins' | 'teacher-dashboard' | 'driver-portal'>('grid');     
+  const [activePortalView, setActivePortalView] = useState<'grid' | 'homework' | 'fees' | 'bulletins' | 'teacher-dashboard'>('grid');     
 
   // 👇 ADD THIS LOCAL STATE VARIABLE HERE
   const [currentUser, setCurrentUser] = useState<any>(initialUser || null);
@@ -84,7 +82,7 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
           // --- TEACHER ROUTING ---
           localStorage.setItem('teacher_token', authResult.token);
        
-          // Hydrate tenant school data so parent-level checks pass
+          // 2. Hydrate tenant school data so parent-level checks pass
           setData(prevData => ({
             ...prevData,
             school_name: prevData?.school_name || "School Portal",
@@ -100,34 +98,10 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
             educational_role: 'teacher'
           });
         
-          // Force screen transitions
+
+          // 4. Force screen transitions
           setIsAuthenticated(true); // Sets authorization state to true 
           setActivePortalView('teacher-dashboard');
-
-        } else if (userData?.educational_role === 'driver') {
-          // --- 🚚 NEW: DRIVER ROUTING ---
-          localStorage.setItem('driver_token', authResult.token);
-       
-          // Hydrate generic tenant context structure for the view engine
-          setData(prevData => ({
-            ...prevData,
-            school_name: prevData?.school_name || "Driver Console",
-            homework: [],
-            bulletin: []
-          }));
- 
-          setCurrentUser({
-            id: userData.id,
-            name: userData.full_name || 'Driver',
-            assigned_route_id: userData.assigned_route_id || '', // Link to specific route tracking row
-            email: userData.email,
-            educational_role: 'driver'
-          });
-        
-          // Force driver panel UI screen transition
-          setIsAuthenticated(true); 
-          setActivePortalView('driver-portal');
-
         } else {
           // --- PARENT ROUTING ---
           localStorage.setItem('parent_token', authResult.token);
@@ -144,7 +118,6 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
       setLoading(false);
     }
   };
-           
       
 
 
@@ -302,17 +275,6 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
           assigned_class: currentUser?.assigned_class || 'General',
           email: currentUser?.email || '',
         }}
-      />
-    );
-  }
-
-  // 🚚 NEW DRIVER ROUTE: Intercepts and renders the full console cleanly
-  if (activePortalView === 'driver-portal') {
-    return (
-      <DriverPortal 
-        user={currentUser} 
-        shopId={resolvedShopId} 
-        onLogout={handleLogout} 
       />
     );
   }
