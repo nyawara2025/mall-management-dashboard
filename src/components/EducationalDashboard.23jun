@@ -46,11 +46,6 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [activeTrackingRoute, setActiveTrackingRoute] = useState<any | null>(null);
 
-  // --- Driver Tracking Mode States ---
-  const [isStreamingLocation, setIsStreamingLocation] = useState(false);
-  const [selectedRouteId, setSelectedRouteId] = useState<string>('');
-  const trackingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
   // 🛠️ REFACTORED: Administrative Records analytics states
   const [marks, setMarks] = useState<MarkRecord[]>([]);
   const [marksLoading, setMarksLoading] = useState(false);
@@ -123,71 +118,6 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
     }
     fetchTransitLedger();
   }, [shopId]);
-
-
-  const transmitCurrentGPSPosition = (routeId: string) => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by this browser.");
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          // 📡 Clean, type-safe payload matching your n8n query structure
-          await fetch('https://n8n.tenear.com/webhook/transmit-current-GPS', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              shop_id: shopId,
-              route_id: routeId,
-              latitude: position.coords.latitude,   // Raw numeric float
-              longitude: position.coords.longitude // Raw numeric float
-            })
-          });
-          console.log(`GPS Stream Sync: ${position.coords.latitude}, ${position.coords.longitude}`);
-        } catch (err) {
-          console.error("Telemetry upload failed:", err);
-        }
-      },
-      (error) => {
-        console.error("GPS Sensor error:", error);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  };
-
-  const toggleLocationStreaming = (routeId: string) => {
-    if (isStreamingLocation) {
-      // Turn off streaming and wipe tracking loops
-      if (trackingIntervalRef.current) clearInterval(trackingIntervalRef.current);
-      setIsStreamingLocation(false);
-      setSelectedRouteId('');
-      alert("Transit tracking stream closed.");
-    } else {
-      if (!routeId) return alert("Please select a route target to initialize telemetry.");
-      
-      setIsStreamingLocation(true);
-      setSelectedRouteId(routeId);
-      
-      // Fire an immediate transmission fix
-      transmitCurrentGPSPosition(routeId);
-      
-      // Hook a background timer loop to broadcast every 20 seconds
-      trackingIntervalRef.current = setInterval(() => {
-        transmitCurrentGPSPosition(routeId);
-      }, 20000);
-      
-      alert("Live transit link active! Keep this browser window open while driving.");
-    }
-  };
-
-  // Clean up the browser timer if the component unmounts
-  useEffect(() => {
-    return () => {
-      if (trackingIntervalRef.current) clearInterval(trackingIntervalRef.current);
-    };
-  }, []);
 
 
   // 🛠️ REFACTORED: Automated fetch effect hook tied to administrative view transition
@@ -564,7 +494,6 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
               <p className="text-gray-500">Monitor active routes & broadcast updates to parents.</p>
             </div>
 
-            {/* --- START OF TERNARY STATEMENT --- */}
             {transportLoading ? (
               <p className="text-center py-6 text-xs font-bold text-gray-400 animate-pulse">POLLING FLEET COORDINATES...</p>
             ) : routesList.length === 0 ? (
@@ -579,7 +508,7 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
                       </span>
                       <span className={`flex h-2 w-2 rounded-full ${route.is_active ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></span>
                     </div>
-          
+                    
                     <div className="text-xs text-gray-600 space-y-0.5 font-medium">
                       <p>Driver: <span className="font-bold text-gray-800">{route.driver_name}</span></p>
                       <p>Ridership volume: <span className="font-bold text-gray-800">{route.student_count} Students</span></p>
@@ -589,7 +518,7 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
                         </p>
                       )}
                     </div>
-  
+            
                     <div className="grid grid-cols-2 gap-2 pt-1">
                       <button 
                         onClick={() => triggerWhatsAppAlert(route.route_id)} 
@@ -597,7 +526,7 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
                       >
                         <MessageCircle size={13} /> Notify Parents
                       </button>
-            
+                      
                       <button 
                         type="button"
                         disabled={!route.last_latitude}
@@ -620,45 +549,8 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
                   </div>
                 ))}
               </div>
-            )} 
-            {/* --- END OF TERNARY STATEMENT --- */}
-
-            {/* 🛠️ NEW: NATIVE DRIVER TESTING PANEL (Moved cleanly outside the conditional rendering blocks) */}
-            <div className="mt-6 pt-6 border-t border-gray-100 space-y-3 bg-slate-50 p-4 rounded-2xl">
-              <div>
-                <h4 className="text-xs font-black text-slate-700 uppercase tracking-wide">Driver Simulation Console</h4>
-                <p className="text-[10px] text-slate-400 font-medium">Test real phone GPS tracking directly in your platform.</p>
-              </div>
-
-              {!isStreamingLocation && (
-                <select 
-                  value={selectedRouteId}
-                  onChange={(e) => setSelectedRouteId(e.target.value)}
-                  className="w-full text-xs font-bold px-3 py-2.5 bg-white border border-gray-200 rounded-xl focus:outline-none"
-                >
-                  <option value="">-- Choose Route to Simulate --</option>
-                  {routesList.map(r => (
-                    <option key={r.route_id} value={r.route_id}>{r.route_name} ({r.driver_name})</option>
-                  ))}
-                </select>
-              )}
-
-              <button
-                type="button"
-                onClick={() => toggleLocationStreaming(selectedRouteId)}
-                className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-                  isStreamingLocation 
-                    ? 'bg-red-600 text-white animate-pulse hover:bg-red-700' 
-                    : 'bg-slate-900 text-white hover:bg-slate-800'
-                }`}
-              >
-                {isStreamingLocation ? '⏹️ Stop Location Sharing' : '🚀 Start Phone GPS Stream'}
-              </button>
-            </div>
-
-          </div>
-
-
+            )}
+          </div> 
 
           {/* School Fees Management Card */}
           <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit text-left">
