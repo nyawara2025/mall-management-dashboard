@@ -309,7 +309,7 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
     return (
       <DriverPortal 
         user={currentUser} 
-        shopId={currentUser?.shop_id || resolvedShopId} 
+        shopId={shopId} 
         onLogout={handleLogout} 
       />
     );
