@@ -68,7 +68,7 @@ export const DriverPortal = ({ shopId, user, onLogout }: DriverPortalProps) => {
     
     try {
       // Notify n8n gateway to trigger parent WhatsApp alerts or update database status fields
-      await fetch('https://tenear.com', {
+      await fetch('https://n8n.tenear.com/webhook/transmit-current-GPS', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -168,7 +168,7 @@ export const DriverPortal = ({ shopId, user, onLogout }: DriverPortalProps) => {
           <button 
             type="button"
             onClick={async () => {
-              await fetch('https://tenear.com', {
+              await fetch('https://n8n.tenear.com/webhook/transmit-current-GPS', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ shop_id: shopId, route_id: routeId, alert_type: 'transit_delay' })
