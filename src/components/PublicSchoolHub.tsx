@@ -121,7 +121,8 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
             name: userData.full_name || 'Driver',
             assigned_route_id: userData.assigned_route_id || '', // Link to specific route tracking row
             email: userData.email,
-            educational_role: 'driver'
+            educational_role: 'driver',
+            shop_id: resolvedShopId
           });
         
           // Force driver panel UI screen transition

@@ -1,19 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Bus, Play, Square, MessageCircle, AlertTriangle, LogOut, Navigation } from 'lucide-react';
+import { Bus, Play, Square, AlertTriangle, LogOut } from 'lucide-react';
 
 interface DriverPortalProps {
   shopId: number;
-  routeId: string;
-  routeName: string;
-  driverName: string;
+  user: {
+    id: string;
+    name: string;
+    assigned_route_id: string;
+    email: string;
+    educational_role: string;
+  } | null;
   onLogout: () => void;
 }
 
-export const DriverPortal = ({ shopId, routeId, routeName, driverName, onLogout }: DriverPortalProps) => {
+export const DriverPortal = ({ shopId, user, onLogout }: DriverPortalProps) => {
   const [isTransitActive, setIsTransitActive] = useState(false);
   const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'error'>('idle');
   const streamIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Safely extract names/IDs falling back to default placeholders
+  const routeId = user?.assigned_route_id || '';
+  const driverName = user?.name || 'Transit Operator';
 
   // 📡 High-accuracy hardware sensor telemetry broadcaster
   const transmitLiveCoordinates = () => {
@@ -60,7 +68,7 @@ export const DriverPortal = ({ shopId, routeId, routeName, driverName, onLogout 
     
     try {
       // Notify n8n gateway to trigger parent WhatsApp alerts or update database status fields
-      await fetch('https://tenear.com', {
+      await fetch('https://n8n.tenear.com/webhook/transmit-current-GPS', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -104,7 +112,7 @@ export const DriverPortal = ({ shopId, routeId, routeName, driverName, onLogout 
               <Bus size={24} />
             </div>
             <div>
-              <h2 className="text-xl font-black tracking-tight">{routeName} Route</h2>
+              <h2 className="text-xl font-black tracking-tight">Active Route</h2>
               <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">TeNEAR Transit Mobile</p>
             </div>
           </div>
@@ -158,8 +166,9 @@ export const DriverPortal = ({ shopId, routeId, routeName, driverName, onLogout 
         {/* Emergency Warning Trigger Alert */}
         {isTransitActive && (
           <button 
-            onClick={() => {
-              fetch('https://tenear.com', {
+            type="button"
+            onClick={async () => {
+              await fetch('https://n8n.tenear.com/webhook/transmit-current-GPS', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ shop_id: shopId, route_id: routeId, alert_type: 'transit_delay' })
