@@ -279,6 +279,14 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
           // --- 🏢 ADMINISTRATIVE ROUTING INTERCEPTOR ---
           localStorage.setItem('admin_token', authResult.token);
           
+          // 🌟 FIX: Hydrate a baseline data schema layout map so the code bypasses the !data check!
+          setData({
+            school_name: "Administration Console",
+            homework: [],
+            bulletin: [],
+            fee_statement: []
+          });
+
           const authenticatedAdmin = {
             id: userData.id,
             name: userData.full_name || 'Administrator',
