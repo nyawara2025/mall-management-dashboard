@@ -29,6 +29,7 @@ interface SchoolData {
   bulletin: any[];
   fee_statement?: any[];
   // 🚌 Add this line to map the child's vehicle routing safely
+  shop_id?: number;
   transport?: {
     assigned_route_id: string;
     route_name: string;
@@ -61,7 +62,7 @@ const ParentTracker = ({ shopId, assignedRouteId }: { shopId: number; assignedRo
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            shop_id: shopId, 
+            shop_id: Number(shopId), 
             route_id: assignedRouteId }),
         });
         if (response.ok) {
@@ -794,7 +795,7 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
 
                 {/* ⚡ Mounts the live real-time Supabase streaming card module */}
                 <ParentTracker 
-                  shopId={resolvedShopId} 
+                  shopId={data?.shop_id ?? resolvedShopId} 
                   assignedRouteId={data.transport.assigned_route_id} 
                 />
               </div>
