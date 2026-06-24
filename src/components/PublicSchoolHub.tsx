@@ -251,7 +251,7 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
           setActivePortalView('teacher-dashboard');
 
         } else if (userData?.educational_role === 'driver') {
-          // --- 🚚 NEW: DRIVER ROUTING ---
+          // --- 🚚 DRIVER ROUTING ---
           localStorage.setItem('driver_token', authResult.token);
        
           // Hydrate generic tenant context structure for the view engine
@@ -265,7 +265,7 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
           setCurrentUser({
             id: userData.id,
             name: userData.full_name || 'Driver',
-            assigned_route_id: userData.assigned_route_id || '', // Link to specific route tracking row
+            assigned_route_id: userData.assigned_route_id || '', 
             email: userData.email,
             educational_role: 'driver',
             shop_id: resolvedShopId
@@ -274,6 +274,32 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
           // Force driver panel UI screen transition
           setIsAuthenticated(true); 
           setActivePortalView('driver-portal');
+
+        } else if (['director', 'principal', 'security'].includes(userData?.educational_role?.toLowerCase().trim())) {
+          // --- 🏢 NEW: ADMINISTRATIVE ROUTING INTERCEPTOR ---
+          localStorage.setItem('admin_token', authResult.token);
+          
+          setData(prevData => ({
+            ...prevData,
+            school_name: prevData?.school_name || "Admin Console",
+            homework: [],
+            bulletin: []
+          }));
+
+          setCurrentUser({
+            id: userData.id,
+            name: userData.full_name || 'Administrator',
+            email: userData.email,
+            educational_role: userData.educational_role.toLowerCase().trim(),
+            shop_id: resolvedShopId
+          });
+
+          // Trigger screen transition state
+          setIsAuthenticated(true);
+          
+          // Force a state mount boundary reload so the top-level SchoolRouter 
+          // catches the active role string from the updated state lifecycle instantly
+          window.location.reload();
 
         } else {
           // --- PARENT ROUTING ---
