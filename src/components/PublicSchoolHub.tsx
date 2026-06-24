@@ -276,30 +276,23 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
           setActivePortalView('driver-portal');
 
         } else if (['director', 'principal', 'security'].includes(userData?.educational_role?.toLowerCase().trim())) {
-          // --- 🏢 NEW: ADMINISTRATIVE ROUTING INTERCEPTOR ---
+          // --- 🏢 ADMINISTRATIVE ROUTING INTERCEPTOR ---
           localStorage.setItem('admin_token', authResult.token);
           
-          setData(prevData => ({
-            ...prevData,
-            school_name: prevData?.school_name || "Admin Console",
-            homework: [],
-            bulletin: []
-          }));
-
-          setCurrentUser({
+          const authenticatedAdmin = {
             id: userData.id,
             name: userData.full_name || 'Administrator',
             email: userData.email,
             educational_role: userData.educational_role.toLowerCase().trim(),
             shop_id: resolvedShopId
-          });
+          };
 
-          // Trigger screen transition state
+          // Update your local hub user state tracking
+          setCurrentUser(authenticatedAdmin);
+
+          // Force local screen validation states to true
           setIsAuthenticated(true);
-          
-          // Force a state mount boundary reload so the top-level SchoolRouter 
-          // catches the active role string from the updated state lifecycle instantly
-          window.location.reload();
+         
 
         } else {
           // --- PARENT ROUTING ---
