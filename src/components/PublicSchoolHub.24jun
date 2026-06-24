@@ -12,7 +12,9 @@ import {
   CreditCard,
   Smartphone,
   ArrowLeft,
-  Receipt
+  Receipt,
+  Bus,
+  AlertTriangle
 } from 'lucide-react';
 
 import { TeacherDashboard } from './teacherdashboard';
@@ -26,7 +28,110 @@ interface SchoolData {
   homework: any[];
   bulletin: any[];
   fee_statement?: any[];
+  // 🚌 Add this line to map the child's vehicle routing safely
+  shop_id?: number;
+  transport?: {
+    assigned_route_id: string;
+    route_name: string;
+    driver_name: string;
+    driver_phone: string;
+  } | null;
 }
+
+// 🚌 ⚡ SUB-COMPONENT: Live Real-Time Row Subscription Tracking
+const ParentTracker = ({ shopId, assignedRouteId }: { shopId: number; assignedRouteId: string }) => {
+  const [coords, setCoords] = React.useState<{ lat: number; lng: number } | null>(null);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!assignedRouteId) return;
+
+    // 1️⃣ Fetch initial last known vehicle coordinates on load
+    const fetchInitialPosition = async () => {
+      try {
+
+        // 🏬 FALLBACK CHECK: If the prop is null, try to extract it straight from the URL parameters string
+        let currentShopId = shopId;
+        if (!currentShopId && typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.search);
+          const queryShopId = urlParams.get('shop_id');
+          if (queryShopId) currentShopId = parseInt(queryShopId, 10);
+        }
+
+        const response = await fetch('https://n8n.tenear.com/webhook/parent-child-track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            shop_id: Number(shopId), 
+            route_id: assignedRouteId }),
+        });
+        if (response.ok) {
+          const result = await response.json();
+          // Adjust these keys to match your n8n / school_routes database return fields
+          if (result?.last_latitude && result?.last_longitude) {
+            setCoords({ lat: Number(result.last_latitude), lng: Number(result.last_longitude) });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load initial bus location parameters:", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInitialPosition();
+
+    // 2️⃣ Optional: If you use a polling interval instead of Supabase Realtime WS websockets:
+    const pollInterval = setInterval(fetchInitialPosition, 10000); // refresh every 10 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [assignedRouteId, shopId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 p-4 text-xs font-bold text-slate-400 bg-white border rounded-2xl shadow-sm">
+        <Loader2 className="animate-spin text-blue-600" size={16} /> Connecting to shuttle telemetry stream...
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Bus className="text-amber-500 animate-bounce" size={20} />
+          <span className="text-[11px] font-black text-slate-700 uppercase tracking-wide">Live GPS Satellite Signal</span>
+        </div>
+        <span className="px-2 py-0.5 text-[9px] font-black bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-md uppercase tracking-wider animate-pulse">
+          Active Stream
+        </span>
+      </div>
+
+      {coords ? (
+        <div className="space-y-3">
+          <div className="bg-slate-50 p-4 rounded-2xl text-xs font-mono font-bold text-slate-600 flex items-center gap-2 border border-slate-100">
+            <span>Latitude: {coords.lat.toFixed(6)}</span>
+            <span className="text-slate-300">•</span>
+            <span>Longitude: {coords.lng.toFixed(6)}</span>
+          </div>
+          
+          <a 
+            href={`https://google.com{coords.lat},${coords.lng}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full py-3.5 bg-slate-900 text-white font-black rounded-2xl text-xs uppercase tracking-wider text-center block hover:bg-slate-800 transition-all shadow-md shadow-slate-200"
+          >
+            Open Live Map Routing &rarr;
+          </a>
+        </div>
+      ) : (
+        <div className="p-4 bg-slate-50 rounded-2xl text-center border border-dashed text-[11px] font-medium text-slate-400">
+          Shuttle engine offline or waiting for driver to initialize telemetry link.
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number; user?: any }) => {
   const [data, setData] = useState<SchoolData | null>(null);
@@ -34,7 +139,7 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('parent_token'));
 
   // NEW: Controls what overlay or sub-page is active
-  const [activePortalView, setActivePortalView] = useState<'grid' | 'homework' | 'fees' | 'bulletins' | 'teacher-dashboard' | 'driver-portal'>('grid');     
+  const [activePortalView, setActivePortalView] = useState<'grid' | 'homework' | 'fees' | 'bulletins' | 'teacher-dashboard' | 'driver-portal' | 'transport'>('grid');     
 
   // 👇 ADD THIS LOCAL STATE VARIABLE HERE
   const [currentUser, setCurrentUser] = useState<any>(initialUser || null);
@@ -389,14 +494,18 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
                 <span className="text-[11px] font-black text-slate-700 uppercase tracking-wide leading-tight">Attendance<br/>Records</span>
               </button>
 
-              {/* Card 5: Transport Placeholder */}
+              {/* Card 5: Transport Active Dashboard Tracker */}
               <button 
                 type="button"
-                onClick={() => alert("Bus shuttle route tracking coming soon!")}
+                onClick={() => setActivePortalView('transport')}
                 className="bg-amber-50/40 hover:bg-amber-100/60 border border-amber-100 rounded-[2.5rem] p-6 flex flex-col items-center justify-center gap-4 transition-all aspect-square text-center group shadow-sm"
               >
-                <div className="p-4 bg-white rounded-2xl text-amber-600 shadow-sm group-hover:scale-105 transition-transform"><FileText size={24} /></div>
-                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wide leading-tight">Transport &<br/>Shuttles</span>
+                <div className="p-4 bg-white rounded-2xl text-amber-600 shadow-sm group-hover:scale-105 transition-transform">
+                  <Bus size={24} />
+                </div>
+                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wide leading-tight">
+                  Transport &<br/>Shuttles
+                </span>
               </button>
 
               {/* Card 6: Report Cards Placeholder */}
@@ -651,6 +760,53 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
               ))
             ) : (
               <p className="text-center py-10 text-xs italic text-gray-400">No notice board announcements published this month.</p>
+            )}
+          </div>
+        )}
+
+        {/* VIEW 5: SUB PANEL - LIVE SCHOOL BUS GPS MAP TRACKER */}
+        {activePortalView === 'transport' && (
+          <div className="max-w-2xl mx-auto space-y-4 text-left animate-in fade-in duration-200">
+            <div className="mb-2">
+              <button 
+                type="button" 
+                onClick={() => setActivePortalView('grid')} 
+                className="text-xs font-black text-slate-400 hover:text-blue-600 uppercase tracking-wider flex items-center gap-1.5"
+              >
+                &larr; Back to Menu
+              </button>
+            </div>
+
+            {/* Verification isolation gate: Confirms data payload context has a linked vehicle route */}
+            {data?.transport?.assigned_route_id ? (
+              <div className="space-y-4">
+                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                  <span className="text-[9px] font-black bg-amber-50 text-amber-600 px-2.5 py-1 rounded-md border border-amber-100 uppercase">
+                    Assigned Shuttle Profile
+                  </span>
+                  <h4 className="font-black text-slate-800 text-base mt-3 mb-1.5">
+                    {data.transport.route_name || "School Bus Route"}
+                  </h4>
+                  <div className="text-xs text-slate-500 font-bold space-y-1">
+                    <p>Driver Operator: {data.transport.driver_name || "Assigned Driver"}</p>
+                    <p>Contact Reference: {data.transport.driver_phone || "Not Listed"}</p>
+                  </div>
+                </div>
+
+                {/* ⚡ Mounts the live real-time Supabase streaming card module */}
+                <ParentTracker 
+                  shopId={data?.shop_id ?? resolvedShopId} 
+                  assignedRouteId={data.transport.assigned_route_id} 
+                />
+              </div>
+            ) : (
+              <div className="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm text-center py-12">
+                <AlertTriangle className="mx-auto text-amber-500 mb-3" size={32} />
+                <p className="text-slate-700 font-black text-sm uppercase tracking-wide">No Shuttle Assigned</p>
+                <p className="text-slate-400 text-xs mt-1 max-w-xs mx-auto font-medium">
+                  There are no active bus transport route configurations mapped to this student profile record at the moment.
+                </p>
+              </div>
             )}
           </div>
         )}
