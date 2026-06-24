@@ -22,6 +22,10 @@ import {
 import { TeacherDashboard } from './teacherdashboard';
 import { DriverPortal } from './DriverPortal'; // 🚚 Import DriverPortal component
 
+// 🌟 ADD THESE THREE LINES TO FILE TOP IMPORTS:
+import { DirectorDashboard } from './DirectorDashboard';
+import { PrincipalDashboard } from './PrincipalDashboard';
+import { SecurityDashboard } from './SecurityDashboard';
 
 interface SchoolData {
   id?: string;
@@ -483,6 +487,37 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
       <DriverPortal 
         user={currentUser} 
         shopId={shopId} 
+        onLogout={handleLogout} 
+      />
+    );
+  }
+
+  // 🌟 NEW: INTERCEPT EXECUTIVE DIRECTORY VIEWS DIRECTLY INSIDE THE HUB
+  if (currentUser?.educational_role === 'director') {
+    return (
+      <DirectorDashboard 
+        shopId={shopId} 
+        user={currentUser} 
+        onLogout={handleLogout} 
+      />
+    );
+  }
+
+  if (currentUser?.educational_role === 'principal') {
+    return (
+      <PrincipalDashboard 
+        shopId={shopId} 
+        user={currentUser} 
+        onLogout={handleLogout} 
+      />
+    );
+  }
+
+  if (currentUser?.educational_role === 'security') {
+    return (
+      <SecurityDashboard 
+        shopId={shopId} 
+        user={currentUser} 
         onLogout={handleLogout} 
       />
     );
