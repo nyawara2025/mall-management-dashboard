@@ -38,100 +38,139 @@ interface SchoolData {
   } | null;
 }
 
-// 🚌 ⚡ SUB-COMPONENT: Live Real-Time Row Subscription Tracking
+// 🚌 ⚡ SUB-COMPONENT: Live Real-Time Leaflet Integrated Tracking Screen
 const ParentTracker = ({ shopId, assignedRouteId }: { shopId: number; assignedRouteId: string }) => {
   const [coords, setCoords] = React.useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = React.useState(true);
+  
+  // DOM references to cleanly attach/detach Leaflet assets inside React cycles
+  const mapRef = React.useRef<any>(null);
+  const markerRef = React.useRef<any>(null);
+  const mapContainerId = React.useId().replace(/:/g, '-'); // Creates a unique sanitized DOM ID
 
+  // 1️⃣ Telemetry Data Polling Loop Logic Engine
   React.useEffect(() => {
     if (!assignedRouteId) return;
 
-    // 1️⃣ Fetch initial last known vehicle coordinates on load
     const fetchInitialPosition = async () => {
       try {
-
-        // 🏬 FALLBACK CHECK: If the prop is null, try to extract it straight from the URL parameters string
-        let currentShopId = shopId;
-        if (!currentShopId && typeof window !== 'undefined') {
-          const urlParams = new URLSearchParams(window.location.search);
-          const queryShopId = urlParams.get('shop_id');
-          if (queryShopId) currentShopId = parseInt(queryShopId, 10);
-        }
-
         const response = await fetch('https://n8n.tenear.com/webhook/parent-child-track', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            shop_id: Number(shopId), 
-            route_id: assignedRouteId }),
+          body: JSON.stringify({ shop_id: Number(shopId), route_id: assignedRouteId }),
         });
         if (response.ok) {
           const result = await response.json();
-          // Adjust these keys to match your n8n / school_routes database return fields
           if (result?.last_latitude && result?.last_longitude) {
             setCoords({ lat: Number(result.last_latitude), lng: Number(result.last_longitude) });
           }
         }
       } catch (e) {
-        console.error("Failed to load initial bus location parameters:", e);
+        console.error("Failed to fetch vehicle location vectors:", e);
       } finally {
         setLoading(false);
       }
     };
 
     fetchInitialPosition();
-
-    // 2️⃣ Optional: If you use a polling interval instead of Supabase Realtime WS websockets:
-    const pollInterval = setInterval(fetchInitialPosition, 10000); // refresh every 10 seconds
+    const pollInterval = setInterval(fetchInitialPosition, 10000); // Pull updates every 10 seconds
 
     return () => clearInterval(pollInterval);
   }, [assignedRouteId, shopId]);
 
+  // 2️⃣ 🗺️ Leaflet Script Loader & Runtime Rendering Lifecycle Engine
+  React.useEffect(() => {
+    if (loading || !coords) return;
+
+    const initializeLeafletMap = () => {
+      const L = (window as any).L;
+      if (!L) return;
+
+      // Initialize the map shell object exactly once
+      if (!mapRef.current) {
+        mapRef.current = L.map(mapContainerId).setView([coords.lat, coords.lng], 15);
+        
+        // Inject open-source OpenStreetMap cartography tile patterns
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '© OpenStreetMap contributors'
+        }).addTo(mapRef.current);
+
+        // Bind a custom vehicle map icon pin instance with fixed explicit dimensions
+        const busIcon = L.icon({
+          iconUrl: 'https://flaticon.com', 
+          iconSize: [36, 36],      // Fixed dimensions (Width, Height)
+          iconAnchor: [18, 36],     // Anchor point placement offset maps correctly to base pin point
+        });
+
+        markerRef.current = L.marker([coords.lat, coords.lng], { icon: busIcon })
+          .addTo(mapRef.current)
+          .bindPopup('<b class="text-xs">School Shuttle Active</b>')
+          .openPopup();
+      } else {
+        // ⚡ SMOOTH RE-PANNING: Update position vectors cleanly as coordinates change
+        markerRef.current.setLatLng([coords.lat, coords.lng]);
+        mapRef.current.panTo([coords.lat, coords.lng]);
+      }
+    };
+
+    // Dynamically script-inject core Leaflet assets if missing from window memory
+    if (!(window as any).L) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com';
+      document.head.appendChild(link);
+
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com';
+      script.onload = initializeLeafletMap;
+      document.body.appendChild(script);
+    } else {
+      initializeLeafletMap();
+    }
+  }, [loading, coords, mapContainerId]);
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 p-4 text-xs font-bold text-slate-400 bg-white border rounded-2xl shadow-sm">
-        <Loader2 className="animate-spin text-blue-600" size={16} /> Connecting to shuttle telemetry stream...
+        <Loader2 className="animate-spin text-blue-600" size={16} /> Syncing live tracking map vectors...
       </div>
     );
   }
 
   return (
-    <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-4">
+    <div className="bg-white p-4 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bus className="text-amber-500 animate-bounce" size={20} />
-          <span className="text-[11px] font-black text-slate-700 uppercase tracking-wide">Live GPS Satellite Signal</span>
+          <span className="text-[11px] font-black text-slate-700 uppercase tracking-wide">Live Map Dashboard</span>
         </div>
-        <span className="px-2 py-0.5 text-[9px] font-black bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-md uppercase tracking-wider animate-pulse">
+        <span className="px-2 py-0.5 text-[9px] font-black bg-emerald-50 border border-emerald-100 text-emerald-600 rounded-md uppercase tracking-wider">
           Active Stream
         </span>
       </div>
 
       {coords ? (
         <div className="space-y-3">
-          <div className="bg-slate-50 p-4 rounded-2xl text-xs font-mono font-bold text-slate-600 flex items-center gap-2 border border-slate-100">
-            <span>Latitude: {coords.lat.toFixed(6)}</span>
-            <span className="text-slate-300">•</span>
-            <span>Longitude: {coords.lng.toFixed(6)}</span>
-          </div>
-          
-          <a 
-            href={`https://google.com{coords.lat},${coords.lng}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full py-3.5 bg-slate-900 text-white font-black rounded-2xl text-xs uppercase tracking-wider text-center block hover:bg-slate-800 transition-all shadow-md shadow-slate-200"
-          >
-            Open Live Map Routing &rarr;
-          </a>
+          {/* Native Map Target Container Elements Block */}
+          <div 
+            id={mapContainerId} 
+            className="w-full h-64 rounded-3xl border border-slate-100 shadow-inner z-10 overflow-hidden"
+            style={{ minHeight: '250px' }}
+          />
+          <p className="text-[10px] text-center text-slate-400 font-medium uppercase tracking-wide">
+            Map updates automatically every 10 seconds
+          </p>
         </div>
       ) : (
-        <div className="p-4 bg-slate-50 rounded-2xl text-center border border-dashed text-[11px] font-medium text-slate-400">
+        <div className="p-8 bg-slate-50 rounded-3xl text-center border border-dashed text-[11px] font-medium text-slate-400">
           Shuttle engine offline or waiting for driver to initialize telemetry link.
         </div>
       )}
     </div>
   );
 };
+
+
 
 export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number; user?: any }) => {
   const [data, setData] = useState<SchoolData | null>(null);

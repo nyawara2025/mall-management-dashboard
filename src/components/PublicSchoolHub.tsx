@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useId } from 'react';
+import L from 'leaflet'; // 🌟 Bundles Leaflet directly into compilation
+import 'leaflet/dist/leaflet.css'; // 🌟 Packs styles natively inside your local build
 import { 
   BookOpen, 
   CalendarDays, 
@@ -78,7 +80,7 @@ const ParentTracker = ({ shopId, assignedRouteId }: { shopId: number; assignedRo
     return () => clearInterval(pollInterval);
   }, [assignedRouteId, shopId]);
 
-  // 2️⃣ 🗺️ Leaflet Script Loader & Runtime Rendering Lifecycle Engine
+  // 2️⃣ 🗺️ Unified Native Leaflet Container Rendering Lifecycle Engine
   React.useEffect(() => {
     if (loading || !coords) return;
 
@@ -98,8 +100,8 @@ const ParentTracker = ({ shopId, assignedRouteId }: { shopId: number; assignedRo
         // Bind a custom vehicle map icon pin instance with fixed explicit dimensions
         const busIcon = L.icon({
           iconUrl: 'https://flaticon.com', 
-          iconSize: [36, 36],      // Fixed dimensions (Width, Height)
-          iconAnchor: [18, 36],     // Anchor point placement offset maps correctly to base pin point
+          iconSize: [36, 36],      
+          iconAnchor: [18, 36]     
         });
 
         markerRef.current = L.marker([coords.lat, coords.lng], { icon: busIcon })
@@ -111,7 +113,7 @@ const ParentTracker = ({ shopId, assignedRouteId }: { shopId: number; assignedRo
         markerRef.current.setLatLng([coords.lat, coords.lng]);
         mapRef.current.panTo([coords.lat, coords.lng]);
       }
-    };
+    }; // 🌟 Clean closure of initializeLeafletMap function definition
 
     // Dynamically script-inject core Leaflet assets if missing from window memory
     if (!(window as any).L) {
@@ -127,15 +129,15 @@ const ParentTracker = ({ shopId, assignedRouteId }: { shopId: number; assignedRo
     } else {
       initializeLeafletMap();
     }
-  }, [loading, coords, mapContainerId]);
+  }, [loading, coords, mapContainerId]); // 🌟 Clean closure of the outer React.useEffect hook
 
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2 p-4 text-xs font-bold text-slate-400 bg-white border rounded-2xl shadow-sm">
-        <Loader2 className="animate-spin text-blue-600" size={16} /> Syncing live tracking map vectors...
-      </div>
-    );
-  }
+if (loading) {
+  return (
+    <div className="flex items-center gap-2 p-4 text-xs font-bold text-slate-400 bg-white border rounded-2xl shadow-sm">
+      <Loader2 className="animate-spin text-blue-600" size={16} /> Syncing live tracking map vectors...
+    </div>
+  );
+}
 
   return (
     <div className="bg-white p-4 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-4">
