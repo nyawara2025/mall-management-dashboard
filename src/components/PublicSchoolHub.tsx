@@ -48,10 +48,21 @@ const ParentTracker = ({ shopId, assignedRouteId }: { shopId: number; assignedRo
     // 1️⃣ Fetch initial last known vehicle coordinates on load
     const fetchInitialPosition = async () => {
       try {
+
+        // 🏬 FALLBACK CHECK: If the prop is null, try to extract it straight from the URL parameters string
+        let currentShopId = shopId;
+        if (!currentShopId && typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.search);
+          const queryShopId = urlParams.get('shop_id');
+          if (queryShopId) currentShopId = parseInt(queryShopId, 10);
+        }
+
         const response = await fetch('https://n8n.tenear.com/webhook/parent-child-track', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shop_id: shopId, route_id: assignedRouteId }),
+          body: JSON.stringify({ 
+            shop_id: shopId, 
+            route_id: assignedRouteId }),
         });
         if (response.ok) {
           const result = await response.json();
