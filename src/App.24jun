@@ -38,7 +38,6 @@ import { PublicHubRouter } from './components/PublicHubRouter';
 import { MediaDashboard } from './components/MediaDashboard';
 import { FinanceDashboard } from './components/FinanceDashboard';
 import { DevelopmentDashboard } from './components/DevelopmentDashboard';
-import { SchoolRouter } from './components/SchoolRouter';
 import { AgriDashboard } from './components/AgriDashboard';
 import { NGODashboard } from './components/NGODashboard';
 import { PublicGivingPage } from './components/PublicGivingPage';
@@ -195,19 +194,14 @@ function AppContent() {
     );
   }
 
-  // 🎓 DYNAMIC MULTI-ROLE EDUCATIONAL HUB GATEKEEPER
   if (bizCategory === 'educational' || isSchoolPath) {
     return (
       <div className="min-h-screen bg-gray-50">
-        {/* 🌟 Swap PublicSchoolHub for SchoolRouter to support Director, Principal & Security panels */}
-        <SchoolRouter 
-          shopId={Number(shopId) || 69} 
-          user={user} 
-          onLogout={logout} 
-        /> 
-      </div>
-    );
-  }
+        {/* Pass both shopId and the global user state straight down */}
+        <PublicSchoolHub shopId={Number(shopId) || 69} user={user} /> 
+        </div>
+      );
+    }
         
 
   useEffect(() => {
