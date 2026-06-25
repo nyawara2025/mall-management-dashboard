@@ -13,11 +13,6 @@ interface Activity {
   description: string;
 }
 
-interface SubjectEntry {
-  subject: string;
-  title: string;
-  activities: Activity[];
-}
 
 // 📋 Type-safe structural mapping for administrative ledger entries
 interface MarkRecord {
@@ -34,7 +29,6 @@ interface MarkRecord {
 export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
   const [loading, setLoading] = useState(false);
   const [bulletinLoading, setBulletinLoading] = useState(false);
-  const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
   
   const [totalCollected, setTotalCollected] = useState<number>(42500); 
   const [totalOutstanding, setTotalOutstanding] = useState<number>(12400); 
@@ -125,11 +119,6 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
       color: "text-orange-600"
     }
   ];
-
-  // --- Homework State ---
-  const [subjects, setSubjects] = useState<SubjectEntry[]>([
-    { subject: '', title: '', activities: [{ activity_name: '', description: '' }] }
-  ]);
 
   // --- Bulletin State (Enhanced with Files) ---
   const [bulletin, setBulletin] = useState({ title: '', content: '' });
@@ -272,46 +261,6 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
     else setBulletinImage({ name: file.name, data: base64 });
   };
 
-  // --- Subject & Activity Management ---
-  const addSubject = () => setSubjects([...subjects, { subject: '', title: '', activities: [{ activity_name: '', description: '' }] }]);
-  const removeSubject = (sIdx: number) => setSubjects(subjects.filter((_, i) => i !== sIdx));
-  const updateSubject = (sIdx: number, field: keyof Omit<SubjectEntry, 'activities'>, value: string) => {
-    const newSubjects = [...subjects];
-    newSubjects[sIdx][field] = value;
-    setSubjects(newSubjects);
-  };
-  const addActivity = (sIdx: number) => {
-    const newSubjects = [...subjects];
-    newSubjects[sIdx].activities.push({ activity_name: '', description: '' });
-    setSubjects(newSubjects);
-  };
-  const updateActivity = (sIdx: number, aIdx: number, field: keyof Activity, value: string) => {
-    const newSubjects = [...subjects];
-    newSubjects[sIdx].activities[aIdx][field] = value;
-    setSubjects(newSubjects);
-  };
-  const removeActivity = (sIdx: number, aIdx: number) => {
-    const newSubjects = [...subjects];
-    newSubjects[sIdx].activities = newSubjects[sIdx].activities.filter((_, i) => i !== aIdx);
-    setSubjects(newSubjects);
-  };
-
-  // --- Submit Handlers ---
-  const handlePostHomework = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    try {
-      const response = await fetch('https://n8n.tenear.com/webhook/upload-school-homework', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ due_date: dueDate, shop_id: shopId, payload: subjects }),
-      });
-      if (response.ok) {
-        alert("Daily Agenda posted!");
-        setSubjects([{ subject: '', title: '', activities: [{ activity_name: '', description: '' }] }]);
-      }
-    } catch (error) { console.error(error); } finally { setLoading(false); }
-  };
 
   // 1. Fetch entire tenant roster list
   const fetchTenantStudentsDatabase = async () => {
@@ -520,57 +469,6 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
       {/* --- VIEW A: OPERATIONAL DASHBOARD PANELS --- */}
       {activeTab === 'dashboard' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* Homework Planner Section */}
-          <div className="lg:col-span-2 bg-white p-8 rounded-3xl shadow-xl border border-gray-100 text-left">
-            <div className="mb-6">
-              <h3 className="font-black text-2xl text-gray-800 flex items-center gap-3">
-                <BookOpen className="text-blue-600" size={28} /> Homework Agenda
-              </h3>
-              <p className="text-gray-500">Draft structural subjects and multi-activity agendas for distribution.</p>
-            </div>
-
-            <form onSubmit={handlePostHomework} className="space-y-6">
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Submission Due Date</label>
-                <input type="date" className="w-full p-3 bg-gray-50 border-none rounded-xl font-bold" value={dueDate} onChange={e => setDueDate(e.target.value)} required />
-              </div>
-
-              {subjects.map((s, sIdx) => (
-                <div key={sIdx} className="p-6 bg-gray-50/50 border border-gray-100 rounded-2xl space-y-4 relative group">
-                  <button type="button" onClick={() => removeSubject(sIdx)} className="absolute right-4 top-4 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16} /></button>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Subject Name</label>
-                      <input className="w-full p-3 bg-white border rounded-xl font-bold" placeholder="e.g. Mathematics" value={s.subject} onChange={e => updateSubject(sIdx, 'subject', e.target.value)} required />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Topic Unit Title</label>
-                      <input className="w-full p-3 bg-white border rounded-xl font-bold" placeholder="e.g. Fractions & Decimals" value={s.title} onChange={e => updateSubject(sIdx, 'title', e.target.value)} required />
-                    </div>
-                  </div>
-
-                  <div className="ml-4 space-y-3 border-l-4 border-blue-50 pl-6 py-2">
-                    {s.activities.map((a, aIdx) => (
-                      <div key={aIdx} className="group relative bg-blue-50/30 p-4 rounded-xl">
-                        <input className="w-full p-2 mb-2 bg-white border rounded-lg text-sm font-bold" placeholder="Item (e.g. Textbook)" value={a.activity_name} onChange={e => updateActivity(sIdx, aIdx, 'activity_name', e.target.value)} required />
-                        <textarea className="w-full p-2 bg-white border rounded-lg text-sm text-gray-600" placeholder="Specific details..." rows={2} value={a.description} onChange={e => updateActivity(sIdx, aIdx, 'description', e.target.value)} required />
-                      </div>
-                    ))}
-                    <button type="button" onClick={() => addActivity(sIdx)} className="mt-2 text-blue-600 text-xs font-bold uppercase flex items-center gap-1"><Plus size={14} /> Add Task</button>
-                  </div>
-                </div>
-              ))}
-              
-              <button type="button" onClick={addSubject} className="w-full py-3 border-2 border-blue-600 border-dashed rounded-2xl text-blue-600 font-bold hover:bg-blue-50 transition-all flex items-center justify-center gap-2">
-                <Plus size={20} /> Add Another Subject
-              </button>
-              <button disabled={loading} className="w-full bg-blue-600 text-white p-4 rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-blue-700 transition-all disabled:opacity-50">
-                {loading ? 'Posting...' : <><Send size={20} /> Post Daily Agenda</>}
-              </button>
-            </form>
-          </div>
 
           {/* Examination Management Card */}
           <div className="lg:col-span-1 bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit text-left">
