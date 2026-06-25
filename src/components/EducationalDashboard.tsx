@@ -72,6 +72,12 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
   const [editLastName, setEditLastName] = useState('');
   const [editClass, setEditClass] = useState('');
 
+  // --- Expanded Inline Database Editing States ---
+  const [editParentFirstName, setEditParentFirstName] = useState('');
+  const [editParentLastName, setEditParentLastName] = useState('');
+  const [editParentPhone, setEditParentPhone] = useState('');
+  const [editParentEmail, setEditParentEmail] = useState('');
+  const [editAssignedRouteId, setEditAssignedRouteId] = useState('');
 
   // --- Expanded Student Registration States ---
   const [regResidentialArea, setRegResidentialArea] = useState('');
@@ -339,7 +345,12 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
           student_id: studentId,
           first_name: editFirstName,
           last_name: editLastName,
-          class_id: editClass
+          class_id: editClass,
+          parent_first_name: editParentFirstName,
+          parent_last_name: editParentLastName,
+          parent_phone: editParentPhone,
+          parent_email: editParentEmail,
+          assigned_route_id: editAssignedRouteId || null
         })
       });
       if (response.ok) {
@@ -1186,6 +1197,7 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
               <p className="text-xs text-slate-400">Modify live student records, monitor structural keys, and clean up historical table listings.</p>
             </div>
             <button 
+              type="button"
               onClick={() => setDbViewActive(false)}
               className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 transition-all shadow-sm"
             >
@@ -1206,9 +1218,13 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
           {/* Interactive Ledger Table Grid Layout */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
             {dbLoading ? (
-              <div className="text-center py-16 text-xs font-black uppercase tracking-wider text-slate-400 animate-pulse">Syncing Active Student Data Matrices...</div>
+              <div className="text-center py-16 text-xs font-black uppercase tracking-wider text-slate-400 animate-pulse">
+                Syncing Active Student Data Matrices...
+              </div>
             ) : dbStudentsList.length === 0 ? (
-              <div className="text-center py-16 text-xs italic text-gray-400">No active student records returned for this multi-tenant zone space.</div>
+              <div className="text-center py-16 text-xs italic text-gray-400">
+                No active student records returned for this multi-tenant zone space.
+              </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -1222,83 +1238,162 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 text-xs font-medium text-gray-700">
-                    {dbStudentsList
+
+                  {dbStudentsList
                       .filter(item => {
-                        const fullName = `${item.first_name} ${item.last_name}`.toLowerCase();
+                        const fullName = `${item.first_name || ''} ${item.last_name || ''}`.toLowerCase();
                         return fullName.includes(dbSearchQuery.toLowerCase()) || item.admission_no?.toLowerCase().includes(dbSearchQuery.toLowerCase());
                       })
                       .map((student) => {
                         const isEditing = editingStudentId === student.id;
                         return (
-                          <tr key={student.id} className="hover:bg-slate-50/60 transition-colors">
-                            <td className="p-4 pl-6 font-mono font-bold text-emerald-600">{student.admission_no}</td>
-                            
-                            {/* Inline Form Toggle: First Name */}
-                            <td className="p-4">
-                              {isEditing ? (
-                                <input type="text" className="p-2 border rounded-lg bg-white font-bold max-w-[120px]" value={editFirstName} onChange={e => setEditFirstName(e.target.value)} />
-                              ) : (
-                                <span className="font-bold text-gray-900">{student.first_name}</span>
-                              )}
-                            </td>
+                          <React.Fragment key={student.id}>
+                            {/* Main standard ledger row line item */}
+                            <tr className="hover:bg-slate-50/60 transition-colors border-b">
+                              <td className="p-4 pl-6 font-mono font-bold text-emerald-600">{student.admission_no}</td>
+                              <td className="p-4">
+                                {isEditing ? (
+                                  <input type="text" className="p-2 border rounded-lg bg-white font-bold max-w-[120px]" value={editFirstName} onChange={e => setEditFirstName(e.target.value)} />
+                                ) : (
+                                  <span className="font-bold text-gray-900">{student.first_name}</span>
+                                )}
+                              </td>
+                              <td className="p-4">
+                                {isEditing ? (
+                                  <input type="text" className="p-2 border rounded-lg bg-white font-bold max-w-[120px]" value={editLastName} onChange={e => setEditLastName(e.target.value)} />
+                                ) : (
+                                  <span className="font-bold text-gray-900">{student.last_name}</span>
+                                )}
+                              </td>
+                              <td className="p-4">
+                                {isEditing ? (
+                                  <input type="text" className="p-2 border rounded-lg bg-white font-black max-w-[80px]" value={editClass} onChange={e => setEditClass(e.target.value)} />
+                                ) : (
+                                  <span className="px-2 py-0.5 bg-slate-100 border text-slate-600 rounded-md text-[10px] font-black uppercase">{student.class || student.class_id || 'N/A'}</span>
+                                )}
+                              </td>
+                              <td className="p-4 text-center flex items-center justify-center gap-2">
+                                {isEditing ? (
+                                  <>
+                                    <button type="button" onClick={() => handleUpdateStudentRow(student.id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black uppercase">Save</button>
+                                    <button type="button" onClick={() => setEditingStudentId(null)} className="px-3 py-1.5 bg-slate-200 text-slate-600 rounded-lg text-[10px] font-black uppercase">Cancel</button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <button 
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingStudentId(student.id);
+                                        setEditFirstName(student.first_name || '');
+                                        setEditLastName(student.last_name || '');
+                                        setEditClass(student.class || student.class_id || '');
+                                        setEditParentFirstName(student.parent_details?.first_name || '');
+                                        setEditParentLastName(student.parent_details?.last_name || '');
+                                        setEditParentPhone(student.parent_details?.phone_number || '');
+                                        setEditParentEmail(student.parent_details?.email || '');
+                                        setEditAssignedRouteId(student.assigned_route_id || '');
+                                      }} 
+                                      className="px-3 py-1.5 bg-white border border-gray-200 text-slate-700 hover:bg-gray-50 rounded-lg text-[10px] font-bold shadow-sm"
+                                    >
+                                      ✏️ Edit
+                                    </button>
+                                    <button type="button" onClick={() => handleDeleteStudentRow(student.id)} className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"><Trash2 size={12} /> Delete</button>
+                                  </>
+                                )}
+                              </td>
+                            </tr>
 
-                            {/* Inline Form Toggle: Last Name */}
-                            <td className="p-4">
-                              {isEditing ? (
-                                <input type="text" className="p-2 border rounded-lg bg-white font-bold max-w-[120px]" value={editLastName} onChange={e => setEditLastName(e.target.value)} />
-                              ) : (
-                                <span className="font-bold text-gray-900">{student.last_name}</span>
-                              )}
-                            </td>
+                            {/* 📋 NESTED SUB-DRAWER: Displays static parent metrics or editing inputs */}
+                            {(isEditing || student.parent_details?.id) && (
+                              <tr className="bg-slate-50/50">
+                                <td colSpan={5} className="p-4 pl-6 border-b">
+                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs text-left">
+                                    
+                                    {/* Column 1: Parent Identity Settings */}
+                                    <div className="space-y-1.5">
+                                      <span className="text-[10px] font-black text-slate-400 uppercase block tracking-wider">
+                                        Parent Details ({isEditing ? 'Editing' : student.parent_details?.parent_type || 'Guardian'})
+                                      </span>
+                                      {isEditing ? (
+                                        <div className="flex gap-2">
+                                          <input type="text" className="p-2 border rounded-lg bg-white w-1/2 text-xs" placeholder="First Name" value={editParentFirstName} onChange={e => setEditParentFirstName(e.target.value)} />
+                                          <input type="text" className="p-2 border rounded-lg bg-white w-1/2 text-xs" placeholder="Last Name" value={editParentLastName} onChange={e => setEditParentLastName(e.target.value)} />
+                                        </div>
+                                      ) : (
+                                        <p className="font-bold text-slate-800">
+                                          {student.parent_details?.first_name} {student.parent_details?.last_name || 'No Parent Attached'}
+                                        </p>
+                                      )}
+                                    </div>
 
-                            {/* Inline Form Toggle: Class Stream */}
-                            <td className="p-4">
-                              {isEditing ? (
-                                <input type="text" className="p-2 border rounded-lg bg-white font-black max-w-[80px]" value={editClass} onChange={e => setEditClass(e.target.value)} />
-                              ) : (
-                                <span className="px-2 py-0.5 bg-slate-100 border text-slate-600 rounded-md text-[10px] font-black uppercase">{student.class || student.class_id}</span>
-                              )}
-                            </td>
+                                    {/* Column 2: Parent Contact Parameters */}
+                                    <div className="space-y-1.5">
+                                      <span className="text-[10px] font-black text-slate-400 uppercase block tracking-wider">Parent Communication Channel</span>
+                                      {isEditing ? (
+                                        <div className="space-y-1">
+                                          <input type="tel" className="w-full p-2 border rounded-lg bg-white text-xs font-mono" placeholder="Phone" value={editParentPhone} onChange={e => setEditParentPhone(e.target.value)} />
+                                          <input type="email" className="w-full p-2 border rounded-lg bg-white text-xs" placeholder="Email" value={editParentEmail} onChange={e => setEditParentEmail(e.target.value)} />
+                                        </div>
+                                      ) : (
+                                        <div className="font-medium text-slate-600 space-y-0.5">
+                                          <p>📞 <span className="font-mono">{student.parent_details?.phone_number || 'N/A'}</span></p>
+                                          <p>✉️ {student.parent_details?.email || 'N/A'}</p>
+                                        </div>
+                                      )}
+                                    </div>
 
-                            {/* Operational Actions Cell */}
-                            <td className="p-4 text-center flex items-center justify-center gap-2">
-                              {isEditing ? (
-                                <>
-                                  <button onClick={() => handleUpdateStudentRow(student.id)} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-black uppercase">Save</button>
-                                  <button onClick={() => setEditingStudentId(null)} className="px-3 py-1.5 bg-slate-200 text-slate-600 rounded-lg text-[10px] font-black uppercase">Cancel</button>
-                                </>
-                              ) : (
-                                <>
-                                  <button 
-                                    onClick={() => {
-                                      setEditingStudentId(student.id);
-                                      setEditFirstName(student.first_name || '');
-                                      setEditLastName(student.last_name || '');
-                                      setEditClass(student.class || student.class_id || '');
-                                    }} 
-                                    className="px-3 py-1.5 bg-white border border-gray-200 text-slate-700 hover:bg-gray-50 rounded-lg text-[10px] font-bold shadow-sm"
-                                  >
-                                    ✏️ Edit
-                                  </button>
-                                  <button 
-                                    onClick={() => handleDeleteStudentRow(student.id)}
-                                    className="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
-                                  >
-                                    <Trash2 size={12} /> Delete
-                                  </button>
-                                </>
-                              )}
-                            </td>
-                          </tr>
+                                    {/* Column 3: Transit Route Realignment Dropdown */}
+                                    <div className="space-y-1.5">
+                                      <span className="text-[10px] font-black text-slate-400 uppercase block tracking-wider">Transit Fleet Allocation</span>
+                                      {isEditing ? (
+                                        <select 
+                                          className="w-full p-2 border rounded-lg bg-white text-xs font-bold text-slate-700"
+                                          value={editAssignedRouteId} onChange={e => setEditAssignedRouteId(e.target.value)}
+                                        >
+                                          <option value="">-- No Route Assigned --</option>
+                                          {routesList.map((route: any) => (
+                                            <option key={route.route_id || route.id} value={route.route_id || route.id}>
+                                              {route.route_name}
+                                            </option>
+                                          ))}
+                                        </select>
+                                      ) : (
+                                        <p className="font-black text-orange-600">
+                                          🚌 {student.assigned_route_name || 'No Route Allocated'}
+                                        </p>
+                                      )}
+                                    </div>
+
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
                         );
                       })}
-                  </tbody>
+
+                      </tbody>
                 </table>
               </div>
             )}
           </div>
 
         </div>
+      )}
+
+      {/* 🌍 MAP PORTAL INJECTOR */}
+      {activeTrackingRoute && (
+        <TransportMapModal 
+          isOpen={isMapModalOpen}
+          onClose={() => {
+            setIsMapModalOpen(false);
+            setActiveTrackingRoute(null);
+          }}
+          routeName={activeTrackingRoute.route_name}
+          driverName={activeTrackingRoute.driver_name}
+          latitude={parseFloat(activeTrackingRoute.last_latitude || '-1.2921')}
+          longitude={parseFloat(activeTrackingRoute.last_longitude || '36.8219')}
+        />
       )}
 
     </div>
