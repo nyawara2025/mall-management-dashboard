@@ -33,9 +33,6 @@ export const TeacherDashboard = ({ shopId, teacherUser, onBack, schoolName }: Te
   const [homeworkSubject, setHomeworkSubject] = useState('');
   const [homeworkTitle, setHomeworkTitle] = useState('');
   const [homeworkDue, setHomeworkDue] = useState('');
-  const [homeworkTextBook, setHomeworkTextBook] = useState('');
-const [homeworkPages, setHomeworkPages] = useState('');
-
   const [announcementTitle, setAnnouncementTitle] = useState('');
   const [announcementBody, setAnnouncementBody] = useState('');
   
@@ -84,8 +81,7 @@ const [homeworkPages, setHomeworkPages] = useState('');
           class_id: teacherUser.assigned_class,
           date: new Date().toLocaleDateString('en-KE'),
           subject: homeworkSubject,
-          textbook_name: homeworkTextBook,
-          pages_target: homeworkPages,
+          textbook: homeworkDue,
           topic: homeworkTitle,
           number_range: `Nos. ${numFrom} to ${numTo}`
         }),
@@ -93,8 +89,7 @@ const [homeworkPages, setHomeworkPages] = useState('');
       alert("Assignment published directly to Parent Hub channels.");
       setHomeworkSubject('');
       setHomeworkTitle('');
-      setHomeworkTextBook(''); // Clear textbook text
-      setHomeworkPages('');    // Clear pages text
+      setHomeworkDue('');
       setNumFrom('');
       setNumTo('');
       setActiveTab('menu');
@@ -263,23 +258,13 @@ const [homeworkPages, setHomeworkPages] = useState('');
                 value={homeworkTitle} onChange={(e) => setHomeworkTitle(e.target.value)} required
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Reference Textbook</label>
-                <input
-                  type="text" placeholder="e.g., Primary Geography, Malkiat Singh"
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
-                  value={homeworkTextBook} onChange={(e) => setHomeworkTextBook(e.target.value)} required
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Target Page(s)</label>
-                <input
-                  type="text" placeholder="e.g., Page 58, Pg. 32-35"
-                  className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
-                  value={homeworkPages} onChange={(e) => setHomeworkPages(e.target.value)} required
-                />
-              </div>
+            <div>
+              <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Text Book & Page(s)</label>
+              <input
+                type="text" placeholder="e.g., Primary Maths Bk 5 (Pg. 42-43)"
+                className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                value={homeworkDue} onChange={(e) => setHomeworkDue(e.target.value)} required
+              />
             </div>
             <div>
               <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-1 px-1">Question Numbers</label>
