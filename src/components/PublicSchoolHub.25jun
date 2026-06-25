@@ -828,12 +828,47 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
             </div>
             {data?.homework && data.homework.length > 0 ? (
               data.homework.map((item: any, idx: number) => (
-                <div key={idx} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                  <span className="text-[9px] font-black bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md border border-blue-100 uppercase">
-                    {item.subject}
-                  </span>
-                  <h4 className="font-black text-slate-800 text-base mt-2 mb-1">{item.title}</h4>
-                  <p className="text-xs text-slate-500 font-bold">Due Threshold: {item.date}</p>
+                <div key={idx} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                  
+                  {/* Top Badge Meta Row */}
+                  <div className="flex justify-between items-center border-b border-slate-50 pb-3">
+                    <span className="text-[9px] font-black bg-blue-50 text-blue-600 px-2.5 py-1 rounded-md border border-blue-100/50 uppercase tracking-wider">
+                      {item.subject}
+                    </span>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">
+                      Due: {item.date}
+                    </p>
+                  </div>
+
+                  {/* Dynamic Assignment Title Header */}
+                  <div>
+                    <h4 className="font-black text-slate-800 text-base leading-snug">{item.title}</h4>
+                  </div>
+
+                  {/* New Structured Parameters Key-Value Grid */}
+                  <div className="grid grid-cols-2 gap-3 bg-slate-50/50 p-4 rounded-2xl border border-slate-100/60 text-xs">
+                    <div>
+                      <span className="text-[9px] font-black text-slate-400 uppercase block tracking-wider">Reference Textbook</span>
+                      <p className="font-bold text-slate-700 mt-0.5">{item.textbook_name || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-black text-slate-400 uppercase block tracking-wider">Target Page(s)</span>
+                      <p className="font-bold text-slate-700 mt-0.5">Pg. {item.pages || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-black text-slate-400 uppercase block tracking-wider">Assigned Exercise</span>
+                      <p className="font-bold text-slate-700 mt-0.5">{item.exercise || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <span className="text-[9px] font-black text-slate-400 uppercase block tracking-wider">Task Question Scope</span>
+                      <p className="font-bold text-blue-600 mt-0.5">
+                        {item.question_from && item.question_to 
+                          ? `Qno. ${item.question_from} to ${item.question_to}` 
+                          : 'Complete Scope'}
+                      </p>
+                    </div>
+                  </div>
+
                 </div>
               ))
             ) : (
@@ -841,6 +876,8 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
             )}
           </div>
         )}
+
+
 
         {/* VIEW 4: SUB PANEL - BULLETINS & BOARD NOTICES */}
         {activePortalView === 'bulletins' && (

@@ -849,7 +849,7 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
                   <div className="grid grid-cols-2 gap-3 bg-slate-50/50 p-4 rounded-2xl border border-slate-100/60 text-xs">
                     <div>
                       <span className="text-[9px] font-black text-slate-400 uppercase block tracking-wider">Reference Textbook</span>
-                      <p className="font-bold text-slate-700 mt-0.5">{item.textbook_name || 'N/A'}</p>
+                      <p className="font-bold text-slate-700 mt-0.5">{item.text_book || 'N/A'}</p>
                     </div>
                     <div>
                       <span className="text-[9px] font-black text-slate-400 uppercase block tracking-wider">Target Page(s)</span>
