@@ -60,6 +60,15 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
   const [regGender, setRegGender] = useState('Male');
   const [regParentContact, setRegParentContact] = useState('');
 
+  // --- Expanded Student Registration States ---
+  const [regResidentialArea, setRegResidentialArea] = useState('');
+  const [regDob, setRegDob] = useState('');
+  const [regParentType, setRegParentType] = useState('Father');
+  const [regParentFirstName, setRegParentFirstName] = useState('');
+  const [regParentLastName, setRegParentLastName] = useState('');
+  const [regParentEmail, setRegParentEmail] = useState('');
+  const [regAssignedRouteId, setRegAssignedRouteId] = useState('');
+
   // 🛠️ REFACTORED: Administrative Records analytics states
   const [marks, setMarks] = useState<MarkRecord[]>([]);
   const [marksLoading, setMarksLoading] = useState(false);
@@ -352,6 +361,11 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
   const handleRegisterStudent = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Find the readable name of the selected route to pass down alongside the ID
+    const selectedRouteObj = routesList.find(r => r.route_id === regAssignedRouteId);
+    const assignedRouteName = selectedRouteObj ? selectedRouteObj.route_name : 'No Transport Assigned';
+
     try {
       const response = await fetch('https://n8n.tenear.com/webhook/school-register-student', {
         method: 'POST',
@@ -363,7 +377,15 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
           admission_no: regAdmissionNo,
           class_id: regAssignedClass,
           gender: regGender,
+          dob: regDob,
+          residential_area: regResidentialArea,
+          parent_type: regParentType,
+          parent_first_name: regParentFirstName,
+          parent_last_name: regParentLastName,
           parent_phone: regParentContact,
+          parent_email: regParentEmail,
+          assigned_route_id: regAssignedRouteId || null,
+          assigned_route_name: assignedRouteName,
           registration_date: new Date().toISOString()
         }),
       });
@@ -375,6 +397,7 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
         setRegLastName('');
         setRegAdmissionNo('');
         setRegAssignedClass('');
+        setRegParentFirstName(''); setRegParentLastName('');
         setRegGender('Male');
         setRegParentContact('');
         setIsRegisterModalOpen(false); // Close the overlay form
@@ -926,18 +949,18 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
         />
       )}
 
-      {/* ➕ INSERT HERE: 🌍 STUDENT ENROLMENT FORM OVERLAY MODAL */}
+      {/* 🌍 EXPANDED STUDENT ENROLMENT FORM OVERLAY MODAL */}
       {isRegisterModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200 text-left">
-          <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 text-left">
+          <div className="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
             
-            {/* Modal Header banner element */}
+            {/* Modal Header */}
             <div className="bg-slate-950 p-6 text-white flex justify-between items-center">
               <div>
                 <h3 className="text-lg font-black tracking-tight flex items-center gap-2">
-                  <GraduationCap className="text-emerald-400" size={22} /> Enrol New Student Learner
+                  <GraduationCap className="text-emerald-400" size={22} /> Comprehensive Student Enrolment
                 </h3>
-                <p className="text-xs text-slate-400">Add profile records onto active operational databases.</p>
+                <p className="text-xs text-slate-400">Complete student ledger fields and map fleet transit configurations.</p>
               </div>
               <button 
                 type="button"
@@ -949,81 +972,119 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
             </div>
 
             {/* Registration Form container */}
-            <form onSubmit={handleRegisterStudent} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <form onSubmit={handleRegisterStudent} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               
-              {/* Row 1: First Name & Last Name */}
+              <h4 className="text-xs font-black uppercase text-slate-400 border-b pb-1 tracking-wider">Student Parameters</h4>
+              
+              {/* Row 1: Names */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">First Name</label>
-                  <input 
-                    type="text" required placeholder="e.g. John"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-bold text-slate-700"
-                    value={regFirstName} onChange={e => setRegFirstName(e.target.value)}
-                  />
+                  <input type="text" required placeholder="John" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none text-xs font-bold text-slate-700" value={regFirstName} onChange={e => setRegFirstName(e.target.value)} />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Last Name</label>
-                  <input 
-                    type="text" required placeholder="e.g. Doe"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-bold text-slate-700"
-                    value={regLastName} onChange={e => setRegLastName(e.target.value)}
-                  />
+                  <input type="text" required placeholder="Doe" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none text-xs font-bold text-slate-700" value={regLastName} onChange={e => setRegLastName(e.target.value)} />
                 </div>
               </div>
 
-              {/* Row 2: Admission No & Grade/Class stream */}
+              {/* Row 2: Admission No & Grade Stream */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Admission/ID Number</label>
-                  <input 
-                    type="text" required placeholder="e.g. ADM-4012"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-mono font-bold text-slate-700"
-                    value={regAdmissionNo} onChange={e => setRegAdmissionNo(e.target.value)}
-                  />
+                  <input type="text" required placeholder="ADM-2026" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none text-xs font-mono font-bold text-slate-700" value={regAdmissionNo} onChange={e => setRegAdmissionNo(e.target.value)} />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Target Class Stream</label>
-                  <input 
-                    type="text" required placeholder="e.g. Grade 5K, Form 3B"
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-bold text-slate-700"
-                    value={regAssignedClass} onChange={e => setRegAssignedClass(e.target.value)}
-                  />
+                  <input type="text" required placeholder="e.g. 4J" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none text-xs font-bold text-slate-700" value={regAssignedClass} onChange={e => setRegAssignedClass(e.target.value)} />
                 </div>
               </div>
 
-              {/* Row 3: Gender Selector Dropdown */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Student Gender</label>
-                <select 
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-bold text-slate-700"
-                  value={regGender} onChange={e => setRegGender(e.target.value)}
-                >
-                  <option value="Male">Male</option>
-                  <option value="Female">Female</option>
-                  <option value="Other">Other</option>
-                </select>
+              {/* Row 3: Gender & DoB */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Gender</label>
+                  <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none text-xs font-bold text-slate-700" value={regGender} onChange={e => setRegGender(e.target.value)}>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Date of Birth</label>
+                  <input type="date" required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none text-xs font-bold text-slate-700" value={regDob} onChange={e => setRegDob(e.target.value)} />
+                </div>
               </div>
 
-              {/* Row 4: Guardian/Parent Contact Number */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Primary Parent Phone Number (WhatsApp Alert Destination)</label>
-                <input 
-                  type="tel" required placeholder="e.g. +2547XXXXXXXX"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs font-mono font-bold text-slate-700"
-                  value={regParentContact} onChange={e => setRegParentContact(e.target.value)}
-                />
+              <h4 className="text-xs font-black uppercase text-slate-400 border-b pb-1 tracking-wider pt-2">Residential & Fleet Mapping</h4>
+
+              {/* Row 4: Residential Area & Fleet Route Pull-down */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Residential Estate Area</label>
+                  <input type="text" required placeholder="e.g. Highridge, Westlands" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none text-xs font-bold text-slate-700" value={regResidentialArea} onChange={e => setRegResidentialArea(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Assign Transit Fleet Route</label>
+                  <select 
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none text-xs font-bold text-slate-700" 
+                    value={regAssignedRouteId} onChange={e => setRegAssignedRouteId(e.target.value)}
+                  >
+                    <option value="">-- No Transport Route assigned --</option>
+                    {routesList.map((route: any) => (
+                      <option key={route.route_id} value={route.route_id}>
+                        {route.route_name} ({route.fleet_mode || 'Bus'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              {/* Action Operations Buttons footer line */}
-              <div className="flex gap-3 pt-2">
+              <h4 className="text-xs font-black uppercase text-slate-400 border-b pb-1 tracking-wider pt-2">Primary Guardian Parameter Settings</h4>
+
+              {/* Row 5: Guardian Type & Names */}
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Relationship</label>
+                  <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none text-xs font-bold text-slate-700" value={regParentType} onChange={e => setRegParentType(e.target.value)}>
+                    <option value="Father">Father</option>
+                    <option value="Mother">Mother</option>
+                    <option value="Guardian">Guardian</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">First Name</label>
+                  <input type="text" required placeholder="Parent First Name" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none text-xs font-bold text-slate-700" value={regParentFirstName} onChange={e => setRegParentFirstName(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Last Name</label>
+                  <input type="text" required placeholder="Parent Last Name" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none text-xs font-bold text-slate-700" value={regParentLastName} onChange={e => setRegParentLastName(e.target.value)} />
+                </div>
+              </div>
+
+              {/* Row 6: Contact & Messaging */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Primary Phone Number</label>
+                  <input type="tel" required placeholder="+2547XXXXXXXX" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none text-xs font-mono font-bold text-slate-700" value={regParentContact} onChange={e => setRegParentContact(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Email Address</label>
+                  <input type="email" required placeholder="parent@example.com" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none text-xs font-bold text-slate-700" value={regParentEmail} onChange={e => setRegParentEmail(e.target.value)} />
+                </div>
+              </div>
+
+              {/* Action Operations Buttons */}
+              <div className="flex gap-3 pt-4 border-t mt-4">
                 <button 
-                  type="button" onClick={() => setIsRegisterModalOpen(false)}
+                  type="button" 
+                  onClick={() => setIsRegisterModalOpen(false)} 
                   className="w-1/3 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl transition-all uppercase tracking-wide text-[11px] text-center"
                 >
                   Cancel
                 </button>
                 <button 
-                  type="submit" disabled={loading}
+                  type="submit" 
+                  disabled={loading} 
                   className="w-2/3 py-3.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black rounded-xl transition-all uppercase tracking-wide text-[11px] flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-100"
                 >
                   {loading ? 'Processing Enrollment...' : 'Confirm System Enrolment'}
@@ -1034,6 +1095,8 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
           </div>
         </div>
       )}
+
+
 
     </div>
   );
