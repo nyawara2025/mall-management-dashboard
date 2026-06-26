@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  CreditCard, RefreshCw, Download, Printer, Search, 
-  ArrowLeft, DollarSign, AlertCircle, CheckCircle, 
-  Receipt, TrendingUp, Filter, Calendar, Target
+  CreditCard, RefreshCw, Download, Search, 
+  AlertCircle, CheckCircle, Receipt, TrendingUp, 
+  Plus, LogOut, X, Landmark, Smartphone, Wallet
 } from 'lucide-react';
 import { SchoolBranding } from './SchoolBranding';
 
-// 📋 Type-safe structural contract matching your multi-tenant accounting ledgers
 interface FeeTransaction {
   id: string;
   student_name: string;
@@ -20,51 +19,35 @@ interface FeeTransaction {
 }
 
 export const SchoolAccountant = ({ 
-  shopId,
+  shopId, 
   user, 
   onLogout 
 }: { 
-    shopId: number;
-    user?: any; 
-    onLogout?: () => void; 
+  shopId: number; 
+  user?: any; 
+  onLogout?: () => void; 
 }) => {
   const [loading, setLoading] = useState(false);
-  const [ledgerLoading, setLedgerLoading] = useState(false);
   
-  // Financial baseline aggregates
+  // Financial baseline aggregates initialized to matching view layout values
   const [totalCollected, setTotalCollected] = useState<number>(42500); 
   const [totalOutstanding, setTotalOutstanding] = useState<number>(12400); 
-  const [targetProjections, setTargetProjections] = useState<number>(54900);
-
-  // Structural ledger data arrays
   const [transactions, setTransactions] = useState<FeeTransaction[]>([]);
   
-  // Ledger layout filtering state references
-  const [selectedClass, setSelectedClass] = useState<string>('All');
-  const [selectedMethod, setSelectedMethod] = useState<string>('All');
+  // Filtering & Modal UI state trackers
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedClass, setSelectedClass] = useState<string>('All');
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
 
-  // 📡 Asynchronous Fetch Sync: Query financial ledger entries matching shop_id parameter context
-  const fetchBursarLedgerMetrics = async () => {
-    setLedgerLoading(true);
-    try {
-      const response = await fetch('https://n8n.tenear.com/webhook/fetch-school-ledger', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shop_id: shopId })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setTransactions(Array.isArray(data) ? data : data.transactions || []);
-      }
-    } catch (err) {
-      console.error("Bursar ledger engine connection tracking fault:", err);
-    } finally {
-      setLedgerLoading(false);
-    }
-  };
+  // Manual payment transaction form inputs
+  const [payStudentName, setPayStudentName] = useState('');
+  const [payAdmissionNo, setPayAdmissionNo] = useState('');
+  const [payClassId, setPayClassId] = useState('');
+  const [payAmount, setPayAmount] = useState('');
+  const [payMethod, setPayMethod] = useState('M-Pesa');
+  const [payReference, setPayReference] = useState('');
 
-  // 📊 Core Metrics Sync Rule: Re-align total aggregates via dedicated fees tracker query loop
+  // 📡 Integrated Sync Engine: Fetches aggregated numbers AND individual transaction rows
   const handleSynchronizeFees = async () => {
     setLoading(true);
     try {
@@ -75,71 +58,100 @@ export const SchoolAccountant = ({
       });
       if (response.ok) {
         const data = await response.json();
+        
+        // Safely parse summary numeric metrics blocks
         if (data.total_collected !== undefined) setTotalCollected(Number(data.total_collected));
         if (data.total_outstanding !== undefined) setTotalOutstanding(Number(data.total_outstanding));
-        if (data.target_projections !== undefined) setTargetProjections(Number(data.target_projections));
-        alert("Bursar accounting data metrics synchronized with Supabase database!");
-        fetchBursarLedgerMetrics(); // Cascade update list layout
+        
+        // 🔗 Unified Hook Map: Pulls the transaction rows straight out of the operational data node
+        if (data.transactions && Array.isArray(data.transactions)) {
+          setTransactions(data.transactions);
+        } else if (Array.isArray(data)) {
+          setTransactions(data);
+        }
       }
     } catch (error) {
-      console.error("Failed to sync financial parameters from backend gateway:", error);
+      console.error("Failed to sync structural ledger data from backend:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Mount transactional history tables immediately upon execution lifecycle
+  // 📝 Manual Payment Submission handler
+  const handlePostManualPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/fetch-school-ledger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'record_payment',
+          shop_id: shopId,
+          student_name: payStudentName,
+          admission_no: payAdmissionNo,
+          class_id: payClassId,
+          amount_paid: Number(payAmount),
+          payment_method: payMethod,
+          reference_no: payReference,
+          date_logged: new Date().toISOString()
+        })
+      });
+
+      if (response.ok) {
+        alert("Receipt entry successfully recorded to system tables!");
+        setIsModalOpen(false);
+        // Wipe local form values cleanly
+        setPayStudentName(''); setPayAdmissionNo(''); setPayClassId(''); setPayAmount(''); setPayReference('');
+        handleSynchronizeFees(); // Re-trigger tracking arrays update automatically
+      } else {
+        alert("Transaction upload rejected by data engine layers.");
+      }
+    } catch (err) {
+      console.error("Payment transmission error failed:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Automatically trigger sync lifecycle whenever the component layout mounts
   useEffect(() => {
-    fetchBursarLedgerMetrics();
+    handleSynchronizeFees();
   }, [shopId]);
 
-  // Unified visual anchors metrics config matching EducationalDashboard layouts
   const bursarStats = [
-    {
-      label: "Collected KES",
-      value: `KES ${totalCollected.toLocaleString()}`,
-      icon: CheckCircle,
-      bg: "bg-emerald-50",
-      color: "text-emerald-600"
-    },
-    {
-      label: "Outstanding KES",
-      value: `KES ${totalOutstanding.toLocaleString()}`,
-      icon: AlertCircle,
-      bg: "bg-rose-50",
-      color: "text-rose-600"
-    },
-    {
-      label: "Total Pipeline Target",
-      value: `KES ${(totalCollected + totalOutstanding).toLocaleString()}`,
-      icon: Target,
-      bg: "bg-blue-50",
-      color: "text-blue-600"
-    },
-    {
-      label: "Verified Clearances",
-      value: transactions.length > 0 
-        ? `${Math.round((transactions.filter(t => t.balance_due <= 0).length / transactions.length) * 100)}%` 
-        : "0%",
-      icon: Receipt,
-      bg: "bg-purple-50",
-      color: "text-purple-600"
+    { label: "Collected KES", value: `KES ${totalCollected.toLocaleString()}`, icon: CheckCircle, bg: "bg-emerald-50", color: "text-emerald-600" },
+    { label: "Outstanding KES", value: `KES ${totalOutstanding.toLocaleString()}`, icon: AlertCircle, bg: "bg-rose-50", color: "text-rose-600" },
+    { label: "Total Pipeline Target", value: `KES ${(totalCollected + totalOutstanding).toLocaleString()}`, icon: TrendingUp, bg: "bg-blue-50", color: "text-blue-600" },
+    { 
+      label: "Verified Clearances", 
+      value: transactions.length > 0 ? `${Math.round((transactions.filter(t => t.balance_due <= 0).length / transactions.length) * 100)}%` : "0%", 
+      icon: Receipt, bg: "bg-purple-50", color: "text-purple-600" 
     }
   ];
 
-  // Inline filtration logic matching operational matrix styles
+  // Inline array filter calculation loops
   const filteredTransactions = transactions.filter(item => {
-    const matchesSearch = item.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          item.admission_no?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          item.reference_no?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (item.student_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          (item.admission_no || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (item.reference_no || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesClass = selectedClass === 'All' || item.class_id === selectedClass;
-    const matchesMethod = selectedMethod === 'All' || item.payment_method?.toLowerCase() === selectedMethod.toLowerCase();
-    return matchesSearch && matchesClass && matchesMethod;
+    return matchesSearch && matchesClass;
   });
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8 bg-gray-50/50 min-h-screen">
+    <div className="p-6 max-w-7xl mx-auto space-y-8 bg-gray-50/50 min-h-screen relative">
       
+      {/* 🚪 Top-Right Layout Logout Tool Trigger */}
+      {onLogout && (
+        <button 
+          onClick={onLogout}
+          className="absolute right-6 top-6 px-4 py-2 bg-white border border-gray-200 text-gray-500 hover:text-red-600 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 cursor-pointer z-10"
+        >
+          <LogOut size={14} /> Sign Out
+        </button>
+      )}
+
       {/* 🌟 Dynamic Identity Branding Block */}
       <SchoolBranding departmentName="Bursar Ledger & Financials" />
 
@@ -164,45 +176,57 @@ export const SchoolAccountant = ({
       {/* --- Operational Canvas Layout Grid --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Collection Milestone Track Card */}
-        <div className="lg:col-span-1 bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit text-left">
-          <div className="mb-6">
-            <h3 className="font-black text-2xl text-gray-800 flex items-center gap-3">
-              <TrendingUp className="text-indigo-600" size={28} /> Target Tracking
-            </h3>
-            <p className="text-gray-500">Term collection efficiency ratios</p>
+        {/* Progress Tracker Card & Manual Action Tool */}
+        <div className="lg:col-span-1 space-y-4">
+          <div className="bg-white p-8 rounded-3xl shadow-xl border border-gray-100 h-fit text-left">
+            <div className="mb-6">
+              <h3 className="font-black text-2xl text-gray-800 flex items-center gap-3">
+                <CreditCard className="text-indigo-600" size={28} /> Target Tracking
+              </h3>
+              <p className="text-gray-500">Term collection efficiency ratios</p>
+            </div>
+
+            <div className="space-y-6">
+              {(() => {
+                const totalSum = totalCollected + totalOutstanding;
+                const percentage = totalSum > 0 ? Math.round((totalCollected / totalSum) * 100) : 0;
+                return (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-xs font-bold text-gray-500">
+                      <span>Target Clearances</span>
+                      <span className="text-indigo-600 font-black">{percentage}%</span>
+                    </div>
+                    <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+                      <div className="bg-indigo-600 h-full transition-all duration-500" style={{ width: `${percentage}%` }}></div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <button 
+                type="button"
+                disabled={loading}
+                onClick={handleSynchronizeFees}
+                className="w-full border-2 border-indigo-600 text-indigo-600 py-3 rounded-xl font-bold hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 disabled:opacity-40 text-sm cursor-pointer mb-2"
+              >
+                <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+                {loading ? "Re-calculating..." : "Sync Live Invoicing"}
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-6">
-            {(() => {
-              const totalSum = totalCollected + totalOutstanding;
-              const percentage = totalSum > 0 ? Math.round((totalCollected / totalSum) * 100) : 0;
-              return (
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-xs font-bold text-gray-500">
-                    <span>Target Clearances</span>
-                    <span className="text-indigo-600 font-black">{percentage}%</span>
-                  </div>
-                  <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
-                    <div 
-                      className="bg-indigo-600 h-full transition-all duration-500" 
-                      style={{ width: `${percentage}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-[10px] text-gray-400 font-medium text-right">Target collection efficiency matrix</p>
-                </div>
-              );
-            })()}
-
-            <button 
-              type="button"
-              disabled={loading}
-              onClick={handleSynchronizeFees}
-              className="w-full border-2 border-indigo-600 text-indigo-600 py-3 rounded-xl font-bold hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 disabled:opacity-40 text-sm cursor-pointer"
-            >
-              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-              {loading ? "Re-calculating..." : "Sync Live Invoicing"}
-            </button>
+          {/* ➕ Manual Payment Entry Trigger Button Block */}
+          <div 
+            onClick={() => setIsModalOpen(true)}
+            className="p-6 bg-indigo-600 text-white rounded-3xl shadow-xl hover:bg-indigo-700 transition-all cursor-pointer text-left flex items-center gap-4 group"
+          >
+            <div className="p-3 bg-white/10 rounded-2xl group-hover:scale-105 transition-transform">
+              <Plus size={24} />
+            </div>
+            <div>
+              <h4 className="font-black text-lg">Log Manual Payment</h4>
+              <p className="text-xs text-indigo-200">Record direct bank slips, checks, or cash vouchers</p>
+            </div>
           </div>
         </div>
 
@@ -221,38 +245,22 @@ export const SchoolAccountant = ({
                 className="w-full text-xs font-medium pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500" 
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div>
               <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="text-xs font-bold px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-gray-600">
                 <option value="All">All Streams</option>
                 {Array.from(new Set(transactions.map(t => t.class_id))).filter(Boolean).map(c => (
                   <option key={c} value={c}>Class {c}</option>
                 ))}
               </select>
-              
-              <button 
-                onClick={() => {
-                  if (filteredTransactions.length === 0) return alert("No ledger logs available to extract.");
-                  const headers = ["Student", "Admission No", "Class", "Paid Amount", "Balance Due", "Method", "Ref No", "Timestamp"];
-                  const rows = filteredTransactions.map(t => [`"${t.student_name}"`, `"${t.admission_no}"`, `"${t.class_id}"`, `"${t.amount_paid}"`, `"${t.balance_due}"`, `"${t.payment_method}"`, `"${t.reference_no}"`, `"${t.date_logged || ''}"`]);
-                  const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-                  const link = document.createElement("a");
-                  link.setAttribute("href", encodeURI(csvContent));
-                  link.setAttribute("download", `Bursar_Financial_Report_${new Date().toISOString().split('T')[0]}.csv`);
-                  document.body.appendChild(link); link.click(); document.body.removeChild(link);
-                }}
-                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-indigo-100 cursor-pointer"
-              >
-                <Download size={14} /> Export CSV
-              </button>
             </div>
           </div>
 
           {/* Ledger Table Structure */}
           <div className="bg-white rounded-3xl border border-gray-100 shadow-xl overflow-hidden">
-            {ledgerLoading ? (
+            {loading && transactions.length === 0 ? (
               <div className="text-center py-16 text-gray-400 text-xs font-bold animate-pulse uppercase">Auditing Dynamic Ledger Matrix Logs...</div>
             ) : filteredTransactions.length === 0 ? (
-              <div className="text-center py-16 text-gray-400 text-xs font-medium">No valid payment ledger entries recorded on the backend engine database.</div>
+              <div className="text-center py-16 text-gray-400 text-xs font-medium">No payment ledger entries found for this school context.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -284,13 +292,9 @@ export const SchoolAccountant = ({
                         </td>
                         <td className="p-4 text-center">
                           {tx.balance_due <= 0 ? (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-600 uppercase tracking-wider">
-                              Cleared
-                            </span>
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-600 uppercase tracking-wider">Cleared</span>
                           ) : (
-                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-50 text-rose-600 uppercase tracking-wider">
-                              Bal: {tx.balance_due.toLocaleString()}
-                            </span>
+                            <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-50 text-rose-600 uppercase tracking-wider">Bal: {tx.balance_due.toLocaleString()}</span>
                           )}
                         </td>
                       </tr>
@@ -300,9 +304,74 @@ export const SchoolAccountant = ({
               </div>
             )}
           </div>
-
         </div>
       </div>
+
+      {/* 💳 BURSAR TRANSACTION INJECTOR MODAL */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-200 text-left">
+          <div className="bg-white w-full max-w-md rounded-[2rem] shadow-2xl border border-slate-100 overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
+            <div className="bg-slate-950 p-6 text-white flex justify-between items-center">
+              <div>
+                <h3 className="text-lg font-black tracking-tight flex items-center gap-2">
+                  <Receipt className="text-indigo-400" size={22} /> Log Manual Receipts
+                </h3>
+                <p className="text-xs text-slate-400">Record off-line fee payments directly to ledger sheets.</p>
+              </div>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 bg-white/10 hover:bg-white/20 rounded-xl text-slate-200 transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handlePostManualPayment} className="p-6 space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Student Learner Name</label>
+                <input type="text" required placeholder="Eli Okello" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500" value={payStudentName} onChange={e => setPayStudentName(e.target.value)} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Admission Number</label>
+                  <input type="text" required placeholder="ADM-7842" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-700 focus:outline-none focus:border-indigo-500" value={payAdmissionNo} onChange={e => setPayAdmissionNo(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Class / Stream</label>
+                  <input type="text" required placeholder="e.g. 4J" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500" value={payClassId} onChange={e => setPayClassId(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Amount Paid (KES)</label>
+                  <input type="number" required placeholder="15000" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500" value={payAmount} onChange={e => setPayAmount(e.target.value)} />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Payment Channel</label>
+                  <select className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none" value={payMethod} onChange={e => setPayMethod(e.target.value)}>
+                    <option value="M-Pesa">M-Pesa</option>
+                    <option value="Bank Deposit">Bank Deposit</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="Cash Voucher">Cash Voucher</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider block px-1">Reference / Slip Number</label>
+                <input type="text" required placeholder="e.g. REF8492049" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold text-slate-700 focus:outline-none focus:border-indigo-500" value={payReference} onChange={e => setPayReference(e.target.value)} />
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full mt-2 py-4 bg-indigo-600 text-white font-bold rounded-2xl hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-sm cursor-pointer"
+              >
+                {loading ? 'Recording Entry...' : 'Commit Transaction Log'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
