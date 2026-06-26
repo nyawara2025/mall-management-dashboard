@@ -48,7 +48,7 @@ export const SchoolAccountant = ({
   const fetchBursarLedgerMetrics = async () => {
     setLedgerLoading(true);
     try {
-      const response = await fetch('https://tenear.com', {
+      const response = await fetch('https://n8n.tenear.com/webhook/fetch-school-ledger', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shop_id: shopId })
@@ -68,7 +68,7 @@ export const SchoolAccountant = ({
   const handleSynchronizeFees = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://tenear.com', {
+      const response = await fetch('https://n8n.tenear.com/webhook/synchronize-school-fees', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shop_id: shopId }),
