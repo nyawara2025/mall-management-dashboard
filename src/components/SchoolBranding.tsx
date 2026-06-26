@@ -6,7 +6,7 @@ interface SchoolBrandingProps {
 } 
 
 interface SchoolProfileData {
-  school_name: string;
+  name: string;
   logo_url: string;
   school_motto: string;
 }
@@ -54,7 +54,7 @@ export const SchoolBranding: React.FC<SchoolBrandingProps> = ({ departmentName }
           const data = await response.json();
           setProfile({
             // Fallback nicely to payload variables or standard string defaults
-            school_name: data.school_name || data.shop || "Lang'ata Junior Academy",
+            name: data.name || data.shop || "Lang'ata Junior Academy",
             logo_url: data.logo_url || data.logoUrl || "https://supabase.co",
             school_motto: data.school_motto || data.slogan || "Striving for Excellence"
           });
@@ -70,7 +70,7 @@ export const SchoolBranding: React.FC<SchoolBrandingProps> = ({ departmentName }
   }, [user]);
 
   // Clean fallback anchors matching your n8n log details
-  const resolvedName = profile?.school_name || "Lang'ata Junior Academy";
+  const resolvedName = profile?.name || "Lang'ata Junior Academy";
   const resolvedMotto = profile?.school_motto || "Knowledge is Power";
   const resolvedLogo = profile?.logo_url || "https://supabase.co";
 
