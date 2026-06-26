@@ -6,6 +6,8 @@ import {
   Download, Printer, Search, ArrowLeft
 } from 'lucide-react';
 
+import { useAuth } from '../contexts/AuthContext';
+
 import { TransportMapModal } from './TransportMapModal';
 
 interface Activity {
@@ -26,16 +28,14 @@ interface MarkRecord {
   created_at: string;
 }
 
-export const EducationalDashboard = ({ 
-  shopId,
-  schoolName,
-  logoUrl
-}: {
-  shopId: number;
-  schoolName?: string;
-  logoUrl?: string;
+export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
+  const { user } = useAuth(); // 🌟 Extract the logged-in user profile payload securely
+  
+  // Extract parameters cleanly with defensive defaults
+  const schoolName = (user as any)?.shop || "";
+  const logoUrl = (user as any)?.logoUrl || "";
 
-}) => {
+
   const [loading, setLoading] = useState(false);
   const [bulletinLoading, setBulletinLoading] = useState(false);
   
