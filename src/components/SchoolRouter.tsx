@@ -5,6 +5,7 @@ import { PublicSchoolHub } from './PublicSchoolHub';
 import { DirectorDashboard } from './DirectorDashboard';
 import { PrincipalDashboard } from './PrincipalDashboard';
 import { SecurityDashboard } from './SecurityDashboard';
+import { SchoolAccountant } from './SchoolAccountant';
 
 interface SchoolRouterProps {
   shopId: number;
@@ -44,6 +45,17 @@ export const SchoolRouter = ({ shopId, user, onLogout }: SchoolRouterProps) => {
         shopId={shopId} 
         user={user} 
         onLogout={onLogout} 
+      />
+    );
+  }
+
+  // 4. Asset Management, Finance Dashboard
+  if (role === 'accountant') {
+    return (
+      <SchoolAccountant
+        shopId={shopId}
+        user={user}
+        onLogout={onLogout}
       />
     );
   }
