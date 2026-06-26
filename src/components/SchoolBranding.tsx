@@ -77,10 +77,10 @@ export const SchoolBranding: React.FC<SchoolBrandingProps> = ({ departmentName }
   return ( 
     <div className="flex justify-between items-center mb-6 text-left border-b border-gray-100 pb-4 animate-in fade-in duration-300"> 
       <div> 
-        <h1 className="text-2xl font-black text-gray-800 tracking-tight"> 
+        <h1 className="text-2xl font-black text-gray-800 tracking-tight font-['Century_Gothic']"> 
           {departmentName} 
         </h1> 
-        <h2 className="text-sm font-bold text-indigo-600 mt-1 flex flex-col md:flex-row md:items-center gap-1"> 
+        <h2 className="text-lg font-semibold italic text-blue-600 mt-0 font-['Century_Gothic'] flex flex-col md:flex-row md:items-center gap-1"> 
           {resolvedName} 
           {loading ? (
             <span className="text-[10px] text-gray-400 font-normal animate-pulse">(Syncing profile...)</span>
