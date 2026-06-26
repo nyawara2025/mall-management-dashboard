@@ -6,6 +6,8 @@ import {
   Download, Printer, Search, ArrowLeft
 } from 'lucide-react';
 
+import { SchoolBranding } from './SchoolBranding';
+
 import { useAuth } from '../contexts/AuthContext';
 
 import { TransportMapModal } from './TransportMapModal';
@@ -457,28 +459,8 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8 bg-gray-50/50 min-h-screen">
  
-      {/* --- Dynamic Multi-Tenant Branding Strip --- */}
-      {(schoolName || logoUrl) && (
-        <div className="flex items-center gap-3 bg-white p-4 px-6 rounded-2xl border border-gray-100 shadow-sm text-left animate-in fade-in duration-200">
-          {logoUrl && (
-            <img 
-              src={logoUrl} 
-              alt={`${schoolName || 'School'} Logo`} 
-              className="w-10 h-10 rounded-xl object-contain bg-gray-50 p-1 border border-gray-100"
-              onError={(e) => {
-                // Fail-safe hidden fallback if the n8n image URL breaks
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          )}
-          <div>
-            <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Active Tenant Campus</p>
-            <h2 className="text-lg font-black text-gray-800 tracking-tight mt-0.5">
-              {schoolName || "Loading profile..."}
-            </h2>
-          </div>
-        </div>
-      )}
+      {/* 🌟 Isolated Multi-Tenant Branding Engine */}
+      <SchoolBranding departmentName="Campus Operations Dashboard" />
 
       {/* --- Metrics Header Section --- */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
