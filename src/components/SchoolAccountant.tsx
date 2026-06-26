@@ -119,19 +119,26 @@ export const SchoolAccountant = ({
     handleSynchronizeFees();
   }, [shopId]);
 
+  // 🌟 Safe Array Check: Ensure it is a valid list array and add safe fallback values
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+
+  // Unified visual anchors metrics config with defensive boundaries
   const bursarStats = [
     { label: "Collected KES", value: `KES ${totalCollected.toLocaleString()}`, icon: CheckCircle, bg: "bg-emerald-50", color: "text-emerald-600" },
     { label: "Outstanding KES", value: `KES ${totalOutstanding.toLocaleString()}`, icon: AlertCircle, bg: "bg-rose-50", color: "text-rose-600" },
     { label: "Total Pipeline Target", value: `KES ${(totalCollected + totalOutstanding).toLocaleString()}`, icon: TrendingUp, bg: "bg-blue-50", color: "text-blue-600" },
     { 
       label: "Verified Clearances", 
-      value: transactions.length > 0 ? `${Math.round((transactions.filter(t => t.balance_due <= 0).length / transactions.length) * 100)}%` : "0%", 
+      value: safeTransactions.length > 0 
+        ? `${Math.round((safeTransactions.filter(t => Number(t?.balance_due || 0) <= 0).length / safeTransactions.length) * 100)}%` 
+        : "0%", 
       icon: Receipt, bg: "bg-purple-50", color: "text-purple-600" 
     }
   ];
 
   // Inline array filter calculation loops
-  const filteredTransactions = transactions.filter(item => {
+  const filteredTransactions = safeTransactions.filter(item => {
+    if (!item) return false;
     const matchesSearch = (item.student_name || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
                           (item.admission_no || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (item.reference_no || '').toLowerCase().includes(searchTerm.toLowerCase());
