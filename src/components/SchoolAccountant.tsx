@@ -19,7 +19,15 @@ interface FeeTransaction {
   date_logged: string;
 }
 
-export const SchoolAccountant = ({ shopId }: { shopId: number }) => {
+export const SchoolAccountant = ({ 
+  shopId,
+  user, 
+  onLogout 
+}: { 
+    shopId: number;
+    user?: any; 
+    onLogout?: () => void; 
+}) => {
   const [loading, setLoading] = useState(false);
   const [ledgerLoading, setLedgerLoading] = useState(false);
   

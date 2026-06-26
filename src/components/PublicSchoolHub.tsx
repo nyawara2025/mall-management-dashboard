@@ -26,6 +26,7 @@ import { DriverPortal } from './DriverPortal'; // 🚚 Import DriverPortal compo
 import { DirectorDashboard } from './DirectorDashboard';
 import { PrincipalDashboard } from './PrincipalDashboard';
 import { SecurityDashboard } from './SecurityDashboard';
+import { SchoolAccountant } from './SchoolAccountant';
 
 interface SchoolData {
   id?: string;
@@ -279,7 +280,7 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
           setIsAuthenticated(true); 
           setActivePortalView('driver-portal');
 
-        } else if (['director', 'principal', 'security'].includes(userData?.educational_role?.toLowerCase().trim())) {
+        } else if (['director', 'principal', 'security', 'accountant'].includes(userData?.educational_role?.toLowerCase().trim())) {
           // --- 🏢 ADMINISTRATIVE ROUTING INTERCEPTOR ---
           localStorage.setItem('admin_token', authResult.token);
           
@@ -516,6 +517,16 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
   if (currentUser?.educational_role === 'security') {
     return (
       <SecurityDashboard 
+        shopId={shopId} 
+        user={currentUser} 
+        onLogout={handleLogout} 
+      />
+    );
+  }
+
+  if (currentUser?.educational_role === 'accountant') {
+    return (
+      <SchoolAccountant 
         shopId={shopId} 
         user={currentUser} 
         onLogout={handleLogout} 
