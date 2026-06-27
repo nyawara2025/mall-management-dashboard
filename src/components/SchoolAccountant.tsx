@@ -30,8 +30,8 @@ export const SchoolAccountant = ({
   const [loading, setLoading] = useState(false);
   
   // Financial baseline aggregates initialized to matching view layout values
-  const [totalCollected, setTotalCollected] = useState<number>(42500); 
-  const [totalOutstanding, setTotalOutstanding] = useState<number>(12400); 
+  const [totalCollected, setTotalCollected] = useState<number>(0); 
+  const [totalOutstanding, setTotalOutstanding] = useState<number>(0); 
   const [transactions, setTransactions] = useState<FeeTransaction[]>([]);
   
   // Filtering & Modal UI state trackers
