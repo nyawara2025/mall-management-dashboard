@@ -239,8 +239,8 @@ export const SchoolAccountant = ({
 
             <div className="space-y-6">
               {(() => {
-                const totalSum = totalCollected + totalOutstanding;
-                const percentage = totalSum > 0 ? Math.round((totalCollected / totalSum) * 100) : 0;
+                const totalSum = liveTotalCollected + liveTotalOutstanding;
+                const percentage = totalSum > 0 ? Math.round((liveTotalCollected / totalSum) * 100) : 0;
                 return (
                   <div className="space-y-2">
                     <div className="flex justify-between items-center text-xs font-bold text-gray-500">
