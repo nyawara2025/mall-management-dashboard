@@ -98,9 +98,7 @@ export const SchoolAccountant = ({
         body: JSON.stringify({
           action: 'record_payment',
           shop_id: shopId,
-          student_name: payStudentName,
-          admission_no: payAdmissionNo,
-          class_id: payClassId,
+          student_id: selectedStudent?.student_id,
           amount_paid: Number(payAmount),
           payment_method: payMethod, // Sends "Cash", "Cheque", or whatever option is picked
           reference_no: payReference,
