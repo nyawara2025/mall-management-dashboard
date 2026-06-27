@@ -84,7 +84,7 @@ export const SchoolAccountant = ({
   };
 
         
-   // 📝 Manual Payment Submission handler
+  // 📝 Manual Payment Submission handler
   const handlePostManualPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -141,10 +141,13 @@ export const SchoolAccountant = ({
   const safeTransactions = Array.isArray(transactions) ? transactions : [];
 
   // 🧮 Compute Real-time metrics dynamically directly from the database row objects
-  const liveTotalCollected = safeTransactions.reduce((sum, item) => sum + Number(item?.amount_paid || 0), 0);
+  const liveTotalCollected = safeTransactions.reduce((sum, item) => {
+    const rawVal = item?.amount_paid ?? (item as any)?.amount ?? 0;
+    const cleanNum = isNaN(Number(rawVal)) ? 0 : Number(rawVal);
+    return sum + cleanNum;
+  }, 0);
   
-  // Placeholder outstanding balance calculation (e.g., Target Pipeline balance minus collected)
-  // For now, we will calculate your live numbers cleanly
+
   const liveTotalOutstanding = 12400; // Keep your current baseline placeholder or change to fit your rules
 
   // Unified visual anchors metrics config with live database values
