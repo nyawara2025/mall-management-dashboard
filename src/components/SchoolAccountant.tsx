@@ -461,6 +461,48 @@ export const SchoolAccountant = ({
 
               {/* ... Keep amount/channel/reference exactly the same here ... */}
         
+              
+              {/* 💰 RESTORED TRANSACTION INPUTS SECTION */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1 text-left">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Amount Paid (KES)</label>
+                  <input 
+                    type="number" 
+                    value={payAmount} 
+                    onChange={e => setPayAmount(e.target.value)} 
+                    placeholder="e.g. 5000"
+                    className="w-full text-sm font-medium p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500" 
+                    required 
+                  />
+                </div>
+                <div className="space-y-1 text-left">
+                  <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Payment Channel</label>
+                  <select 
+                    value={payMethod} 
+                    onChange={e => setPayMethod(e.target.value)} 
+                    className="w-full text-sm font-medium p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-gray-600"
+                  >
+                    <option value="M-Pesa">M-Pesa</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Cheque">Cheque</option>
+                    <option value="Bank Slip">Bank Slip</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-1 text-left">
+                <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">Reference / Slip Number</label>
+                <input 
+                  type="text" 
+                  value={payReference} 
+                  onChange={e => setPayReference(e.target.value)} 
+                  placeholder="e.g. QTX7XYZ99 or CHQ-0021"
+                  className="w-full text-sm font-medium p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500" 
+                  required 
+                />
+              </div>
+
+
               {/* 🎛️ Restructured Action Footer Bar featuring Submit & Cancel Triggers */}
               <div className="grid grid-cols-3 gap-4 pt-2">
                 <button 
