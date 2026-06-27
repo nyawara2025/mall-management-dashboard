@@ -255,7 +255,7 @@ export const SchoolAccountant = ({
             <div>
               <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)} className="text-xs font-bold px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none text-gray-600">
                 <option value="All">All Streams</option>
-                {Array.from(new Set(transactions.map(t => t.class_id))).filter(Boolean).map(c => (
+                {Array.from(new Set(safeTransactions.map(t => t?.class_id))).filter(Boolean).map(c => (
                   <option key={c} value={c}>Class {c}</option>
                 ))}
               </select>
