@@ -28,10 +28,10 @@ export const DirectorDashboard = ({ shopId, user, onLogout }: any) => {
       if (response.ok) {
         const data = await response.json();
         setMetrics({
-          totalCollections: data.total_collections !== undefined ? Number(data.total_collections) : 0,
-          outstandingFees: data.outstanding_fees !== undefined ? Number(data.outstanding_fees) : 0,
-          studentCount: data.student_count !== undefined ? Number(data.student_count) : 0,
-          activeStaff: data.staff_count !== undefined ? Number(data.staff_count) : 0,
+          totalCollections: Number(data.total_collections ?? 0),
+          outstandingFees: Number(data.outstanding_fees ?? 0),
+          studentCount: Number(data.student_count ?? 0),
+          activeStaff: Number(data.staff_count ?? 0),
           meetings: data.meetings || [],
           securityIncidents: data.security_logs || []
         });
