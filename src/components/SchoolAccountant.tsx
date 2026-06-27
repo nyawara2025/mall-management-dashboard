@@ -47,42 +47,49 @@ export const SchoolAccountant = ({
   const [payMethod, setPayMethod] = useState('M-Pesa');
   const [payReference, setPayReference] = useState('');
 
-  // 📡 Integrated Sync Engine: Fetches aggregated numbers AND individual transaction rows
-  const handleSynchronizeFees = async () => {
+  // 📊 Dedicated Fetch Engine: Automatically loads data from the fee_transactions table
+  const handleFetchSchoolLedger = async () => {
     setLoading(true);
     try {
-      const response = await fetch('https://n8n.tenear.com/webhook/synchronize-school-fees', {
-        method: 'POST',
+      const response = await fetch('https://n8n.tenear.com/webhook/fetch-school-ledger', {
+        method: 'POST', // Using POST to safely send the context payload
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shop_id: shopId }),
+        body: JSON.stringify({ 
+          action: 'fetch_ledger', 
+          shop_id: shopId 
+        }),
       });
+
       if (response.ok) {
         const data = await response.json();
-        
-        // Safely parse summary numeric metrics blocks
+      
+        // 1. Update summary statistics totals from your database payload
         if (data.total_collected !== undefined) setTotalCollected(Number(data.total_collected));
         if (data.total_outstanding !== undefined) setTotalOutstanding(Number(data.total_outstanding));
-        
-        // 🔗 Unified Hook Map: Pulls the transaction rows straight out of the operational data node
+      
+        // 2. Load rows into transactions state for automatic rendering and filtering
         if (data.transactions && Array.isArray(data.transactions)) {
           setTransactions(data.transactions);
         } else if (Array.isArray(data)) {
           setTransactions(data);
         }
+      } else {
+        console.error("Ledger webhook responded with an error status:", response.status);
       }
     } catch (error) {
-      console.error("Failed to sync structural ledger data from backend:", error);
+      console.error("Failed to automatically fetch school ledger:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  // 📝 Manual Payment Submission handler
+        
+   // 📝 Manual Payment Submission handler
   const handlePostManualPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await fetch('https://n8n.tenear.com/webhook/fetch-school-ledger', {
+      const response = await fetch('https://n8n.tenear.com/webhook/post-to-school-ledger', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -92,7 +99,7 @@ export const SchoolAccountant = ({
           admission_no: payAdmissionNo,
           class_id: payClassId,
           amount_paid: Number(payAmount),
-          payment_method: payMethod,
+          payment_method: payMethod, // Sends "Cash", "Cheque", or whatever option is picked
           reference_no: payReference,
           date_logged: new Date().toISOString()
         })
@@ -101,9 +108,16 @@ export const SchoolAccountant = ({
       if (response.ok) {
         alert("Receipt entry successfully recorded to system tables!");
         setIsModalOpen(false);
-        // Wipe local form values cleanly
-        setPayStudentName(''); setPayAdmissionNo(''); setPayClassId(''); setPayAmount(''); setPayReference('');
-        handleSynchronizeFees(); // Re-trigger tracking arrays update automatically
+        
+        // Wipe manual entry form fields clean
+        setPayStudentName(''); 
+        setPayAdmissionNo(''); 
+        setPayClassId(''); 
+        setPayAmount(''); 
+        setPayReference('');
+        
+        // 🔄 Instantly re-fetch the ledger so the Accountant sees the new record immediately
+        handleFetchSchoolLedger(); 
       } else {
         alert("Transaction upload rejected by data engine layers.");
       }
@@ -114,10 +128,14 @@ export const SchoolAccountant = ({
     }
   };
 
-  // Automatically trigger sync lifecycle whenever the component layout mounts
+  // 🔄 Automatically trigger ledger load immediately when the Accountant dashboard mounts
   useEffect(() => {
-    handleSynchronizeFees();
+    if (shopId) {
+      handleFetchSchoolLedger();
+    }
   }, [shopId]);
+
+
 
   // 🌟 Safe Array Check: Ensure it is a valid list array and add safe fallback values
   const safeTransactions = Array.isArray(transactions) ? transactions : [];
@@ -213,7 +231,7 @@ export const SchoolAccountant = ({
               <button 
                 type="button"
                 disabled={loading}
-                onClick={handleSynchronizeFees}
+                onClick={handleFetchSchoolLedger}
                 className="w-full border-2 border-indigo-600 text-indigo-600 py-3 rounded-xl font-bold hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 disabled:opacity-40 text-sm cursor-pointer mb-2"
               >
                 <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
