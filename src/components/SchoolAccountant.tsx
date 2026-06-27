@@ -135,20 +135,30 @@ export const SchoolAccountant = ({
   useEffect(() => {
     if (shopId) {
       handleFetchSchoolLedger();
-      
-      // 2. Fetch active student directory profiles for the modal dropdown safeguards
-      fetch('https://n8n.tenear.com/webhook/fetch-active-students', {
+    }
+  }, [shopId]);  
+
+
+  // 👥 Dynamic Student Profile Sync: Pulls live student names and metadata keys
+  const handleLoadActiveStudentDirectory = async () => {
+    if (!shopId) return;
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/fetch-active-students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shop_id: shopId })
-      })
-      .then(res => res.json())
-      .then(data => {
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
         setStudentDirectory(Array.isArray(data) ? data : data.students || []);
-      })
-      .catch(err => console.error("Error loading secure student profiles:", err));
+      } else {
+        console.error("Student directory webhook responded with status:", response.status);
+      }
+    } catch (err) {
+      console.error("Failed to load secure student profiles directory:", err);
     }
-  }, [shopId]);
+  };
 
 
 
@@ -286,7 +296,10 @@ export const SchoolAccountant = ({
 
           {/* ➕ Manual Payment Entry Trigger Button Block */}
           <div 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setIsModalOpen(true);
+              handleLoadActiveStudentDirectory(); // ⚡ FORCES WEBHOOK TRIGGER ON CLICK
+            }}
             className="p-6 bg-indigo-600 text-white rounded-3xl shadow-xl hover:bg-indigo-700 transition-all cursor-pointer text-left flex items-center gap-4 group"
           >
             <div className="p-3 bg-white/10 rounded-2xl group-hover:scale-105 transition-transform">
