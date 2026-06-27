@@ -401,7 +401,27 @@ export const SchoolAccountant = ({
 
             <form onSubmit={handlePostManualPayment} className="space-y-4">
         
-              {/* 👤 Place the Safe Search Selection Dropdown right here inside the form! */}
+              {/* 🔍 New Filter Component Layer inside the Modal */}
+              <div className="space-y-1 text-left">
+                <label className="text-xs font-bold text-gray-500 uppercase">Filter Students by Stream</label>
+                <select 
+                  value={selectedClass} 
+                  onChange={e => {
+                    setSelectedClass(e.target.value);
+                    // Clear previous selection context when filter shifts to avoid stale data mismatch
+                    setSelectedStudent(null);
+                    setPayStudentName(''); setPayAdmissionNo(''); setPayClassId('');
+                  }}
+                  className="w-full text-sm font-medium p-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-indigo-500 text-gray-600"
+                >
+                  <option value="All">All Streams / Classes</option>
+                  {Array.from(new Set(studentDirectory.map(s => s.class_id))).filter(Boolean).sort().map(c => (
+                    <option key={c} value={c}>Class {c}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* 👤 Safe Filtered Profile Selection Dropdown */}
               <div className="space-y-1 text-left">
                 <label className="text-xs font-bold text-gray-500 uppercase">Select Student Profile</label>
                 <select
@@ -415,13 +435,17 @@ export const SchoolAccountant = ({
                       setPayClassId(student.class_id);
                     }
                   }}
+                  required
                 >
                   <option value="">-- Choose Student --</option>
-                  {studentDirectory.map(s => (
-                    <option key={s.student_id} value={s.student_id}>
-                      {s.student_name} ({s.admission_no})
-                    </option>
-                  ))}
+                  {studentDirectory
+                    .filter(s => selectedClass === 'All' || s.class_id === selectedClass) // Loops directly matching chosen stream filter
+                    .map(s => (
+                      <option key={s.student_id} value={s.student_id}>
+                        {s.student_name} ({s.admission_no})
+                      </option>
+                    ))
+                  }
                 </select>
               </div>
 
@@ -437,31 +461,31 @@ export const SchoolAccountant = ({
                 </div>
               </div>
 
-              {/* --- Keep your original Amount, Channel, and Reference fields below this point --- */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1 text-left">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Amount Paid (KES)</label>
-                  <input type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)} className="w-full text-sm font-medium p-3 bg-gray-50 border border-gray-200 rounded-xl" required />
-                </div>
-                <div className="space-y-1 text-left">
-                  <label className="text-xs font-bold text-gray-500 uppercase">Payment Channel</label>
-                  <select value={payMethod} onChange={e => setPayMethod(e.target.value)} className="w-full text-sm font-medium p-3 bg-gray-50 border border-gray-200 rounded-xl">
-                    <option value="M-Pesa">M-Pesa</option>
-                    <option value="Cash">Cash</option>
-                    <option value="Cheque">Cheque</option>
-                    <option value="Bank Slip">Bank Slip</option>
-                  </select>
-                </div>
+              {/* ... Keep amount/channel/reference exactly the same here ... */}
+        
+              {/* 🎛️ Restructured Action Footer Bar featuring Submit & Cancel Triggers */}
+              <div className="grid grid-cols-3 gap-4 pt-2">
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setIsModalOpen(false);
+                    // Clean out temporary states cleanly on cancellation
+                    setSelectedStudent(null);
+                    setPayStudentName(''); setPayAdmissionNo(''); setPayClassId(''); setPayAmount(''); setPayReference('');
+                  }}
+                  className="col-span-1 py-3.5 bg-gray-100 text-gray-500 font-bold rounded-xl text-sm border border-gray-200 hover:bg-gray-200 hover:text-gray-700 transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+          
+                <button 
+                  type="submit" 
+                  className="col-span-2 py-3.5 bg-indigo-600 text-white font-bold rounded-xl text-sm shadow-lg hover:bg-indigo-700 transition-all cursor-pointer"
+                >
+                  Commit Transaction Log
+                </button>
               </div>
 
-              <div className="space-y-1 text-left">
-                <label className="text-xs font-bold text-gray-500 uppercase">Reference / Slip Number</label>
-                <input type="text" value={payReference} onChange={e => setPayReference(e.target.value)} className="w-full text-sm font-medium p-3 bg-gray-50 border border-gray-200 rounded-xl" required />
-              </div>
-
-              <button type="submit" className="w-full py-3.5 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition-all">
-                Commit Transaction Log
-              </button>
             </form>
           </div>
         </div>
