@@ -140,30 +140,11 @@ export const SchoolAccountant = ({
   // 🌟 Safe Array Check: Ensure it is a valid list array and add safe fallback values
   const safeTransactions = Array.isArray(transactions) ? transactions : [];
 
-  // 🧮 Compute Real-time metrics dynamically directly from the database row objects
-  const liveTotalCollected = safeTransactions.reduce((sum, item) => sum + Number(item?.amount_paid || 0), 0);
-  
-  // Placeholder outstanding balance calculation (e.g., Target Pipeline balance minus collected)
-  // For now, we will calculate your live numbers cleanly
-  const liveTotalOutstanding = 12400; // Keep your current baseline placeholder or change to fit your rules
-
-  // Unified visual anchors metrics config with live database values
+  // Unified visual anchors metrics config with defensive boundaries
   const bursarStats = [
-    { 
-      label: "Collected KES", 
-      value: `KES ${liveTotalCollected.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-      icon: CheckCircle, bg: "bg-emerald-50", color: "text-emerald-600" 
-    },
-    { 
-      label: "Outstanding KES", 
-      value: `KES ${liveTotalOutstanding.toLocaleString()}`, 
-      icon: AlertCircle, bg: "bg-rose-50", color: "text-rose-600" 
-    },
-    { 
-      label: "Total Pipeline Target", 
-      value: `KES ${(liveTotalCollected + liveTotalOutstanding).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 
-      icon: TrendingUp, bg: "bg-blue-50", color: "text-blue-600" 
-    },
+    { label: "Collected KES", value: `KES ${totalCollected.toLocaleString()}`, icon: CheckCircle, bg: "bg-emerald-50", color: "text-emerald-600" },
+    { label: "Outstanding KES", value: `KES ${totalOutstanding.toLocaleString()}`, icon: AlertCircle, bg: "bg-rose-50", color: "text-rose-600" },
+    { label: "Total Pipeline Target", value: `KES ${(totalCollected + totalOutstanding).toLocaleString()}`, icon: TrendingUp, bg: "bg-blue-50", color: "text-blue-600" },
     { 
       label: "Verified Clearances", 
       value: safeTransactions.length > 0 
