@@ -255,9 +255,6 @@ const CreateAppointmentForm = ({ userData }: { userData: any }) => {
   );
 }; 
 
-
-
-
 const AppointmentsHistory = ({ userData }: any) => (
   <div className="text-center py-10 text-gray-500">
     <History size={48} className="mx-auto mb-4 opacity-20" />
@@ -265,14 +262,139 @@ const AppointmentsHistory = ({ userData }: any) => (
   </div>
 );
 
-const DepartmentalCalendar = ({ userData }: any) => (
-  <div className="space-y-4">
-    <div className="p-4 bg-green-50 border border-green-100 rounded-2xl">
-      <p className="text-sm text-green-700 font-medium">Leadership Access: {userData?.ministry_name || 'Ministry Head'}</p>
+const DepartmentalCalendar = ({ userData }: { userData: any }) => {
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchGroupEvents = async () => {
+      if (!userData?.shop_id) {
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        // 1. Tokenize the comma-separated string of ministries into a clean array
+        const userMinistries = userData.ministry_name
+          ? userData.ministry_name.split(',').map((m: string) => m.trim().toLowerCase())
+          : [];
+
+        // 2. Fetch all events for this specific tenant (shop_id)
+        const { data, error } = await supabase
+          .from('church_diary')
+          .select('*')
+          .eq('shop_id', userData.shop_id)
+          .order('event_date', { ascending: true });
+
+        if (error) throw error;
+
+        // 3. Client-side security filtering based on user group boundaries
+        const filteredEvents = (data || []).filter((event: any) => {
+          const eventCategory = event.category?.toLowerCase();
+          const targetGroup = event.target_group?.toLowerCase();
+
+          // Rule A: If it's a general departmental event, everyone sees it
+          if (eventCategory === 'department') return true;
+
+          // Rule B: If it's a zone event, check if it matches the user's exact zone name
+          if (eventCategory === 'zone' && userData.zone_name) {
+            return targetGroup === userData.zone_name.toLowerCase();
+          }
+
+          // Rule C: If it's a ministry event, check if the group exists in their membership array
+          if (eventCategory === 'ministry') {
+            return userMinistries.includes(targetGroup);
+          }
+
+          return false; // Safely hide personal or unmatched rows
+        });
+
+        setEvents(filteredEvents);
+      } catch (err) {
+        console.error("Error loading group calendar feeds:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGroupEvents();
+  }, [userData]);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12 text-blue-600 font-bold text-xs gap-2">
+        <span className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></span>
+        Loading Shared Calendars...
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 text-left animate-in fade-in duration-200">
+      {/* Leadership Context Summary Info Bar */}
+      <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl text-xs font-semibold text-emerald-800">
+        📌 Displaying shared schedules for: <span className="font-black text-emerald-950">{userData?.zone_name || 'No Zone'}</span> and ministries: <span className="font-black text-emerald-950">{userData?.ministry_name || 'None'}</span>
+      </div>
+
+      {events.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 rounded-3xl border border-dashed border-gray-200">
+          <p className="text-sm font-bold text-gray-400 italic">No shared meetings or events scheduled right now.</p>
+        </div>
+      ) : (
+        <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
+          {events.map((event) => {
+            // Determine badge aesthetic coloring dynamically based on scoping
+            const isZone = event.category?.toLowerCase() === 'zone';
+            const isDept = event.category?.toLowerCase() === 'department';
+            
+            return (
+              <div 
+                key={event.id} 
+                className="bg-white p-5 rounded-2xl border border-gray-100 shadow-2xs hover:border-gray-200 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+              >
+                <div className="space-y-1.5 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* Category Scoping Badge */}
+                    <span className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border ${
+                      isZone 
+                        ? 'bg-orange-50 text-orange-600 border-orange-100' 
+                        : isDept 
+                          ? 'bg-purple-50 text-purple-600 border-purple-100' 
+                          : 'bg-blue-50 text-blue-600 border-blue-100'
+                    }`}>
+                      {event.category} {event.target_group ? `• ${event.target_group}` : ''}
+                    </span>
+                    
+                    {event.location && (
+                      <span className="text-[10px] font-bold text-gray-400 bg-gray-50 px-2 py-0.5 border rounded-md">
+                        📍 {event.location}
+                      </span>
+                    )}
+                  </div>
+
+                  <h4 className="font-bold text-sm text-gray-800 leading-tight">{event.title}</h4>
+                  {event.description && (
+                    <p className="text-xs font-medium text-gray-500 whitespace-pre-line max-w-xl">{event.description}</p>
+                  )}
+                </div>
+
+                {/* Calendar Schedule Timing Block */}
+                <div className="bg-gray-50/50 p-3 rounded-xl border border-gray-100 min-w-[110px] text-center flex flex-col justify-center">
+                  <span className="text-xs font-black text-gray-700">
+                    {new Date(event.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
+                  {event.event_time && (
+                    <span className="text-[10px] font-bold text-gray-400 mt-0.5">
+                      ⏰ {event.event_time.substring(0, 5)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
-    <div className="p-4 border border-dashed border-gray-200 rounded-2xl flex flex-col items-center gap-3">
-      <Share2 className="text-blue-500" />
-      <p className="text-sm text-gray-500">Departmental Calendar view coming soon.</p>
-    </div>
-  </div>
-);
+  );
+};
