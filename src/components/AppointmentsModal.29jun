@@ -72,18 +72,14 @@ const TabButton = ({ active, onClick, icon, label }: any) => (
 
 const CreateAppointmentForm = ({ userData }: { userData: any }) => {
   const [loading, setLoading] = useState(false);
-  
-  // 1. SMART DEFAULTS FIX: Fallback to first ministry or 'Individual' if none exists
-  const firstMinistry = userData?.ministry_name ? userData.ministry_name.split(',')[0].trim() : 'Individual';
-
   const [formData, setFormData] = useState({
     title: '',
     particulars: '',
     location: '',
     date: '',
     time: '',
-    category: userData?.ministry_name ? 'Ministry' : 'Personal', // Dynamic fallback
-    target_group: userData?.ministry_name ? firstMinistry : 'Individual'
+    category: 'Ministry', // Default
+    target_group: ''      // e.g., 'KAMA', 'Media', 'Zone A'
   });
 
   // Check if user is a leader
@@ -105,10 +101,19 @@ const CreateAppointmentForm = ({ userData }: { userData: any }) => {
           member_id: userData.id,
           org_id: userData.org_id,
           shop_id: userData.shop_id,
+
+          // DYNAMIC RELATIONSHIP IDENTIFIERS LINKED FROM LOGGED-IN SESSION PROFILE
+          // This safely extracts the row ID from your database table schema mappings
           ministry_id: formData.category === 'Ministry' ? (userData.ministry_id || userData.department_id) : null,
           zone_id: formData.category === 'Zone' ? userData.zone_id : null,
+          
+          // Attaches the explicit name string fields to help n8n parse logs or templates easily
           department: formData.category === 'Ministry' ? userData.ministry_name : 'General',
           zone_name: formData.category === 'Zone' ? userData.zone_name : null,
+
+          // Preserves your original scope assignment parameter logic rule
+
+          // If personal, target is the user. If group, target is the specific ministry
           final_scope: formData.category === 'Personal' ? 'Individual' : formData.category
         }),
       });
@@ -119,6 +124,7 @@ const CreateAppointmentForm = ({ userData }: { userData: any }) => {
       } else {
         throw new Error('Server integration error');
       }
+
     } catch (error) {
       console.error(error);
       alert("Failed to submit event details. Please verify your connection.");
@@ -127,37 +133,36 @@ const CreateAppointmentForm = ({ userData }: { userData: any }) => {
     }
   };
 
-  // 2. THE RENDER FIX: Injecting the new select state value structure and inputs
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 text-left">
+    <div className="space-y-4">
       <h3 className="font-semibold text-gray-800">New Engagement</h3>
       
       {/* Dynamic Dropdown for Leaders */}
       {isLeader && (
         <div className="animate-in fade-in slide-in-from-top-2">
           <label className="text-xs font-bold text-blue-600 ml-2 mb-1 block uppercase tracking-wider">
-            Posting Scope & Target
+            Posting as
           </label>
           <select 
-            // TRACKING FIX: Assembles a compound value string to perfectly match option formats
-            value={`${formData.category}|${formData.target_group}`}
+            value={formData.category}
             onChange={(e) => {
-              const [selectedCategory, selectedTargetGroup] = e.target.value.split('|');
+              const [selectedCategory, selectedLocationName] = e.target.value.split('|');
               setFormData({
                 ...formData,
                 category: selectedCategory,
-                target_group: selectedTargetGroup 
+                // Automatically pre-populates target name destination fields
+                target_group: selectedLocationName 
               });
             }}
-            className="w-full p-4 bg-blue-50 border border-blue-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium text-gray-800 cursor-pointer"
+            className="w-full p-4 bg-blue-50 border border-blue-100 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none font-medium"
           >
-            <option value="Personal|Individual">🔒 Personal Appointment (Just Me)</option>
-            <option value="Department|General">⛪ Departmental Activity (General)</option>
+            <option value="Personal|Individual">Personal Appointment</option>
+            <option value="Department|General">Departmental Activity</option>
             
             {/* Dynamic Zone Group Selection Option */}
             {userData?.zone_name && (
               <option value={`Zone|${userData.zone_name}`}>
-                👥 Meeting: {userData.zone_name} Zone
+                Meeting: {userData.zone_name} Zone
               </option>
             )}
 
@@ -166,7 +171,7 @@ const CreateAppointmentForm = ({ userData }: { userData: any }) => {
               const cleanMinistryName = ministryName.trim();
               return (
                 <option key={idx} value={`Ministry|${cleanMinistryName}`}>
-                  🎺 Event: {cleanMinistryName} Ministry
+                  Event: {cleanMinistryName} Ministry
                 </option>
               );
             })}
@@ -174,89 +179,59 @@ const CreateAppointmentForm = ({ userData }: { userData: any }) => {
         </div>
       )}
 
-      {/* Title Input Field */}
-      <div className="space-y-1">
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider pl-1">
-          Event Title *
-        </label>
-        <input 
-          type="text" 
-          placeholder="e.g., Committee Planning Session" 
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium text-gray-700"
-          required
-        />
-      </div>
+      <input 
+        type="text" 
+        placeholder="Event Title" 
+        value={formData.title}
+        onChange={(e) => setFormData({...formData, title: e.target.value})}
+        className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none" 
+      />
+
+      {/* 🛑 INSERT THIS NEW BLOCK RIGHT HERE 🛑 */}
+      <textarea 
+        placeholder="Event Particulars / More Details (e.g., special requirements, catering details, agenda notes)" 
+        value={formData.particulars}
+        onChange={(e) => setFormData({...formData, particulars: e.target.value})}
+        rows={3}
+        className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium text-gray-800 placeholder-gray-400 resize-none" 
+      />
+
+      {/* Event Location Input Field */}
+      <input 
+        type="text" 
+        placeholder="Venue / Location (e.g., Main Hall, Zoom link)" 
+        value={formData.location}
+        onChange={(e) => setFormData({...formData, location: e.target.value})}
+        className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none" 
+      />
 
       {/* Date & Time Grid */}
+
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider pl-1">
-            Date *
-          </label>
-          <input 
-            type="date" 
-            value={formData.date}
-            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium text-gray-700"
-            required
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider pl-1">
-            Start Time
-          </label>
-          <input 
-            type="time" 
-            value={formData.time}
-            onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-            className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium text-gray-700"
-          />
-        </div>
-      </div>
-
-      {/* Venue Location Field */}
-      <div className="space-y-1">
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider pl-1">
-          Venue / Location
-        </label>
         <input 
-          type="text" 
-          placeholder="e.g., Main Sanctuary or Zoom" 
-          value={formData.location}
-          onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-          className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium text-gray-700"
+          type="date" 
+          value={formData.date}
+          onChange={(e) => setFormData({...formData, date: e.target.value})}
+          className="p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none" 
+        />
+        <input 
+          type="time" 
+          value={formData.time}
+          onChange={(e) => setFormData({...formData, time: e.target.value})}
+          className="p-4 bg-gray-50 rounded-2xl border border-gray-100 outline-none" 
         />
       </div>
 
-      {/* Particulars Textarea Description */}
-      <div className="space-y-1">
-        <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider pl-1">
-          Particulars / Descriptions
-        </label>
-        <textarea 
-          placeholder="Provide additional details or guidelines for attendees..." 
-          value={formData.particulars}
-          onChange={(e) => setFormData({ ...formData, particulars: e.target.value })}
-          className="w-full p-4 bg-gray-50 rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none font-medium text-gray-700 h-28 resize-none"
-        />
-      </div>
-
-      {/* Form Submission Button */}
-      <button
-        type="submit"
+      <button 
+        onClick={handleSubmit}
         disabled={loading}
-        className="w-full mt-2 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-wider shadow-lg shadow-blue-100 transition-all hover:bg-blue-700 active:scale-98 disabled:opacity-50 flex items-center justify-center"
+        className="w-full bg-blue-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all disabled:opacity-50"
       >
-        {loading ? "Publishing to Calendar..." : "🗓️ Publish Engagement"}
+        {loading ? 'Processing...' : 'Confirm Appointment'}
       </button>
-    </form>
+    </div>
   );
-}; 
-
-
-
+};
 
 const AppointmentsHistory = ({ userData }: any) => (
   <div className="text-center py-10 text-gray-500">
