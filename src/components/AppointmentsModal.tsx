@@ -267,7 +267,7 @@ const DepartmentalCalendar = ({ userData }: { userData: any }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchGroupEvents = async () => {
+    const fetchGroupEventsFromWebhook = async () => {
       if (!userData?.shop_id) {
         setLoading(false);
         return;
@@ -275,60 +275,70 @@ const DepartmentalCalendar = ({ userData }: { userData: any }) => {
 
       setLoading(true);
       try {
-        // 1. Tokenize the comma-separated string of ministries into a clean array
+        // 1. Dispatch a clean POST request directly to your n8n API engine gateway
+        const response = await fetch('https://n8n.tenear.com/webhook/fetch-group-diary', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            shop_id: Number(userData.shop_id),
+            user_id: Number(userData.id),
+            zone_name: userData.zone_name,
+            ministry_name: userData.ministry_name // Passes: "KAMA, Praise & Worship, Children"
+          }),
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch group calendars');
+        const rawData = await response.json();
+        
+        // Ensure we are working with an array payload ledger
+        const allEvents = Array.isArray(rawData) ? rawData : (rawData.events || []);
+
+        // 2. Tokenize the comma-separated string of ministries for strict boundary evaluation
         const userMinistries = userData.ministry_name
           ? userData.ministry_name.split(',').map((m: string) => m.trim().toLowerCase())
           : [];
 
-        // 2. Fetch all events for this specific tenant (shop_id)
-        const { data, error } = await supabase
-          .from('church_diary')
-          .select('*')
-          .eq('shop_id', userData.shop_id)
-          .order('event_date', { ascending: true });
-
-        if (error) throw error;
-
-        // 3. Client-side security filtering based on user group boundaries
-        const filteredEvents = (data || []).filter((event: any) => {
+        // 3. Client-side matching to isolate relevant feeds cleanly
+        const filteredEvents = allEvents.filter((event: any) => {
           const eventCategory = event.category?.toLowerCase();
           const targetGroup = event.target_group?.toLowerCase();
 
-          // Rule A: If it's a general departmental event, everyone sees it
-          if (eventCategory === 'department') return true;
+          // Rule A: General departmental events are visible to everyone
+          if (eventCategory === 'department' || eventCategory === 'general') return true;
 
-          // Rule B: If it's a zone event, check if it matches the user's exact zone name
+          // Rule B: Match the target group with the member's exact zone name
           if (eventCategory === 'zone' && userData.zone_name) {
             return targetGroup === userData.zone_name.toLowerCase();
           }
 
-          // Rule C: If it's a ministry event, check if the group exists in their membership array
+          // Rule C: Check if the target group exists in their ministry list
           if (eventCategory === 'ministry') {
             return userMinistries.includes(targetGroup);
           }
 
-          return false; // Safely hide personal or unmatched rows
+          return false; // Safely omit non-matching entries
         });
 
         setEvents(filteredEvents);
       } catch (err) {
-        console.error("Error loading group calendar feeds:", err);
+        console.error("Error loading group calendar via n8n POST webhook:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchGroupEvents();
+    fetchGroupEventsFromWebhook();
   }, [userData]);
 
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12 text-blue-600 font-bold text-xs gap-2">
         <span className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></span>
-        Loading Shared Calendars...
+        Syncing Shared Calendars...
       </div>
     );
   }
+
 
   return (
     <div className="space-y-4 text-left animate-in fade-in duration-200">
