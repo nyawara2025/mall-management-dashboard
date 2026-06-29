@@ -275,51 +275,24 @@ const DepartmentalCalendar = ({ userData }: { userData: any }) => {
 
       setLoading(true);
       try {
-        // 1. Dispatch a clean POST request directly to your n8n API engine gateway
-        const response = await fetch('https://n8n.tenear.com/webhook/fetch-group-diary', {
+        const response = await fetch('https://tenear.com', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             shop_id: Number(userData.shop_id),
             user_id: Number(userData.id),
             zone_name: userData.zone_name,
-            ministry_name: userData.ministry_name // Passes: "KAMA, Praise & Worship, Children"
+            ministry_name: userData.ministry_name
           }),
         });
 
         if (!response.ok) throw new Error('Failed to fetch group calendars');
         const rawData = await response.json();
         
-        // Ensure we are working with an array payload ledger
+        // 1. TRUST THE SERVER: Map the incoming array data directly without over-filtering it!
         const allEvents = Array.isArray(rawData) ? rawData : (rawData.events || []);
+        setEvents(allEvents);
 
-        // 2. Tokenize the comma-separated string of ministries for strict boundary evaluation
-        const userMinistries = userData.ministry_name
-          ? userData.ministry_name.split(',').map((m: string) => m.trim().toLowerCase())
-          : [];
-
-        // 3. Client-side matching to isolate relevant feeds cleanly
-        const filteredEvents = allEvents.filter((event: any) => {
-          const eventCategory = event.category?.toLowerCase();
-          const targetGroup = event.target_group?.toLowerCase();
-
-          // Rule A: General departmental events are visible to everyone
-          if (eventCategory === 'department' || eventCategory === 'general') return true;
-
-          // Rule B: Match the target group with the member's exact zone name
-          if (eventCategory === 'zone' && userData.zone_name) {
-            return targetGroup === userData.zone_name.toLowerCase();
-          }
-
-          // Rule C: Check if the target group exists in their ministry list
-          if (eventCategory === 'ministry') {
-            return userMinistries.includes(targetGroup);
-          }
-
-          return false; // Safely omit non-matching entries
-        });
-
-        setEvents(filteredEvents);
       } catch (err) {
         console.error("Error loading group calendar via n8n POST webhook:", err);
       } finally {
@@ -339,10 +312,8 @@ const DepartmentalCalendar = ({ userData }: { userData: any }) => {
     );
   }
 
-
   return (
     <div className="space-y-4 text-left animate-in fade-in duration-200">
-      {/* Leadership Context Summary Info Bar */}
       <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl text-xs font-semibold text-emerald-800">
         📌 Displaying shared schedules for: <span className="font-black text-emerald-950">{userData?.zone_name || 'No Zone'}</span> and ministries: <span className="font-black text-emerald-950">{userData?.ministry_name || 'None'}</span>
       </div>
@@ -354,7 +325,6 @@ const DepartmentalCalendar = ({ userData }: { userData: any }) => {
       ) : (
         <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
           {events.map((event) => {
-            // Determine badge aesthetic coloring dynamically based on scoping
             const isZone = event.category?.toLowerCase() === 'zone';
             const isDept = event.category?.toLowerCase() === 'department';
             
@@ -365,7 +335,6 @@ const DepartmentalCalendar = ({ userData }: { userData: any }) => {
               >
                 <div className="space-y-1.5 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    {/* Category Scoping Badge */}
                     <span className={`text-[9px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-md border ${
                       isZone 
                         ? 'bg-orange-50 text-orange-600 border-orange-100' 
@@ -389,16 +358,10 @@ const DepartmentalCalendar = ({ userData }: { userData: any }) => {
                   )}
                 </div>
 
-                {/* Calendar Schedule Timing Block */}
                 <div className="bg-gray-50/50 p-3 rounded-xl border border-gray-100 min-w-[110px] text-center flex flex-col justify-center">
                   <span className="text-xs font-black text-gray-700">
-                    {new Date(event.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                    {event.event_date ? new Date(event.event_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'No Date'}
                   </span>
-                  {event.event_time && (
-                    <span className="text-[10px] font-bold text-gray-400 mt-0.5">
-                      ⏰ {event.event_time.substring(0, 5)}
-                    </span>
-                  )}
                 </div>
               </div>
             );
