@@ -7,6 +7,10 @@ import {
 export const PrincipalDashboard = ({ shopId, user, onLogout }: any) => {
   // 1. EXTENDED TAB STATES: Added 'reports' view tracker
   const [activeTab, setActiveTab] = useState<'overview' | 'faculty' | 'curriculum' | 'reports'>('overview');
+
+  // 1. FIX: Ensure this hook line is present right here!
+  const [loading, setLoading] = useState(false);
+
   const [data, setData] = useState<any>({
     attendanceRate: '0%',
     activeClasses: 0,
@@ -16,9 +20,9 @@ export const PrincipalDashboard = ({ shopId, user, onLogout }: any) => {
     // Dynamic Storage Buckets for activated modules
     facultyList: [],
     curriculumList: [],
-    performanceReports: []
+    performanceReports: [],
+    studentGrades: []
   });
-  const [loading, setLoading] = useState(false);
 
   const fetchPrincipalAnalytics = async () => {
     setLoading(true);
@@ -34,27 +38,14 @@ export const PrincipalDashboard = ({ shopId, user, onLogout }: any) => {
           attendanceRate: resData.attendance_rate || '94.2%',
           activeClasses: resData.classes_count || 12,
           facultyCount: resData.faculty_count || 18,
-          lessonLogs: resData.lessons || [
-            { id: 1, teacher: 'Mrs. Caroline', subject: 'Mathematics', class: 'Grade 4 East', status: 'Completed' },
-            { id: 2, teacher: 'Mr. Omondi', subject: 'Science', class: 'Grade 5 West', status: 'In Progress' }
-          ],
-          timetableAlerts: resData.alerts || [],
-          
-          // Fallback Hydration for activated layout streams
-          facultyList: resData.faculty || [
-            { id: 101, name: 'Mr. John Omondi', role: 'Head of Science', status: 'Active', load: '24 Periods/Wk' },
-            { id: 102, name: 'Mrs. Caroline Mutua', role: 'Mathematics Lead', status: 'Active', load: '22 Periods/Wk' },
-            { id: 103, name: 'Ms. Jane Aden', role: 'Languages Instructor', status: 'On Leave', load: '0 Periods/Wk' }
-          ],
-          curriculumList: resData.curriculums || [
-            { id: 201, grade: 'Grade 4 CBC', track: 'Primary School', status: 'Approved', compliance: '100%' },
-            { id: 202, grade: 'Grade 5 CBC', track: 'Primary School', status: 'Pending Review', compliance: '85%' },
-            { id: 203, grade: 'Grade 6 CBC', track: 'Junior Secondary', status: 'Approved', compliance: '95%' }
-          ],
-          performanceReports: resData.reports || [
-            { id: 301, teacher: 'Mr. John Omondi', target_class: 'Grade 5 West', criteria: 'Term 1 Review', score: 'A-', date: '2026-06-25' },
-            { id: 302, teacher: 'Mrs. Caroline Mutua', target_class: 'Grade 4 East', criteria: 'Academic Peer Evaluation', score: 'A+', date: '2026-06-28' }
-          ]
+          lessonLogs: resData.lessons || [],
+          facultyList: resData.faculty || [],
+          curriculumList: resData.curriculums || [],
+          performanceReports: resData.reports || [],
+  
+          // HYDRATE STUDENT RECORDS DIRECTLY FROM N8N POST PAYLOAD
+          studentGrades: resData.student_grades || []
+
         });
       }
     } catch (e) {
@@ -203,50 +194,97 @@ export const PrincipalDashboard = ({ shopId, user, onLogout }: any) => {
           </div>
         )}
 
-        {/* TAB SUB-VIEW D: NEW PERFORMANCE REPORTS PORTAL REVIEW CARD */}
+        {/* TAB SUB-VIEW D: PERFORMANCE REPORTS (TEACHER & STUDENT LEDGERS) */}
         {activeTab === 'reports' && (
-          <div className="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-4 text-left animate-in fade-in duration-150">
-            <div className="flex justify-between items-center border-b pb-3">
-              <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-2"><ScrollText size={14}/> Teacher Performance Assessment Forms</h3>
-              <span className="bg-indigo-50 text-indigo-600 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-indigo-100">
-                Pending Approval Records ({data.performanceReports.length})
-              </span>
-            </div>
+          <div className="space-y-8 text-left animate-in fade-in duration-150">
             
-            <div className="grid grid-cols-1 gap-3">
-              {data.performanceReports.map((report: any) => (
-                <div key={report.id} className="p-5 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-3xs hover:border-indigo-200 transition-colors">
-                  <div className="space-y-1">
-                    <p className="font-black text-slate-800 text-sm">{report.teacher}</p>
-                    <div className="flex items-center gap-2 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                      <span>Stream: <b className="text-slate-600">{report.target_class}</b></span>
-                      <span>•</span>
-                      <span>Target Scope: <b className="text-slate-600">{report.criteria}</b></span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between sm:justify-end gap-6 border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-200/60">
-                    <div className="text-left sm:text-right">
-                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Dated Review</p>
-                      <p className="text-xs font-bold text-slate-600 mt-0.5">{report.date}</p>
-                    </div>
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-11 h-11 bg-indigo-600 rounded-xl flex items-center justify-center text-white font-black italic text-sm shadow-md shadow-indigo-100">
-                        {report.score}
+            {/* SECTION 1: TEACHER ASSESSMENTS */}
+            <div className="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-4">
+              <div className="flex justify-between items-center border-b pb-3">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider flex items-center gap-2"><ScrollText size={14}/> Teacher Performance Assessment Forms</h3>
+                <span className="bg-indigo-50 text-indigo-600 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-indigo-100">
+                  Staff Reviews ({data.performanceReports.length})
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-1 gap-3">
+                {data.performanceReports.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic py-4 text-center">No teacher evaluation logs available.</p>
+                ) : (
+                  data.performanceReports.map((report: any) => (
+                    <div key={report.id} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="space-y-1">
+                        <p className="font-black text-slate-800 text-sm">{report.teacher}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Stream: {report.target_class} • {report.criteria}</p>
                       </div>
-                      <button 
-                        type="button"
-                        onClick={() => alert(`Opening complete file logs for ${report.teacher}`)}
-                        className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase tracking-wider text-slate-700 hover:bg-slate-100 active:scale-95 transition-all shadow-2xs"
-                      >
-                        Review Form
-                      </button>
+                      <div className="flex items-center gap-4">
+                        <span className="text-xs font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-100">Score: {report.score}</span>
+                        <button type="button" onClick={() => alert(`Reviewing file for ${report.teacher}`)} className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black uppercase text-slate-700 hover:bg-slate-50 transition-all">Review</button>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  ))
+                )}
+              </div>
             </div>
+
+            {/* SECTION 2: STUDENT ACADEMIC PERFORMANCE LEDGER (MATCHES IMAGE TARGET) */}
+            <div className="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-4">
+              <div className="flex justify-between items-center border-b pb-3">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2"><GraduationCap size={16} className="text-indigo-600"/> Academic Records Ledger</h3>
+                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">View and audit compiled multi-tenant exam metrics.</p>
+                </div>
+                <span className="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
+                  {data.studentGrades.length} Graded Papers
+                </span>
+              </div>
+
+              {data.studentGrades.length === 0 ? (
+                <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  <p className="text-xs font-bold text-slate-400 italic">No student performance records found in database query ledger.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-slate-100">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                        <th className="p-4">Student Learner</th>
+                        <th className="p-4">Admission No</th>
+                        <th className="p-4">Grade / Stream</th>
+                        <th className="p-4">Subject</th>
+                        <th className="p-4 text-center">Score Metric</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs">
+                      {data.studentGrades.map((grade: any, idx: number) => (
+                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="p-4 font-black text-slate-800">{grade.student_name}</td>
+                          <td className="p-4 font-mono font-bold text-slate-500">{grade.admission_no}</td>
+                          <td className="p-4">
+                            <span className="bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-[10px] font-bold text-slate-600">
+                              {grade.stream_name}
+                            </span>
+                          </td>
+                          <td className="p-4 font-bold text-slate-700">{grade.subject}</td>
+                          <td className="p-4 text-center">
+                            <span className={`inline-block min-w-[45px] font-black text-center px-2 py-1 rounded-lg text-[11px] ${
+                              Number(grade.score) >= 50 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'
+                            }`}>
+                              {grade.score}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
           </div>
         )}
+
+
       </main>
     </div>
   );
