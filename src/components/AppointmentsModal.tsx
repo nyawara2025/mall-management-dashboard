@@ -9,14 +9,21 @@ interface AppointmentsModalProps {
 }
 
 export const AppointmentsModal: React.FC<AppointmentsModalProps> = ({ isOpen, onClose, userData }) => {
-  const [activeTab, setActiveTab] = useState<'create' | 'history' | 'department'>('create');
-  
-  if (!isOpen) return null;
-
-  // Role-based check: Allow access to Departmental tab if they have a leadership role
+  // 1. Role-based checks (Standardized)
   const canManageDepartment = userData?.role?.toLowerCase().includes('head') || 
                                userData?.role?.toLowerCase().includes('admin') ||
-                               userData?.role?.toLowerCase().includes('leader');
+                               userData?.role?.toLowerCase().includes('leader') ||
+                               userData?.role?.toLowerCase().includes('chair');
+
+  // 2. FIXED: Dynamically set the initial tab. 
+  // If they are a leader, default to 'create'. If they are a normal member, default to 'department' (Ministry/Zone)!
+
+  const [activeTab, setActiveTab] = useState<'create' | 'history' | 'department'>(
+
+    canManageDepartment ? 'create' : 'department'
+  );
+  
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -38,20 +45,25 @@ export const AppointmentsModal: React.FC<AppointmentsModalProps> = ({ isOpen, on
           </button>
         </div>
 
-        {/* Tabs */}
+        {/* Tabs Control Area */}
         <div className="flex border-b border-gray-100 p-2 gap-2 bg-gray-50">
-          <TabButton active={activeTab === 'create'} onClick={() => setActiveTab('create')} icon={<Plus size={18}/>} label="New" />
-          <TabButton active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History size={18}/>} label="History" />
+          {/* 3. FIXED: Hide the "New" tab completely for non-leaders */}
           {canManageDepartment && (
-            <TabButton active={activeTab === 'department'} onClick={() => setActiveTab('department')} icon={<Users size={18}/>} label="Ministry/Zone" />
+            <TabButton active={activeTab === 'create'} onClick={() => setActiveTab('create')} icon={<Plus size={18}/>} label="New" />
           )}
+          
+          {/* 4. FIXED: The Ministry/Zone tab is now visible to EVERYONE so regular members can read entries */}
+          <TabButton active={activeTab === 'department'} onClick={() => setActiveTab('department')} icon={<Users size={18}/>} label="Ministry/Zone" />
+          
+          <TabButton active={activeTab === 'history'} onClick={() => setActiveTab('history')} icon={<History size={18}/>} label="History" />
         </div>
 
-        {/* Content Area */}
+        {/* Content Canvas Area */}
         <div className="flex-1 overflow-y-auto p-6">
-          {activeTab === 'create' && <CreateAppointmentForm userData={userData} />}
-          {activeTab === 'history' && <AppointmentsHistory userData={userData} />}
+          {/* 5. FIXED: Guard the creation form rendering explicitly */}
+          {activeTab === 'create' && canManageDepartment && <CreateAppointmentForm userData={userData} />}
           {activeTab === 'department' && <DepartmentalCalendar userData={userData} />}
+          {activeTab === 'history' && <AppointmentsHistory userData={userData} />}
         </div>
       </div>
     </div>
