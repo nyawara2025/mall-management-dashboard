@@ -6,7 +6,7 @@ import {
 
 export const PrincipalDashboard = ({ shopId, user, onLogout }: any) => {
   // 1. EXTENDED TAB STATES: Added 'reports' view tracker
-  const [activeTab, setActiveTab] = useState<'overview' | 'faculty' | 'curriculum' | 'reports'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'faculty' | 'curriculum' | 'reports' | 'transport'>('overview');
 
   // 1. FIX: Ensure this hook line is present right here!
   const [loading, setLoading] = useState(false);
@@ -21,7 +21,8 @@ export const PrincipalDashboard = ({ shopId, user, onLogout }: any) => {
     facultyList: [],
     curriculumList: [],
     performanceReports: [],
-    studentGrades: []
+    studentGrades: [],
+    transportFleet: []
   });
 
   const [studentSearch, setStudentSearch] = useState('');
@@ -49,8 +50,10 @@ export const PrincipalDashboard = ({ shopId, user, onLogout }: any) => {
           performanceReports: resData.reports || [],
   
           // HYDRATE STUDENT RECORDS DIRECTLY FROM N8N POST PAYLOAD
-          studentGrades: resData.student_grades || []
-
+          studentGrades: resData.student_grades || [],
+          
+          // FETCH LIVE FLEET METRICS FROM RE-USED ADMIN BACKEND ENDPOINT ARRAY
+          transportFleet: resData.fleet || []
         });
       }
     } catch (e) {
@@ -92,6 +95,17 @@ export const PrincipalDashboard = ({ shopId, user, onLogout }: any) => {
             <button onClick={() => setActiveTab('reports')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'reports' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'}`}>
               <ScrollText size={16} /> Performance Reports
             </button>
+
+            {/* NEW SIDEBAR ROUTE SELECTION ENTRY */}
+            <button 
+              onClick={() => setActiveTab('transport')} 
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${
+                activeTab === 'transport' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              <Calendar size={16} /> Transport Fleet
+            </button>
+
           </nav>
         </div>
 
@@ -335,6 +349,89 @@ export const PrincipalDashboard = ({ shopId, user, onLogout }: any) => {
             </div>
           </div>
         )}
+
+        {/* TAB SUB-VIEW E: PRINCIPAL TRANS-FLEET INDEX WORKSPACE MONITOR */}
+        {activeTab === 'transport' && (
+          <div className="space-y-6 text-left animate-in fade-in duration-150">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                🚌 Transport Fleet Index
+              </h3>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">
+                Monitor active transit pathways and broadcast instant situational directives to parents.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {data.transportFleet.length === 0 ? (
+                <p className="text-xs text-slate-400 italic py-4 text-center col-span-2">
+                  No active fleet route arrays running right now.
+                </p>
+              ) : (
+                data.transportFleet.map((vehicle: any) => (
+                  <div 
+                    key={vehicle.id} 
+                    className="bg-white border border-slate-100 p-6 rounded-[2rem] shadow-sm space-y-4 flex flex-col justify-between"
+                  >
+                    {/* Header: Route Name & Network Status Beacon */}
+                    <div className="flex justify-between items-center border-b pb-2">
+                      <span className="font-black text-xs text-red-600 tracking-wide uppercase">
+                        {vehicle.route_name}
+                      </span>
+                      <span className={`h-2 w-2 rounded-full ${vehicle.status === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`} />
+                    </div>
+
+                    {/* Operational Core Field Logs Metrics */}
+                    <div className="space-y-1.5 text-xs font-semibold text-slate-700">
+                      <p><span className="text-slate-400 font-medium">Driver Assigned:</span> {vehicle.driver}</p>
+                      <p><span className="text-slate-400 font-medium">Ridership Volume:</span> {vehicle.ridership} Students</p>
+                      
+                      {/* Interactive Telemetry Link */}
+                      <p className="text-[11px] font-mono text-indigo-600 flex items-center gap-1 mt-1">
+                        📡 GPS Fix: 
+                        <a 
+                          href={`https://google.com{vehicle.gps}`}
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="hover:underline font-bold"
+                        >
+                          {vehicle.gps}
+                        </a>
+                      </p>
+                    </div>
+
+                    {/* Action Execution Button Array Matrix Layer */}
+                    <div className="space-y-2 pt-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        <button 
+                          onClick={() => alert(`Broadcasting automated delay alert notification logs to parents on ${vehicle.route_name}...`)}
+                          className="py-2.5 bg-orange-500 text-white font-black uppercase text-[10px] tracking-wider rounded-xl transition-all hover:bg-orange-600 active:scale-95 text-center shadow-xs"
+                        >
+                          Notify Parents
+                        </button>
+                        <button 
+                          onClick={() => window.open(`https://google.com{vehicle.gps}`, '_blank')}
+                          className="py-2.5 bg-white border border-slate-200 text-slate-700 font-black uppercase text-[10px] tracking-wider rounded-xl transition-all hover:bg-slate-50 active:scale-95 text-center shadow-2xs"
+                        >
+                          Track Fleet
+                        </button>
+                      </div>
+                      
+                      <button 
+                        onClick={() => alert(`Opening group intercom pipeline for Driver ${vehicle.driver}...`)}
+                        className="w-full py-2.5 bg-orange-500 text-white font-black uppercase text-[10px] tracking-wider rounded-xl transition-all hover:bg-orange-600 active:scale-95 text-center shadow-xs"
+                      >
+                        Notify Fleet Group
+                      </button>
+                    </div>
+
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+
       </main>
     </div>
   );
