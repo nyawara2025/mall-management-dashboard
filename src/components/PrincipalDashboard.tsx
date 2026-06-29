@@ -24,6 +24,11 @@ export const PrincipalDashboard = ({ shopId, user, onLogout }: any) => {
     studentGrades: []
   });
 
+  const [studentSearch, setStudentSearch] = useState('');
+  const [classFilter, setClassFilter] = useState('');
+  const [subjectFilter, setSubjectFilter] = useState('');
+
+
   const fetchPrincipalAnalytics = async () => {
     setLoading(true);
     try {
@@ -227,64 +232,109 @@ export const PrincipalDashboard = ({ shopId, user, onLogout }: any) => {
               </div>
             </div>
 
-            {/* SECTION 2: STUDENT ACADEMIC PERFORMANCE LEDGER (MATCHES IMAGE TARGET) */}
+            {/* SECTION 2: STUDENT ACADEMIC PERFORMANCE LEDGER (WITH FILTERS) */}
             <div className="bg-white border border-slate-100 rounded-3xl shadow-sm p-6 space-y-4">
-              <div className="flex justify-between items-center border-b pb-3">
+              
+              {/* Filter Headers Wrapper */}
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b pb-4">
                 <div>
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2"><GraduationCap size={16} className="text-indigo-600"/> Academic Records Ledger</h3>
-                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">View and audit compiled multi-tenant exam metrics.</p>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2">
+                    <GraduationCap size={16} className="text-indigo-600"/> Academic Records Ledger
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">Filter and audit multi-tenant exam metrics in real-time.</p>
                 </div>
-                <span className="bg-indigo-600 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
-                  {data.studentGrades.length} Graded Papers
-                </span>
+                
+                {/* 1. STATE INITIALIZATION FOR FILTER STRINGS */}
+                {/* (Place these 3 state hooks at the very top of your PrincipalDashboard component next to your other states) */}
+                {/* 
+                    const [studentSearch, setStudentSearch] = useState('');
+                    const [classFilter, setClassFilter] = useState('');
+                    const [subjectFilter, setSubjectFilter] = useState('');
+                */}
+                
+                {/* 2. THREE COMPACT SEARCH INPUT FIELDS */}
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="🔍 Search Student..."
+                    value={studentSearch}
+                    onChange={(e) => setStudentSearch(e.target.value)}
+                    className="p-2.5 bg-slate-50 border border-slate-200 text-xs font-semibold rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all min-w-[150px]"
+                  />
+                  <input
+                    type="text"
+                    placeholder="🏫 Class ID (e.g. 5K)"
+                    value={classFilter}
+                    onChange={(e) => setClassFilter(e.target.value)}
+                    className="p-2.5 bg-slate-50 border border-slate-200 text-xs font-semibold rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all w-[130px]"
+                  />
+                  <input
+                    type="text"
+                    placeholder="📚 Subject..."
+                    value={subjectFilter}
+                    onChange={(e) => setSubjectFilter(e.target.value)}
+                    className="p-2.5 bg-slate-50 border border-slate-200 text-xs font-semibold rounded-xl outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 transition-all min-w-[130px]"
+                  />
+                </div>
               </div>
 
-              {data.studentGrades.length === 0 ? (
-                <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                  <p className="text-xs font-bold text-slate-400 italic">No student performance records found in database query ledger.</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto rounded-xl border border-slate-100">
-                  <table className="w-full text-left border-collapse">
-                    <thead>
-                      <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                        <th className="p-4">Student Learner</th>
-                        <th className="p-4">Admission No</th>
-                        <th className="p-4">Grade / Stream</th>
-                        <th className="p-4">Subject</th>
-                        <th className="p-4 text-center">Score Metric</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-xs">
-                      {data.studentGrades.map((grade: any, idx: number) => (
-                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="p-4 font-black text-slate-800">{grade.student_name}</td>
-                          <td className="p-4 font-mono font-bold text-slate-500">{grade.admission_no}</td>
-                          <td className="p-4">
-                            <span className="bg-slate-100 border border-slate-200 px-2 py-0.5 rounded text-[10px] font-bold text-slate-600">
-                              {grade.stream_name}
-                            </span>
-                          </td>
-                          <td className="p-4 font-bold text-slate-700">{grade.subject}</td>
-                          <td className="p-4 text-center">
-                            <span className={`inline-block min-w-[45px] font-black text-center px-2 py-1 rounded-lg text-[11px] ${
-                              Number(grade.score) >= 50 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'
-                            }`}>
-                              {grade.score}%
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+              {/* 3. DYNAMIC IN-MEMORY INTERCEPT FILTERING */}
+              {(() => {
+                const filteredGrades = (data.studentGrades || []).filter((grade: any) => {
+                  const matchName = !studentSearch || grade.student_name?.toLowerCase().includes(studentSearch.toLowerCase());
+                  const matchClass = !classFilter || grade.stream_name?.toLowerCase().includes(classFilter.toLowerCase());
+                  const matchSubject = !subjectFilter || grade.subject?.toLowerCase().includes(subjectFilter.toLowerCase());
+                  return matchName && matchClass && matchSubject;
+                });
 
+                if (filteredGrades.length === 0) {
+                  return (
+                    <div className="text-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                      <p className="text-xs font-bold text-slate-400 italic">No student records match your selected filtering choices.</p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="overflow-x-auto rounded-xl border border-slate-100 animate-in fade-in duration-100">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-wider border-b border-slate-100">
+                          <th className="p-4">Student Learner</th>
+                          <th className="p-4">Admission No</th>
+                          <th className="p-4">Grade / Stream</th>
+                          <th className="p-4">Subject</th>
+                          <th className="p-4 text-center">Score Metric</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-xs">
+                        {filteredGrades.map((grade: any, idx: number) => (
+                          <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="p-4 font-black text-slate-800">{grade.student_name}</td>
+                            <td className="p-4 font-mono font-bold text-slate-500">{grade.admission_no}</td>
+                            <td className="p-4">
+                              <span className="bg-indigo-50 text-indigo-600 border border-indigo-100 px-2 py-0.5 rounded text-[10px] font-bold">
+                                {grade.stream_name}
+                              </span>
+                            </td>
+                            <td className="p-4 font-bold text-slate-700">{grade.subject}</td>
+                            <td className="p-4 text-center">
+                              <span className={`inline-block min-w-[45px] font-black text-center px-2 py-1 rounded-lg text-[11px] ${
+                                Number(grade.score) >= 50 ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-600 border border-red-100'
+                              }`}>
+                                {grade.score}%
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </div>
           </div>
         )}
-
-
       </main>
     </div>
   );
