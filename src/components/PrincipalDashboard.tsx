@@ -38,6 +38,15 @@ export const PrincipalDashboard = ({ shopId, user, onLogout }: any) => {
   const [selectedVehicle, setSelectedVehicle] = useState<any>(null);
   const [showMapModal, setShowMapModal] = useState(false);
 
+  const [isDiaryModalOpen, setIsDiaryModalOpen] = useState(false);
+  const [entryType, setEntryType] = useState<'diary' | 'announcement'>('diary');
+  const [diaryForm, setDiaryForm] = useState({
+    title: '',
+    content: '',
+    event_date: '',
+    target_audience: 'all' // Default fallback selector configuration
+  });
+  const [postingDiary, setPostingDiary] = useState(false);
 
   const fetchPrincipalAnalytics = async () => {
     setLoading(true);
@@ -501,6 +510,104 @@ export const PrincipalDashboard = ({ shopId, user, onLogout }: any) => {
                 </Marker>
               </MapContainer>
             </div>
+
+          </div>
+        </div>
+      )}
+
+      {isDiaryModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
+            
+            {/* Modal Header */}
+            <div className="p-6 bg-indigo-600 text-white flex justify-between items-center shadow-sm">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider">New Institutional Entry</h3>
+                <p className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest mt-0.5">Publish official events or targeted memos</p>
+              </div>
+              <button type="button" onClick={() => setIsDiaryModalOpen(false)} className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-black uppercase tracking-wider transition-all">Cancel</button>
+            </div>
+
+            {/* Entry Submission Form Container */}
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setPostingDiary(true);
+                try {
+                  const response = await fetch('https://n8n.tenear.com/webhook/school-diary', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      entry_type: entryType, // 'diary' or 'announcement'
+                      shop_id: Number(shopId),
+                      user_id: user?.id,
+                      ...diaryForm
+                    })
+                  });
+                  if (response.ok) {
+                    alert("Official entry published successfully!");
+                    setIsDiaryModalOpen(false);
+                    fetchPrincipalAnalytics(); // Re-hydrate workspace views
+                  } else {
+                    alert("Gateway server integration rejected post.");
+                  }
+                } catch (err) {
+                  console.error(err);
+                  alert("Network broadcast dispatcher pipeline failure.");
+                } finally {
+                  setPostingDiary(false);
+                }
+              }}
+              className="p-6 space-y-4 text-left text-xs"
+            >
+              {/* 1. Category Switcher */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider pl-1">Select Entry Type</label>
+                <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl">
+                  <button type="button" onClick={() => setEntryType('diary')} className={`py-2 rounded-lg font-black uppercase tracking-wide text-[10px] transition-all ${entryType === 'diary' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-500'}`}>📆 Calendar Milestone</button>
+                  <button type="button" onClick={() => setEntryType('announcement')} className={`py-2 rounded-lg font-black uppercase tracking-wide text-[10px] transition-all ${entryType === 'announcement' ? 'bg-white text-indigo-600 shadow-xs' : 'text-slate-500'}`}>📣 Announcement / Memo</button>
+                </div>
+              </div>
+
+              {/* 2. Common Title Input */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider pl-1">Title / Subject heading *</label>
+                <input type="text" required value={diaryForm.title} onChange={e => setDiaryForm({...diaryForm, title: e.target.value})} placeholder={entryType === 'diary' ? "e.g., Closing Date Term 2" : "e.g., Mandatory Staff Briefing"} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-semibold text-slate-700" />
+              </div>
+
+              {/* 3. Conditional Fields Layer */}
+              {entryType === 'diary' ? (
+                <div className="space-y-1 animate-in fade-in duration-150">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider pl-1">Event Milestone Date *</label>
+                  <input type="date" required value={diaryForm.event_date} onChange={e => setDiaryForm({...diaryForm, event_date: e.target.value})} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-semibold text-slate-700" />
+                </div>
+              ) : (
+                /* AUDIENCE SELECTION MATRIX FILTER FOR ANNOUNCEMENTS */
+                <div className="space-y-1 animate-in fade-in duration-150">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider pl-1">Target Recipient Audience *</label>
+                  <select 
+                    value={diaryForm.target_audience} 
+                    onChange={e => setDiaryForm({...diaryForm, target_audience: e.target.value})}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold text-slate-700 cursor-pointer"
+                  >
+                    <option value="parents">👨‍👩‍👧‍👦 Parents & Guardians Only</option>
+                    <option value="teachers">👩‍🏫 Academic Faculty & Teachers Only</option>
+                    <option value="all">🌍 All Staff, Teachers & Parents</option>
+                  </select>
+                </div>
+              )}
+
+              {/* 4. Description Content Box */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-wider pl-1">Content Particulars Details</label>
+                <textarea required value={diaryForm.content} onChange={e => setDiaryForm({...diaryForm, content: e.target.value})} placeholder="Provide complete administrative notice or brief event particulars..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-semibold text-slate-700 h-28 resize-none" />
+              </div>
+
+              {/* Submit Dispatcher Button */}
+              <button type="submit" disabled={postingDiary} className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black uppercase tracking-wider shadow-lg shadow-indigo-100 transition-all hover:bg-indigo-700 active:scale-98 disabled:opacity-50">
+                {postingDiary ? "Broadcasting Entry parameters..." : "🗓️ Authorize & Publish"}
+              </button>
+            </form>
 
           </div>
         </div>
