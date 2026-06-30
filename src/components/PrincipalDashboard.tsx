@@ -441,6 +441,71 @@ export const PrincipalDashboard = ({ shopId, user, onLogout }: any) => {
           </div>
         )}
 
+        {showMapModal && selectedVehicle && selectedVehicle.gps && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[999] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-2xl h-[70vh] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
+            
+            {/* Modal Header Panel Layout */}
+            <div className="p-6 bg-indigo-600 text-white flex justify-between items-center shadow-sm">
+              <div>
+                <h3 className="text-sm font-black uppercase tracking-wider">
+                  Live Route Tracking: {selectedVehicle.route_name}
+                </h3>
+                <p className="text-[10px] font-bold text-indigo-100 uppercase tracking-widest mt-0.5">
+                  Assigned Driver: {selectedVehicle.driver}
+                </p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => {
+                  setShowMapModal(false);
+                  setSelectedVehicle(null);
+                }} 
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all"
+              >
+                Close Map
+              </button>
+            </div>
+
+            {/* Embedded Live Leaflet Mapping Canvas Area */}
+            <div className="flex-1 w-full h-full relative z-0">
+              <MapContainer 
+                center={[Number(selectedVehicle.gps.split(',')[0]), Number(selectedVehicle.gps.split(',')[1])]} 
+                zoom={15} 
+                style={{ width: '100%', height: '100%' }}
+                zoomControl={true}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <Marker 
+                  position={[
+                    Number(selectedVehicle.gps.split(',')[0]), 
+                    Number(selectedVehicle.gps.split(',')[1])
+                  ]}
+                  icon={new L.Icon({
+                    iconUrl: 'https://unpkg.com',
+                    shadowUrl: 'https://unpkg.com',
+                    iconSize: [25, 41],
+                    iconAnchor: [12, 41]
+                  })}
+                >
+                  <Popup>
+                    <div className="text-xs font-sans font-bold text-slate-800 space-y-0.5 text-left">
+                      <p className="text-indigo-600 font-black">{selectedVehicle.route_name}</p>
+                      <p>👤 Driver: {selectedVehicle.driver}</p>
+                      <p>🚌 Ridership: {selectedVehicle.ridership} Active Students</p>
+                    </div>
+                  </Popup>
+                </Marker>
+              </MapContainer>
+            </div>
+
+          </div>
+        </div>
+      )}
+
       </main>
     </div>
   );
