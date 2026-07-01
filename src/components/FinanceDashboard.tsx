@@ -45,8 +45,13 @@ export const FinanceDashboard = () => {
     const matchesName = item.contributor_name?.toLowerCase().includes(nameFilter.toLowerCase());
     const matchesAmount = amountFilter ? Number(item.amount) >= Number(amountFilter) : true;
     
-    // FIX: Target index [0] to extract the clean YYYY-MM-DD string from the ISO array splitting
-    const itemDateString = new Date(item.created_at).toISOString().split('T')[0];
+    // SAFE LOCAL TIME EXTRACTION: Build an exact YYYY-MM-DD string from the item's creation timestamp
+    const recordDate = new Date(item.created_at);
+    const year = recordDate.getFullYear();
+    const month = String(recordDate.getMonth() + 1).padStart(2, '0');
+    const day = String(recordDate.getDate()).padStart(2, '0');
+    const itemDateString = `${year}-${month}-${day}`;
+
     const matchesDate = dateFilter ? itemDateString === dateFilter : true;
 
     return matchesName && matchesAmount && matchesDate;
