@@ -66,8 +66,18 @@ export const VirtualClassroomHub: React.FC<ClassroomProps> = ({ shopId, onBack, 
 
   // 📡 2. Start/Stop Live Classroom session handler
   const handleToggleClassroom = async () => {
-    if (!lessonSubject.trim() || !targetClass) {
-      alert("Please fill in the required Subject and target Class properties.");
+    // 1. Validation Check before firing network actions
+    if (!isLive && (!lessonSubject.trim() || !targetClass)) {
+      alert("Please ensure both Subject and Class selection fields are populated.");
+      return;
+    }
+
+    // 2. State Guard: If attempting to terminate a session but the active identifier tracking string is missing
+    if (isLive && !activeRoomId) {
+      console.warn("Desynchronization alert: Local state override reset executed.");
+      setIsLive(false);
+      setAttendanceList([]);
+      setQuestionsQueue([]);
       return;
     }
 
@@ -93,9 +103,15 @@ export const VirtualClassroomHub: React.FC<ClassroomProps> = ({ shopId, onBack, 
       const result = await response.json();
 
       if (!isLive) {
-        setIsLive(true);
-        setActiveRoomId(result.id || result.room_id);
+        // Only flip to true if the backend successfully created the room and gave us a real UUID key token
+        if (result && (result.id || result.room_id)) {
+          setActiveRoomId(result.id || result.room_id);
+          setIsLive(true);
+        } else {
+          throw new Error("Backend query failed to pass back a valid active room validation token key.");
+        }
       } else {
+        // Securely tear down the studio workspace view upon formal session termination confirmation
         setIsLive(false);
         setActiveRoomId(null);
         setAttendanceList([]);
@@ -104,11 +120,17 @@ export const VirtualClassroomHub: React.FC<ClassroomProps> = ({ shopId, onBack, 
         setLessonSubject('');
       }
     } catch (err) {
-      console.error("Failed executing classroom state toggle transaction:", err);
+      console.error("Critical transaction tracking state loop error:", err);
+      alert("Platform connection dropped. Local workspace views forced to safe offline layout configuration.");
+      // Hard fallback protection: force local reset on network drop to prevent page lockups
+      setIsLive(false);
+      setActiveRoomId(null);
     } finally {
       setIsProcessing(false);
     }
   };
+
+
 
   // 🔄 3. Metrics heart-beat polling loop (Attendance and Questions)
   useEffect(() => {
