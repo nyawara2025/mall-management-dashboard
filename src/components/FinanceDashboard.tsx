@@ -113,7 +113,7 @@ export const FinanceDashboard = () => {
 
       {/* 2. CHURCH BRANDING SUB-HEADER (Restored to original architectural layout) */}
       <div className="max-w-7xl mx-auto mb-8">
-        <ChurchBranding departmentName="Treasury & Finance" />
+        <ChurchBranding departmentName="" />
       </div>
 
       {/* 3. CORE METRICS HERO CARDS GRID */}
