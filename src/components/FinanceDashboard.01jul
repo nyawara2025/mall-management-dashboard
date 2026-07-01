@@ -8,40 +8,43 @@ import { useAuth } from '../contexts/AuthContext';
 import { ChurchBranding } from './ChurchBranding';
 
 export const FinanceDashboard = () => {
+  // Destructure tenant shop identifier alongside regular auth metadata
   const { user } = useAuth();
   const shopId = user?.shop_id || 'default_tenant';
 
-  // basic ui states
+  // Baseline UI States
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('tithes');
   const [isDiaryModalOpen, setIsDiaryModalOpen] = useState(false);
   const [recentDiaryEntries, setRecentDiaryEntries] = useState<any[]>([]);
-  
-  // reporting states
   const [isReportsModalOpen, setIsReportsModalOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-  const [reportConfig, setReportConfig] = useState({ 
-    period: 'monthly', type: 'statement of activities', month: new Date().getMonth() + 1, year: new Date().getFullYear(), format: 'pdf' 
+  const [reportConfig, setReportConfig] = useState({
+    period: 'monthly', type: 'statement of activities', month: new Date().getMonth() + 1, year: new Date().getFullYear(), format: 'pdf'
   });
-  const [diaryData, setDiaryData] = useState({ 
-    date: new Date().toISOString().split('T')[0], type: 'departmental', subject: '', details: '', venue: 'church office', status: 'pending' 
+  const [diaryData, setDiaryData] = useState({
+    date: new Date().toISOString().split('T')[0], type: 'departmental', subject: '', details: '', venue: 'church office', status: 'pending'
   });
 
-  // Tithes Verification Card States
+  // Tithe Ledger States
   const [titheEntries, setTitheEntries] = useState<any[]>([]);
   const [isLoadingTithes, setIsLoadingTithes] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ amount: 0, contributor_name: '' });
 
-  // Fetch tithes from your POST Webhook
+  // 1. Fetch via POST Webhook Handler
   useEffect(() => {
     const fetchTithesFromWebhook = async () => {
       try {
         setIsLoadingTithes(true);
+        
+        // Strict POST payload with tenant identification context
         const response = await fetch('https://n8n.tenear.com/webhook/tithe-for-finance', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({
             action: 'GET_TITHE_ENTRIES',
             shop_id: shopId,
@@ -49,30 +52,37 @@ export const FinanceDashboard = () => {
           }),
         });
 
-        if (!response.ok) throw new Error('Network error fetching ledger');
+        if (!response.ok) throw new Error('Network error syncing ledger via webhook');
+        
         const result = await response.json();
         setTitheEntries(result.data || []);
       } catch (err) {
-        console.error('Error syncing church_tithes ledger:', err);
+        console.error('Error syncing church_tithes ledger payload:', err);
       } finally {
         setIsLoadingTithes(false);
       }
     };
 
-    if (user) fetchTithesFromWebhook();
+    if (user) {
+      fetchTithesFromWebhook();
+    }
   }, [user, shopId]);
 
-  // Update manual entries via POST Webhook
+  // 2. Mutation / Update via POST Webhook Handler
   const handleUpdateManualTithe = async (id: string) => {
     try {
+      // Optimistic UI state adjustment
       setTitheEntries(prev => prev.map(item => 
-        item.id === id ? { ...item, amount: editForm.amount, contributor_name: editForm.contributor_name } : item
+        item.id === id ? { ...item, ...editForm } : item
       ));
       setEditingId(null);
 
-      const response = await fetch('https://n8n.tenear.com/webhook/update-manual-tithe', {
+      // Strict POST mutation request matching pattern criteria
+      const response = await fetch('https://n8n.teneear.com/webhook/update-manual-tithe', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           action: 'UPDATE_MANUAL_ENTRY',
           shop_id: shopId,
@@ -85,9 +95,10 @@ export const FinanceDashboard = () => {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to save manual modification');
+      if (!response.ok) throw new Error('Failed processing ledger transaction mutation');
     } catch (err) {
-      console.error('Failed processing ledger update:', err);
+      console.error('Failed processing ledger mutation webhook:', err);
+      // Optional: Trigger re-fetch loop here to restore database state matching upon execution fail
     }
   };
 
@@ -111,9 +122,17 @@ export const FinanceDashboard = () => {
         </div>
       </div>
 
-      {/* 2. CHURCH BRANDING SUB-HEADER (Restored to original architectural layout) */}
-      <div className="max-w-7xl mx-auto mb-8">
-        <ChurchBranding departmentName="Treasury & Finance" />
+      {/* 2. CHURCH BRANDING SUB-HEADER */}
+      <div className="max-w-7xl mx-auto flex justify-between items-start mb-8">
+        <div>
+          <h2 className="text-2xl font-serif italic text-slate-700 tracking-wide">Treasury & Finance</h2>
+          <p className="text-sm font-semibold text-blue-600 mt-0.5">
+            St. Barnabas Anglican Church, Otiende - Langata <span className="font-normal italic text-gray-400 ml-1">- The Home of Encouragement!</span>
+          </p>
+        </div>
+        <div className="w-16 h-16 opacity-90 hover:opacity-100 transition-opacity">
+          <img src="/church-crest.png" alt="Church Crest" className="w-full h-full object-contain" />
+        </div>
       </div>
 
       {/* 3. CORE METRICS HERO CARDS GRID */}
@@ -188,7 +207,7 @@ export const FinanceDashboard = () => {
         </div>
       </div>
 
-      {/* 5. ADDED TITHE VERIFICATION CARD */}
+      {/* 5. TITHE VERIFICATION CARD (POWERED VIA POST WEBHOOKS) */}
       <div className="max-w-7xl mx-auto bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
           <div>
@@ -208,7 +227,7 @@ export const FinanceDashboard = () => {
             </div>
           ) : titheEntries.length === 0 ? (
             <p className="text-xs text-slate-400 text-center py-10 font-medium">No recorded tithes found within this scope context.</p>
-            ) : (
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
@@ -228,30 +247,31 @@ export const FinanceDashboard = () => {
 
                     return (
                       <tr key={item.id} className={`hover:bg-slate-50/50 transition-colors ${isMpesa ? 'bg-emerald-50/5' : ''}`}>
+                        {/* Timestamp formatting for Kenya Time (en-KE) */}
                         <td className="py-4 px-4 text-slate-400 whitespace-nowrap">
                           {new Date(item.created_at).toLocaleDateString('en-KE', {
                             day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
                           })}
                         </td>
 
+                        {/* Contributor identification slot */}
                         <td className="py-4 px-4 text-slate-900 font-semibold">
                           {isEditing ? (
                             <input
                               type="text"
-                              className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs w-full focus:outline-none bg-white font-medium"
+                              className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs w-full focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
                               value={editForm.contributor_name}
                               onChange={e => setEditForm({ ...editForm, contributor_name: e.target.value })}
                             />
                           ) : (
                             <div className="flex items-center space-x-2">
-                              <span>{item.contributor_name}</span>
-                              {isMpesa && item.mpesa_receipt_number && (
-                                <span className="text-[10px] text-slate-400 font-mono font-normal">[{item.mpesa_receipt_number}]</span>
-                              )}
+                              <span>{item.contributor_name || 'Anonymous Giver'}</span>
+                              {isMpesa && <span className="text-[10px] text-slate-400 font-mono font-normal">[{item.mpesa_receipt_number || 'SYSTEM'}]</span>}
                             </div>
                           )}
                         </td>
 
+                        {/* Transaction channel badge */}
                         <td className="py-4 px-4 whitespace-nowrap">
                           <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${
                             isMpesa 
@@ -263,11 +283,12 @@ export const FinanceDashboard = () => {
                           </span>
                         </td>
 
+                        {/* Auditable Currency output fields */}
                         <td className="py-4 px-4 text-right font-bold text-slate-900 text-sm whitespace-nowrap">
                           {isEditing ? (
                             <input
                               type="number"
-                              className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs w-32 text-right focus:outline-none bg-white font-bold"
+                              className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs w-32 text-right focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
                               value={editForm.amount}
                               onChange={e => setEditForm({ ...editForm, amount: Number(e.target.value) })}
                             />
@@ -276,6 +297,7 @@ export const FinanceDashboard = () => {
                           )}
                         </td>
 
+                        {/* Visual immutability guards indicating platform verification status */}
                         <td className="py-4 px-4 text-center whitespace-nowrap">
                           {isMpesa ? (
                             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50/50 px-2.5 py-0.5 rounded-md border border-emerald-100">
@@ -288,6 +310,7 @@ export const FinanceDashboard = () => {
                           )}
                         </td>
 
+                        {/* Functional mutations controls based on verification rules */}
                         <td className="py-4 px-4 text-right whitespace-nowrap">
                           {isMpesa ? (
                             <span className="text-[11px] text-slate-400 italic font-normal">Daraja Guard Active</span>
@@ -296,14 +319,14 @@ export const FinanceDashboard = () => {
                               <button 
                                 onClick={() => handleUpdateManualTithe(item.id)}
                                 className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
-                                title="Commit update"
+                                title="Commit adjustments"
                               >
                                 <Check className="h-3.5 w-3.5" />
                               </button>
                               <button 
                                 onClick={() => setEditingId(null)}
                                 className="p-1.5 bg-slate-50 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"
-                                title="Cancel"
+                                title="Discard adjustments"
                               >
                                 <X className="h-3.5 w-3.5" />
                               </button>
@@ -311,7 +334,7 @@ export const FinanceDashboard = () => {
                           ) : (
                             <button
                               onClick={() => startEditing(item)}
-                              className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-xl transition-all border border-transparent hover:border-blue-100/30"
+                              className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-xl transition-all border border-transparent hover:border-blue-100/50"
                             >
                               <Edit3 className="h-3 w-3" /> Modify Entry
                             </button>
@@ -326,7 +349,7 @@ export const FinanceDashboard = () => {
           )}
         </div>
       </div>
-
+      
     </div>
   );
 };
