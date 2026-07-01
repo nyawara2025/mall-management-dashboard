@@ -34,6 +34,23 @@ export const FinanceDashboard = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ amount: 0, contributor_name: '' });
 
+  // Add these inside the component function block
+  const [nameFilter, setNameFilter] = useState('');
+  const [amountFilter, setAmountFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+
+  // Computed filtering function evaluated on each render cycle
+  const filteredEntries = titheEntries.filter(item => {
+    const matchesName = item.contributor_name?.toLowerCase().includes(nameFilter.toLowerCase());
+    const matchesAmount = amountFilter ? Number(item.amount) >= Number(amountFilter) : true;
+    
+    // Check if the record's creation date string matches the HTML input date string
+    const itemDate = new Date(item.created_at).toISOString().split('T')[0];
+    const matchesDate = dateFilter ? itemDate === dateFilter : true;
+
+    return matchesName && matchesAmount && matchesDate;
+  });
+
   // Fetch tithes from your POST Webhook
   useEffect(() => {
     const fetchTithesFromWebhook = async () => {
@@ -189,26 +206,56 @@ export const FinanceDashboard = () => {
       </div>
 
       {/* 5. ADDED TITHE VERIFICATION CARD */}
-      <div className="max-w-7xl mx-auto bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
+      <div className="max-w-7xl mx-auto bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden mb-8">
+        <div className="p-6 border-b border-slate-50">
           <div>
             <h3 className="font-bold text-slate-800 text-base">Tithes & Offerings Verification</h3>
-            <p className="text-xs text-slate-400 mt-0.5">Automated M-Pesa tracking (Locked) alongside editable manual entries.</p>
+            <p className="text-xs text-slate-400 mt-0.5">Review captured real-time M-Pesa transactions and records.</p>
           </div>
-          <span className="text-[11px] font-bold tracking-wider uppercase px-2.5 py-1 bg-blue-50 text-blue-600 rounded-full border border-blue-100/50">
-            Tenant ID: {shopId}
-          </span>
+
+          {/* Clean Filter Panel Layout */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Search by Name</label>
+              <input
+                type="text"
+                placeholder="Filter contributor..."
+                className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50"
+                value={nameFilter}
+                onChange={(e) => setNameFilter(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Min Amount (KES)</label>
+              <input
+                type="number"
+                placeholder="Filter minimum..."
+                className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50"
+                value={amountFilter}
+                onChange={(e) => setAmountFilter(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Filter by Date</label>
+              <input
+                type="date"
+                className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50 text-slate-600"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+              />
+            </div>
+          </div>
         </div>
 
         <div className="p-6">
           {isLoadingTithes ? (
             <div className="flex items-center justify-center py-12 text-slate-400 space-x-2 text-xs font-medium">
               <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-              <span>Requesting webhook payload synchronization...</span>
+              <span>Syncing live transactions...</span>
             </div>
-          ) : titheEntries.length === 0 ? (
-            <p className="text-xs text-slate-400 text-center py-10 font-medium">No recorded tithes found within this scope context.</p>
-            ) : (
+          ) : filteredEntries.length === 0 ? (
+            <p className="text-xs text-slate-400 text-center py-10 font-medium">No recorded transactions match the filter criteria.</p>
+          ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
@@ -217,14 +264,11 @@ export const FinanceDashboard = () => {
                     <th className="py-3.5 px-4">Contributor Identifier</th>
                     <th className="py-3.5 px-4">Channel</th>
                     <th className="py-3.5 px-4 text-right">Amount Received</th>
-                    <th className="py-3.5 px-4 text-center">Audit Lock Status</th>
-                    <th className="py-3.5 px-4 text-right">Row Controls</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 font-medium text-slate-700">
-                  {titheEntries.map((item) => {
+                  {filteredEntries.map((item) => {
                     const isMpesa = item.payment_method?.toLowerCase() === 'mpesa';
-                    const isEditing = editingId === item.id;
 
                     return (
                       <tr key={item.id} className={`hover:bg-slate-50/50 transition-colors ${isMpesa ? 'bg-emerald-50/5' : ''}`}>
@@ -235,21 +279,12 @@ export const FinanceDashboard = () => {
                         </td>
 
                         <td className="py-4 px-4 text-slate-900 font-semibold">
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs w-full focus:outline-none bg-white font-medium"
-                              value={editForm.contributor_name}
-                              onChange={e => setEditForm({ ...editForm, contributor_name: e.target.value })}
-                            />
-                          ) : (
-                            <div className="flex items-center space-x-2">
-                              <span>{item.contributor_name}</span>
-                              {isMpesa && item.mpesa_receipt_number && (
-                                <span className="text-[10px] text-slate-400 font-mono font-normal">[{item.mpesa_receipt_number}]</span>
-                              )}
-                            </div>
-                          )}
+                          <div className="flex items-center space-x-2">
+                            <span>{item.contributor_name}</span>
+                            {isMpesa && item.mpesa_receipt_number && (
+                              <span className="text-[10px] text-slate-400 font-mono font-normal">[{item.mpesa_receipt_number}]</span>
+                            )}
+                          </div>
                         </td>
 
                         <td className="py-4 px-4 whitespace-nowrap">
@@ -264,58 +299,7 @@ export const FinanceDashboard = () => {
                         </td>
 
                         <td className="py-4 px-4 text-right font-bold text-slate-900 text-sm whitespace-nowrap">
-                          {isEditing ? (
-                            <input
-                              type="number"
-                              className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs w-32 text-right focus:outline-none bg-white font-bold"
-                              value={editForm.amount}
-                              onChange={e => setEditForm({ ...editForm, amount: Number(e.target.value) })}
-                            />
-                          ) : (
-                            <span>KES {Number(item.amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })}</span>
-                          )}
-                        </td>
-
-                        <td className="py-4 px-4 text-center whitespace-nowrap">
-                          {isMpesa ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50/50 px-2.5 py-0.5 rounded-md border border-emerald-100">
-                              <CheckCircle className="h-3 w-3" /> Immutable API
-                            </span>
-                          ) : (
-                            <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2.5 py-0.5 rounded-md border border-slate-100">
-                              Manual Audit
-                            </span>
-                          )}
-                        </td>
-
-                        <td className="py-4 px-4 text-right whitespace-nowrap">
-                          {isMpesa ? (
-                            <span className="text-[11px] text-slate-400 italic font-normal">Daraja Guard Active</span>
-                          ) : isEditing ? (
-                            <div className="flex justify-end gap-1.5">
-                              <button 
-                                onClick={() => handleUpdateManualTithe(item.id)}
-                                className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors"
-                                title="Commit update"
-                              >
-                                <Check className="h-3.5 w-3.5" />
-                              </button>
-                              <button 
-                                onClick={() => setEditingId(null)}
-                                className="p-1.5 bg-slate-50 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"
-                                title="Cancel"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-                          ) : (
-                            <button
-                              onClick={() => startEditing(item)}
-                              className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-xl transition-all border border-transparent hover:border-blue-100/30"
-                            >
-                              <Edit3 className="h-3 w-3" /> Modify Entry
-                            </button>
-                          )}
+                          <span>KES {Number(item.amount).toLocaleString('en-KE', { minimumFractionDigits: 2 })}</span>
                         </td>
                       </tr>
                     );
