@@ -197,7 +197,7 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
           title: mediaTitle,
           type: mediaType,
           youtube_url: mediaType === 'youtube' ? youtubeUrl : null,
-          file: mediaType !== 'youtube' ? uploadedMediaFile : null
+          file: mediaType !== 'youtube' && uploadedMediaFile ? uploadedMediaFile.data : null
         })
       });
 
@@ -752,7 +752,7 @@ export const EducationalDashboard = ({ shopId }: { shopId: number }) => {
                         accept={mediaType === 'photo' ? 'image/*' : 'video/*'}
                         className="w-full text-xs file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100 cursor-pointer"
                         onChange={handleMediaFileChange}
-                        required={(mediaType as string) !== 'youtube'}
+                        required={(mediaType as string) === 'photo' || (mediaType as string) === 'video'} 
                       />
                     </div>
                   )}
