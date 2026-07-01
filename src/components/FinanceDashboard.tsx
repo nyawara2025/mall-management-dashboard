@@ -71,7 +71,7 @@ export const FinanceDashboard = () => {
           body: JSON.stringify({
             action: 'GET_TITHE_ENTRIES',
             shop_id: shopId,
-            limit: 10
+
           }),
         });
 
