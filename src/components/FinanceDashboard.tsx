@@ -34,28 +34,30 @@ export const FinanceDashboard = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ amount: 0, contributor_name: '' });
 
-  // Add these inside the component function block
+  
+  // 1. Add a clean sort state alongside your working filter states
   const [nameFilter, setNameFilter] = useState('');
   const [amountFilter, setAmountFilter] = useState('');
-  const [dateFilter, setDateFilter] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' = Newest, 'asc' = Oldest
 
-  
-  // Computed filtering function evaluated on each render cycle
-  const filteredEntries = titheEntries.filter(item => {
-    const matchesName = item.contributor_name?.toLowerCase().includes(nameFilter.toLowerCase());
-    const matchesAmount = amountFilter ? Number(item.amount) >= Number(amountFilter) : true;
-    
-    // SAFE LOCAL TIME EXTRACTION: Build an exact YYYY-MM-DD string from the item's creation timestamp
-    const recordDate = new Date(item.created_at);
-    const year = recordDate.getFullYear();
-    const month = String(recordDate.getMonth() + 1).padStart(2, '0');
-    const day = String(recordDate.getDate()).padStart(2, '0');
-    const itemDateString = `${year}-${month}-${day}`;
-
-    const matchesDate = dateFilter ? itemDateString === dateFilter : true;
-
-    return matchesName && matchesAmount && matchesDate;
-  });
+  // 2. Computed filtering and sorting logic evaluated on each render cycle
+  const filteredEntries = titheEntries
+    .filter(item => {
+      const matchesName = item.contributor_name?.toLowerCase().includes(nameFilter.toLowerCase());
+      const matchesAmount = amountFilter ? Number(item.amount) >= Number(amountFilter) : true;
+      return matchesName && matchesAmount;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      
+      // Chronological switch block
+      if (sortOrder === 'desc') {
+        return dateB - dateA; // Newest transactions floating to top row
+      } else {
+        return dateA - dateB; // Oldest transactions floating to top row
+      }
+    });
 
 
   // Fetch tithes from your POST Webhook
@@ -220,14 +222,14 @@ export const FinanceDashboard = () => {
             <p className="text-xs text-slate-400 mt-0.5">Review captured real-time M-Pesa transactions and records.</p>
           </div>
 
-          {/* Clean Filter Panel Layout */}
+          {/* Refined Filter & Chronology Sorting Panel Layout */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
             <div>
               <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Search by Name</label>
               <input
                 type="text"
                 placeholder="Filter contributor..."
-                className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50"
+                className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50 text-slate-700 font-medium"
                 value={nameFilter}
                 onChange={(e) => setNameFilter(e.target.value)}
               />
@@ -237,22 +239,25 @@ export const FinanceDashboard = () => {
               <input
                 type="number"
                 placeholder="Filter minimum..."
-                className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50"
+                className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50 text-slate-700 font-medium"
                 value={amountFilter}
                 onChange={(e) => setAmountFilter(e.target.value)}
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Filter by Date</label>
-              <input
-                type="date"
-                className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50 text-slate-600"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-              />
+              <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Sort Chronologically</label>
+              <select
+                className="w-full text-xs px-3 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-slate-50/50 text-slate-700 font-semibold cursor-pointer"
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+              >
+                <option value="desc">Newest Transactions First</option>
+                <option value="asc">Oldest Transactions First</option>
+              </select>
             </div>
           </div>
         </div>
+
 
         <div className="p-6">
           {isLoadingTithes ? (
