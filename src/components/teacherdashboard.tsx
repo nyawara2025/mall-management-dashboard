@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BookOpen, Megaphone, MessageSquare, CheckSquare, 
-  ArrowLeft, Smartphone, Users, Award, Check, X, Send, Calendar 
+  ArrowLeft, Smartphone, Users, Award, Check, X, Send, Calendar, Video 
 } from 'lucide-react';
+
+import { VirtualClassroomHub } from './VirtualClassroomHub';
 
 interface Student {
   id: string;
@@ -25,7 +27,7 @@ interface TeacherDashboardProps {
 }
 
 export const TeacherDashboard = ({ shopId, teacherUser, onBack, schoolName }: TeacherDashboardProps) => {
-  const [activeTab, setActiveTab] = useState<'menu' | 'homework' | 'announcements' | 'attendance' | 'grading' | 'chat'>('menu');
+  const [activeTab, setActiveTab] = useState<'menu' | 'homework' | 'announcements' | 'attendance' | 'grading' | 'chat' | 'classroom'>('menu');
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -236,6 +238,16 @@ const [homeworkPages, setHomeworkPages] = useState('');
                   <p className="text-[10px] text-slate-400">Submit marks for admin review</p>
                 </div>
               </button>
+
+              {/* NEW VIRTUAL CLASSROOM HUB ACTION MACRO CARD BUTTON */}
+              <button onClick={() => setActiveTab('classroom')} className="p-4 bg-white border border-slate-100 rounded-2xl shadow-sm hover:border-purple-500 transition-all text-left flex flex-col justify-between h-28">
+                <div className="p-2 bg-purple-50 text-purple-600 rounded-xl w-fit"><Video size={20} /></div>
+                <div>
+                  <h4 className="text-sm font-bold text-slate-800">Live Class</h4>
+                  <p className="text-[10px] text-slate-400">Launch studio WebRTC rooms</p>
+                </div>
+              </button>
+
             </div>
           </div>
         )}
@@ -431,6 +443,16 @@ const [homeworkPages, setHomeworkPages] = useState('');
                 </button>
               </div>
             )}
+          </div>
+        )}
+
+        {/* VIEW F: INDEPENDENT IMMERSIVE VIRTUAL CLASSROOM HUB MODULE */}
+        {activeTab === 'classroom' && (
+          <div className="animate-in fade-in duration-200">
+            <VirtualClassroomHub 
+              shopId={shopId} 
+              onBack={() => setActiveTab('menu')} 
+            />
           </div>
         )}
 
