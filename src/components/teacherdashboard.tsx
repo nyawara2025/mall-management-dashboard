@@ -451,6 +451,7 @@ const [homeworkPages, setHomeworkPages] = useState('');
           <div className="animate-in fade-in duration-200">
             <VirtualClassroomHub 
               shopId={shopId} 
+              teacherUser={teacherUser}
               onBack={() => setActiveTab('menu')} 
             />
           </div>
