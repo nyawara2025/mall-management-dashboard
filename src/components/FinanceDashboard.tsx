@@ -39,17 +39,19 @@ export const FinanceDashboard = () => {
   const [amountFilter, setAmountFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
 
+  
   // Computed filtering function evaluated on each render cycle
   const filteredEntries = titheEntries.filter(item => {
     const matchesName = item.contributor_name?.toLowerCase().includes(nameFilter.toLowerCase());
     const matchesAmount = amountFilter ? Number(item.amount) >= Number(amountFilter) : true;
     
-    // Check if the record's creation date string matches the HTML input date string
-    const itemDate = new Date(item.created_at).toISOString().split('T')[0];
-    const matchesDate = dateFilter ? itemDate === dateFilter : true;
+    // FIX: Target index [0] to extract the clean YYYY-MM-DD string from the ISO array splitting
+    const itemDateString = new Date(item.created_at).toISOString().split('T')[0];
+    const matchesDate = dateFilter ? itemDateString === dateFilter : true;
 
     return matchesName && matchesAmount && matchesDate;
   });
+
 
   // Fetch tithes from your POST Webhook
   useEffect(() => {
