@@ -137,7 +137,7 @@ export const StudentClassroomViewer: React.FC<StudentViewerProps> = ({ shopId, s
         <div className="lg:col-span-2">
           <div className="w-full h-[280px] sm:h-[380px] rounded-2xl overflow-hidden bg-slate-950 border border-slate-200 shadow-inner">
             <iframe
-              src={`https://jit.si{secureEmbedRoomToken}#config.startWithAudioMuted=true&config.startWithVideoMuted=true&interfaceConfig.TOOLBAR_BUTTONS=["microphone","camera","raisehand"]`}
+              src={`https://jit.si${secureEmbedRoomToken}#config.startWithAudioMuted=true&config.startWithVideoMuted=true&interfaceConfig.TOOLBAR_BUTTONS=["microphone","camera","raisehand"]`}
               className="w-full h-full border-0"
               allow="camera; microphone; fullscreen; display-capture; autoplay"
               title="Student Virtual Classroom Matrix Receiver"
