@@ -70,7 +70,6 @@ export const StudentClassroomViewer: React.FC<StudentViewerProps> = ({ shopId, s
           action: 'POST_STUDENT_QUESTION',
           shop_id: shopId,
           room_id: activeClassroom.id,
-          student_id: activeClassroom.student_id,
           student_name: studentName,
           question_text: typedQuestion
         })
