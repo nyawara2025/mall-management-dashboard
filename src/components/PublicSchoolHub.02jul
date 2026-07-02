@@ -16,14 +16,11 @@ import {
   ArrowLeft,
   Receipt,
   Bus,
-  AlertTriangle,
-  Video
+  AlertTriangle
 } from 'lucide-react';
 
 import { TeacherDashboard } from './teacherdashboard';
 import { DriverPortal } from './DriverPortal'; // 🚚 Import DriverPortal component
-import { StudentClassroomViewer } from './StudentClassroomViewer';
-
 
 // 🌟 ADD THESE THREE LINES TO FILE TOP IMPORTS:
 import { DirectorDashboard } from './DirectorDashboard';
@@ -46,9 +43,6 @@ interface SchoolData {
     driver_name: string;
     driver_phone: string;
   } | null;
-  first_name?: string;
-  last_name?: string;
-  assigned_class?: string;
 }
 
 // 🚌 ⚡ SUB-COMPONENT: Live Real-Time Leaflet Integrated Tracking Screen
@@ -191,7 +185,7 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('parent_token'));
 
   // NEW: Controls what overlay or sub-page is active
-  const [activePortalView, setActivePortalView] = useState<'grid' | 'homework' | 'fees' | 'bulletins' | 'teacher-dashboard' | 'driver-portal' | 'transport' | 'classroom'>('grid');     
+  const [activePortalView, setActivePortalView] = useState<'grid' | 'homework' | 'fees' | 'bulletins' | 'teacher-dashboard' | 'driver-portal' | 'transport'>('grid');     
 
   // 👇 ADD THIS LOCAL STATE VARIABLE HERE
   const [currentUser, setCurrentUser] = useState<any>(initialUser || null);
@@ -638,20 +632,6 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
                 <span className="text-[11px] font-black text-slate-700 uppercase tracking-wide leading-tight">Exams &<br/>Report Cards</span>
               </button>
 
-              {/* Card 7: Live Classes Hub Virtual Studio Receiver */}
-              <button 
-                type="button"
-                onClick={() => setActivePortalView('classroom')}
-                className="bg-purple-50/40 hover:bg-purple-100/60 border border-purple-100 rounded-[2.5rem] p-6 flex flex-col items-center justify-center gap-4 transition-all aspect-square text-center group shadow-sm"
-              >
-                <div className="p-4 bg-white rounded-2xl text-purple-600 shadow-sm group-hover:scale-105 transition-transform">
-                  <Video size={24} />
-                </div>
-                <span className="text-[11px] font-black text-slate-700 uppercase tracking-wide leading-tight">
-                  Live Classes &<br/>Broadcasts
-                </span>
-              </button>
-
             </div>
           </div>
         )}
@@ -981,36 +961,6 @@ export const PublicSchoolHub = ({ shopId, user: initialUser }: { shopId: number;
             )}
           </div>
         )}
-
-        {/* VIEW 7: STUDENT CLASSROOM SUB-PORTAL CONTAINER ELEMENT */}
-        {activePortalView === 'classroom' && (
-          <div className="max-w-4xl mx-auto space-y-4 text-center animate-in face-in slide-in-from-bottom-4 duration-200">
-            {/* Return Alignment Toolbar Bracket */}
-            <div className="flex justify-between items-center bg-white p-4 rounded-3xl border border-slate-100 shadow-sm">
-              <div className="text-left">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider">Virtual Hub Receiver</h3>
-                <p className="text-sm font-black text-slate-800">
-                  {data?.first_name ? `${data.first_name} ${data.last_name || ''}`.trim() : (data?.school_name || 'Student Viewport')}
-                </p>
-              </div>
-              <button 
-                type="button"
-                onClick={() => setActivePortalView('grid')} 
-                className="px-4 py-2.5 bg-slate-900 text-white rounded-2xl text-xs font-bold hover:bg-slate-800 transition-colors flex items-center gap-1.5"
-              >
-                <ArrowLeft size={14} /> Back to Menu
-              </button>
-            </div>
-
-            {/* Actual Live Receiver Functional Element Container */}
-            <StudentClassroomViewer 
-              shopId={Number(resolvedShopId || data?.shop_id || shopId)}
-              studentId={data?.admission_no || data?.id || 'STUDENT-PASSPORT'}
-              studentName={data?.first_name ? `${data.first_name} ${data.last_name || ''}`.trim() : 'Anonymous Student'}
-              assignedClass={data?.assigned_class || '4J'} // Assumes '4J' string value to securely catch your live backend schema records
-            />
-         </div>
-       )}
 
       </div>
     </div>
