@@ -29,7 +29,7 @@ if (rootElement) {
       <div className="flex h-screen items-center justify-center font-sans">
         <div className="text-center p-8 bg-white rounded-lg shadow-md">
           <h1 className="text-xl font-bold text-red-600">Invalid Link</h1>
-          <p className="text-gray-600 mt-2">Please use the official link provided by your church.</p>
+          <p className="text-gray-600 mt-2">Please close the App & reopen it again to access your Church data.x</p>
         </div>
       </div>
     );
