@@ -27,7 +27,7 @@ interface TeacherDashboardProps {
 }
 
 export const TeacherDashboard = ({ shopId, teacherUser, onBack, schoolName }: TeacherDashboardProps) => {
-  const [activeTab, setActiveTab] = useState<'menu' | 'homework' | 'announcements' | 'attendance' | 'grading' | 'chat' | 'classroom' | 'kec'>('menu');
+  const [activeTab, setActiveTab] = useState<'menu' | 'homework' | 'announcements' | 'attendance' | 'grading' | 'chat' | 'classroom'>('menu');
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
@@ -248,15 +248,6 @@ const [homeworkPages, setHomeworkPages] = useState('');
                 </div>
               </button>
 
-              {/* NEW KICD / KEC SYNC CARD */}
-              <button onClick={() => setActiveTab('kec')} className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-2xl border border-blue-100 shadow-sm text-left hover:from-blue-100 hover:to-indigo-100 transition-all flex flex-col gap-2">
-                <Award className="text-blue-700" size={20} />
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800">KEC Integration</h4>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Curriculum CBC materials</p>
-                </div>
-              </button>
-
             </div>
           </div>
         )}
@@ -452,36 +443,6 @@ const [homeworkPages, setHomeworkPages] = useState('');
                 </button>
               </div>
             )}
-          </div>
-        )}
-
-        {/* NEW KEC LINKING INTERFACE TAB VIEW */}
-        {activeTab === 'kec' && (
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4 animate-in slide-in-from-bottom-4 duration-200">
-            <div>
-              <h3 className="text-sm font-bold text-slate-800">Kenya Education Cloud (KEC) Links</h3>
-              <p className="text-[11px] text-slate-500 mt-1">
-                Quick portal references mapping directly into the official KICD platform curriculum categories.
-              </p>
-            </div>
-            
-            <div className="flex flex-col gap-2">
-              <a href="https://kec.ac.ke/" target="_blank" rel="noreferrer" className="w-full text-center py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition-colors block">
-                Open Kenya Education Cloud Portal
-              </a>
-              <a href="https://lms.kec.ac.ke/" target="_blank" rel="noreferrer" className="w-full text-center py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl shadow-sm transition-colors block">
-                Launch KEC LMS Node
-              </a>
-            </div>
-
-            <div className="border-t border-slate-100 pt-3">
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Curriculum Resource Shortcuts</span>
-              <ul className="text-xs text-slate-600 space-y-1.5 list-disc list-inside">
-                <li><a href="https://kec.ac.ke/" className="text-blue-600 underline font-medium">Junior School CBC Materials (Grades 7-9)</a></li>
-                <li><a href="https://kec.ac.ke/" className="text-blue-600 underline font-medium">Primary School CBC Assets (Grades 1-6)</a></li>
-                <li><a href="https://kec.ac.ke/" className="text-blue-600 underline font-medium">OrangeBook Approved Materials Inventory</a></li>
-              </ul>
-            </div>
           </div>
         )}
 
