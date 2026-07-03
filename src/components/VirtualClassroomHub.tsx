@@ -284,7 +284,7 @@ export const VirtualClassroomHub: React.FC<ClassroomProps> = ({ shopId, onBack, 
           <div className="lg:col-span-2">
             <div className="w-full h-[460px] rounded-2xl overflow-hidden bg-slate-950 border border-slate-200 relative shadow-inner">
               <iframe
-                src={"https://jit.si" + secureEmbedRoomToken + "#config.startWithAudioMuted=true&config.startWithVideoMuted=true&config.disableDeepLinking=true&config.deploymentInfo.userRoles.isTokenAuthUser=true&interfaceConfig.TOOLBAR_BUTTONS=[microphone,camera,raisehand]"}
+                src={"https://meet.jit.si/" + secureEmbedRoomToken + "#config.startWithAudioMuted=true&config.startWithVideoMuted=true&config.disableDeepLinking=true&config.deploymentInfo.userRoles.isTokenAuthUser=true&interfaceConfig.TOOLBAR_BUTTONS=[microphone,camera,raisehand]"}
                 className="w-full h-full border-0"
                 allow="camera; microphone; fullscreen; display-capture; autoplay"
                 title="Student Virtual Classroom Matrix Receiver"
