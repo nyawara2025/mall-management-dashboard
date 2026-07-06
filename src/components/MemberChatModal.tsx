@@ -118,7 +118,9 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           shop_id: userData?.shop_id || 68,
-          created_by: userData?.id 
+          created_by: userData?.id,
+          user_id: userData?.id
+ 
         }),
       });
       const data = await response.json();

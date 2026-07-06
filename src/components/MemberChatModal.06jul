@@ -8,8 +8,10 @@ interface MemberChatModalProps {
 }
 
 export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClose, userData }) => {
-  const [activeTab, setActiveTab] = useState<'contacts' | 'history'>('contacts');
+  const [activeTab, setActiveTab] = useState('history');
   
+  const [selectedThreadMsg, setSelectedThreadMsg] = useState<any | null>(null);
+
   const [membersList, setMembersList] = useState<any[]>([]);
   const [receivedMessages, setReceivedMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -225,29 +227,41 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
     }
   };
 
+
+  // Helper utility to safely construct standard email-style reply prefixes
+  const generateReplySubject = (originalSubject: string) => {
+    const cleanSub = (originalSubject || '').trim();
+    if (!cleanSub) return 'Re: (No Subject)';
+  
+    // Checks case-insensitively if the subject already starts with "Re:"
+    return /^re:/i.test(cleanSub) ? cleanSub : `Re: ${cleanSub}`;
+  };
+
+
+
   const handleInitiateReply = (msg: any) => {
     const recipientObj = {
-      id: msg.sender_id,
-      first_name: msg.sender_name.split(' ')[0] || 'Member',
-      last_name: msg.sender_name.split(' ').slice(1).join(' ') || '',
+      id: msg.sender_id ? Number(msg.sender_id) : null,
+      first_name: msg.sender_name?.split(' ')[0] || 'Member',
+      last_name: msg.sender_name?.split(' ').slice(1).join(' ') || '',
       phone_number: msg.sender_phone || ''
     };
-    setSelectedRecipients([recipientObj]); // Wraps in array for compliance
-    setActiveGroupContext(''); // Reset group context for single threads
-    setActiveTab('contacts'); 
+  
+    setSelectedRecipients([recipientObj]);
+    setChatSubject(generateReplySubject(msg.subject)); // Maps directly to 'subject' column text
+    setActiveGroupContext('');
+    setActiveTab('contacts');
   };
 
   const handleReplyAll = (msg: any) => {
     const combinedRecipients: any[] = [];
-    
     const currentUserId = userData?.id ? Number(userData.id) : null;
     const originalSenderId = msg.sender_id ? Number(msg.sender_id) : null;
 
-    // 1. Map the Original Sender
+    // 1. Map the Original Sender (if they aren't the current replier)
     if (originalSenderId && originalSenderId !== currentUserId) {
       const cleanSenderName = (msg.sender_name || 'Member').trim();
       const senderParts = cleanSenderName.split(/\s+/);
-
       combinedRecipients.push({
         id: originalSenderId,
         first_name: senderParts[0] || cleanSenderName,
@@ -256,53 +270,54 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
       });
     }
 
-    // 2. Map the Co-Recipients from the JSON field
+    // 2. Parse the text-based JSON column 'all_recipients_json'
     if (msg.all_recipients_json) {
       try {
-        const parsedRecipients = typeof msg.all_recipients_json === 'string'
-          ? JSON.parse(msg.all_recipients_json)
-          : msg.all_recipients_json;
+        let parsedRecipients = msg.all_recipients_json;
+      
+        // Loop to unpack nested or double-escaped string payloads from webhooks factually
+        while (typeof parsedRecipients === 'string') {
+          parsedRecipients = JSON.parse(parsedRecipients);
+        }
 
         if (Array.isArray(parsedRecipients)) {
           parsedRecipients.forEach((rec: any) => {
             const recId = rec.id ? Number(rec.id) : null;
-            
-            // Factual rule matching: Skip current user and duplicate sender
+
+            // Exclude the active replier and avoid duplicating the original thread sender
             if (recId && recId !== currentUserId && recId !== originalSenderId) {
               const cleanRecName = (rec.name || rec.recipient_name || '').trim();
-              
               if (cleanRecName) {
                 const recParts = cleanRecName.split(/\s+/);
-                
-                combinedRecipients.push({
-                  id: recId,
-                  first_name: recParts[0] || cleanRecName,
-                  last_name: recParts.slice(1).join(' ') || '',
-                  phone_number: rec.phone || rec.phone_number || ''
-                });
+              
+                if (!combinedRecipients.some(r => Number(r.id) === recId)) {
+                  combinedRecipients.push({
+                    id: recId,
+                    first_name: recParts[0] || cleanRecName,
+                    last_name: recParts.slice(1).join(' ') || '',
+                    phone_number: rec.phone || rec.phone_number || ''
+                  });
+                }
               }
             }
           });
         }
       } catch (err) {
-        console.error("Failed to extract co-recipients inside handleReplyAll:", err);
+        console.error("Failed to parse double-escaped JSON string field:", err);
       }
     }
 
-    console.log("SUCCESS: Final processed array being passed to UI badges:", combinedRecipients);
+    // 3. Set the state fields cleanly removing whitespace padding bugs
     setSelectedRecipients(combinedRecipients);
-    
-    const countOthers = combinedRecipients.length - 1;
-    setActiveGroupContext(
-      countOthers > 0 
-        ? `Group Reply to: ${(msg.sender_name || '').trim()} and ${countOthers} others`
-        : `Reply to: ${(msg.sender_name || '').trim()}`
-    );
-    
+  
+    const rawSubject = msg.subject || msg.chat_subject || '';
+    const cleanSubjectText = rawSubject.trim();
+    const structuredSubject = /^re:/i.test(cleanSubjectText) ? cleanSubjectText : `Re: ${cleanSubjectText || '(No Subject)'}`;
+  
+    setChatSubject(structuredSubject);
+    setActiveGroupContext('');
     setActiveTab('contacts');
   };
-          
-
 
 
   const dispatchPrivateMessage = async (e: React.FormEvent) => {
@@ -397,15 +412,6 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
         <div className="flex border-b border-gray-100 p-2 gap-2 bg-gray-50">
           <button
             type="button"
-            onClick={() => setActiveTab('contacts')}
-            className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-              activeTab === 'contacts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
-            }`}
-          >
-            <MessageCircle size={14} /> Send New
-          </button>
-          <button
-            type="button"
             onClick={() => setActiveTab('history')}
             className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
               activeTab === 'history' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
@@ -413,10 +419,19 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
           >
             <History size={14} /> Inbox Mailbox
           </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('contacts')}
+            className={`flex-1 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+              activeTab === 'contacts' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-400 hover:text-gray-600'
+            }`}
+          >
+            <MessageCircle size={14} /> Send New
+          </button>
         </div>
 
         {/* Layout Panels Content Area */}
-        <div className="p-6 flex flex-col flex-1 overflow-y-auto min-h-[40vh] max-h-[55vh]">
+        <div className="p-6 flex flex-col flex-1 overflow-y-auto h-[60vh] max-h-[500px]">
           {activeTab === 'contacts' ? (
             <div className="space-y-4">
 
@@ -437,17 +452,6 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                   </div>
 
                   {/* Existing Message Details textarea block follows seamlessly below */}
-                  <div>
-                    <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Message Details</label>
-                    <textarea
-                      rows={3}
-                      value={chatMessage}
-                      onChange={e => setChatMessage(e.target.value)}
-                      placeholder="Write your private message here..."
-                      className="w-full p-4 bg-white border border-gray-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium text-gray-700 resize-none shadow-sm"
-                    />
-                  </div>
-
                   <div>
                     <label className="text-[10px] font-black text-indigo-600 block mb-1 uppercase tracking-wider">Message Details</label>
                     <textarea
@@ -684,7 +688,9 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                   <p className="text-[11px] text-gray-400 mt-1">Messages sent to you will appear here.</p>
                 </div>
               ) : (
-                receivedMessages.map((msg: any) => {
+                [...receivedMessages]
+                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                  .map((msg: any) => {
                   let coRecipients: string[] = [];
                   let hasMultipleRecipients = false;
 
@@ -711,10 +717,24 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                   }
 
                   return (
-                    <div key={msg.id} className="p-4 bg-gray-50 rounded-2xl border border-gray-100 space-y-2 text-left animate-in fade-in duration-100">
+                    <div 
+                      key={msg.id} 
+                      onClick={() => setSelectedThreadMsg(msg)} 
+                      className="p-4 bg-gray-50 hover:bg-indigo-50/40 rounded-2xl border border-gray-100 space-y-2 text-left animate-in fade-in duration-100 cursor-pointer transition-colors"
+                    >
                       <div className="flex justify-between items-start text-[10px] font-black text-indigo-600 uppercase">
                         <div>
-                          <span>From: {msg.sender_name || 'Anonymous Member'}</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span>From: {msg.sender_name || 'Anonymous Member'}</span>
+
+                            {/* 🟢 NEW UNREAD BADGE */}
+                            {(msg.is_read === false || msg.status === 'unread') && (
+                              <span className="bg-indigo-600 text-white text-[8px] font-black tracking-widest px-1.5 py-0.5 rounded uppercase animate-pulse">
+                                New
+                              </span>
+                            )}
+                          </div>
+
                           {hasMultipleRecipients && (
                             <span className="text-[9px] text-gray-400 font-medium block mt-0.5 normal-case max-w-[260px] truncate">
                               <span className="font-bold text-gray-500">To:</span> You, {coRecipients.join(', ')}
@@ -730,7 +750,7 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                       {msg.subject && msg.subject.trim() !== "" && (
                         <div className="bg-indigo-50/40 border border-indigo-100/30 px-2.5 py-1.5 rounded-xl">
                           <p className="text-[10px] uppercase font-black tracking-wider text-indigo-500 block mb-0.5">
-                            Subject / Purpose
+                            Subject
                           </p>
                           <p className="text-xs font-bold text-gray-800 leading-snug">
                             {msg.subject}
@@ -755,53 +775,31 @@ export const MemberChatModal: React.FC<MemberChatModalProps> = ({ isOpen, onClos
                         )}
 
                          <div className="flex gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setActiveGroupContext('');
-                              setSelectedRecipients([{
-                                id: msg.sender_id,
-                                first_name: msg.sender_name?.split(' ')[0] || 'Sender',
-                                last_name: msg.sender_name?.split(' ')[1] || ''
-                              }]);
-                              setActiveTab('contacts');
-                            }}
-                            className="text-[9px] bg-indigo-50 hover:bg-indigo-600 border border-indigo-100 font-black text-indigo-600 hover:text-white px-2.5 py-1.5 rounded-lg transition-colors"
-                          >
-                            Reply
-                          </button>
+                           {/* 1. CLEAN SINGLE REPLY BUTTON */}
+                           <button
+                             type="button"
+                             onClick={(e: React.MouseEvent) => {
+                               e.stopPropagation(); // Prevents row selection click events from colliding
+                               handleInitiateReply(msg); 
+                             }} 
+                             className="text-[9px] bg-indigo-50 hover:bg-indigo-600 border border-indigo-100 font-black text-indigo-600 hover:text-white px-2.5 py-1.5 rounded-lg transition-colors"
+                           >
+                             Reply
+                           </button>
 
-                          {hasMultipleRecipients && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                try {
-                                  const parsedRecipients = typeof msg.all_recipients_json === 'string'
-                                    ? JSON.parse(msg.all_recipients_json)
-                                    : msg.all_recipients_json;
-
-                                  if (Array.isArray(parsedRecipients)) {
-                                    const threadTargets = parsedRecipients.map((r: any) => ({
-                                      id: r.id,
-                                      first_name: r.name?.split(' ')[0] || r.first_name || '',
-                                      last_name: r.name?.split(' ')[1] || r.last_name || ''
-                                    }));
-                                    setSelectedRecipients(threadTargets);
-                                    setActiveGroupContext('reply_all_context');
-                                    setActiveTab('contacts');
-                                  }
-                                } catch (err) {
-                                  console.error("Failed to parse reply all thread recipient targets:", err);
-                                }
-                              }}
-                              className="text-[9px] bg-indigo-600 hover:bg-indigo-700 font-black text-white px-2.5 py-1.5 rounded-lg transition-colors shadow-sm"
-                            >
-                              Reply All
-                            </button>
-                          )}
-                        </div>
-
-
+                           {hasMultipleRecipients && (
+                             <button
+                               type="button"
+                               onClick={(e: React.MouseEvent) => {
+                                 e.stopPropagation(); // Prevents row selection click events from colliding
+                                 handleReplyAll(msg);
+                               }} 
+                               className="text-[9px] bg-indigo-600 hover:bg-indigo-700 font-black text-white px-2.5 py-1.5 rounded-lg transition-colors shadow-sm"
+                             >
+                               Reply All
+                             </button>
+                           )}
+                         </div>
 
                       </div>
                     </div>
