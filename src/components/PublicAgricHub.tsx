@@ -77,6 +77,7 @@ export const PublicAgricHub: React.FC = () => {
 
     const payload = type === 'register'
       ? { 
+          action: 'register',
           shop_id: parseInt(shopId), 
           phone_number: phone, 
           password, 
@@ -84,6 +85,7 @@ export const PublicAgricHub: React.FC = () => {
           user_category: category 
         }
       : { 
+          action: 'login',
           shop_id: parseInt(shopId), 
           phone_number: phone, 
           password 
