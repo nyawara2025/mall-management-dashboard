@@ -44,7 +44,6 @@ import { NGODashboard } from './components/NGODashboard';
 import { PublicGivingPage } from './components/PublicGivingPage';
 import { VisitorWelcomePage } from './components/VisitorWelcomePage';
 import { ScreenDisplay } from './components/ScreenDisplay';
-import { PublicAgricHub } from './components/PublicAgricHub';
 import { MediaPresentationController } from './components/MediaPresentationController';
 import SettingsPage from './pages/SettingsPage';
 import './index.css';
@@ -87,12 +86,11 @@ function AppContent() {
   // 🌐 Dynamic Domain Detection
   const hostname = window.location.hostname;
   const isSchoolDomain = hostname.includes('tenearedu') || hostname.includes('school');
-  const isAgriDomain = hostname.includes('sbo2') || hostname.includes('agri'); // 🚜 Added Agri Domain detector
 
   if (urlShopId) {
     // 1. If params exist, back them up instantly for future sessions
     localStorage.setItem('__native_shop_id', urlShopId);
-    localStorage.setItem('__native_biz_cat', currentUrl.searchParams.get('business_category') || (isSchoolDomain ? 'education' : isAgriDomain ? 'agricultural' : 'church'));
+    localStorage.setItem('__native_biz_cat', currentUrl.searchParams.get('business_category') || (isSchoolDomain ? 'education' : 'church'));
   } else if (isAndroidWebView || currentUrl.pathname === '/') {
     // 2. If Android stripped params OR we hit the base root, resolve by hostname context
     if (isSchoolDomain) {
@@ -103,15 +101,6 @@ function AppContent() {
       currentUrl.pathname = '/school';
       currentUrl.searchParams.set('business_category', cachedBizCat);
       currentUrl.searchParams.set('shop_id', cachedShopId);
-
-    } else if (isAgriDomain || currentUrl.pathname === '/agri') {
-      // 🚜 Agricultural Hub Fallbacks (New Intercept Entry)
-      const cachedShopId = localStorage.getItem('__native_shop_id') || '81'; // Default to Nyawara Ranch
-      const cachedBizCat = localStorage.getItem('__native_biz_cat') || 'agricultural';
-      currentUrl.pathname = '/agri';
-      currentUrl.searchParams.set('business_category', cachedBizCat);
-      currentUrl.searchParams.set('shop_id', cachedShopId);
-
     } else {
       // ⛪ Church Hub Fallbacks (Your original logic)
       const cachedShopId = localStorage.getItem('__native_shop_id') || '68'; 
@@ -138,7 +127,7 @@ function AppContent() {
   const [isDiscoveryModalOpen, setIsDiscoveryModalOpen] = useState(false);
   const isChurchPath = window.location.pathname.includes('/church');
   const isSchoolPath = window.location.pathname.includes('/school');
-  const isAgriPath = window.location.pathname.includes('/agri');
+
   
   const handleSelectCandidate = (shopId: string) => {
     // Update the URL parameters without a page reload
@@ -220,16 +209,6 @@ function AppContent() {
     );
   }
         
-
-  // 🚜 FARMER PUBLIC MOBILE HUB GATEKEEPER (New Intercept Injection)
-  if (bizCategory === 'agricultural' || isAgriPath) {
-    return (
-      <div className="min-h-screen bg-stone-50">
-        {/* PublicAgriHub manages its internal login/registration state engine locally */}
-        <PublicAgricHub />
-      </div>
-    );
-  }
 
   useEffect(() => {
     // If no candidate is selected, open the discovery modal immediately
