@@ -22,6 +22,14 @@ export const PublicAgricHub: React.FC = () => {
   const [category, setCategory] = useState('farm_hand');
   const [loading, setLoading] = useState(false);
 
+  // 📊 Active Dashboard States
+  const [activeTab, setActiveTab] = useState<'poultry' | 'crops' | 'livestock'>('poultry');
+  const [userSession, setUserSession] = useState<{ name: string; role: string } | null>(() => {
+    const cachedName = localStorage.getItem('remembered_session_name');
+    const cachedRole = localStorage.getItem('remembered_session_role');
+    return cachedName && cachedRole ? { name: cachedName, role: cachedRole } : null;
+  });
+
   // Fetch active agri-tenants from n8n on component mount if no farm is remembered
   useEffect(() => {
     if (!shopId) {
@@ -236,6 +244,112 @@ export const PublicAgricHub: React.FC = () => {
           <p className="text-xs text-center text-slate-500 mt-6">New on this farm? <button onClick={() => setView('register')} className="text-emerald-600 font-semibold underline">Register Profile</button></p>
         </div>
       )}
+
+      {/* VIEW 3: MAIN DYNAMIC DASHBOARD */}
+      {view === 'dashboard' && (
+        <div className="w-full flex-grow animate-fadeIn">
+          {/* Tenant and User Header Metadata Banner */}
+          <div className="bg-emerald-800 text-white rounded-2xl p-4 mb-4 shadow-sm flex justify-between items-center">
+            <div>
+              <h1 className="text-md font-bold tracking-wide">TeNEAR Agri-Hub</h1>
+              <p className="text-[11px] opacity-80">
+                User: <span className="font-semibold">{userSession?.name}</span> ({userSession?.role})
+              </p>
+            </div>
+            <button 
+              onClick={() => {
+                // Clear state to securely log out the user back to the form
+                setUserSession(null);
+                setView('login');
+              }} 
+              className="text-[10px] bg-emerald-950 font-medium px-2 py-1.5 rounded-lg opacity-90 hover:opacity-100 transition-all"
+            >
+              Log Out
+            </button>
+          </div>
+
+          {/* Tab Selector Buttons */}
+          <div className="grid grid-cols-3 gap-2 mb-5">
+            {(['poultry', 'crops', 'livestock'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`py-2.5 px-1 rounded-xl font-bold text-xs capitalize transition-all border ${
+                  activeTab === tab 
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs' 
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {/* Role-Based Insight Strip (Visible only to owners/managers) */}
+          {['owner', 'manager'].includes(userSession?.role || '') && (
+            <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl mb-4 text-xs text-amber-900 font-medium flex items-center gap-2">
+              <span>💡</span>
+              <p>Management Profile Active: Extended field metrics enabled.</p>
+            </div>
+          )}
+
+          {/* Dynamic Records Grid Cards */}
+          <div className="grid grid-cols-2 gap-3">
+            {activeTab === 'poultry' && (
+              <>
+                <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/60">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Broilers</span>
+                  <p className="text-2xl font-black mt-1 text-slate-900">1,250</p>
+                  <p className="text-xs text-emerald-600 font-medium mt-1">🐣 Batch #4A</p>
+                </div>
+                <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/60">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Kienyeji</span>
+                  <p className="text-2xl font-black mt-1 text-slate-900">480</p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">🐓 Free Range</p>
+                </div>
+                <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/60 col-span-2">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Egg Production</span>
+                  <div className="flex justify-between items-end mt-1">
+                    <p className="text-2xl font-black text-slate-900">12 Crates</p>
+                    <span className="text-[11px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-bold">Today</span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'crops' && (
+              <>
+                <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/60">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Maize Fields</span>
+                  <p className="text-2xl font-black mt-1 text-slate-900">4.5 Ac</p>
+                  <p className="text-xs text-amber-600 font-medium mt-1">🌽 Weeding Phase</p>
+                </div>
+                <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/60">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Horticulture</span>
+                  <p className="text-2xl font-black mt-1 text-slate-900">850 kg</p>
+                  <p className="text-xs text-emerald-600 font-medium mt-1">🍅 Tomatoes</p>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'livestock' && (
+              <>
+                <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/60">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Dairy Cattle</span>
+                  <p className="text-2xl font-black mt-1 text-slate-900">14 Cows</p>
+                  <p className="text-xs text-blue-600 font-medium mt-1">🥛 165L Total/Day</p>
+                </div>
+                <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/60">
+                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Goats & Sheep</span>
+                  <p className="text-2xl font-black mt-1 text-slate-900">32 Head</p>
+                  <p className="text-xs text-slate-500 font-medium mt-1">🐑 Boer & Dorper</p>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
 
     </div>
   );
