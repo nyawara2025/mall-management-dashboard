@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
 interface FarmOption {
-  shop_id: string;
-  business_name: string;
+  id: string;
+  name: string;
 }
 
 export const PublicAgricHub: React.FC = () => {
@@ -16,7 +16,9 @@ export const PublicAgricHub: React.FC = () => {
   // Auth Form Fields
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+
   const [category, setCategory] = useState('farm_hand');
   const [loading, setLoading] = useState(false);
 
@@ -31,14 +33,23 @@ export const PublicAgricHub: React.FC = () => {
             body: JSON.stringify({ business_category: 'agricultural' })
           });
           const data = await response.json();
-          if (data.success && data.farms) {
+          // Check if the response returned is a valid array directly
+          if (Array.isArray(data) && data.length > 0) {
+            setFarmsList(data); // Stores the farm array directly
+  
+            // Read from the first returned index row securely (e.g., Nyawara Ranch)
+            setShopId(data[0].id.toString());
+            setFarmName(data[0].name);
+          } else if (data.success && data.farms) {
+            // Fallback catch block in case your webhook wraps it later
             setFarmsList(data.farms);
-            // Default to the first farm returned (e.g., Nyawara Ranch) if selection is blank
             if (data.farms.length > 0) {
-              setShopId(data.farms[0].shop_id);
-              setFarmName(data.farms[0].business_name);
+              setShopId(data.farms[0].id.toString());
+              setFarmName(data.farms[0].name);
             }
           }
+
+
         } catch (err) {
           console.error("Failed to load farms from n8n gateway", err);
         }
@@ -50,10 +61,10 @@ export const PublicAgricHub: React.FC = () => {
   // Handle explicit selector changes in the dropdown menu
   const handleFarmDropdownChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedId = e.target.value;
-    const match = farmsList.find(f => f.shop_id === selectedId);
+    const match = farmsList.find(f => f.id.toString() === selectedId);
     if (match) {
       setShopId(selectedId);
-      setFarmName(match.business_name);
+      setFarmName(match.name);
     }
   };
 
@@ -62,9 +73,21 @@ export const PublicAgricHub: React.FC = () => {
     if (!shopId) return alert("Please select a farm environment first.");
     setLoading(true);
 
+    const combinedFullName = `${firstName.trim()} ${lastName.trim()}`;
+
     const payload = type === 'register'
-      ? { shop_id: shopId, phone_number: phone, password, full_name: fullName, user_category: category }
-      : { shop_id: shopId, phone_number: phone, password };
+      ? { 
+          shop_id: parseInt(shopId), 
+          phone_number: phone, 
+          password, 
+          full_name: combinedFullName, // Ensure this points to combinedFullName
+          user_category: category 
+        }
+      : { 
+          shop_id: parseInt(shopId), 
+          phone_number: phone, 
+          password 
+        };
 
     try {
       const response = await fetch(`https://n8n.tenear.com/webhook/sign-farmer`, {
@@ -130,14 +153,37 @@ export const PublicAgricHub: React.FC = () => {
                 className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-white font-medium"
               >
                 {farmsList.map(farm => (
-                  <option key={farm.shop_id} value={farm.shop_id}>{farm.business_name}</option>
+                  <option key={farm.id} value={farm.id}>
+                    {farm.name}
+                  </option>
                 ))}
               </select>
             </div>
 
-            <div>
-              <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">Full Name</label>
-              <input type="text" placeholder="John Kamau" value={fullName} onChange={e => setFullName(e.target.value)} required className="w-full p-3 border border-slate-200 rounded-xl text-sm" />
+            {/* 👥 Grid for Split First Name & Last Name inputs */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">First Name</label>
+                <input 
+                  type="text" 
+                  placeholder="Eric" 
+                  value={firstName} 
+                  onChange={e => setFirstName(e.target.value)} 
+                  required 
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm text-slate-800" 
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">Last Name</label>
+                <input 
+                  type="text" 
+                  placeholder="Nyawara" 
+                  value={lastName} 
+                  onChange={e => setLastName(e.target.value)} 
+                  required 
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm text-slate-800" 
+                />
+              </div>
             </div>
 
             <div>
