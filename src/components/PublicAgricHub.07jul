@@ -22,6 +22,7 @@ export const PublicAgricHub: React.FC = () => {
   const [category, setCategory] = useState('farm_hand');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'poultry' | 'crops' | 'livestock'>('poultry');
+  const [poultryView, setPoultryView] = useState<'menu' | 'production' | 'feed' | 'implements' | 'vaccination' | 'purchases' | 'sales'>('menu');
   const [userSession, setUserSession] = useState<{ name: string; role: string } | null>(() => {
     const cachedName = localStorage.getItem('remembered_session_name');
     const cachedRole = localStorage.getItem('remembered_session_role');
@@ -334,7 +335,10 @@ export const PublicAgricHub: React.FC = () => {
             {(['poultry', 'crops', 'livestock'] as const).map((tab) => (
               <button 
                 key={tab} 
-                onClick={() => setActiveTab(tab)} 
+                onClick={() => {
+                  setActiveTab(tab);
+                  setPoultryView('menu');
+                }} 
                 className={`py-2.5 px-1 rounded-xl font-bold text-xs capitalize transition-all border ${
                   activeTab === tab ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 border-slate-200'
                 }`}
@@ -357,10 +361,115 @@ export const PublicAgricHub: React.FC = () => {
             </div>
           ) : null}
 
-          {/* 🐓 POULTRY INPUT TRACKING MODULE SUB-PANE */}
-          {activeTab === 'poultry' && (
-            <div className="space-y-4">
-              {/* Repurposed operational summary layout */}
+          {/* 🐓 POULTRY MANAGEMENT HUB PANELS */}
+          {activeTab === 'poultry' && poultryView === 'menu' && (
+            <div className="space-y-3 animate-fadeIn">
+              {/* Menu Intro Header */}
+              <div className="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-xs">
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">Poultry Operations</h3>
+                <p className="text-[10px] text-slate-400">Select an operational sub-sector to manage your poultry records</p>
+              </div>
+
+              {/* Functional Dashboard Hub Options */}
+              <div className="grid grid-cols-1 gap-3">
+                {/* 1. Poultry Production Menu Trigger */}
+                <button
+                  onClick={() => setPoultryView('production')}
+                  className="w-full bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:border-slate-300 transition-colors group"
+                >
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
+                      Poultry Production
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-medium mt-0.5">Manage production cycles & flock segments</p>
+                  </div>
+                  <span className="text-lg">🐣</span>
+                </button>
+
+                {/* 2. Feed Management Menu Trigger */}
+                <button
+                  onClick={() => setPoultryView('feed')}
+                  className="w-full bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:border-slate-300 transition-colors group"
+                >
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
+                      Feed Management
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-medium mt-0.5">Track feed stock, formulations & consumption</p>
+                  </div>
+                  <span className="text-lg">🌾</span>
+                </button>
+
+                {/* 3. Implements Menu Trigger */}
+                <button
+                  onClick={() => setPoultryView('implements')}
+                  className="w-full bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:border-slate-300 transition-colors group"
+                >
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
+                      Implements
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-medium mt-0.5">Inventory of feeders, drinkers, & farm equipment</p>
+                  </div>
+                  <span className="text-lg">🛠️</span>
+                </button>
+
+                {/* 4. Vaccination Menu Trigger */}
+                <button
+                  onClick={() => setPoultryView('vaccination')}
+                  className="w-full bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:border-slate-300 transition-colors group"
+                >
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
+                      Vaccination
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-medium mt-0.5">Schedule drug administration & health tracking</p>
+                  </div>
+                  <span className="text-lg">💉</span>
+                </button>
+
+                {/* 5. Purchases Menu Trigger */}
+                <button
+                  onClick={() => setPoultryView('purchases')}
+                  className="w-full bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:border-slate-300 transition-colors group"
+                >
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
+                      Purchases
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-medium mt-0.5">Record Purchases</p>
+                  </div>
+                  <span className="text-lg">💰</span>
+                </button>
+
+                {/* 6. Sales Menu Trigger */}
+                <button
+                  onClick={() => setPoultryView('sales')}
+                  className="w-full bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:border-slate-300 transition-colors group"
+                >
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
+                      Sales
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-medium mt-0.5">Record egg distribution & meat batch sales</p>
+                  </div>
+                  <span className="text-lg">💰</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* 🐣 SUB-MENU VIEW: POULTRY PRODUCTION */}
+          {activeTab === 'poultry' && poultryView === 'production' && (
+            <div className="space-y-4 animate-fadeIn">
+              {/* Back to Top Level Menu Ribbon */}
+              <button
+                onClick={() => setPoultryView('menu')}
+                className="text-[11px] text-blue-600 hover:text-blue-700 font-black tracking-wide uppercase flex items-center gap-1 transition-all"
+              >
+                ← Back to Poultry Overview
+              </button>
+
               <div className="bg-white border border-slate-200/80 p-4 rounded-2xl flex justify-between items-center shadow-xs">
                 <div>
                   <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">Poultry Production</h3>
@@ -374,17 +483,42 @@ export const PublicAgricHub: React.FC = () => {
                 </button>
               </div>
 
-              {/* Grid showing existing active stocks overview indicators */}
-              <div className="grid grid-cols-2 gap-3">
-                {['Broiler', 'Layers', 'Kenbro', 'Geese', 'Turkey'].map((bird) => (
-                  <div key={bird} className="bg-white p-3.5 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center">
+              {/* Dynamic rendering loop matching your original card elements */}
+              <div className="grid grid-cols-1 gap-3">
+                {['Broilers', 'Layers', 'Kenbros', 'Geese', 'Turkeys'].map((cls) => (
+                  <div key={cls} className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center">
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block">{bird}s</span>
-                      <span className="text-xs font-bold text-slate-400 mt-0.5 block">No Active Cycles</span>
+                      <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">
+                        {cls === 'Layers' ? 'Layerss' : cls === 'Geese' ? 'Geeses' : cls}
+                      </h4>
+                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">No Active Cycles</p>
                     </div>
-                    <span className="text-xl">🪶</span>
+                    <span className="text-lg">
+                      {cls === 'Broilers' || cls === 'Layers' || cls === 'Kenbros' ? '🐤' : '🪶'}
+                    </span>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* 🌾 PLACEHOLDERS FOR NEW SUB-VIEWS (FEED, IMPLEMENTS, VACCINATION, PURCHASES, SALES) */}
+          {activeTab === 'poultry' && poultryView !== 'menu' && poultryView !== 'production' && (
+            <div className="space-y-4 animate-fadeIn">
+              <button
+                onClick={() => setPoultryView('menu')}
+                className="text-[11px] text-blue-600 hover:text-blue-700 font-black tracking-wide uppercase flex items-center gap-1"
+              >
+                ← Back to Poultry Overview
+              </button>
+
+              <div className="bg-white border border-slate-200/80 p-6 rounded-2xl shadow-xs text-center">
+                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide mb-1">
+                  {poultryView} Dashboard
+                </h3>
+                <p className="text-[11px] text-slate-400 font-medium">
+                  Database interface integrations for sub-module features coming soon.
+                </p>
               </div>
             </div>
           )}
