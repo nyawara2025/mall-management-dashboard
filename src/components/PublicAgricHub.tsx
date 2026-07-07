@@ -712,25 +712,47 @@ export const PublicAgricHub: React.FC = () => {
 
               {/* 📦 Live Stock Silo Inventory */}
               <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-3">Current Stock Balance</h4>
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Current Stock Balance</h4>
+                  {loadingBalances && <span className="text-[9px] font-bold text-blue-600 animate-pulse uppercase">Refreshing...</span>}
+                </div>
                 
                 <div className="space-y-2">
                   {[
-                    { type: 'Starter Crumbs', qty: '12 Bags', status: 'Optimal', color: 'text-emerald-600 bg-emerald-50' },
-                    { type: 'Growers Pellets', qty: '4 Bags', status: 'Low Stock', color: 'text-amber-600 bg-amber-50' },
-                    { type: 'Finisher Pellets', qty: '0 Bags', status: 'Out of Stock', color: 'text-rose-600 bg-rose-50' },
-                    { type: 'Layers Mash', qty: '28 Bags', status: 'Optimal', color: 'text-emerald-600 bg-emerald-50' }
-                  ].map((item) => (
-                    <div key={item.type} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-xl border border-slate-100">
-                      <div>
-                        <p className="text-xs font-black text-slate-800">{item.type}</p>
-                        <p className="text-[10px] text-slate-400 font-medium">Available Volume: {item.qty}</p>
+                    { type: 'Starter Crumbs' },
+                    { type: 'Growers Pellets' },
+                    { type: 'Finisher Pellets' },
+                    { type: 'Layers Mash' }
+                  ].map((feed) => {
+                    // 🔄 FIX: Safely pull the calculated value directly from your live n8n state variable
+                    const balance = feedBalances[feed.type] !== undefined ? feedBalances[feed.type] : 0;
+                    
+                    // Dynamically calculate stock alert badges based on live calculated levels
+                    let status = 'Optimal';
+                    let colorCode = 'text-emerald-600 bg-emerald-50';
+                    
+                    if (balance <= 0) {
+                      status = 'Out of Stock';
+                      colorCode = 'text-rose-600 bg-rose-50';
+                    } else if (balance <= 5) {
+                      status = 'Low Stock';
+                      colorCode = 'text-amber-600 bg-amber-50';
+                    }
+
+                    return (
+                      <div key={feed.type} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                        <div>
+                          <p className="text-xs font-black text-slate-800">{feed.type}</p>
+                          <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                            Available Volume: <span className="font-bold text-slate-700">{balance} Bags</span>
+                          </p>
+                        </div>
+                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${colorCode}`}>
+                          {status}
+                        </span>
                       </div>
-                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${item.color}`}>
-                        {item.status}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
