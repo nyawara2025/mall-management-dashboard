@@ -55,6 +55,42 @@ export const PublicAgricHub: React.FC = () => {
     else if (type === 'Turkey') setProductionDays(150);
   };
 
+
+  // 🌽 Crops Production Modal States
+  const [isCropsModalOpen, setIsCropsModalOpen] = useState(false);
+  const [cropClass, setCropClass] = useState<'Vegetables' | 'Fruits' | 'Tubers'>('Vegetables');
+  const [cropVariety, setCropVariety] = useState('Spinach');
+  const [acreage, setAcreage] = useState('');
+  const [cropStartDate, setCropStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [harvestDate, setHarvestDate] = useState('');
+
+  // 🔄 Automated Crop Harvest Timeline Predictor 
+  useEffect(() => {
+    if (cropStartDate) {
+      const start = new Date(cropStartDate);
+      let growingDays = 90; // Default fallback duration layout
+      
+      // Auto-compute average duration timelines matching standard local varieties
+      if (cropVariety === 'Spinach' || cropVariety === 'Sukuma Wiki') growingDays = 60;
+      else if (cropVariety === 'Tomato') growingDays = 90;
+      else if (cropVariety === 'Avocado' || cropVariety === 'Mango') growingDays = 365 * 3; // Long-term orchard trees
+      else if (cropVariety === 'Potatoes') growingDays = 105;
+      else if (cropVariety === 'Carrots') growingDays = 90;
+      else if (cropVariety === 'Mhogo') growingDays = 270;
+
+      start.setDate(start.getDate() + growingDays);
+      setHarvestDate(start.toISOString().split('T')[0]);
+    }
+  }, [cropStartDate, cropVariety]);
+
+  // Handle cascading dropdown state values cleanly
+  const handleCropClassChange = (value: 'Vegetables' | 'Fruits' | 'Tubers') => {
+    setCropClass(value);
+    if (value === 'Vegetables') setCropVariety('Spinach');
+    else if (value === 'Fruits') setCropVariety('Avocado');
+    else if (value === 'Tubers') setCropVariety('Potatoes');
+  };
+
   // Fetch active agri-tenants on initialization
   useEffect(() => {
     if (!shopId) {
@@ -338,11 +374,44 @@ export const PublicAgricHub: React.FC = () => {
             </div>
           )}
 
-          {activeTab !== 'poultry' && (
-            <div className="text-center py-12 text-slate-300 text-xs font-bold">
-              Metrics panel view updates loading shortly...
+          {/* 🌽 CROPS PRODUCTION TRACKING PANELS */}
+          {activeTab === 'crops' && (
+            <div className="space-y-4 animate-fadeIn">
+              <div className="bg-white border border-slate-200/80 p-4 rounded-2xl flex justify-between items-center shadow-xs">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">Crop Cultivation</h3>
+                  <p className="text-[10px] text-slate-400">Log new field allocations and variety plots</p>
+                </div>
+                <button 
+                  onClick={() => setIsCropsModalOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[11px] tracking-wide py-2 px-3.5 rounded-xl transition-all shadow-xs"
+                >
+                  + NEW PLOT
+                </button>
+              </div>
+
+              {/* Displaying Categories precisely as defined by your schema requirements */}
+              <div className="grid grid-cols-1 gap-3">
+                {['Vegetables', 'Fruits', 'Tubers'].map((cls) => (
+                  <div key={cls} className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center">
+                    <div>
+                      <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">{cls} Records</h4>
+                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">No active crop tracking timelines on file</p>
+                    </div>
+                    <span className="text-lg">{cls === 'Vegetables' ? '🥬' : cls === 'Fruits' ? '🥑' : '🥔'}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
+
+          {activeTab === 'livestock' && (
+            <div className="text-center py-12 text-slate-300 text-xs font-bold">
+              Metrics panel livestock tracking view updates loading shortly...
+            </div>
+          )}
+
+
         </div>
       )}
 
@@ -428,6 +497,113 @@ export const PublicAgricHub: React.FC = () => {
                 className="w-full bg-blue-500 hover:bg-blue-600 active:scale-95 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide transition-all shadow-md pt-3"
               >
                 {loading ? 'Saving Parameters...' : 'SAVE CYCLE'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 📱 THE DYNAMIC CROPS INPUT MODAL GRID SYSTEM */}
+      {isCropsModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-end justify-center z-50 p-4">
+          <div className="w-full bg-white rounded-3xl p-5 shadow-xl max-w-md border border-slate-100 flex flex-col space-y-4 animate-slideUp">
+            
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-black text-blue-900 tracking-wide">Configure Crop Allocation</h3>
+              <button onClick={() => setIsCropsModalOpen(false)} className="text-slate-400 font-bold hover:text-slate-600 text-xs">Cancel</button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setLoading(true);
+              try {
+                const response = await fetch('https://pages.dev', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'save_crop_cycle',
+                    shop_id: parseInt(shopId || '81'),
+                    phone_number: localStorage.getItem('remembered_phone_number'),
+                    crop_class: cropClass,
+                    crop_variety: cropVariety,
+                    acreage: parseFloat(acreage),
+                    start_date: cropStartDate,
+                    expected_harvest_date: harvestDate
+                  })
+                });
+                if (response.ok) {
+                  alert(`Successfully logged ${acreage} Acres of ${cropVariety}!`);
+                  setIsCropsModalOpen(false);
+                  setAcreage('');
+                }
+              } catch(err) { console.error(err); }
+              finally { setLoading(false); }
+            }} className="space-y-4 text-left">
+              
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Crop Class</label>
+                <select value={cropClass} onChange={(e) => handleCropClassChange(e.target.value as any)} className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none">
+                  <option value="Vegetables">🥬 Vegetables (Greens / Tomatoes)</option>
+                  <option value="Fruits">🥑 Fruits (Orchard Trees)</option>
+                  <option value="Tubers">🥔 Tubers (Root Crops)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Select Crop Variety</label>
+                <select value={cropVariety} onChange={(e) => setCropVariety(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none">
+                  {cropClass === 'Vegetables' && (
+                    <>
+                      <option value="Spinach">Spinach</option>
+                      <option value="Sukuma Wiki">Sukuma Wiki (Kale)</option>
+                      <option value="Kunde">Kunde</option>
+                      <option value="Osuga">Osuga</option>
+                      <option value="Terere">Terere</option>
+                      <option value="Tomato">Tomato</option>
+                      <option value="Other Vegetables">Other Variety</option>
+                    </>
+                  )}
+                  {cropClass === 'Fruits' && (
+                    <>
+                      <option value="Avocado">Avocado</option>
+                      <option value="Orange">Orange</option>
+                      <option value="Dragon Fruit">Dragon Fruit</option>
+                      <option value="Apple">Apple</option>
+                      <option value="Mango">Mango</option>
+                      <option value="Luquarts">Loquats</option>
+                      <option value="Other Fruits">Other Variety</option>
+                    </>
+                  )}
+                  {cropClass === 'Tubers' && (
+                    <>
+                      <option value="Potatoes">Potatoes</option>
+                      <option value="Carrots">Carrots</option>
+                      <option value="Mhogo">Mhogo (Cassava)</option>
+                      <option value="Yams">Yams</option>
+                      <option value="Other Tubers">Other Variety</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Plot Size (Acreage)</label>
+                <input type="number" step="0.01" placeholder="e.g., 1.50 Acres" value={acreage} onChange={e => setAcreage(e.target.value)} required className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Planting Date</label>
+                  <input type="date" value={cropStartDate} onChange={e => setCropStartDate(e.target.value)} required className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold focus:outline-none" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Est. Harvest</label>
+                  <input type="date" value={harvestDate} readOnly className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-100 text-slate-500 font-bold focus:outline-none" />
+                </div>
+              </div>
+
+              <button type="submit" disabled={loading} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide transition-all shadow-md">
+                {loading ? 'Saving Data...' : 'SAVE PLOT RECORDS'}
               </button>
             </form>
           </div>
