@@ -502,22 +502,73 @@ export const PublicAgricHub: React.FC = () => {
             </div>
           )}
 
-          {/* 🌾 PLACEHOLDERS FOR NEW SUB-VIEWS (FEED, IMPLEMENTS, VACCINATION, PURCHASES, SALES) */}
-          {activeTab === 'poultry' && poultryView !== 'menu' && poultryView !== 'production' && (
+          {/* 🌾 SUB-VIEW: FEED MANAGEMENT */}
+          {activeTab === 'poultry' && poultryView === 'feed' && (
             <div className="space-y-4 animate-fadeIn">
+              {/* Navigation Back Ribbon */}
               <button
                 onClick={() => setPoultryView('menu')}
-                className="text-[11px] text-blue-600 hover:text-blue-700 font-black tracking-wide uppercase flex items-center gap-1"
+                className="text-[11px] text-blue-600 hover:text-blue-700 font-black tracking-wide uppercase flex items-center gap-1 transition-all"
               >
                 ← Back to Poultry Overview
               </button>
 
-              <div className="bg-white border border-slate-200/80 p-6 rounded-2xl shadow-xs text-center">
-                <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide mb-1">
-                  {poultryView} Dashboard
-                </h3>
-                <p className="text-[11px] text-slate-400 font-medium">
-                  Database interface integrations for sub-module features coming soon.
+              {/* Module Header */}
+              <div className="bg-white border border-slate-200/80 p-4 rounded-2xl flex justify-between items-center shadow-xs">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">Feed Management</h3>
+                  <p className="text-[10px] text-slate-400">Track feed silo levels, daily bird ratios, and flock consumption</p>
+                </div>
+              </div>
+
+              {/* ⚡ Quick Operational Actions */}
+              <div className="grid grid-cols-2 gap-2">
+                <button 
+                  onClick={() => alert('Trigger log daily feeding webhook/modal')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[11px] tracking-wide py-3 px-2 rounded-xl transition-all shadow-xs text-center uppercase"
+                >
+                  📝 Log Daily Feeding
+                </button>
+                <button 
+                  onClick={() => alert('Trigger stock correction/reconciliation modal')}
+                  className="bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-[11px] tracking-wide py-3 px-2 rounded-xl transition-all shadow-xs text-center uppercase"
+                >
+                  ⚖️ Adjust Inventory
+                </button>
+              </div>
+
+              {/* 📦 Live Stock Silo Inventory */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-3">Current Stock Balance</h4>
+                
+                <div className="space-y-2">
+                  {[
+                    { type: 'Starter Crumbs', qty: '12 Bags', status: 'Optimal', color: 'text-emerald-600 bg-emerald-50' },
+                    { type: 'Growers Pellets', qty: '4 Bags', status: 'Low Stock', color: 'text-amber-600 bg-amber-50' },
+                    { type: 'Finisher Pellets', qty: '0 Bags', status: 'Out of Stock', color: 'text-rose-600 bg-rose-50' },
+                    { type: 'Layers Mash', qty: '28 Bags', status: 'Optimal', color: 'text-emerald-600 bg-emerald-50' }
+                  ].map((item) => (
+                    <div key={item.type} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                      <div>
+                        <p className="text-xs font-black text-slate-800">{item.type}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">Available Volume: {item.qty}</p>
+                      </div>
+                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${item.color}`}>
+                        {item.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 📊 Advanced Analytics: Feed Conversion Helper */}
+              <div className="bg-blue-50/50 border border-blue-100 p-4 rounded-2xl shadow-xs text-left">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="text-xs">📊</span>
+                  <h4 className="text-[11px] font-black text-blue-900 uppercase tracking-wide">FCR Calculator Insight</h4>
+                </div>
+                <p className="text-[10px] text-slate-500 leading-relaxed font-medium">
+                  Your Feed Conversion Ratio measures how efficiently birds convert feed into weight/eggs. Daily feeding entry cards calculate this metric against your current active batch counts automatically.
                 </p>
               </div>
             </div>
