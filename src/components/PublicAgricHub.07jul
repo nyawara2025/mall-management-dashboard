@@ -29,6 +29,12 @@ export const PublicAgricHub: React.FC = () => {
     return cachedName && cachedRole ? { name: cachedName, role: cachedRole } : null;
   });
 
+  const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
+  const [adjustFeedType, setAdjustFeedType] = useState('Starter Crumbs');
+  const [adjustAction, setAdjustAction] = useState<'add' | 'remove'>('add');
+  const [adjustQuantity, setAdjustQuantity] = useState('');
+  const [adjustReason, setAdjustReason] = useState('Spillage/Waste');
+
   // 📋 Production Modal Controls
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalProduct, setModalProduct] = useState('Broiler');
@@ -215,6 +221,62 @@ export const PublicAgricHub: React.FC = () => {
     setFarmName('');
     setUserSession(null);
     setView('login');
+  };
+
+  const handleAdjustInventory = async (e: React.FormEvent) => {
+    e.preventDefault();
+  
+    if (!adjustQuantity || parseFloat(adjustQuantity) <= 0) {
+      alert("Please enter a valid quantity amount");
+      return;
+    }
+
+    setLoading(true);
+
+    // Structural payload matching your Cloudflare multi-tenant token context
+    const adjustmentPayload = {
+      shop_id: shopId,
+      farm_name: farmName,
+      feed_type: adjustFeedType,
+      action_type: adjustAction, // 'add' increments stock, 'remove' decrements stock
+      quantity_bags: parseFloat(adjustQuantity),
+      adjustment_reason: adjustReason,
+      logged_by_role: userSession?.role || 'farm_hand',
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/adjust-poultry-inventory', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          // If your platform passes an auth token or signature via headers, include it here:
+          // 'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}` 
+        },
+        body: JSON.stringify(adjustmentPayload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server responded with operational status code: ${response.status}`);
+      }
+
+      // Optional: Parse JSON if your n8n workflow returns a confirmation object message
+      // const responseData = await response.json();
+
+      alert(`Successfully logged inventory update for ${adjustFeedType}!`);
+    
+      // Clear functional form state variables & dismiss overlay view
+      setAdjustQuantity('');
+      setIsAdjustModalOpen(false);
+
+      // TODO: Refresh your stock listing component data here if you pull data from a state engine
+
+    } catch (error) {
+      console.error("Inventory adjustment pipeline network failure:", error);
+      alert("Failed to submit inventory adjustment. Please check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -530,7 +592,7 @@ export const PublicAgricHub: React.FC = () => {
                   📝 Log Daily Feeding
                 </button>
                 <button 
-                  onClick={() => alert('Trigger stock correction/reconciliation modal')}
+                  onClick={() => setIsAdjustModalOpen(true)}
                   className="bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-[11px] tracking-wide py-3 px-2 rounded-xl transition-all shadow-xs text-center uppercase"
                 >
                   ⚖️ Adjust Inventory
@@ -932,6 +994,113 @@ export const PublicAgricHub: React.FC = () => {
 
               <button type="submit" disabled={loading} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide transition-all shadow-md">
                 {loading ? 'Saving Data...' : 'SAVE LIVESTOCK RECORDS'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 📱 THE DYNAMIC INVENTORY ADJUSTMENT MODAL OVERLAY */}
+      {isAdjustModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-end justify-center z-50 p-4 animate-fadeIn">
+          <div className="w-full bg-white rounded-3xl p-5 shadow-xl max-w-md border border-slate-100 flex flex-col space-y-4 animate-slideUp">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-black text-slate-900 tracking-wide uppercase">Adjust Feed Inventory</h3>
+              <button 
+                onClick={() => setIsAdjustModalOpen(false)} 
+                className="text-slate-400 font-bold hover:text-slate-600 text-xs uppercase"
+              >
+                Cancel
+              </button>
+            </div>
+
+            {/* Adjustment Form Layout */}
+            <form onSubmit={handleAdjustInventory} className="space-y-4 text-left">
+              
+              {/* 1. Feed Stock Type Selection Dropdown */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Select Feed Variety</label>
+                <select 
+                  value={adjustFeedType} 
+                  onChange={(e) => setAdjustFeedType(e.target.value)}
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none focus:border-blue-500"
+                >
+                  <option value="Starter Crumbs">Starter Crumbs</option>
+                  <option value="Growers Pellets">Growers Pellets</option>
+                  <option value="Finisher Pellets">Finisher Pellets</option>
+                  <option value="Layers Mash">Layers Mash</option>
+                </select>
+              </div>
+
+              {/* 2. Adjustment Mode Selector Toggles */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Adjustment Direction</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAdjustAction('add')}
+                    className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition-all ${
+                      adjustAction === 'add' 
+                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs' 
+                        : 'bg-slate-50 text-slate-600 border-slate-200'
+                    }`}
+                  >
+                    ➕ Stock Add / Correction
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAdjustAction('remove')}
+                    className={`py-2 px-3 text-xs font-bold rounded-xl border text-center transition-all ${
+                      adjustAction === 'remove' 
+                        ? 'bg-rose-600 text-white border-rose-600 shadow-xs' 
+                        : 'bg-slate-50 text-slate-600 border-slate-200'
+                    }`}
+                  >
+                    ➖ Spillage / Removal
+                  </button>
+                </div>
+              </div>
+
+              {/* 3. Volumetric Quantity Metric Input Field */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Quantity (Bags)</label>
+                <input 
+                  type="number" 
+                  step="0.1"
+                  placeholder="Enter volume count to adjust" 
+                  value={adjustQuantity} 
+                  onChange={e => setAdjustQuantity(e.target.value)}
+                  required 
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none focus:border-blue-500" 
+                />
+              </div>
+
+              {/* 4. Categorized Audit Reason Selection Dropdown */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Reason for Entry</label>
+                <select 
+                  value={adjustReason} 
+                  onChange={(e) => setAdjustReason(e.target.value)}
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none focus:border-blue-500"
+                >
+                  <option value="Spillage/Waste">Spillage / Feeding Waste</option>
+                  <option value="Silo Audit Correction">Physical Silo Count Correction</option>
+                  <option value="Damaged Stock">Damaged / Wet Feed Bag Disposal</option>
+                  <option value="Internal Transfer">Transfer to Another Production Shed</option>
+                </select>
+              </div>
+
+              {/* 5. Command Action Submission Bar */}
+              <button 
+                type="submit" 
+                disabled={loading}
+                className={`w-full text-white font-bold p-3.5 rounded-xl text-sm tracking-wide transition-all shadow-md uppercase ${
+                  adjustAction === 'add' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'
+                }`}
+              >
+                {loading ? 'Processing Update...' : `Confirm Inventory ${adjustAction === 'add' ? 'Addition' : 'Deduction'}`}
               </button>
             </form>
           </div>

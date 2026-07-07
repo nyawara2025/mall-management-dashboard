@@ -35,6 +35,14 @@ export const PublicAgricHub: React.FC = () => {
   const [adjustQuantity, setAdjustQuantity] = useState('');
   const [adjustReason, setAdjustReason] = useState('Spillage/Waste');
 
+  const [feedBalances, setFeedBalances] = useState<Record<string, number>>({
+    'Starter Crumbs': 0,
+    'Growers Pellets': 0,
+    'Finisher Pellets': 0,
+    'Layers Mash': 0
+  });
+  const [loadingBalances, setLoadingBalances] = useState<boolean>(false);
+
   // 📋 Production Modal Controls
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalProduct, setModalProduct] = useState('Broiler');
@@ -276,6 +284,48 @@ export const PublicAgricHub: React.FC = () => {
       alert("Failed to submit inventory adjustment. Please check your connection and try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchFeedBalancesFromN8N = async () => {
+    if (!shopId) return;
+
+    setLoadingBalances(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/fetch-feed-balance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: shopId })
+      });
+
+      if (!response.ok) throw new Error(`HTTP fetch error code: ${response.status}`);
+
+      const data = await response.json();
+    
+      // Establish fresh zero baselines
+      const updatedBalances: Record<string, number> = {
+        'Starter Crumbs': 0,
+        'Growers Pellets': 0,
+        'Finisher Pellets': 0,
+        'Layers Mash': 0
+      };
+
+      // Expecting n8n to return an array of rows: [{ feed_type: '...', current_balance_bags: 10 }]
+      if (Array.isArray(data)) {
+        data.forEach((row: { feed_type: string; current_balance_bags: number | string }) => {
+          if (row.feed_type in updatedBalances) {
+            updatedBalances[row.feed_type] = typeof row.current_balance_bags === 'string' 
+              ? parseFloat(row.current_balance_bags) 
+              : row.current_balance_bags;
+          }
+        });
+      }
+
+      setFeedBalances(updatedBalances);
+    } catch (err) {
+      console.error('Error executing n8n feed balance fetch route:', err);
+    } finally {
+      setLoadingBalances(false);
     }
   };
 
