@@ -111,7 +111,11 @@ export const PublicAgricHub: React.FC = () => {
         // SUCCESS: Lock this selection into local device memory forever
         localStorage.setItem('remembered_shop_id', shopId);
         localStorage.setItem('remembered_farm_name', farmName);
-        
+        localStorage.setItem('remembered_session_name', data.user.full_name);
+        localStorage.setItem('remembered_session_role', data.user.user_category);
+
+        setUserSession({ name: data.user.full_name, role: data.user.user_category });
+ 
         setView('dashboard');
       } else {
         alert(data.message || "Verification failed.");
