@@ -35,6 +35,12 @@ export const PublicAgricHub: React.FC = () => {
   const [adjustQuantity, setAdjustQuantity] = useState('');
   const [adjustReason, setAdjustReason] = useState('Spillage/Waste');
 
+  // 📝 Log Daily Feeding Module States
+  const [isFeedModalOpen, setIsFeedModalOpen] = useState(false);
+  const [feedLogType, setFeedLogType] = useState('Starter Crumbs');
+  const [feedLogQuantity, setFeedLogQuantity] = useState('');
+  const [feedLogShed, setFeedLogShed] = useState('Shed 1');
+
   const [feedBalances, setFeedBalances] = useState<Record<string, number>>({
     'Starter Crumbs': 0,
     'Growers Pellets': 0,
@@ -326,6 +332,61 @@ export const PublicAgricHub: React.FC = () => {
       console.error('Error executing n8n feed balance fetch route:', err);
     } finally {
       setLoadingBalances(false);
+    }
+  };
+
+
+  // 🛠️ FIX: Unified Frontend Lifecycle Trigger
+  useEffect(() => {
+    // Triggers the webhook whenever the user opens the Feed view
+    if (poultryView === 'feed' && shopId) {
+      fetchFeedBalancesFromN8N();
+    }
+  }, [poultryView, shopId]);
+
+  const handleLogDailyFeeding = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!feedLogQuantity || parseFloat(feedLogQuantity) <= 0) {
+      alert("Please enter a valid feed volume amount");
+      return;
+    }
+
+    setLoading(true);
+
+    const feedingPayload = {
+      shop_id: shopId,
+      farm_name: farmName,
+      feed_type: feedLogType,
+      quantity_bags: parseFloat(feedLogQuantity),
+      shed_identifier: feedLogShed,
+      logged_by_role: userSession?.role || 'farm_hand',
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/log-daily-feed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(feedingPayload)
+      });
+
+      if (!response.ok) throw new Error(`Operational HTTP Error: ${response.status}`);
+
+      alert(`Successfully logged consumption run for ${feedLogType}!`);
+    
+      // Clear inputs and dismiss modal layout
+      setFeedLogQuantity('');
+      setIsFeedModalOpen(false);
+    
+      // Refresh your balances display view right away via n8n pipeline loop
+      fetchFeedBalancesFromN8N();
+
+    } catch (error) {
+      console.error("Consumption pipeline failure:", error);
+      alert("Network transmission error logging feed metrics.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -636,7 +697,7 @@ export const PublicAgricHub: React.FC = () => {
               {/* ⚡ Quick Operational Actions */}
               <div className="grid grid-cols-2 gap-2">
                 <button 
-                  onClick={() => alert('Trigger log daily feeding webhook/modal')}
+                  onClick={() => setIsFeedModalOpen(true)}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[11px] tracking-wide py-3 px-2 rounded-xl transition-all shadow-xs text-center uppercase"
                 >
                   📝 Log Daily Feeding
@@ -1151,6 +1212,81 @@ export const PublicAgricHub: React.FC = () => {
                 }`}
               >
                 {loading ? 'Processing Update...' : `Confirm Inventory ${adjustAction === 'add' ? 'Addition' : 'Deduction'}`}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 📱 THE DYNAMIC LOG DAILY FEEDING MODAL OVERLAY */}
+      {isFeedModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-end justify-center z-50 p-4 animate-fadeIn">
+          <div className="w-full bg-white rounded-3xl p-5 shadow-xl max-w-md border border-slate-100 flex flex-col space-y-4 animate-slideUp">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-black text-blue-900 tracking-wide uppercase">Log Daily Bird Feeding</h3>
+              <button 
+                onClick={() => setIsFeedModalOpen(false)} 
+                className="text-slate-400 font-bold hover:text-slate-600 text-xs uppercase"
+              >
+                Cancel
+              </button>
+            </div>
+
+            {/* Input Form Fields */}
+            <form onSubmit={handleLogDailyFeeding} className="space-y-4 text-left">
+              
+              {/* 1. Feed Mix Type Selection Dropdown */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Select Feed Administered</label>
+                <select 
+                  value={feedLogType} 
+                  onChange={(e) => setFeedLogType(e.target.value)}
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none focus:border-blue-500"
+                >
+                  <option value="Starter Crumbs">Starter Crumbs</option>
+                  <option value="Growers Pellets">Growers Pellets</option>
+                  <option value="Finisher Pellets">Finisher Pellets</option>
+                  <option value="Layers Mash">Layers Mash</option>
+                </select>
+              </div>
+
+              {/* 2. Volume Quantity Count Input */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Quantity Consumed (Bags)</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  placeholder="How many bags were served?" 
+                  value={feedLogQuantity} 
+                  onChange={e => setFeedLogQuantity(e.target.value)}
+                  required 
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none focus:border-blue-500" 
+                />
+              </div>
+
+              {/* 3. Shed / Unit Target Identifier Input */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Target House / Shed</label>
+                <select 
+                  value={feedLogShed} 
+                  onChange={(e) => setFeedLogShed(e.target.value)}
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none focus:border-blue-500"
+                >
+                  <option value="Shed 1">Poultry Shed A (Broilers)</option>
+                  <option value="Shed 2">Poultry Shed B (Layers)</option>
+                  <option value="Hatchery Unit">Hatchery / Incubator Room</option>
+                </select>
+              </div>
+
+              {/* 4. Action Command Submission Button */}
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide transition-all shadow-md uppercase"
+              >
+                {loading ? 'Transmitting Data Logs...' : 'Save Consumption Entry'}
               </button>
             </form>
           </div>
