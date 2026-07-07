@@ -1,28 +1,26 @@
 import React, { useState, useEffect } from 'react';
 
 interface FarmOption {
-  id: string;
+  id: number;
   name: string;
 }
 
 export const PublicAgricHub: React.FC = () => {
-  // Try to load an already remembered farm context from previous sessions
+  // 💾 State Management Layer
   const [shopId, setShopId] = useState<string | null>(() => localStorage.getItem('remembered_shop_id'));
   const [farmName, setFarmName] = useState<string>(() => localStorage.getItem('remembered_farm_name') || '');
-  
   const [farmsList, setFarmsList] = useState<FarmOption[]>([]);
-  const [view, setView] = useState<'login' | 'register' | 'dashboard'>('login');
-  
-  // Auth Form Fields
+  const [view, setView] = useState<'login' | 'register' | 'dashboard'>(() => {
+    return localStorage.getItem('remembered_session_name') ? 'dashboard' : 'login';
+  });
+
+  // Auth & Session Trackers
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-
   const [category, setCategory] = useState('farm_hand');
   const [loading, setLoading] = useState(false);
-
-  // 📊 Active Dashboard States
   const [activeTab, setActiveTab] = useState<'poultry' | 'crops' | 'livestock'>('poultry');
   const [userSession, setUserSession] = useState<{ name: string; role: string } | null>(() => {
     const cachedName = localStorage.getItem('remembered_session_name');
@@ -30,7 +28,34 @@ export const PublicAgricHub: React.FC = () => {
     return cachedName && cachedRole ? { name: cachedName, role: cachedRole } : null;
   });
 
-  // Fetch active agri-tenants from n8n on component mount if no farm is remembered
+  // 📋 Production Modal Controls
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalProduct, setModalProduct] = useState('Broiler');
+  const [chickCount, setChickCount] = useState('');
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [productionDays, setProductionDays] = useState(42); // Default Broiler timeframe
+  const [maturityDate, setMaturityDate] = useState('');
+
+  // 🔄 Automated Date Calculators matching the reference image layout specifications
+  useEffect(() => {
+    if (startDate && productionDays) {
+      const start = new Date(startDate);
+      start.setDate(start.getDate() + Number(productionDays));
+      setMaturityDate(start.toISOString().split('T')[0]);
+    }
+  }, [startDate, productionDays]);
+
+  // Adjust standard production targets instantly when product dropdown value toggles
+  const handleProductChange = (type: string) => {
+    setModalProduct(type);
+    if (type === 'Broiler') setProductionDays(42);
+    else if (type === 'Layers') setProductionDays(140); // Standard point of lay timeframe
+    else if (type === 'Kenbro') setProductionDays(84);
+    else if (type === 'Geese') setProductionDays(180);
+    else if (type === 'Turkey') setProductionDays(150);
+  };
+
+  // Fetch active agri-tenants on initialization
   useEffect(() => {
     if (!shopId) {
       async function fetchActiveFarms() {
@@ -41,32 +66,19 @@ export const PublicAgricHub: React.FC = () => {
             body: JSON.stringify({ business_category: 'agricultural' })
           });
           const data = await response.json();
-          // Check if the response returned is a valid array directly
           if (Array.isArray(data) && data.length > 0) {
-            setFarmsList(data); // Stores the farm array directly
-  
-            // Read from the first returned index row securely (e.g., Nyawara Ranch)
+            setFarmsList(data);
             setShopId(data[0].id.toString());
             setFarmName(data[0].name);
-          } else if (data.success && data.farms) {
-            // Fallback catch block in case your webhook wraps it later
-            setFarmsList(data.farms);
-            if (data.farms.length > 0) {
-              setShopId(data.farms[0].id.toString());
-              setFarmName(data.farms[0].name);
-            }
           }
-
-
         } catch (err) {
-          console.error("Failed to load farms from n8n gateway", err);
+          console.error("Failed loading farms context", err);
         }
       }
       fetchActiveFarms();
     }
   }, [shopId]);
 
-  // Handle explicit selector changes in the dropdown menu
   const handleFarmDropdownChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedId = e.target.value;
     const match = farmsList.find(f => f.id.toString() === selectedId);
@@ -78,210 +90,202 @@ export const PublicAgricHub: React.FC = () => {
 
   const handleAuth = async (e: React.FormEvent, type: 'login' | 'register') => {
     e.preventDefault();
-    if (!shopId) return alert("Please select a farm environment first.");
+    if (!shopId) return alert("Select farm workspace.");
     setLoading(true);
-
     const combinedFullName = `${firstName.trim()} ${lastName.trim()}`;
-
     const payload = type === 'register'
-      ? { 
-          action: 'register',
-          shop_id: parseInt(shopId), 
-          phone_number: phone, 
-          password, 
-          full_name: combinedFullName, // Ensure this points to combinedFullName
-          user_category: category 
-        }
-      : { 
-          action: 'login',
-          shop_id: parseInt(shopId), 
-          phone_number: phone, 
-          password 
-        };
+      ? { action: 'register', shop_id: parseInt(shopId), phone_number: phone, password, full_name: combinedFullName, user_category: category }
+      : { action: 'login', shop_id: parseInt(shopId), phone_number: phone, password };
 
     try {
-      const response = await fetch(`https://n8n.tenear.com/webhook/sign-farmer`, {
+      const response = await fetch('https://n8n.tenear.com/webhook/sign-farmer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
       const data = await response.json();
-      if (response.ok && data.success) {
-        // SUCCESS: Lock this selection into local device memory forever
+      if (response.ok && data.success && data.user) {
         localStorage.setItem('remembered_shop_id', shopId);
         localStorage.setItem('remembered_farm_name', farmName);
         localStorage.setItem('remembered_session_name', data.user.full_name);
         localStorage.setItem('remembered_session_role', data.user.user_category);
-
+        localStorage.setItem('remembered_phone_number', phone);
         setUserSession({ name: data.user.full_name, role: data.user.user_category });
- 
         setView('dashboard');
       } else {
-        alert(data.message || "Verification failed.");
+        alert(data.message || "Auth match error.");
       }
     } catch (err) {
-      console.error("Authentication error", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  // Helper to allow users to switch farms or clear memory manually
+  // 💾 Commit New Cycle Records to n8n Gateway Backend
+  const handleSaveCycle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/save-poultry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_poultry_cycle',
+          shop_id: parseInt(shopId || '81'),
+          phone_number: localStorage.getItem('remembered_phone_number') || '0700000000',
+          bird_type: modalProduct,
+          quantity: parseInt(chickCount),
+          start_date: startDate,
+          maturity_date: maturityDate,
+          production_days: productionDays
+        })
+      });
+
+      if (response.ok) {
+        alert(`Production entry sequence logged successfully for ${chickCount} ${modalProduct}s!`);
+        setIsModalOpen(false);
+        setChickCount('');
+      } else {
+        alert("Failed to commit cycle data metrics.");
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const clearRememberedFarm = () => {
-    localStorage.removeItem('remembered_shop_id');
-    localStorage.removeItem('remembered_farm_name');
+    localStorage.clear();
     setShopId(null);
     setFarmName('');
+    setUserSession(null);
     setView('login');
   };
 
   return (
-    <div className="min-h-screen bg-stone-50 p-4 text-slate-800 font-sans max-w-md mx-auto">
+    <div className="min-h-screen bg-stone-50 p-4 text-slate-800 font-sans max-w-md mx-auto flex flex-col justify-start relative">
       
-      {/* Dynamic Header Badge showing the active context target */}
-      <div className="bg-emerald-950 p-4 rounded-2xl text-white mb-6 flex justify-between items-center shadow-xs">
-        <div>
-          <h3 className="text-[10px] uppercase tracking-wider opacity-60">System Target</h3>
-          <h2 className="text-lg font-bold">{farmName || 'Selecting Farm...'}</h2>
+      {view !== 'dashboard' && (
+        <div className="bg-emerald-950 p-4 rounded-2xl text-white mb-6 flex justify-between items-center shadow-xs">
+          <div>
+            <h3 className="text-[10px] uppercase tracking-wider opacity-60">System Target</h3>
+            <h2 className="text-md font-bold">{farmName || 'Loading Setup...'}</h2>
+          </div>
         </div>
-        {localStorage.getItem('remembered_shop_id') && view !== 'dashboard' && (
-          <button onClick={clearRememberedFarm} className="text-[10px] bg-emerald-800 hover:bg-emerald-700 px-2 py-1 rounded-lg transition-all">
-            Change Farm
-          </button>
-        )}
-      </div>
+      )}
 
-      {/* REGISTRATION VIEW WITH THE DROP-DOWN MENU */}
+      {/* LOGIN & REGISTRATION SECTIONS REMAIN UNCHANGED FOR AUTHENTICATION PASSES */}
+      {view === 'login' && (
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs my-auto">
+          <h2 className="text-xl font-black text-slate-900 mb-6">Sign In</h2>
+          <form onSubmit={(e) => handleAuth(e, 'login')} className="space-y-4">
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Phone Number</label>
+              <input type="tel" placeholder="0716300197" value={phone} onChange={e => setPhone(e.target.value)} required className="w-full p-3 border border-slate-200 rounded-xl text-sm" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Password</label>
+              <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required className="w-full p-3 border border-slate-200 rounded-xl text-sm" />
+            </div>
+            <button type="submit" className="w-full bg-emerald-600 text-white p-3.5 rounded-xl font-bold text-sm">Access Dashboard</button>
+          </form>
+          <p className="text-xs text-center text-slate-500 mt-6">New user? <button onClick={() => setView('register')} className="text-emerald-600 font-bold underline">Register Account</button></p>
+        </div>
+      )}
+
       {view === 'register' && (
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
-          <h2 className="text-xl font-bold text-emerald-800 mb-4">Worker Registration</h2>
+          <h2 className="text-xl font-black text-emerald-800 mb-4">Worker Registration</h2>
           <form onSubmit={(e) => handleAuth(e, 'register')} className="space-y-4">
-            
-            {/* The Dynamic Dropdown: Renders choice if fresh device, drops back cleanly if remembered */}
             <div>
-              <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">Select Farm Location</label>
-              <select 
-                value={shopId || ''} 
-                onChange={handleFarmDropdownChange}
-                className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-white font-medium"
-              >
+              <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Select Farm Environment</label>
+              <select value={shopId || ''} onChange={handleFarmDropdownChange} className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-white font-bold">
                 {farmsList.map(farm => (
-                  <option key={farm.id} value={farm.id}>
-                    {farm.name}
-                  </option>
+                  <option key={farm.id} value={farm.id}>{farm.name}</option>
                 ))}
               </select>
             </div>
-
-            {/* 👥 Grid for Split First Name & Last Name inputs */}
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">First Name</label>
-                <input 
-                  type="text" 
-                  placeholder="Eric" 
-                  value={firstName} 
-                  onChange={e => setFirstName(e.target.value)} 
-                  required 
-                  className="w-full p-3 border border-slate-200 rounded-xl text-sm text-slate-800" 
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">Last Name</label>
-                <input 
-                  type="text" 
-                  placeholder="Nyawara" 
-                  value={lastName} 
-                  onChange={e => setLastName(e.target.value)} 
-                  required 
-                  className="w-full p-3 border border-slate-200 rounded-xl text-sm text-slate-800" 
-                />
-              </div>
+              <input type="text" placeholder="First Name" value={firstName} onChange={e => setFirstName(e.target.value)} required className="p-3 border border-slate-200 rounded-xl text-sm" />
+              <input type="text" placeholder="Last Name" value={lastName} onChange={e => setLastName(e.target.value)} required className="p-3 border border-slate-200 rounded-xl text-sm" />
+            </div>
+            <input type="tel" placeholder="WhatsApp Phone Line" value={phone} onChange={e => setPhone(e.target.value)} required className="w-full p-3 border border-slate-200 rounded-xl text-sm" />
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase block mb-1">WhatsApp Mobile Line</label>
+              <input 
+                type="tel" 
+                placeholder="0716300197" 
+                value={phone} 
+                onChange={e => setPhone(e.target.value)} 
+                required 
+                className="w-full p-3 border border-slate-200 rounded-xl text-sm text-slate-800 font-medium" 
+              />
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">Phone Number</label>
-              <input type="tel" placeholder="0712345678" value={phone} onChange={e => setPhone(e.target.value)} required className="w-full p-3 border border-slate-200 rounded-xl text-sm" />
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">Job Category</label>
-              <select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-white">
-                <option value="farm_hand">Farm Hand</option>
-                <option value="manager">Manager</option>
-                <option value="owner">Owner</option>
-                <option value="vet">Veterinary Officer</option>
+              <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Corporate Assignment Role</label>
+              <select 
+                value={category} 
+                onChange={e => setCategory(e.target.value)} 
+                className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-white font-bold text-slate-700"
+              >
+                <option value="farm_hand">Operational Farm Hand</option>
+                <option value="manager">Farm Field Manager</option>
+                <option value="owner">Strategic Farm Owner</option>
+                <option value="vet">Veterinary Medical Officer</option>
               </select>
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">Create Password</label>
-              <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required className="w-full p-3 border border-slate-200 rounded-xl text-sm" />
+              <label className="text-xs font-bold text-slate-500 uppercase block mb-1">Create Access Password</label>
+              <input 
+                type="password" 
+                placeholder="Min 6 alphanumeric characters" 
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                required 
+                className="w-full p-3 border border-slate-200 rounded-xl text-sm text-slate-800" 
+              />
             </div>
 
-            <button type="submit" disabled={loading} className="w-full bg-emerald-600 text-white p-3 rounded-xl font-medium text-sm">
-              {loading ? 'Processing...' : 'Complete Registration'}
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white p-3.5 rounded-xl font-bold text-sm tracking-wide transition-all shadow-xs"
+            >
+              {loading ? 'Committing Profile Space...' : 'Complete System Sign-On'}
             </button>
           </form>
-          <p className="text-xs text-center text-slate-500 mt-4">Already registered? <button onClick={() => setView('login')} className="text-emerald-600 font-semibold underline">Login Instead</button></p>
+          <p className="text-xs text-center text-slate-500 mt-4">
+            Already registered? <button onClick={() => setView('login')} className="text-emerald-600 font-bold underline">Login Instead</button>
+          </p>
         </div>
       )}
 
-      {/* LOGIN VIEW (Defaults to the locked farm on subsequent logins) */}
-      {view === 'login' && (
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
-          <h2 className="text-xl font-bold text-slate-900 mb-1">Sign In</h2>
-          <p className="text-xs text-slate-400 mb-6">Enter security credentials to access dashboards.</p>
-          
-          <form onSubmit={(e) => handleAuth(e, 'login')} className="space-y-4">
-            <div>
-              <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">Phone Number</label>
-              <input type="tel" placeholder="0712345678" value={phone} onChange={e => setPhone(e.target.value)} required className="w-full p-3 border border-slate-200 rounded-xl text-sm" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-slate-500 uppercase block mb-1">Password</label>
-              <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required className="w-full p-3 border border-slate-200 rounded-xl text-sm" />
-            </div>
-            <button type="submit" className="w-full bg-emerald-600 text-white p-3 rounded-xl font-medium text-sm">Sign In</button>
-          </form>
-          <p className="text-xs text-center text-slate-500 mt-6">New on this farm? <button onClick={() => setView('register')} className="text-emerald-600 font-semibold underline">Register Profile</button></p>
-        </div>
-      )}
-
-      {/* VIEW 3: MAIN DYNAMIC DASHBOARD */}
+      {/* VIEW C: LIVE DATA METRICS DISPLAY CONSOLE */}
       {view === 'dashboard' && (
         <div className="w-full flex-grow animate-fadeIn">
-          {/* Tenant and User Header Metadata Banner */}
           <div className="bg-emerald-800 text-white rounded-2xl p-4 mb-4 shadow-sm flex justify-between items-center">
             <div>
-              <h1 className="text-md font-bold tracking-wide">TeNEAR Agri-Hub</h1>
-              <p className="text-[11px] opacity-80">
-                User: <span className="font-semibold">{userSession?.name}</span> ({userSession?.role})
-              </p>
+              <h1 className="text-md font-bold tracking-wide">{farmName || 'TeNEAR Agri-Control'}</h1>
+              <p className="text-[11px] opacity-80">User: <span className="font-semibold">{userSession?.name}</span></p>
             </div>
-            <button 
-              onClick={() => {
-                // Clear state to securely log out the user back to the form
-                setUserSession(null);
-                setView('login');
-              }} 
-              className="text-[10px] bg-emerald-950 font-medium px-2 py-1.5 rounded-lg opacity-90 hover:opacity-100 transition-all"
-            >
+            <button onClick={clearRememberedFarm} className="text-[10px] bg-emerald-950 font-bold px-2 py-1.5 rounded-lg">
               Log Out
             </button>
           </div>
 
-          {/* Tab Selector Buttons */}
+          {/* Primary Operations Selector Tabs */}
           <div className="grid grid-cols-3 gap-2 mb-5">
             {(['poultry', 'crops', 'livestock'] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+              <button 
+                key={tab} 
+                onClick={() => setActiveTab(tab)} 
                 className={`py-2.5 px-1 rounded-xl font-bold text-xs capitalize transition-all border ${
-                  activeTab === tab 
-                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs' 
-                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                  activeTab === tab ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-600 border-slate-200'
                 }`}
               >
                 {tab}
@@ -289,71 +293,146 @@ export const PublicAgricHub: React.FC = () => {
             ))}
           </div>
 
-          {/* Role-Based Insight Strip (Visible only to owners/managers) */}
-          {['owner', 'manager'].includes(userSession?.role || '') && (
-            <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl mb-4 text-xs text-amber-900 font-medium flex items-center gap-2">
-              <span>💡</span>
-              <p>Management Profile Active: Extended field metrics enabled.</p>
+          {/* 📋 Role-Based Operations Panel Action Strips */}
+          {userSession?.role === 'farm_hand' ? (
+            <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-2xl mb-4 text-xs text-emerald-900 flex justify-between items-center shadow-xs">
+              <span className="font-semibold">📋 Daily Tasks Assignment</span>
+              <span className="bg-emerald-600 text-white font-bold px-2 py-0.5 rounded text-[10px]">Active</span>
+            </div>
+          ) : ['owner', 'manager', 'vet'].includes(userSession?.role || '') ? (
+            <div className="bg-blue-50 border border-blue-200 p-3 rounded-2xl mb-4 text-xs text-blue-900 flex justify-between items-center shadow-xs">
+              <span className="font-semibold">🚨 Open Farm Alerts</span>
+              <span className="bg-blue-600 text-white font-bold px-2 py-0.5 rounded text-[10px]">All Clear</span>
+            </div>
+          ) : null}
+
+          {/* 🐓 POULTRY INPUT TRACKING MODULE SUB-PANE */}
+          {activeTab === 'poultry' && (
+            <div className="space-y-4">
+              {/* Repurposed operational summary layout */}
+              <div className="bg-white border border-slate-200/80 p-4 rounded-2xl flex justify-between items-center shadow-xs">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">Poultry Production</h3>
+                  <p className="text-[10px] text-slate-400">Log active farm cycles and flock segments</p>
+                </div>
+                <button 
+                  onClick={() => setIsModalOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[11px] tracking-wide py-2 px-3.5 rounded-xl transition-all shadow-xs"
+                >
+                  + NEW CYCLE
+                </button>
+              </div>
+
+              {/* Grid showing existing active stocks overview indicators */}
+              <div className="grid grid-cols-2 gap-3">
+                {['Broiler', 'Layers', 'Kenbro', 'Geese', 'Turkey'].map((bird) => (
+                  <div key={bird} className="bg-white p-3.5 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block">{bird}s</span>
+                      <span className="text-xs font-bold text-slate-400 mt-0.5 block">No Active Cycles</span>
+                    </div>
+                    <span className="text-xl">🪶</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Dynamic Records Grid Cards */}
-          <div className="grid grid-cols-2 gap-3">
-            {activeTab === 'poultry' && (
-              <>
-                <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/60">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Broilers</span>
-                  <p className="text-2xl font-black mt-1 text-slate-900">1,250</p>
-                  <p className="text-xs text-emerald-600 font-medium mt-1">🐣 Batch #4A</p>
-                </div>
-                <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/60">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Kienyeji</span>
-                  <p className="text-2xl font-black mt-1 text-slate-900">480</p>
-                  <p className="text-xs text-slate-500 font-medium mt-1">🐓 Free Range</p>
-                </div>
-                <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/60 col-span-2">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Egg Production</span>
-                  <div className="flex justify-between items-end mt-1">
-                    <p className="text-2xl font-black text-slate-900">12 Crates</p>
-                    <span className="text-[11px] bg-emerald-50 text-emerald-700 px-1.5 py-0.5 rounded font-bold">Today</span>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {activeTab === 'crops' && (
-              <>
-                <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/60">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Maize Fields</span>
-                  <p className="text-2xl font-black mt-1 text-slate-900">4.5 Ac</p>
-                  <p className="text-xs text-amber-600 font-medium mt-1">🌽 Weeding Phase</p>
-                </div>
-                <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/60">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Horticulture</span>
-                  <p className="text-2xl font-black mt-1 text-slate-900">850 kg</p>
-                  <p className="text-xs text-emerald-600 font-medium mt-1">🍅 Tomatoes</p>
-                </div>
-              </>
-            )}
-
-            {activeTab === 'livestock' && (
-              <>
-                <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/60">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Dairy Cattle</span>
-                  <p className="text-2xl font-black mt-1 text-slate-900">14 Cows</p>
-                  <p className="text-xs text-blue-600 font-medium mt-1">🥛 165L Total/Day</p>
-                </div>
-                <div className="bg-white p-4 rounded-2xl shadow-xs border border-slate-200/60">
-                  <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Goats & Sheep</span>
-                  <p className="text-2xl font-black mt-1 text-slate-900">32 Head</p>
-                  <p className="text-xs text-slate-500 font-medium mt-1">🐑 Boer & Dorper</p>
-                </div>
-              </>
-            )}
-          </div>
+          {activeTab !== 'poultry' && (
+            <div className="text-center py-12 text-slate-300 text-xs font-bold">
+              Metrics panel view updates loading shortly...
+            </div>
+          )}
         </div>
       )}
 
+      {/* 📱 THE DYNAMIC INPUT MODAL GRID SYSTEM (Mirrors the reference layout specifications) */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-end justify-center z-50 p-4">
+          <div className="w-full bg-white rounded-3xl p-5 shadow-xl max-w-md border border-slate-100 flex flex-col space-y-4 animate-slideUp">
+            
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-black text-blue-900 tracking-wide">Configure Production Cycle</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 font-bold hover:text-slate-600 text-xs">Cancel</button>
+            </div>
+
+            <form onSubmit={handleSaveCycle} className="space-y-4 text-left">
+              {/* 1. Product Field Option Select Input Container */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Product</label>
+                <select 
+                  value={modalProduct} 
+                  onChange={(e) => handleProductChange(e.target.value)}
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none focus:border-blue-500"
+                >
+                  <option value="Broiler">Broiler - Day Old Chicks</option>
+                  <option value="Layers">Layers - Day Old Chicks</option>
+                  <option value="Kenbro">Kenbro - Day Old Chicks</option>
+                  <option value="Geese">Geese - Production Stock</option>
+                  <option value="Turkey">Turkey - Production Stock</option>
+                </select>
+              </div>
+
+              {/* 2. Volume Field Content Input Block Container */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Number of Chicks</label>
+                <input 
+                  type="number" 
+                  placeholder="Enter total volume count" 
+                  value={chickCount} 
+                  onChange={e => setChickCount(e.target.value)}
+                  required 
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none" 
+                />
+              </div>
+
+              {/* 3. Operational Start Date Metric Log Parameter */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Start Date</label>
+                <input 
+                  type="date" 
+                  value={startDate} 
+                  onChange={e => setStartDate(e.target.value)}
+                  required 
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none" 
+                />
+              </div>
+
+              {/* 4. Automated Maturity Metric Field Elements Block Container */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Production Days</label>
+                  <input 
+                    type="number" 
+                    value={productionDays} 
+                    onChange={e => setProductionDays(parseInt(e.target.value) || 0)}
+                    required 
+                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-100 text-slate-500 font-bold focus:outline-none" 
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Maturity Date</label>
+                  <input 
+                    type="date" 
+                    value={maturityDate} 
+                    readOnly
+                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-100 text-slate-500 font-bold focus:outline-none" 
+                  />
+                </div>
+              </div>
+
+              {/* 5. Execution Action Command Submit Trigger Bar */}
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full bg-blue-500 hover:bg-blue-600 active:scale-95 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide transition-all shadow-md pt-3"
+              >
+                {loading ? 'Saving Parameters...' : 'SAVE CYCLE'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
     </div>
   );
