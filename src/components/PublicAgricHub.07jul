@@ -91,6 +91,21 @@ export const PublicAgricHub: React.FC = () => {
     else if (value === 'Tubers') setCropVariety('Potatoes');
   };
 
+  // 🐄 Livestock Production Modal States
+  const [isLiveModalOpen, setIsLiveModalOpen] = useState(false);
+  const [animalClass, setAnimalClass] = useState<'Cattle' | 'Goats' | 'Sheep'>('Cattle');
+  const [breedVariety, setBreedVariety] = useState('Friesian');
+  const [headCount, setHeadCount] = useState('');
+  const [healthStatus, setHealthStatus] = useState('Healthy');
+
+  // Handle cascading dropdown states cleanly for common local breeds
+  const handleAnimalClassChange = (value: 'Cattle' | 'Goats' | 'Sheep') => {
+    setAnimalClass(value);
+    if (value === 'Cattle') setBreedVariety('Friesian');
+    else if (value === 'Goats') setBreedVariety('Boer');
+    else if (value === 'Sheep') setBreedVariety('Dorper');
+  };
+
   // Fetch active agri-tenants on initialization
   useEffect(() => {
     if (!shopId) {
@@ -405,9 +420,34 @@ export const PublicAgricHub: React.FC = () => {
             </div>
           )}
 
+          {/* 🐄 LIVESTOCK INVENTORY TRACKING PANELS */}
           {activeTab === 'livestock' && (
-            <div className="text-center py-12 text-slate-300 text-xs font-bold">
-              Metrics panel livestock tracking view updates loading shortly...
+            <div className="space-y-4 animate-fadeIn">
+              <div className="bg-white border border-slate-200/80 p-4 rounded-2xl flex justify-between items-center shadow-xs">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">Livestock Management</h3>
+                  <p className="text-[10px] text-slate-400">Log herd counts, breeding groups, and health states</p>
+                </div>
+                <button 
+                  onClick={() => setIsLiveModalOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[11px] tracking-wide py-2 px-3.5 rounded-xl transition-all shadow-xs"
+                >
+                  + UPDATE STOCK
+                </button>
+              </div>
+
+              {/* Displaying Livestock sectors */}
+              <div className="grid grid-cols-1 gap-3">
+                {['Cattle', 'Goats', 'Sheep'].map((cls) => (
+                  <div key={cls} className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center">
+                    <div>
+                      <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">{cls} Inventory</h4>
+                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">No logged tracking metrics on file</p>
+                    </div>
+                    <span className="text-lg">{cls === 'Cattle' ? '🐄' : cls === 'Goats' ? '🐐' : '🐑'}</span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
@@ -517,7 +557,7 @@ export const PublicAgricHub: React.FC = () => {
               e.preventDefault();
               setLoading(true);
               try {
-                const response = await fetch('https://pages.dev', {
+                const response = await fetch('https://n8n.tenear.com/webhook/update-crops', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -604,6 +644,109 @@ export const PublicAgricHub: React.FC = () => {
 
               <button type="submit" disabled={loading} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide transition-all shadow-md">
                 {loading ? 'Saving Data...' : 'SAVE PLOT RECORDS'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 📱 THE DYNAMIC LIVESTOCK INPUT MODAL */}
+      {isLiveModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-end justify-center z-50 p-4">
+          <div className="w-full bg-white rounded-3xl p-5 shadow-xl max-w-md border border-slate-100 flex flex-col space-y-4 animate-slideUp">
+            
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-black text-blue-900 tracking-wide">Log Livestock Updates</h3>
+              <button onClick={() => setIsLiveModalOpen(false)} className="text-slate-400 font-bold hover:text-slate-600 text-xs">Cancel</button>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setLoading(true);
+              try {
+                const response = await fetch('https://n8n.tenear.com/webhook/update-livestock', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    action: 'save_livestock_inventory',
+                    shop_id: parseInt(shopId || '81'),
+                    phone_number: localStorage.getItem('remembered_phone_number'),
+                    animal_class: animalClass,
+                    breed_variety: breedVariety,
+                    head_count: parseInt(headCount),
+                    health_status: healthStatus
+                  })
+                });
+                if (response.ok) {
+                  alert(`Successfully updated inventory for ${headCount} ${breedVariety} Head!`);
+                  setIsLiveModalOpen(false);
+                  setHeadCount('');
+                }
+              } catch(err) { console.error(err); }
+              finally { setLoading(false); }
+            }} className="space-y-4 text-left">
+              
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Animal Class</label>
+                <select value={animalClass} onChange={(e) => handleAnimalClassChange(e.target.value as any)} className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none">
+                  <option value="Cattle">🐄 Cattle (Dairy / Beef)</option>
+                  <option value="Goats">🐐 Goats (Dairy / Meat)</option>
+                  <option value="Sheep">🐑 Sheep (Wool / Mutton)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Breed / Variety</label>
+                <select value={breedVariety} onChange={(e) => setBreedVariety(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none">
+                  {animalClass === 'Cattle' && (
+                    <>
+                      <option value="Friesian">Friesian</option>
+                      <option value="Ayrshire">Ayrshire</option>
+                      <option value="Guernsey">Guernsey</option>
+                      <option value="Jersey">Jersey</option>
+                      <option value="Boran">Boran</option>
+                      <option value="Sahiwal">Sahiwal</option>
+                      <option value="Other Cattle">Other Breed</option>
+                    </>
+                  )}
+                  {animalClass === 'Goats' && (
+                    <>
+                      <option value="Boer">Boer</option>
+                      <option value="Toggenburg">Toggenburg</option>
+                      <option value="Saanen">Saanen</option>
+                      <option value="Alpine">Alpine</option>
+                      <option value="Galla">Galla</option>
+                      <option value="Other Goats">Other Breed</option>
+                    </>
+                  )}
+                  {animalClass === 'Sheep' && (
+                    <>
+                      <option value="Dorper">Dorper</option>
+                      <option value="Red Maasai">Red Maasai</option>
+                      <option value="Merino">Merino</option>
+                      <option value="Corriedale">Corriedale</option>
+                      <option value="Other Sheep">Other Breed</option>
+                    </>
+                  )}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Total Head Count</label>
+                <input type="number" placeholder="Enter number of animals" value={headCount} onChange={e => setHeadCount(e.target.value)} required className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none" />
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Current Health Status</label>
+                <select value={healthStatus} onChange={(e) => setHealthStatus(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none">
+                  <option value="Healthy">🟢 Healthy & Productive</option>
+                  <option value="Treatment">🟡 Under Medical Treatment</option>
+                  <option value="Quarantined">🔴 Quarantined / Isolated</option>
+                </select>
+              </div>
+
+              <button type="submit" disabled={loading} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide transition-all shadow-md">
+                {loading ? 'Saving Data...' : 'SAVE LIVESTOCK RECORDS'}
               </button>
             </form>
           </div>
