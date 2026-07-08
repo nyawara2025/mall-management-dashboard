@@ -779,7 +779,7 @@ export const PublicAgricHub: React.FC = () => {
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Revenue</span>
                   <div className="flex items-baseline space-x-1 mt-0.5">
                     <span className="text-xs font-black text-emerald-600">
-                      {loadingFinancials ? '...' : `$${financials.total_revenue.toLocaleString()}`}
+                      {loadingFinancials ? '...' : `KES ${financials.total_revenue.toLocaleString()}`}
                     </span>
                   </div>
                   <span className="text-[8px] font-bold text-slate-400 block mt-0.5">{financials.sales_count} Sales logged</span>
@@ -790,20 +790,20 @@ export const PublicAgricHub: React.FC = () => {
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Expenses</span>
                   <div className="flex items-baseline space-x-1 mt-0.5">
                     <span className="text-xs font-black text-rose-600">
-                      {loadingFinancials ? '...' : `$${financials.total_expenses.toLocaleString()}`}
+                      {loadingFinancials ? '...' : `KES ${financials.total_expenses.toLocaleString()}`}
                     </span>
                   </div>
                   <span className="text-[8px] font-bold text-slate-400 block mt-0.5">{financials.purchase_count} Bills paid</span>
                 </div>
 
                 {/* Net Profit Margin Card */}
-                <div className={`border p-3 rounded-2xl shadow-xs text-left transition-all ${
+                <div className={`border p-3 rounded-2xl shadow-xs text-left transition-all KES{
                   financials.net_profit >= 0 ? 'bg-emerald-50/40 border-emerald-200/60' : 'bg-rose-50/40 border-rose-200/60'
                 }`}>
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Net Margin</span>
                   <div className="flex items-baseline space-x-1 mt-0.5">
                     <span className={`text-xs font-black ${financials.net_profit >= 0 ? 'text-emerald-700' : 'text-rose-700'}`}>
-                      {loadingFinancials ? '...' : `$${financials.net_profit.toLocaleString()}`}
+                      {loadingFinancials ? '...' : `KES ${financials.net_profit.toLocaleString()}`}
                     </span>
                   </div>
                   <span className={`text-[8px] font-black uppercase ${financials.net_profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
