@@ -50,6 +50,15 @@ export const PublicAgricHub: React.FC = () => {
   const [feedLogQuantity, setFeedLogQuantity] = useState('');
   const [feedLogShed, setFeedLogShed] = useState('Shed 1');
 
+  // 💉 Vaccination Module State Tracking Layers
+  const [isVaccineModalOpen, setIsVaccineModalOpen] = useState(false);
+  const [vaccineName, setVaccineName] = useState('Gumboro');
+  const [vaccineFlockType, setVaccineFlockType] = useState('Broilers');
+  const [vaccineMethod, setVaccineMethod] = useState('Drinking Water');
+  const [vaccineDosage, setVaccineDosage] = useState('');
+  const [vaccineBirdsTreated, setVaccineBirdsTreated] = useState('');
+  const [vaccineScheduleDate, setVaccineScheduleDate] = useState('');
+
   const [feedBalances, setFeedBalances] = useState<Record<string, number>>({
     'Starter Crumbs': 0,
     'Growers Pellets': 0,
@@ -448,6 +457,57 @@ export const PublicAgricHub: React.FC = () => {
     } catch (error) {
       console.error("Purchase processing transmission pipeline failure:", error);
       alert("Network transaction failure sending expense report.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogVaccination = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const count = parseInt(vaccineBirdsTreated);
+    const dose = parseFloat(vaccineDosage);
+
+    if (!count || count <= 0 || !dose || dose <= 0 || !vaccineScheduleDate) {
+      alert("Please fill in all medical tracking metrics correctly.");
+      return;
+    }
+
+    setLoading(true);
+
+    const vaccinePayload = {
+      shop_id: shopId,
+      farm_name: farmName,
+      vaccine_name: vaccineName,
+      flock_type: vaccineFlockType,
+      administration_method: vaccineMethod,
+      dosage_per_bird: dose,
+      birds_treated: count,
+      scheduled_date: vaccineScheduleDate,
+      logged_by_role: userSession?.role || 'farm_hand',
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/log-poultry-vaccine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(vaccinePayload)
+      });
+
+      if (!response.ok) throw new Error(`HTTP Operational Error: ${response.status}`);
+
+      alert(`Successfully logged vaccination record for ${vaccineName}!`);
+    
+      // Clear Input States & Close Modal Panel Context
+      setVaccineDosage('');
+      setVaccineBirdsTreated('');
+      setVaccineScheduleDate('');
+      setIsVaccineModalOpen(false);
+
+    } catch (error) {
+      console.error("Vaccination transmission pipeline failure:", error);
+      alert("Network failure processing healthcare log.");
     } finally {
       setLoading(false);
     }
@@ -867,6 +927,45 @@ export const PublicAgricHub: React.FC = () => {
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Expense Audits Statement</h4>
                 <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
                   Your purchase records safely sync accounting invoices here. When buying items like feed, lodging a record here increments stock balances across your operational dashboard units seamlessly.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* 💉 SUB-VIEW: VACCINATION HEALTHCARE MANAGEMENT */}
+          {activeTab === 'poultry' && poultryView === 'vaccination' && (
+            <div className="space-y-4 animate-fadeIn">
+              {/* Back to Top Level Menu Ribbon */}
+              <button
+                onClick={() => setPoultryView('menu')}
+                className="text-[11px] text-blue-600 hover:text-blue-700 font-black tracking-wide uppercase flex items-center gap-1 transition-all"
+              >
+                ← Back to Poultry Overview
+              </button>
+
+              {/* Module Header Container */}
+              <div className="bg-white border border-slate-200/80 p-4 rounded-2xl flex justify-between items-center shadow-xs">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">Vaccination & Healthcare</h3>
+                  <p className="text-[10px] text-slate-400">Schedule medical regimens, log flock dosages, and track biosecurity health states</p>
+                </div>
+              </div>
+
+              {/* Action Trigger Buttons */}
+              <div className="grid grid-cols-1">
+                <button 
+                  onClick={() => setIsVaccineModalOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[11px] tracking-wide py-3 px-4 rounded-xl transition-all shadow-xs text-center uppercase"
+                >
+                  💉 Record Administered Vaccine
+                </button>
+              </div>
+
+              {/* Informational Guidelines Alert Banner Box */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs text-center">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Medical Compliance Logs</h4>
+                <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                  Flock batch histories display immunization entries here. Keeping structured schedules protects farm environments and optimizes growth compliance metrics across active tenant production cycles.
                 </p>
               </div>
             </div>
@@ -1542,6 +1641,120 @@ export const PublicAgricHub: React.FC = () => {
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide transition-all shadow-md uppercase"
               >
                 {loading ? 'Transmitting Invoices...' : 'Save Procurement Bill'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 📱 THE DYNAMIC FLOCK VACCINATION INPUT MODAL OVERLAY */}
+      {isVaccineModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-end justify-center z-50 p-4 animate-fadeIn">
+          <div className="w-full bg-white rounded-3xl p-5 shadow-xl max-w-md border border-slate-100 flex flex-col space-y-4 animate-slideUp">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-black text-slate-900 tracking-wide uppercase">Log Vaccine Administration</h3>
+              <button 
+                onClick={() => setIsVaccineModalOpen(false)} 
+                className="text-slate-400 font-bold hover:text-slate-600 text-xs uppercase"
+              >
+                Cancel
+              </button>
+            </div>
+
+            {/* Input Form Controls */}
+            <form onSubmit={handleLogVaccination} className="space-y-4 text-left">
+              
+              {/* 1. Vaccine Type Picker */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Vaccine Name</label>
+                <select 
+                  value={vaccineName} 
+                  onChange={(e) => setVaccineName(e.target.value)}
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none focus:border-blue-500"
+                >
+                  <option value="Gumboro">Gumboro (IBD)</option>
+                  <option value="Newcastle">Newcastle Disease (ND)</option>
+                  <option value="Fowl Pox">Fowl Pox</option>
+                  <option value="Marek Disease">Marek's Disease</option>
+                </select>
+              </div>
+
+              {/* 2. Target Dynamic Flock Classification */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Target Flock</label>
+                  <select 
+                    value={vaccineFlockType} 
+                    onChange={(e) => setVaccineFlockType(e.target.value)}
+                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none"
+                  >
+                    <option value="Broilers">Broilers</option>
+                    <option value="Layers">Layers</option>
+                    <option value="Kenbros">Kenbros</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Admin Method</label>
+                  <select 
+                    value={vaccineMethod} 
+                    onChange={(e) => setVaccineMethod(e.target.value)}
+                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none"
+                  >
+                    <option value="Drinking Water">Drinking Water</option>
+                    <option value="Eye Drop">Eye Drop</option>
+                    <option value="Subcutaneous Injection">Injection</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* 3. Dosage metric and headcounts calculation row grid */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Dose / Bird (ml/drops)</label>
+                  <input 
+                    type="number" 
+                    step="0.001"
+                    placeholder="e.g. 0.5" 
+                    value={vaccineDosage} 
+                    onChange={e => setVaccineDosage(e.target.value)}
+                    required 
+                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none" 
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Birds Treated</label>
+                  <input 
+                    type="number" 
+                    placeholder="Headcount" 
+                    value={vaccineBirdsTreated} 
+                    onChange={e => setVaccineBirdsTreated(e.target.value)}
+                    required 
+                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none" 
+                  />
+                </div>
+              </div>
+
+              {/* 4. Scheduling Context Parameters */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Scheduled Strategy Date</label>
+                <input 
+                  type="date" 
+                  value={vaccineScheduleDate} 
+                  onChange={e => setVaccineScheduleDate(e.target.value)}
+                  required 
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none" 
+                />
+              </div>
+
+              {/* 5. Process Submission Fire Bar */}
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide transition-all shadow-md uppercase"
+              >
+                {loading ? 'Logging Health Records...' : 'Save Vaccination Entry'}
               </button>
             </form>
           </div>
