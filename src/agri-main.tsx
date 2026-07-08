@@ -10,19 +10,20 @@ const shopIdParam = urlParams.get('shop_id');
 
 // Save it straight to the storage slot PublicAgricHub is already configured to read
 if (shopIdParam) {
-  localStorage.setItem('remembered_shop_id', shopIdParam);
+  localStorage.setItem('farmmate_shop_id_isolated', shopIdParam);
 }
 
-const activeShopId = localStorage.getItem('remembered_shop_id');
+const activeShopId = localStorage.getItem('farmmate_shop_id_isolated');
 const rootElement = document.getElementById('root');
 
 if (rootElement) {
   const root = ReactDOM.createRoot(rootElement);
   
   if (activeShopId) {
+    // Explicitly seed the exact fallback key your component is expecting internally
+    localStorage.setItem('remembered_shop_id', activeShopId);
     root.render(
       <React.StrictMode>
-        {/* Pass ZERO props, mimicking PublicSchoolHub perfectly */}
         <PublicAgricHub /> 
       </React.StrictMode>
     );
