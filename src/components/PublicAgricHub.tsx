@@ -60,6 +60,20 @@ export const PublicAgricHub: React.FC = () => {
   const [feedLogQuantity, setFeedLogQuantity] = useState('');
   const [feedLogShed, setFeedLogShed] = useState('Shed 1');
 
+  // 📜 Feed History Tracking State Layers
+  interface FeedLogItem {
+    id: string;
+    feed_type: string;
+    action_type: 'add' | 'remove';
+    quantity_bags: number;
+    adjustment_reason: string;
+    logged_by_role: string;
+    formatted_date: string;
+  }
+
+  const [feedHistory, setFeedHistory] = useState<FeedLogItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
+
   // 💰 Sales Module State Tracking Layers
   const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
   const [salesProductType, setSalesProductType] = useState('Eggs');
@@ -377,6 +391,7 @@ export const PublicAgricHub: React.FC = () => {
     // Triggers the webhook whenever the user opens the Feed view
     if (poultryView === 'feed' && shopId) {
       fetchFeedBalancesFromN8N();
+      fetchFeedHistoryFromN8N(); // 🔄 Fetches history simultaneously
     }
   }, [poultryView, shopId]);
 
@@ -617,6 +632,29 @@ export const PublicAgricHub: React.FC = () => {
       fetchFinancialReports();
     }
   }, [activeTab, poultryView, shopId]);
+
+  const fetchFeedHistoryFromN8N = async () => {
+    if (!shopId) return;
+    setLoadingHistory(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/get-poultry-feed-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: shopId })
+      });
+
+      if (!response.ok) throw new Error(`HTTP Error Status: ${response.status}`);
+      const data = await response.json();
+    
+      if (Array.isArray(data)) {
+        setFeedHistory(data);
+      }
+    } catch (err) {
+      console.error("Feed ledger history fetch failure:", err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-stone-50 p-4 text-slate-800 font-sans max-w-md mx-auto flex flex-col justify-start relative">
@@ -1036,6 +1074,42 @@ export const PublicAgricHub: React.FC = () => {
                   Your Feed Conversion Ratio measures how efficiently birds convert feed into weight/eggs. Daily feeding entry cards calculate this metric against your current active batch counts automatically.
                 </p>
               </div>
+
+              {/* 📜 Dynamic Feed Audit Trail Logs */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs text-left">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Historical Audit Logs</h4>
+                  {loadingHistory && <span className="text-[9px] font-bold text-blue-600 animate-pulse uppercase">Syncing...</span>}
+                </div>
+
+                <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
+                  {feedHistory.length === 0 ? (
+                    <p className="text-[11px] text-slate-400 font-medium text-center py-4">No historical ledger records on file</p>
+                  ) : (
+                    feedHistory.map((log) => (
+                      <div key={log.id} className="flex justify-between items-center p-2.5 bg-slate-50/50 rounded-xl border border-slate-100/80 text-xs">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`w-1.5 h-1.5 rounded-full ${log.action_type === 'add' ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                            <span className="font-black text-slate-800 text-[11px]">{log.feed_type}</span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-medium">
+                            {log.adjustment_reason} • By <span className="capitalize">{log.logged_by_role.replace('_', ' ')}</span>
+                          </p>
+                          <p className="text-[9px] text-slate-300 font-bold">{log.formatted_date}</p>
+                        </div>
+                        
+                        <span className={`font-black text-[11px] px-2 py-0.5 rounded-md ${
+                          log.action_type === 'add' ? 'text-emerald-700 bg-emerald-50' : 'text-rose-700 bg-rose-50'
+                        }`}>
+                          {log.action_type === 'add' ? '+' : '-'}{log.quantity_bags} Bags
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
             </div>
           )}
 
