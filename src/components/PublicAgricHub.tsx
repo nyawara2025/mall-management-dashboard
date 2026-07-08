@@ -1251,13 +1251,13 @@ export const PublicAgricHub: React.FC = () => {
 
               {/* Displaying Categories precisely as defined by your schema requirements */}
               <div className="grid grid-cols-1 gap-3">
-                {['Vegetables', 'Fruits', 'Tubers'].map((cls) => (
+                {['Vegetables', 'Fruits', 'Tubers', 'Grains'].map((cls) => (
                   <div key={cls} className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center">
                     <div>
                       <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">{cls} Records</h4>
                       <p className="text-[11px] text-slate-400 font-medium mt-0.5">No active crop tracking timelines on file</p>
                     </div>
-                    <span className="text-lg">{cls === 'Vegetables' ? '🥬' : cls === 'Fruits' ? '🥑' : '🥔'}</span>
+                    <span className="text-lg">{cls === 'Vegetables' ? '🥬' : cls === 'Fruits' ? '🥑' : cls === 'Tubers' ? '🥔' : '🌾'}</span>
                   </div>
                 ))}
               </div>
