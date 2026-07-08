@@ -35,15 +35,6 @@ export const PublicAgricHub: React.FC = () => {
   const [adjustQuantity, setAdjustQuantity] = useState('');
   const [adjustReason, setAdjustReason] = useState('Spillage/Waste');
 
-  // 💰 Purchases Module Layout State Management
-  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
-  const [purchaseCategory, setPurchaseCategory] = useState('Feed');
-  const [purchaseDescription, setPurchaseDescription] = useState('Starter Crumbs');
-  const [purchaseQuantity, setPurchaseQuantity] = useState('');
-  const [purchaseUnitPrice, setPurchaseUnitPrice] = useState('');
-  const [purchaseSupplier, setPurchaseSupplier] = useState('');
-  const [purchaseReceipt, setPurchaseReceipt] = useState('');
-
   // 📝 Log Daily Feeding Module States
   const [isFeedModalOpen, setIsFeedModalOpen] = useState(false);
   const [feedLogType, setFeedLogType] = useState('Starter Crumbs');
@@ -394,60 +385,6 @@ export const PublicAgricHub: React.FC = () => {
     } catch (error) {
       console.error("Consumption pipeline failure:", error);
       alert("Network transmission error logging feed metrics.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-
-  const handleLogPurchase = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const qty = parseFloat(purchaseQuantity);
-    const price = parseFloat(purchaseUnitPrice);
-
-    if (!qty || qty <= 0 || !price || price <= 0) {
-      alert("Please enter valid positive quantity and pricing metrics");
-      return;
-    }
-
-    setLoading(true);
-
-    const purchasePayload = {
-      shop_id: shopId,
-      farm_name: farmName,
-      item_category: purchaseCategory,
-      item_description: purchaseDescription,
-      quantity: qty,
-      unit_price: price,
-      total_cost: qty * price, // Automatically compiled financial matrix
-      supplier_name: purchaseSupplier || 'Generic Supplier',
-      receipt_reference: purchaseReceipt || 'N/A',
-      logged_by_role: userSession?.role || 'farm_hand',
-      timestamp: new Date().toISOString()
-    };
-
-    try {
-      const response = await fetch('https://n8n.tenear.com/webhook/poultry-feed-purchase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(purchasePayload)
-      });
-
-      if (!response.ok) throw new Error(`HTTP Error Status: ${response.status}`);
-
-      alert(`Successfully logged purchase transaction for ${purchaseDescription}!`);
-    
-      // Reset Form Input Layout Buffers
-      setPurchaseQuantity('');
-      setPurchaseUnitPrice('');
-      setPurchaseSupplier('');
-      setPurchaseReceipt('');
-      setIsPurchaseModalOpen(false);
-
-    } catch (error) {
-      console.error("Purchase processing transmission pipeline failure:", error);
-      alert("Network transaction failure sending expense report.");
     } finally {
       setLoading(false);
     }
@@ -827,46 +764,6 @@ export const PublicAgricHub: React.FC = () => {
                 </div>
                 <p className="text-[10px] text-slate-500 leading-relaxed font-medium">
                   Your Feed Conversion Ratio measures how efficiently birds convert feed into weight/eggs. Daily feeding entry cards calculate this metric against your current active batch counts automatically.
-                </p>
-              </div>
-            </div>
-          )}
-
-
-          {/* 💰 SUB-VIEW: PURCHASES ACCOUNTING MANAGEMENT */}
-          {activeTab === 'poultry' && poultryView === 'purchases' && (
-            <div className="space-y-4 animate-fadeIn">
-              {/* Back to Top Level Menu Ribbon */}
-              <button
-                onClick={() => setPoultryView('menu')}
-                className="text-[11px] text-blue-600 hover:text-blue-700 font-black tracking-wide uppercase flex items-center gap-1 transition-all"
-              >
-                ← Back to Poultry Overview
-              </button>
-
-              {/* Module Header Container */}
-              <div className="bg-white border border-slate-200/80 p-4 rounded-2xl flex justify-between items-center shadow-xs">
-                <div>
-                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">Procurement Expenses</h3>
-                  <p className="text-[10px] text-slate-400">Log feed restocks, flock additions, equipment asset costs, and bills</p>
-                </div>
-              </div>
-
-              {/* Command Action Button Trigger */}
-              <div className="grid grid-cols-1">
-                <button 
-                  onClick={() => setIsPurchaseModalOpen(true)}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[11px] tracking-wide py-3 px-4 rounded-xl transition-all shadow-xs text-center uppercase"
-                >
-                  💳 Record New Expense / Restock
-                </button>
-              </div>
-
-              {/* Informative UI Accounting Ledger Overview Box */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs text-center">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Expense Audits Statement</h4>
-                <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-                  Your purchase records safely sync accounting invoices here. When buying items like feed, lodging a record here increments stock balances across your operational dashboard units seamlessly.
                 </p>
               </div>
             </div>
@@ -1412,136 +1309,6 @@ export const PublicAgricHub: React.FC = () => {
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide transition-all shadow-md uppercase"
               >
                 {loading ? 'Transmitting Data Logs...' : 'Save Consumption Entry'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 📱 THE DYNAMIC PROCUREMENT PURCHASES INPUT MODAL OVERLAY */}
-      {isPurchaseModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-end justify-center z-50 p-4 animate-fadeIn">
-          <div className="w-full bg-white rounded-3xl p-5 shadow-xl max-w-md border border-slate-100 flex flex-col space-y-4 animate-slideUp">
-            
-            {/* Modal Header */}
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-black text-slate-900 tracking-wide uppercase">Record Procurement Item</h3>
-              <button 
-                onClick={() => setIsPurchaseModalOpen(false)} 
-                className="text-slate-400 font-bold hover:text-slate-600 text-xs uppercase"
-              >
-                Cancel
-              </button>
-            </div>
-
-            {/* Procurement Entry Input Forms */}
-            <form onSubmit={handleLogPurchase} className="space-y-4 text-left">
-              
-              {/* 1. Category Classification Pick */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Item Sector Category</label>
-                <select 
-                  value={purchaseCategory} 
-                  onChange={(e) => {
-                    setPurchaseCategory(e.target.value);
-                    if (e.target.value === 'Feed') setPurchaseDescription('Starter Crumbs');
-                    else if (e.target.value === 'Chicks') setPurchaseDescription('Broiler Chicks');
-                    else setPurchaseDescription('');
-                  }}
-                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none focus:border-blue-500"
-                >
-                  <option value="Feed">Poultry Feed Stock</option>
-                  <option value="Chicks">Day Old Chicks / Stock</option>
-                  <option value="Vaccines">Medical / Vaccines</option>
-                  <option value="Implements">Farm Tools & Hardware</option>
-                </select>
-              </div>
-
-              {/* 2. Contextual Description Input Selection Dropdown */}
-              <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Item Name / Description</label>
-                {purchaseCategory === 'Feed' ? (
-                  <select 
-                    value={purchaseDescription} 
-                    onChange={(e) => setPurchaseDescription(e.target.value)}
-                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none"
-                  >
-                    <option value="Starter Crumbs">Starter Crumbs</option>
-                    <option value="Growers Pellets">Growers Pellets</option>
-                    <option value="Finisher Pellets">Finisher Pellets</option>
-                    <option value="Layers Mash">Layers Mash</option>
-                  </select>
-                ) : (
-                  <input 
-                    type="text" 
-                    placeholder="e.g., Broiler Chicks, Automatic Drinkers" 
-                    value={purchaseDescription} 
-                    onChange={e => setPurchaseDescription(e.target.value)}
-                    required 
-                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none" 
-                  />
-                )}
-              </div>
-
-              {/* 3. Numerical Quantity and Unit Pricing Grid Layout Containers */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Quantity (Units)</label>
-                  <input 
-                    type="number" 
-                    step="0.01"
-                    placeholder="Amount" 
-                    value={purchaseQuantity} 
-                    onChange={e => setPurchaseQuantity(e.target.value)}
-                    required 
-                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none" 
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Unit Price ($)</label>
-                  <input 
-                    type="number" 
-                    step="0.01"
-                    placeholder="Cost per unit" 
-                    value={purchaseUnitPrice} 
-                    onChange={e => setPurchaseUnitPrice(e.target.value)}
-                    required 
-                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none" 
-                  />
-                </div>
-              </div>
-
-              {/* 4. Optional Metadata Tracking Fields (Supplier and Receipt Reference ID Contexts) */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Supplier Store</label>
-                  <input 
-                    type="text" 
-                    placeholder="Store/Vendor" 
-                    value={purchaseSupplier} 
-                    onChange={e => setPurchaseSupplier(e.target.value)}
-                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none" 
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Invoice / Receipt #</label>
-                  <input 
-                    type="text" 
-                    placeholder="Ref ID" 
-                    value={purchaseReceipt} 
-                    onChange={e => setPurchaseReceipt(e.target.value)}
-                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none" 
-                  />
-                </div>
-              </div>
-
-              {/* 5. Process Confirmation Button Action Bar Row */}
-              <button 
-                type="submit" 
-                disabled={loading}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide transition-all shadow-md uppercase"
-              >
-                {loading ? 'Transmitting Invoices...' : 'Save Procurement Bill'}
               </button>
             </form>
           </div>
