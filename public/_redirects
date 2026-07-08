@@ -1,12 +1,1 @@
-# 1. Preserve explicit multi-tenant entry files
-/church.html  /church.html  200
-/edu.html     /edu.html     200
-/agri.html    /agri.html     200
-
-# 2. Route domain-specific paths to their dedicated modules
-/school/*     /edu.html     200
-/church/*     /church.html  200
-/farm/*       /agri.html    200
-
-# 3. Fallback catch-all for your main ecosystem dashboard
-/*            /index.html   200
+/* /index.html 200
