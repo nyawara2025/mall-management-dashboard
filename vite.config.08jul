@@ -73,8 +73,7 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         voter: resolve(__dirname, 'voter.html'),
         church: resolve(__dirname, 'church.html'),
-        edu: resolve(__dirname, 'edu.html'),
-        agri: resolve(__dirname, 'agri.html')
+        edu: resolve(__dirname, 'edu.html')
       }
     }
   }
