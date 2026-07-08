@@ -50,6 +50,14 @@ export const PublicAgricHub: React.FC = () => {
   const [feedLogQuantity, setFeedLogQuantity] = useState('');
   const [feedLogShed, setFeedLogShed] = useState('Shed 1');
 
+  // 💰 Sales Module State Tracking Layers
+  const [isSalesModalOpen, setIsSalesModalOpen] = useState(false);
+  const [salesProductType, setSalesProductType] = useState('Eggs');
+  const [salesQuantity, setSalesQuantity] = useState('');
+  const [salesUnitPrice, setSalesUnitPrice] = useState('');
+  const [salesCustomer, setSalesCustomer] = useState('');
+  const [salesPaymentMethod, setSalesPaymentMethod] = useState('Mobile Money');
+
   // 💉 Vaccination Module State Tracking Layers
   const [isVaccineModalOpen, setIsVaccineModalOpen] = useState(false);
   const [vaccineName, setVaccineName] = useState('Gumboro');
@@ -513,6 +521,57 @@ export const PublicAgricHub: React.FC = () => {
     }
   };
 
+  const handleLogSale = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const qty = parseFloat(salesQuantity);
+    const price = parseFloat(salesUnitPrice);
+
+    if (!qty || qty <= 0 || !price || price <= 0) {
+      alert("Please enter valid positive quantity and pricing metrics.");
+      return;
+    }
+
+    setLoading(true);
+
+    const salesPayload = {
+      shop_id: shopId,
+      farm_name: farmName,
+      product_type: salesProductType,
+      quantity: qty,
+      unit_price: price,
+      total_revenue: qty * price, // Automatically compiled revenue metric
+      customer_name: salesCustomer || 'Cash Customer',
+      payment_method: salesPaymentMethod,
+      logged_by_role: userSession?.role || 'farm_hand',
+      timestamp: new Date().toISOString()
+    };
+
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/poultry-sales', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(salesPayload)
+      });
+
+      if (!response.ok) throw new Error(`HTTP Operational Error: ${response.status}`);
+
+      alert(`Successfully recorded sale for ${salesProductType}!`);
+    
+      // Clear Input States & Close Modal Panel Context
+      setSalesQuantity('');
+      setSalesUnitPrice('');
+      setSalesCustomer('');
+      setIsSalesModalOpen(false);
+
+    } catch (error) {
+      console.error("Sales transmission pipeline failure:", error);
+      alert("Network transmission error logging sales metrics.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-stone-50 p-4 text-slate-800 font-sans max-w-md mx-auto flex flex-col justify-start relative">
       
@@ -966,6 +1025,45 @@ export const PublicAgricHub: React.FC = () => {
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Medical Compliance Logs</h4>
                 <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
                   Flock batch histories display immunization entries here. Keeping structured schedules protects farm environments and optimizes growth compliance metrics across active tenant production cycles.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* 💰 SUB-VIEW: SALES & DISTRIBUTION MANAGEMENT */}
+          {activeTab === 'poultry' && poultryView === 'sales' && (
+            <div className="space-y-4 animate-fadeIn">
+              {/* Back to Top Level Menu Ribbon */}
+              <button
+                onClick={() => setPoultryView('menu')}
+                className="text-[11px] text-blue-600 hover:text-blue-700 font-black tracking-wide uppercase flex items-center gap-1 transition-all"
+              >
+                ← Back to Poultry Overview
+              </button>
+
+              {/* Module Header Container */}
+              <div className="bg-white border border-slate-200/80 p-4 rounded-2xl flex justify-between items-center shadow-xs">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">Sales & Distribution</h3>
+                  <p className="text-[10px] text-slate-400">Record egg sales, bird distribution revenue, and track incoming farm cash flow</p>
+                </div>
+              </div>
+
+              {/* Action Trigger Buttons */}
+              <div className="grid grid-cols-1">
+                <button 
+                  onClick={() => setIsSalesModalOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[11px] tracking-wide py-3 px-4 rounded-xl transition-all shadow-xs text-center uppercase"
+                >
+                  💰 Record New Poultry Sale
+                </button>
+              </div>
+
+              {/* Informational Guidelines Alert Banner Box */}
+              <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs text-center">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">Revenue Tracking Statement</h4>
+                <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                  Your distribution transactions instantly compile financial metrics here. When selling inventory like birds, logging a record here will seamlessly communicate data to reduce active bird totals across your production cycle sheets.
                 </p>
               </div>
             </div>
@@ -1755,6 +1853,108 @@ export const PublicAgricHub: React.FC = () => {
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide transition-all shadow-md uppercase"
               >
                 {loading ? 'Logging Health Records...' : 'Save Vaccination Entry'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 📱 THE DYNAMIC POULTRY SALES INPUT MODAL OVERLAY */}
+      {isSalesModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-end justify-center z-50 p-4 animate-fadeIn">
+          <div className="w-full bg-white rounded-3xl p-5 shadow-xl max-w-md border border-slate-100 flex flex-col space-y-4 animate-slideUp">
+            
+            {/* Modal Header */}
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 className="text-sm font-black text-slate-900 tracking-wide uppercase">Log Poultry Sale</h3>
+              <button 
+                onClick={() => setIsSalesModalOpen(false)} 
+                className="text-slate-400 font-bold hover:text-slate-600 text-xs uppercase"
+              >
+                Cancel
+              </button>
+            </div>
+
+            {/* Input Form Controls */}
+            <form onSubmit={handleLogSale} className="space-y-4 text-left">
+              
+              -- 1. Product Type Picker --
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Product Category</label>
+                <select 
+                  value={salesProductType} 
+                  onChange={(e) => setSalesProductType(e.target.value)}
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none focus:border-blue-500"
+                >
+                  <option value="Eggs">Eggs (Crates)</option>
+                  <option value="Live Birds">Live Birds (Headcount)</option>
+                  <option value="Processed Meat">Processed Meat (KG)</option>
+                </select>
+              </div>
+
+              -- 2. Numerical Quantity and Unit Pricing Grid --
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">
+                    {salesProductType === 'Eggs' ? 'Quantity (Crates)' : salesProductType === 'Processed Meat' ? 'Quantity (KG)' : 'Quantity (Birds)'}
+                  </label>
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    placeholder="Amount" 
+                    value={salesQuantity} 
+                    onChange={e => setSalesQuantity(e.target.value)}
+                    required 
+                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none focus:border-blue-500" 
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Unit Price ($)</label>
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    placeholder="Cost per unit" 
+                    value={salesUnitPrice} 
+                    onChange={e => setSalesUnitPrice(e.target.value)}
+                    required 
+                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none focus:border-blue-500" 
+                  />
+                </div>
+              </div>
+
+              -- 3. Customer and Payment Method Parameters --
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Customer Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Local Hotel" 
+                    value={salesCustomer} 
+                    onChange={e => setSalesCustomer(e.target.value)}
+                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none focus:border-blue-500" 
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Payment Channel</label>
+                  <select 
+                    value={salesPaymentMethod} 
+                    onChange={(e) => setSalesPaymentMethod(e.target.value)}
+                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none"
+                  >
+                    <option value="Mobile Money">Mobile Money</option>
+                    <option value="Cash">Cash</option>
+                    <option value="Bank Transfer">Bank Transfer</option>
+                  </select>
+                </div>
+              </div>
+
+              -- 4. Process Submission Bar --
+              <button 
+                type="submit" 
+                disabled={loading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide transition-all shadow-md uppercase"
+              >
+                {loading ? 'Transmitting Transaction...' : 'Save Sales Record'}
               </button>
             </form>
           </div>
