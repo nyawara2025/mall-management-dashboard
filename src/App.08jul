@@ -222,9 +222,7 @@ function AppContent() {
         
 
   // 🚜 FARMER PUBLIC MOBILE HUB GATEKEEPER (New Intercept Injection)
-  const isExplicitFarmPath = window.location.pathname.startsWith('/farm');
-
-  if (bizCategory === 'agricultural' || isExplicitFarmPath) {
+  if (bizCategory === 'agricultural' || isAgriPath) {
     return (
       <div className="min-h-screen bg-stone-50">
         {/* PublicAgriHub manages its internal login/registration state engine locally */}

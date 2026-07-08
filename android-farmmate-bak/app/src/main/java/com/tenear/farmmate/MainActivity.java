@@ -1,4 +1,4 @@
-package com.tenear.schoolmate;
+package com.tenear.farmmate;
 
 import com.getcapacitor.BridgeActivity;
 
