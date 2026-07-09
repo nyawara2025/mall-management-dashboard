@@ -49,7 +49,7 @@ export const CropsHub: React.FC<CropsHubProps> = ({
   const [loading, setLoading] = useState(false);
   
   // Local Weather Sync States
-  const [weatherData, setWeatherData] = useState<{ temp: number; text: string; rainProb: number } | null>(null);
+  const [weatherData, setWeatherData] = useState<{ temp: number; text: string; rainProb: number; ward: string; constituency: string; county: string;} | null>(null);
 
   // Operational Form Buffer States
   const [inputCategory, setInputCategory] = useState<'Fertilizer' | 'Manure' | 'Chemical' | 'Seeds'>('Fertilizer');
@@ -129,8 +129,11 @@ export const CropsHub: React.FC<CropsHubProps> = ({
 
             setWeatherData({
               temp: Math.round(data.current_weather.temperature),
-              text: `${agroDetails.condition} — ${agroDetails.advisory}`,
-              rainProb: data.daily?.precipitation_probability_max?.[0] || 0
+              text: agroDetails.advisory, // Stores ONLY the raw advisory string
+              rainProb: data.daily?.precipitation_probability_max?.[0] || 0,
+              ward: farmData.ward || "Local",
+              constituency: farmData.constituency || "Region",
+              county: farmData.county || "County"
             });
           } else {
             console.error("Open-Meteo endpoint returned a bad response code:", weatherResponse.status);
@@ -545,23 +548,30 @@ export const CropsHub: React.FC<CropsHubProps> = ({
       </button>
 
       <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs text-center">
-        <span className="text-3xl block mb-2">🌦️</span>
-        <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide mb-1">Meteorological Safety Dashboard</h3>
-        <p className="text-xs text-slate-500 mb-4">Connected to global meteorological registries to evaluate daily spraying or fertilizer runoff parameters.</p>
+        {/* Dynamic icon depending on rain probability */}
+        <span className="text-3xl block mb-2">{(weatherData?.rainProb ?? 0) >= 50 ? '🌧️' : '☀️'}</span>
         
+        {/* 📍 Fully dynamic administrative regional header */}
+        <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide mb-1">
+          {weatherData ? `${weatherData.ward} Ward Weather` : 'Meteorological Safety Dashboard'}
+        </h3>
+        <p className="text-xs text-slate-500 mb-4">
+          {farmName || 'Your Farm'} • {weatherData ? `${weatherData.constituency}, ${weatherData.county} County` : 'Analyzing localized regional parameters...'}
+        </p>
+
         {weatherData && (
           <div className="bg-slate-50 border border-slate-100 p-4 rounded-2xl inline-block w-full text-left space-y-2">
-            <p className="text-xs text-slate-600 font-bold">Current Ambient Heat Index: <span className="text-slate-900 font-black">{weatherData.temp}°C</span></p>
-            <p className="text-xs text-slate-600 font-bold">Atmospheric Cover Matrix: <span className="text-slate-900 font-black">{weatherData.text}</span></p>
+            <p className="text-xs text-slate-600 font-bold">Current Ambient Temperature: <span className="text-slate-900 font-black">{weatherData.temp}°C</span></p>
+            <p className="text-xs text-slate-600 font-bold">Agronomic Advisory: <span className="text-slate-900 font-black">{weatherData.text}</span></p>
             <p className="text-xs text-slate-600 font-bold">Precipitation Probability (Rain): <span className="text-blue-600 font-black">{weatherData.rainProb}%</span></p>
-            
+
             {weatherData.rainProb >= 50 ? (
               <div className="p-2.5 rounded-xl text-[10px] font-black uppercase text-center mt-2 bg-rose-50 text-rose-700 border border-rose-100">
-                 ⚠️ Warning: High rain risk. Postpone spray or top-dressing runs.
+                 ⚠️ Warning: High rain risk for {weatherData.ward}. Postpone spray or top-dressing runs.
               </div>
             ) : (
               <div className="p-2.5 rounded-xl text-[10px] font-black uppercase text-center mt-2 bg-emerald-50 text-emerald-700 border border-emerald-100">
-                ✅ Safe: Low rain probability. Ideal for foliar input application.
+                ✅ Safe: Low rain probability in {weatherData.constituency}. Ideal for foliar input application.
               </div>
             )}
           </div>
