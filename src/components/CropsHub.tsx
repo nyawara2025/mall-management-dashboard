@@ -74,31 +74,33 @@ export const CropsHub: React.FC<CropsHubProps> = ({
   // 🌍 1. Link to Regional Weather Tracking Databases Dynamically via Webhook
   const fetchRegionalWeather = async () => {
     try {
-      // Step A: Fetch dynamic tenant coordinates from Supabase via n8n
       const coordResponse = await fetch('https://n8n.tenear.com/webhook/fetch-farm-coordinates', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shop_id: shopId })
       });
 
-      // Default fallback variables (e.g., Nakuru agricultural hub) if the webhook fails or is unconfigured
-      let lat = "-0.3031";
-      let lon = "36.0800";
+      // Secure baseline fallback hard-coded constants
+      let lat = "-0.0473";
+      let lon = "34.4719";
 
       if (coordResponse.ok) {
         const tenantData = await coordResponse.json();
-        // Ensure your n8n webhook returns fields corresponding to your schema names
-        if (tenantData.latitude && tenantData.longitude) {
-          lat = tenantData.latitude.toString();
-          lon = tenantData.longitude.toString();
+        
+        // 🔍 HANDLE THE NESTED N8N NODE OBJECT KEY HERE:
+        const coords = tenantData["Fetch Farm Coordinates"] || tenantData;
+        
+        if (coords && coords.latitude && coords.longitude) {
+          lat = String(coords.latitude).trim();
+          lon = String(coords.longitude).trim();
         }
-      } else {
-        console.warn("Webhook coordinates failed. Using fallback agricultural coordinates.");
       }
 
-      // Step B: Fetch real-time weather metrics using the precise database coordinates
+      // Construct a clean URL string verifying no "undefined" text injection slips through
       const weatherUrl = `https://open-meteo.com{lat}&longitude=${lon}&current_weather=true&daily=precipitation_probability_max&timezone=Africa/Nairobi`;
       
+      console.log("Dispatching clean weather URL target:", weatherUrl);
+
       const weatherResponse = await fetch(weatherUrl);
       if (weatherResponse.ok) {
         const data = await weatherResponse.json();
@@ -112,6 +114,7 @@ export const CropsHub: React.FC<CropsHubProps> = ({
       console.error("Failed fetching dynamic regional meteorological variables:", e);
     }
   };
+  
 
 
   // 📊 1. Fetch Summary Data Matrix for the Operational Counter Cards
