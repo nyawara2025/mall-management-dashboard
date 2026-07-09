@@ -71,6 +71,16 @@ export const CropsHub: React.FC<CropsHubProps> = ({
     else if (cat === 'Seeds') setInputName('H6214 Maize Seeds');
   };
 
+  const getWeatherAdvisory = (code: number): { condition: string; advisory: string } => {
+    if (code <= 1) return { condition: 'Clear Skies', advisory: 'Ideal for crop inspection & top-dressing application.' };
+    if (code <= 3) return { condition: 'Partly Cloudy', advisory: 'Good conditions for land preparation and general farm tasks.' };
+    if (code >= 51 && code <= 55) return { condition: 'Drizzle', advisory: 'Light moisture. Safe for weeding, but avoid spraying fungicides.' };
+    if (code >= 61 && code <= 65) return { condition: 'Rain Showers', advisory: 'High soil moisture. Suspend chemical spraying; ideal for transplanting seedlings.' };
+    if (code >= 80 && code <= 82) return { condition: 'Heavy Downpour', advisory: 'Risk of runoff. Check field drainage channels immediately.' };
+    if (code >= 95) return { condition: 'Thunderstorms', advisory: 'Severe weather alert. Ensure field workers seek shelter.' };
+    return { condition: 'Overcast', advisory: 'Monitor local moisture levels before scheduling irrigation.' };
+  };
+
   // 🌍 1. Link to Regional Weather Tracking Databases Dynamically via Webhook
   const fetchRegionalWeather = async () => {
     try {
@@ -113,10 +123,14 @@ export const CropsHub: React.FC<CropsHubProps> = ({
             const weatherCode = data.current_weather?.weathercode ?? 0;
             const maxRainProb = data.daily?.precipitation_probability_max?.[0] ?? 0;
 
+            const currentCode = data.current_weather.weathercode;
+            const agroDetails = getWeatherAdvisory(currentCode);
+
+
             setWeatherData({
-              temp: currentTemp,
-              text: `${farmData.ward || 'North Seme'} Ward, ${farmData.constituency || 'Seme'}`,
-              rainProb: maxRainProb
+              temp: Math.round(data.current_weather.temperature),
+              text: `${agroDetails.condition} — ${agroDetails.advisory}`,
+              rainProb: data.daily?.precipitation_probability_max?.[0] || 0
             });
           } else {
             console.error("Open-Meteo endpoint returned a bad response code:", weatherResponse.status);
