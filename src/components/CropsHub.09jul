@@ -7,16 +7,6 @@ interface CropsHubProps {
   userSession: { name: string; role: string } | null;
   isCropsModalOpen: boolean;
   setIsCropsModalOpen: (open: boolean) => void;
-  // ADD THESE MISSING PARENT STATES AND SETTERS TO RESOLVE TYPE ERRORS 👇
-  cropClass: 'Vegetables' | 'Fruits' | 'Tubers' | 'Grains';
-  cropVariety: string;
-  acreage: string;
-  cropStartDate: string;
-  harvestDate: string;
-  setCropClass: (val: 'Vegetables' | 'Fruits' | 'Tubers' | 'Grains') => void;
-  setCropVariety: (val: string) => void;
-  setAcreage: (val: string) => void;
-  setCropStartDate: (val: string) => void;
 }
 
 export const CropsHub: React.FC<CropsHubProps> = ({ 
@@ -24,26 +14,8 @@ export const CropsHub: React.FC<CropsHubProps> = ({
   farmName, 
   userSession,
   isCropsModalOpen,
-  setIsCropsModalOpen,
-  // DESTRUCTURE THE MISSING PARAMETERS HERE 👇
-  cropClass,
-  cropVariety,
-  acreage,
-  cropStartDate,
-  harvestDate,
-  setCropClass,
-  setCropVariety,
-  setAcreage,
-  setCropStartDate
+  setIsCropsModalOpen
 }) => {
-
-  // 1. CHANGER OR ADD THIS EXACT LOCAL STATE INITIALIZER HERE 👇
-  const [summaryMetrics, setSummaryMetrics] = useState({
-    total_plots: 0,
-    active_acreage: 0,
-    projected_yield_kg: 0
-  });
-
   // Navigation State Panel Switcher
   const [cropsView, setCropsView] = useState<'menu' | 'production' | 'inputs' | 'tasks' | 'weather'>('menu');
   const [loading, setLoading] = useState(false);
@@ -99,7 +71,7 @@ export const CropsHub: React.FC<CropsHubProps> = ({
   // 📱 2. Evolution API Gateway WhatsApp Notification Dispatcher
   const triggerWhatsAppAlert = async (phone: string, message: string) => {
     try {
-      await fetch('https://n8n.tenear.com/webhook/crop-whatsapp-alerts', {
+      await fetch('https://tenear.com', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -193,9 +165,8 @@ export const CropsHub: React.FC<CropsHubProps> = ({
   // Main Crops Hub Sub-Menu
   if (cropsView === 'menu') {
     return (
-      <div className="space-y-4 animate-fadeIn text-left font-sans">
-        
-        {/* 🌦️ Weather Indicator Banner Widget */}
+      <div className="space-y-4 animate-fadeIn text-left">
+        {/* Weather Indicator Banner widget */}
         <div onClick={() => setCropsView('weather')} className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl p-3.5 shadow-xs flex justify-between items-center cursor-pointer">
           <div className="flex items-center gap-2.5">
             <span className="text-xl">🌦️</span>
@@ -207,96 +178,33 @@ export const CropsHub: React.FC<CropsHubProps> = ({
           <span className="text-xs font-bold bg-white/20 px-2 py-0.5 rounded-md">View Details</span>
         </div>
 
-        {/* 📊 Accounting Overview Card Matrix */}
-        <div className="bg-white border border-slate-200/80 p-3.5 rounded-2xl shadow-xs">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2.5">Crops Operational Matrix</h3>
-          <div className="grid grid-cols-3 gap-2">
-            <div className="bg-slate-50/50 border border-slate-100 p-2 rounded-xl text-center">
-              <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Active Plots</span>
-              {/* FIXED: Uses your active summaryMetrics variables */}
-              <span className="text-xs font-black text-slate-700 block mt-0.5">{summaryMetrics.total_plots} Fields</span>
-            </div>
-            <div className="bg-slate-50/50 border border-slate-100 p-2 rounded-xl text-center">
-              <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Total Acreage</span>
-              {/* FIXED: Uses your active summaryMetrics variables */}
-              <span className="text-xs font-black text-emerald-700 block mt-0.5">{summaryMetrics.active_acreage} Acres</span>
-            </div>
-            <div className="bg-emerald-50/40 border border-emerald-100 p-2 rounded-xl text-center">
-              <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider block">Est. Yield</span>
-              {/* FIXED: Uses your active summaryMetrics variables */}
-              <span className="text-xs font-black text-blue-600 block mt-0.5">{summaryMetrics.projected_yield_kg} Kg</span>
-            </div>
-          </div>
-        </div>
-
-        {/* 🛠️ Dashboard Operation Selector Buttons */}
-        <div className="grid grid-cols-2 gap-2">
+        {/* Modular Grid View Operational Actions list triggers */}
+        <div className="grid grid-cols-1 gap-3">
           <button 
             onClick={() => setCropsView('inputs')}
-            className="bg-white border border-slate-200 p-3 rounded-xl shadow-2xs hover:border-emerald-300 transition-all text-center flex flex-col items-center justify-center space-y-1"
+            className="w-full bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:border-slate-300 transition-colors group"
           >
+            <div>
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider group-hover:text-emerald-600 transition-colors">Input Management</h4>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5">Log Seeds, Fertilizers, Manure & Chemical Sprays</p>
+            </div>
             <span className="text-lg">🌾</span>
-            <span className="text-[11px] font-black text-slate-800 uppercase tracking-wide">Inputs Log</span>
           </button>
 
           <button 
             onClick={() => setCropsView('tasks')}
-            className="bg-white border border-slate-200 p-3 rounded-xl shadow-2xs hover:border-emerald-300 transition-all text-center flex flex-col items-center justify-center space-y-1"
+            className="w-full bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:border-slate-300 transition-colors group"
           >
+            <div>
+              <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider group-hover:text-emerald-600 transition-colors">Task Schedule & Alerts</h4>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5">Manage Land Prep, Spraying Cycles & Harvest Deadlines</p>
+            </div>
             <span className="text-lg">📅</span>
-            <span className="text-[11px] font-black text-slate-800 uppercase tracking-wide">Task Alerts</span>
           </button>
         </div>
-
-        {/* 🌽 YOUR PRODUCTION CATEGORY CARDS (Brought Back & Integrated) */}
-        <div className="space-y-2 pt-2">
-          <div className="flex justify-between items-center">
-            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Crop Cultivation Cycles</h3>
-            <button 
-              onClick={() => setIsCropsModalOpen(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[10px] tracking-wide py-1 px-2.5 rounded-lg transition-all"
-            >
-              + NEW PLOT
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 gap-2.5">
-            {['Vegetables', 'Fruits', 'Tubers', 'Grains'].map((cls) => (
-              <div key={cls} className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center">
-                <div>
-                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">{cls} Records</h4>
-                  <p className="text-[11px] text-slate-400 font-medium mt-0.5">No active crop tracking timelines on file</p>
-                </div>
-                <span className="text-lg">
-                  {cls === 'Vegetables' ? '🥬' : cls === 'Fruits' ? '🥑' : cls === 'Tubers' ? '🥔' : '🌾'}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 📱 Form Pop-up Integration */}
-        <CropsModal 
-          isOpen={isCropsModalOpen}
-          onClose={() => setIsCropsModalOpen(false)}
-          shopId={shopId}
-          farmName={farmName}
-          userSession={userSession}
-          cropClass={cropClass}
-          cropVariety={cropVariety}
-          acreage={acreage}
-          cropStartDate={cropStartDate}
-          harvestDate={harvestDate}
-          setCropClass={setCropClass}
-          setCropVariety={setCropVariety}
-          setAcreage={setAcreage}
-          setCropStartDate={setCropStartDate}
-        />
       </div>
     );
   }
-   
-
 
   // Input Tracking Input Management Form Component Layout
   if (cropsView === 'inputs') {

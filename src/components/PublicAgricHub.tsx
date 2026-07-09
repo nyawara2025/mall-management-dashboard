@@ -1241,6 +1241,16 @@ export const PublicAgricHub: React.FC = () => {
               userSession={userSession}
               isCropsModalOpen={isCropsModalOpen}
               setIsCropsModalOpen={setIsCropsModalOpen}
+              // PASS THESE PARAMETERS FROM THE PARENT MEMORY TO RESOLVE TS2740 👇
+              cropClass={cropClass}
+              cropVariety={cropVariety}
+              acreage={acreage}
+              cropStartDate={cropStartDate}
+              harvestDate={harvestDate}
+              setCropClass={setCropClass}
+              setCropVariety={setCropVariety}
+              setAcreage={setAcreage}
+              setCropStartDate={setCropStartDate}
             />
           )}
 
