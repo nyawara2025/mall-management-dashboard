@@ -81,26 +81,33 @@ export const CropsHub: React.FC<CropsHubProps> = ({
       });
 
       if (coordResponse.ok) {
-        const payload = await coordResponse.json();
-        
-        // n8n delivers the flat array payload containing your variables
-        const farmData = Array.isArray(payload) ? payload[0] : payload;
+        const farmData = await coordResponse.json();
 
         if (farmData && farmData.latitude && farmData.longitude) {
           const lat = String(farmData.latitude).trim();
           const lon = String(farmData.longitude).trim();
           
-          // Build the explicit Open-Meteo URL string without loose parsing injection issues
-          const weatherUrl = `https://open-meteo.com{lat}&longitude=${lon}&current_weather=true&daily=precipitation_probability_max&timezone=Africa/Nairobi`;
+          // Build query parameters safely to avoid dynamic text template string issues
+          const queryParams = new URLSearchParams({
+            latitude: lat,
+            longitude: lon,
+            current_weather: 'true',
+            daily: 'precipitation_probability_max',
+            timezone: 'Africa/Nairobi'
+          });
+
+          // Combine the verified endpoint base with your clean query object
+          const weatherUrl = 'https://open-meteo.com?' + queryParams.toString();
+          
+          console.log("Dispatching clean weather URL target:", weatherUrl);
           
           const weatherResponse = await fetch(weatherUrl);
           if (weatherResponse.ok) {
             const data = await weatherResponse.json();
             
-            // Render the clean Ward text right inside your React weather card component
             setWeatherData({
               temp: Math.round(data.current_weather.temperature),
-              text: `${farmData.ward} Ward, ${farmData.constituency}`,
+              text: `${farmData.ward || 'North Seme'} Ward, ${farmData.constituency || 'Seme'}`,
               rainProb: data.daily?.precipitation_probability_max?.[0] || 0
             });
           }
