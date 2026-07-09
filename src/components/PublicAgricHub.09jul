@@ -1235,13 +1235,33 @@ export const PublicAgricHub: React.FC = () => {
 
           {/* 🌽 CROPS PRODUCTION TRACKING PANELS */}
           {activeTab === 'crops' && (
-            <CropsHub 
-              shopId={shopId || '81'} 
-              farmName={farmName} 
-              userSession={userSession}
-              isCropsModalOpen={isCropsModalOpen}
-              setIsCropsModalOpen={setIsCropsModalOpen}
-            />
+            <div className="space-y-4 animate-fadeIn">
+              <div className="bg-white border border-slate-200/80 p-4 rounded-2xl flex justify-between items-center shadow-xs">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">Crop Cultivation</h3>
+                  <p className="text-[10px] text-slate-400">Log new field allocations and variety plots</p>
+                </div>
+                <button 
+                  onClick={() => setIsCropsModalOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[11px] tracking-wide py-2 px-3.5 rounded-xl transition-all shadow-xs"
+                >
+                  + NEW PLOT
+                </button>
+              </div>
+
+              {/* Displaying Categories precisely as defined by your schema requirements */}
+              <div className="grid grid-cols-1 gap-3">
+                {['Vegetables', 'Fruits', 'Tubers', 'Grains'].map((cls) => (
+                  <div key={cls} className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center">
+                    <div>
+                      <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">{cls} Records</h4>
+                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">No active crop tracking timelines on file</p>
+                    </div>
+                    <span className="text-lg">{cls === 'Vegetables' ? '🥬' : cls === 'Fruits' ? '🥑' : cls === 'Tubers' ? '🥔' : '🌾'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* 🐄 LIVESTOCK INVENTORY TRACKING PANELS */}
@@ -1366,6 +1386,25 @@ export const PublicAgricHub: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* 📱 THE DYNAMIC CROPS INTEGRATION ENGINE (Replaces the broken inline loop block) */}
+      <CropsModal 
+        isOpen={isCropsModalOpen}
+        onClose={() => setIsCropsModalOpen(false)}
+        shopId={shopId || '81'}
+        farmName={farmName}
+        userSession={userSession}
+        // Sync states cleanly out of the parent context parameters
+        cropClass={cropClass}
+        cropVariety={cropVariety}
+        acreage={acreage}
+        cropStartDate={cropStartDate}
+        harvestDate={harvestDate}
+        setCropClass={setCropClass}
+        setCropVariety={setCropVariety}
+        setAcreage={setAcreage}
+        setCropStartDate={setCropStartDate}
+      />
    
 
       {/* 📱 THE DYNAMIC LIVESTOCK INPUT MODAL */}
