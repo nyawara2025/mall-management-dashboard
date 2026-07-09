@@ -29,8 +29,6 @@ interface CropCycle {
   plot_name?: string;
 }
 
-const [activeCycles, setActiveCycles] = useState<CropCycle[]>([]);
-
 export const CropsHub: React.FC<CropsHubProps> = ({ 
   shopId, 
   farmName, 
@@ -48,6 +46,8 @@ export const CropsHub: React.FC<CropsHubProps> = ({
   setAcreage,
   setCropStartDate
 }) => {
+
+  const [activeCycles, setActiveCycles] = useState<CropCycle[]>([]);
 
   // 1. CHANGER OR ADD THIS EXACT LOCAL STATE INITIALIZER HERE 👇
   const [summaryMetrics, setSummaryMetrics] = useState({
