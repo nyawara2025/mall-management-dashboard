@@ -100,7 +100,7 @@ export const CropsHub: React.FC<CropsHubProps> = ({
             timezone: 'Africa/Nairobi'
           });
 
-          const weatherUrl = 'https://open-meteo.com?' + queryParams.toString();
+          const weatherUrl = 'https://api.open-meteo.com/v1/forecast?' + queryParams.toString();
           
           console.log("Dispatching Weather Network Fetch Request to:", weatherUrl);
           
