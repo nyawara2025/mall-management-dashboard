@@ -29,6 +29,16 @@ interface CropCycle {
   plot_name?: string;
 }
 
+interface MarketPriceRow {
+  id: string | number;
+  commodity_name: string;
+  unit_measure: string;
+  retail_price_kes: number;
+  wholesale_price_kes: number;
+  market_trend: 'UP' | 'DOWN' | 'STABLE';
+  trading_hub: string;
+}
+
 export const CropsHub: React.FC<CropsHubProps> = ({ 
   shopId, 
   farmName, 
@@ -56,8 +66,10 @@ export const CropsHub: React.FC<CropsHubProps> = ({
     projected_yield_kg: 0
   });
 
+  const [marketPrices, setMarketPrices] = useState<MarketPriceRow[]>([]);
+
   // Navigation State Panel Switcher
-  const [cropsView, setCropsView] = useState<'menu' | 'production' | 'inputs' | 'tasks' | 'weather'>('menu');
+  const [cropsView, setCropsView] = useState<'menu' | 'production' | 'inputs' | 'tasks' | 'weather' | 'market'>('menu');
   const [loading, setLoading] = useState(false);
   
   // Local Weather Sync States
@@ -351,7 +363,7 @@ export const CropsHub: React.FC<CropsHubProps> = ({
         </div>
 
         {/* 🛠️ Dashboard Operation Selector Buttons */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <button 
             onClick={() => setCropsView('inputs')}
             className="bg-white border border-slate-200 p-3 rounded-xl shadow-2xs hover:border-emerald-300 transition-all text-center flex flex-col items-center justify-center space-y-1"
@@ -367,6 +379,16 @@ export const CropsHub: React.FC<CropsHubProps> = ({
             <span className="text-lg">📅</span>
             <span className="text-[11px] font-black text-slate-800 uppercase tracking-wide">Task Alerts</span>
           </button>
+
+          {/* 👇 NEW SOKO INTELLIGENCE GATEWAY TILE */}
+          <button 
+            onClick={() => setCropsView('market')}
+            className="bg-white border border-slate-200 p-3 rounded-xl shadow-2xs hover:border-emerald-300 transition-all text-center flex flex-col items-center justify-center space-y-1"
+          >
+            <span className="text-lg">📊</span>
+            <span className="text-[11px] font-black text-slate-800 uppercase tracking-wide">Soko Intel</span>
+          </button>
+
         </div>
 
         {/* 🌽 YOUR PRODUCTION CATEGORY CARDS (Brought Back & Integrated) */}
@@ -578,6 +600,70 @@ export const CropsHub: React.FC<CropsHubProps> = ({
               {loading ? 'Scheduling Operation...' : 'Assign & Dispatch Alert'}
             </button>
           </form>
+        </div>
+      </div>
+    );
+  }
+
+  // 📊 Multi-Tenant Localized Market Intelligence Component Dashboard Panel Layout
+  if (cropsView === 'market') {
+    return (
+      <div className="space-y-4 animate-fadeIn text-left font-sans">
+        <button 
+          onClick={() => setCropsView('menu')} 
+          className="text-[11px] text-emerald-600 hover:text-emerald-700 font-black tracking-wide uppercase"
+        >
+          ← Back to Crops Menu
+        </button>
+
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide">Regional Soko Intelligence</h3>
+            <span className="text-xl">📊</span>
+          </div>
+
+          <p className="text-xs text-slate-500 mb-4 leading-normal">
+            Tracking active commodity values for key commercial hubs nearest to <span className="font-black text-slate-700">{farmName || 'Your Farm'}</span>.
+          </p>
+
+          {/* Live Dynamic Price Table Layout */}
+          <div className="space-y-2.5">
+            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Active Regional Trade Baselines</h4>
+            
+            {marketPrices.length > 0 ? (
+              marketPrices.map((row) => (
+                <div key={row.id} className="p-3 bg-slate-50 border border-slate-100 rounded-2xl flex justify-between items-center">
+                  <div>
+                    <p className="text-xs font-black text-slate-800">{row.commodity_name}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <span className={`text-[9px] font-bold uppercase ${
+                        row.market_trend === 'UP' ? 'text-emerald-600' : row.market_trend === 'DOWN' ? 'text-rose-600' : 'text-slate-500'
+                      }`}>
+                        {row.market_trend === 'UP' ? '📈 Rising' : row.market_trend === 'DOWN' ? '📉 Dropping' : '↔️ Stable'}
+                      </span>
+                      <span className="text-[9px] text-slate-400 font-medium">• Hub: {row.trading_hub}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-black text-slate-800">KES {row.retail_price_kes} / {row.unit_measure}</span>
+                    <p className="text-[8px] text-slate-400 font-bold uppercase mt-0.5">Wholesale: KES {row.wholesale_price_kes}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              /* Fallback UX display placeholder card while n8n is fetching data records */
+              <div className="p-4 rounded-2xl border border-dashed border-slate-200 text-center py-6">
+                <span className="text-xl block mb-1">⏳</span>
+                <p className="text-xs text-slate-400 font-bold uppercase tracking-wide">Syncing Market Matrix Indices...</p>
+                <p className="text-[10px] text-slate-400 font-medium px-4 mt-0.5">Fetching latest Kisumu county wholesale values from centralized network pipelines.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Smart Multi-Tenant Advisory Alert Container */}
+          <div className="mt-5 p-3 rounded-2xl text-[10px] font-black uppercase text-center bg-blue-50 text-blue-700 border border-blue-100 leading-relaxed">
+            💡 Logistics Tip: Combined active cultivation matrices across your regional cluster reach substantial metrics this week. Coordinate cargo consolidations to lower transit transport freight expenses.
+          </div>
         </div>
       </div>
     );
