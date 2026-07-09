@@ -71,24 +71,48 @@ export const CropsHub: React.FC<CropsHubProps> = ({
     else if (cat === 'Seeds') setInputName('H6214 Maize Seeds');
   };
 
-  // 🌍 1. Link to Regional Weather Tracking Databases
-  // Queries public weather vectors based on coordinates matching typical agricultural hubs (e.g., Nakuru/Kiambu region baselines)
+  // 🌍 1. Link to Regional Weather Tracking Databases Dynamically via Webhook
   const fetchRegionalWeather = async () => {
     try {
-      // Fetching lightweight metrics targeting local coordinate baselines
-      const response = await fetch('https://open-meteo.com');
-      if (response.ok) {
-        const data = await response.json();
+      // Step A: Fetch dynamic tenant coordinates from Supabase via n8n
+      const coordResponse = await fetch('https://n8n.tenear.com/webhook/fetch-farm-coordinates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: shopId })
+      });
+
+      // Default fallback variables (e.g., Nakuru agricultural hub) if the webhook fails or is unconfigured
+      let lat = "-0.3031";
+      let lon = "36.0800";
+
+      if (coordResponse.ok) {
+        const tenantData = await coordResponse.json();
+        // Ensure your n8n webhook returns fields corresponding to your schema names
+        if (tenantData.latitude && tenantData.longitude) {
+          lat = tenantData.latitude.toString();
+          lon = tenantData.longitude.toString();
+        }
+      } else {
+        console.warn("Webhook coordinates failed. Using fallback agricultural coordinates.");
+      }
+
+      // Step B: Fetch real-time weather metrics using the precise database coordinates
+      const weatherUrl = `https://open-meteo.com{lat}&longitude=${lon}&current_weather=true&daily=precipitation_probability_max&timezone=Africa/Nairobi`;
+      
+      const weatherResponse = await fetch(weatherUrl);
+      if (weatherResponse.ok) {
+        const data = await weatherResponse.json();
         setWeatherData({
           temp: Math.round(data.current_weather.temperature),
           text: data.current_weather.weathercode <= 3 ? 'Clear Skies' : 'Overcast / Rain Threat',
-          rainProb: data.daily.precipitation_probability_max[0] || 0
+          rainProb: data.daily?.precipitation_probability_max?.[0] || 0
         });
       }
     } catch (e) {
-      console.error("Failed fetching regional meteorological variables:", e);
+      console.error("Failed fetching dynamic regional meteorological variables:", e);
     }
   };
+
 
   // 📊 1. Fetch Summary Data Matrix for the Operational Counter Cards
   const fetchCropsDashboardData = async () => {
