@@ -81,13 +81,17 @@ export const CropsHub: React.FC<CropsHubProps> = ({
       });
 
       if (coordResponse.ok) {
-        const farmData = await coordResponse.json();
+        const rawPayload = await coordResponse.json();
+
+        // 🔍 FORCE EXTRACTING THE FIRST ITEM IF WEBHOOK RETURNS AN ARRAY
+        const farmData = Array.isArray(rawPayload) ? rawPayload[0] : rawPayload;
+
+        console.log("Parsed Farm JSON Data Object:", farmData);
 
         if (farmData && farmData.latitude && farmData.longitude) {
           const lat = String(farmData.latitude).trim();
           const lon = String(farmData.longitude).trim();
           
-          // Build query parameters safely to avoid dynamic text template string issues
           const queryParams = new URLSearchParams({
             latitude: lat,
             longitude: lon,
@@ -96,21 +100,29 @@ export const CropsHub: React.FC<CropsHubProps> = ({
             timezone: 'Africa/Nairobi'
           });
 
-          // Combine the verified endpoint base with your clean query object
           const weatherUrl = 'https://open-meteo.com?' + queryParams.toString();
           
-          console.log("Dispatching clean weather URL target:", weatherUrl);
+          console.log("Dispatching Weather Network Fetch Request to:", weatherUrl);
           
           const weatherResponse = await fetch(weatherUrl);
           if (weatherResponse.ok) {
             const data = await weatherResponse.json();
             
+            // Extract values safely
+            const currentTemp = data.current_weather?.temperature != null ? Math.round(data.current_weather.temperature) : 24;
+            const weatherCode = data.current_weather?.weathercode ?? 0;
+            const maxRainProb = data.daily?.precipitation_probability_max?.[0] ?? 0;
+
             setWeatherData({
-              temp: Math.round(data.current_weather.temperature),
+              temp: currentTemp,
               text: `${farmData.ward || 'North Seme'} Ward, ${farmData.constituency || 'Seme'}`,
-              rainProb: data.daily?.precipitation_probability_max?.[0] || 0
+              rainProb: maxRainProb
             });
+          } else {
+            console.error("Open-Meteo endpoint returned a bad response code:", weatherResponse.status);
           }
+        } else {
+          console.warn("Weather skip flag triggered: Check if latitude/longitude exist on this object:", farmData);
         }
       }
     } catch (e) {
