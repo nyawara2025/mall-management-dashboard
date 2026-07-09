@@ -90,6 +90,55 @@ export const CropsHub: React.FC<CropsHubProps> = ({
     }
   };
 
+  // 📊 1. Fetch Summary Data Matrix for the Operational Counter Cards
+  const fetchCropsDashboardData = async () => {
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/get-crops-financial-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: shopId })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setSummaryMetrics({
+          total_plots: parseInt(data.total_plots) || 0,
+          active_acreage: parseFloat(data.active_acreage) || 0,
+          projected_yield_kg: parseFloat(data.projected_yield_kg) || 0
+        });
+      }
+    } catch (e) {
+      console.error("Failed fetching agronomy summary statistics:", e);
+    }
+  };
+
+  // 🥬 2. Fetch Active Crop Cycles List (Replaces "No active tracking timelines")
+  // You can hook this up to update local category rows when expanding database grids
+  const fetchActiveCycles = async () => {
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/get-active-crop-cycles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: shopId })
+      });
+      if (response.ok) {
+        const data = await response.json();
+        // Once you add custom tracking state arrays to the component body, set them here
+        console.log("Successfully fetched active cultivation list arrays:", data);
+      }
+    } catch (e) {
+      console.error("Failed fetching active crop cycle tracking matrices:", e);
+    }
+  };
+
+  // 🔄 3. CLEAN LIFECYCLE CONTROLLER (Replaces your existing simple weather useEffect)
+  useEffect(() => {
+    if (shopId) {
+      fetchRegionalWeather();      // Always refresh weather status on boot
+      fetchCropsDashboardData();  // Automatically load the 0 metrics counter totals
+      fetchActiveCycles();        // Automatically look for active crop cycle records
+    }
+  }, [cropsView, shopId]);
+
   useEffect(() => {
     if (cropsView === 'weather' || cropsView === 'menu') {
       fetchRegionalWeather();
