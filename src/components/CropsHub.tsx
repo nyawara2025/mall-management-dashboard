@@ -80,42 +80,37 @@ export const CropsHub: React.FC<CropsHubProps> = ({
         body: JSON.stringify({ shop_id: shopId })
       });
 
-      // Secure baseline fallback hard-coded constants
-      let lat = "-0.0473";
-      let lon = "34.4719";
-
       if (coordResponse.ok) {
-        const tenantData = await coordResponse.json();
+        const payload = await coordResponse.json();
         
-        // 🔍 HANDLE THE NESTED N8N NODE OBJECT KEY HERE:
-        const coords = tenantData["Fetch Farm Coordinates"] || tenantData;
-        
-        if (coords && coords.latitude && coords.longitude) {
-          lat = String(coords.latitude).trim();
-          lon = String(coords.longitude).trim();
+        // n8n delivers the flat array payload containing your variables
+        const farmData = Array.isArray(payload) ? payload[0] : payload;
+
+        if (farmData && farmData.latitude && farmData.longitude) {
+          const lat = String(farmData.latitude).trim();
+          const lon = String(farmData.longitude).trim();
+          
+          // Build the explicit Open-Meteo URL string without loose parsing injection issues
+          const weatherUrl = `https://open-meteo.com{lat}&longitude=${lon}&current_weather=true&daily=precipitation_probability_max&timezone=Africa/Nairobi`;
+          
+          const weatherResponse = await fetch(weatherUrl);
+          if (weatherResponse.ok) {
+            const data = await weatherResponse.json();
+            
+            // Render the clean Ward text right inside your React weather card component
+            setWeatherData({
+              temp: Math.round(data.current_weather.temperature),
+              text: `${farmData.ward} Ward, ${farmData.constituency}`,
+              rainProb: data.daily?.precipitation_probability_max?.[0] || 0
+            });
+          }
         }
       }
-
-      // Construct a clean URL string verifying no "undefined" text injection slips through
-      const weatherUrl = `https://open-meteo.com{lat}&longitude=${lon}&current_weather=true&daily=precipitation_probability_max&timezone=Africa/Nairobi`;
-      
-      console.log("Dispatching clean weather URL target:", weatherUrl);
-
-      const weatherResponse = await fetch(weatherUrl);
-      if (weatherResponse.ok) {
-        const data = await weatherResponse.json();
-        setWeatherData({
-          temp: Math.round(data.current_weather.temperature),
-          text: data.current_weather.weathercode <= 3 ? 'Clear Skies' : 'Overcast / Rain Threat',
-          rainProb: data.daily?.precipitation_probability_max?.[0] || 0
-        });
-      }
     } catch (e) {
-      console.error("Failed fetching dynamic regional meteorological variables:", e);
+      console.error("Failed executing dynamic weather pipeline elements:", e);
     }
   };
   
-
 
   // 📊 1. Fetch Summary Data Matrix for the Operational Counter Cards
   const fetchCropsDashboardData = async () => {
