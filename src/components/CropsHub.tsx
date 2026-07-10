@@ -122,18 +122,21 @@ export const CropsHub: React.FC<CropsHubProps> = ({
         body: JSON.stringify({ shop_id: shopId })
       });
 
-      if (!response.ok) return; 
-      const farmData = await response.json();
+      if (!response.ok) return;
+      const rawPayload = await response.json();
 
-      // Verify the object structure matches your green n8n output screen
+      // 🔍 FIX: Handle the array wrapper from n8n factually
+      const farmData = Array.isArray(rawPayload) ? rawPayload[0] : rawPayload;
+
+      // Verify the unpacked object structure properties match
       if (farmData && farmData.latitude && farmData.longitude) {
-        
+
         // 1. Sync your Soko Intel list state instantly with the dynamic sub-array
         setMarketPrices(farmData.market_prices || []);
 
         const lat = String(farmData.latitude).trim();
         const lon = String(farmData.longitude).trim();
-        
+
         // Step B: Fetch real-time numeric parameters using the precise database coordinates
         const queryParams = new URLSearchParams({
           latitude: lat,
