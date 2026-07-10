@@ -413,20 +413,18 @@ export const CropsHub: React.FC<CropsHubProps> = ({
   };
 
 
-  // 🔬 Dispatch Image Blob arrays directly to n8n processing pipeline
   const handleCropDiagnosis = async (base64DataUri: string) => {
     setAiDiagnosing(true);
     setDiagnosisResult(null);
     
     try {
-      // Find what variety matches the user's active dropdown selector targetPlot buffer
       const currentActivePlot = activeCycles.find(c => c.plot_name === targetPlot);
       
       const dynamicCropContext = currentActivePlot 
         ? `${currentActivePlot.variety} (${currentActivePlot.crop_class})` 
         : "Unknown Plant Species";
 
-      // Strip data:image/jpeg;base64, marker string cleanly
+      // 👇 REAL FIX: Extract strictly the clean base64 data string string array text
       const cleanBase64Payload = base64DataUri.includes(',') 
         ? base64DataUri.split(',')[1] 
         : base64DataUri;
@@ -435,9 +433,9 @@ export const CropsHub: React.FC<CropsHubProps> = ({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          shop_id: shopId,
+          shop_id: parseInt(shopId) || 0, // Ensure numeric safety standard matches database parameters
           userSession: userSession,
-          image_base64: cleanBase64Payload,
+          image_base64: cleanBase64Payload, // Send as clean text representation string, not an array
           crop_context: dynamicCropContext, 
           plot_location: targetPlot        
         })
@@ -446,15 +444,16 @@ export const CropsHub: React.FC<CropsHubProps> = ({
       if (response.ok) {
         const payloadResult = await response.json();
         setDiagnosisResult(payloadResult);
-        
-        // Dynamic re-sync tracking runs
         fetchCropsDashboardData();
       } else {
-        alert("Agronomy Analysis Endpoint returned validation fault.");
+        alert(`Server Error: Received status code ${response.status} from analysis endpoint.`);
       }
     } catch (err) {
-      console.error("AI Pathology pipeline connection failure:", err);
+      // 👇 THIS KEEPS THE UI FROM LOCKING DOWN IF NETWORKS TRIP OUT
+      console.error("Pathology transmission crashed:", err);
+      alert("Pipeline Exception: Check browser console payload logs.");
     } finally {
+      // This will always execute now, unlocking your UI immediately
       setAiDiagnosing(false);
     }
   };
