@@ -79,6 +79,12 @@ export const CropsHub: React.FC<CropsHubProps> = ({
   const [voiceLoading, setVoiceLoading] = useState<boolean>(false);
   const [aiParsingLogs, setAiParsingLogs] = useState<string>("");
  
+  // 📸 Crop Pathology Scanning Engine Local States
+  const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [aiDiagnosing, setAiDiagnosing] = useState<boolean>(false);
+  const [diagnosisResult, setDiagnosisResult] = useState<any>(null);
+
   // Local Weather Sync States
   const [weatherData, setWeatherData] = useState<{
     temp: number; 
@@ -407,6 +413,52 @@ export const CropsHub: React.FC<CropsHubProps> = ({
   };
 
 
+  // 🔬 Dispatch Image Blob arrays directly to n8n processing pipeline
+  const handleCropDiagnosis = async (base64DataUri: string) => {
+    setAiDiagnosing(true);
+    setDiagnosisResult(null);
+    
+    try {
+      // Find what variety matches the user's active dropdown selector targetPlot buffer
+      const currentActivePlot = activeCycles.find(c => c.plot_name === targetPlot);
+      
+      const dynamicCropContext = currentActivePlot 
+        ? `${currentActivePlot.variety} (${currentActivePlot.crop_class})` 
+        : "Unknown Plant Species";
+
+      // Strip data:image/jpeg;base64, marker string cleanly
+      const cleanBase64Payload = base64DataUri.includes(',') 
+        ? base64DataUri.split(',')[1] 
+        : base64DataUri;
+
+      const response = await fetch('https://n8n.tenear.com/webhook/crop-AI-camera', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: shopId,
+          userSession: userSession,
+          image_base64: cleanBase64Payload,
+          crop_context: dynamicCropContext, 
+          plot_location: targetPlot        
+        })
+      });
+
+      if (response.ok) {
+        const payloadResult = await response.json();
+        setDiagnosisResult(payloadResult);
+        
+        // Dynamic re-sync tracking runs
+        fetchCropsDashboardData();
+      } else {
+        alert("Agronomy Analysis Endpoint returned validation fault.");
+      }
+    } catch (err) {
+      console.error("AI Pathology pipeline connection failure:", err);
+    } finally {
+      setAiDiagnosing(false);
+    }
+  };
+
   // Main Crops Hub Sub-Menu
   if (cropsView === 'menu') {
     return (
@@ -473,6 +525,25 @@ export const CropsHub: React.FC<CropsHubProps> = ({
             <span className="text-[11px] font-black text-slate-800 uppercase tracking-wide">Soko Intel</span>
           </button>
 
+        </div>
+
+
+        {/* 🏥 Dynamic AI Plant Diagnostics Scanner Trigger */}
+        <div className="bg-emerald-50 border border-emerald-200 p-3.5 rounded-2xl flex justify-between items-center">
+          <div className="space-y-0.5">
+            <h4 className="text-xs font-black text-emerald-900 uppercase tracking-wide">Crop Health Scanner</h4>
+            <p className="text-[11px] text-emerald-700">Notice spots or leaf damage? Scan instantly via camera module feed.</p>
+          </div>
+          <button 
+            onClick={() => {
+              setIsCameraOpen(true);
+              setDiagnosisResult(null);
+              setCapturedImage(null);
+            }}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5 whitespace-nowrap"
+          >
+            📷 Scan Leaf
+          </button>
         </div>
 
         {/* 🤖 Embedded AI Voice Logger Action Panel */}
@@ -846,6 +917,132 @@ export const CropsHub: React.FC<CropsHubProps> = ({
             )}
           </div>
         )}
+
+        {/* 📷 MODAL OVERLAY: Native HTML5 Responsive Camera Diagnostic Framework */}
+        {isCameraOpen && (
+          <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+              
+              <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                <div>
+                  <h3 className="text-xs font-black text-slate-800 uppercase tracking-wide">AI Crop Health Diagnostics</h3>
+                  <p className="text-[10px] text-slate-500 font-medium mt-0.5">Active Scanner Target: <span className="font-bold text-emerald-600">{targetPlot}</span></p>
+                </div>
+                <button 
+                  onClick={() => {
+                    setIsCameraOpen(false);
+                    const videoEl = document.getElementById('camera-stream-feed') as HTMLVideoElement;
+                    if (videoEl?.srcObject) {
+                      (videoEl.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+                    }
+                  }} 
+                  className="text-slate-400 hover:text-slate-600 font-bold text-sm bg-white border border-slate-200 h-6 w-6 flex items-center justify-center rounded-full"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="p-4 flex-1 overflow-y-auto space-y-4">
+                {!capturedImage ? (
+                  <div className="relative bg-slate-900 rounded-xl overflow-hidden aspect-video flex items-center justify-center">
+                    <video 
+                      id="camera-stream-feed" 
+                      autoPlay 
+                      playsInline 
+                      className="w-full h-full object-cover"
+                      ref={(ref) => {
+                        if (ref && !ref.srcObject && isCameraOpen) {
+                          navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+                            .then(stream => { ref.srcObject = stream; })
+                            .catch(err => console.error("Camera hardware block:", err));
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={() => {
+                        const video = document.getElementById('camera-stream-feed') as HTMLVideoElement;
+                        if (video) {
+                          const canvas = document.createElement('canvas');
+                          canvas.width = video.videoWidth || 640;
+                          canvas.height = video.videoHeight || 480;
+                          const ctx = canvas.getContext('2d');
+                          if (ctx) {
+                            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            setCapturedImage(canvas.toDataURL('image/jpeg'));
+                            if (video.srcObject) {
+                              (video.srcObject as MediaStream).getTracks().forEach(track => track.stop());
+                            }
+                          }
+                        }
+                      }}
+                      className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-white text-slate-900 font-black text-[10px] tracking-wider uppercase px-4 py-2 rounded-xl shadow-lg border border-slate-200"
+                    >
+                      📸 Capture Frame
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <img src={capturedImage} alt="Crop Sample Preview" className="w-full aspect-video object-cover rounded-xl border border-slate-200" />
+                    {!diagnosisResult && !aiDiagnosing && (
+                      <div className="flex gap-2">
+                        <button onClick={() => setCapturedImage(null)} className="w-1/2 border border-slate-200 font-black text-[11px] uppercase tracking-wide py-2.5 rounded-xl text-slate-600">
+                          🔄 Retake
+                        </button>
+                        <button 
+                          onClick={() => handleCropDiagnosis(capturedImage)}
+                          className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[11px] uppercase tracking-wide py-2.5 rounded-xl shadow-xs"
+                        >
+                          🔬 Analyze Sample
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {aiDiagnosing && (
+                  <div className="p-6 text-center space-y-2 animate-pulse">
+                    <span className="text-2xl block animate-spin">🧬</span>
+                    <h5 className="text-xs font-black text-slate-700 uppercase tracking-wider">AI Lab Diagnostics Running...</h5>
+                  </div>
+                )}
+
+                {diagnosisResult && (
+                  <div className="bg-slate-50 border border-slate-200/60 p-3.5 rounded-xl space-y-3 text-[11px]">
+                    <div className="flex justify-between items-center border-b pb-2">
+                      <div>
+                        <span className="text-[9px] font-black text-slate-400 uppercase block">Identified Variety</span>
+                        <strong className="text-slate-800 text-xs">{diagnosisResult.payload?.identified_crop || 'Unknown'}</strong>
+                      </div>
+                      <span className="px-2 py-0.5 rounded-md font-bold text-[9px] bg-emerald-100 text-emerald-800">
+                        Confidence: {diagnosisResult.payload?.confidence_score || 'High'}
+                      </span>
+                    </div>
+
+                    <div>
+                      <span className="text-[9px] font-black text-slate-400 uppercase block">Suspected Condition</span>
+                      <strong className="text-red-600 text-xs block mt-0.5">{diagnosisResult.payload?.possible_condition}</strong>
+                    </div>
+
+                    <div>
+                      <span className="text-[9px] font-black text-slate-400 uppercase block mb-1">Proposed Remedial Measures</span>
+                      <ul className="space-y-1 text-slate-600 font-medium">
+                        {diagnosisResult.payload?.remedial_measures?.map((m: string, i: number) => (
+                          <li key={i} className="flex gap-1">✔ {m}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    
+                    <p className="text-[9px] text-slate-400 leading-normal pt-1.5 border-t italic text-center">
+                      ⚠ AI insights are for tracking only. Verify inputs with a certified agronomy official before chemical application.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );
