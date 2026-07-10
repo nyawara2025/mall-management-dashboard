@@ -413,7 +413,13 @@ export const CropsHub: React.FC<CropsHubProps> = ({
   };
 
 
-  const handleCropDiagnosis = async (base64DataUri: string) => {
+  const handleCropDiagnosis = async (base64DataUri: string | null) => {
+    // 🛑 Rule A: Kill execution instantly if no valid image data string exists
+    if (!base64DataUri || base64DataUri.length < 50) {
+      alert("Error: Canvas capture frame is empty. Please capture a leaf photo first.");
+      return;
+    }
+
     setAiDiagnosing(true);
     setDiagnosisResult(null);
     
@@ -424,18 +430,18 @@ export const CropsHub: React.FC<CropsHubProps> = ({
         ? `${currentActivePlot.variety} (${currentActivePlot.crop_class})` 
         : "Unknown Plant Species";
 
-      // 👇 REAL FIX: Extract strictly the clean base64 data string string array text
+      // ⚡ REAL FIX: Safely strip browser canvas prefixes and pull only the pure base64 text payload (Index 1)
       const cleanBase64Payload = base64DataUri.includes(',') 
         ? base64DataUri.split(',')[1] 
         : base64DataUri;
 
-      const response = await fetch('https://n8n.tenear.com/webhook/crop-AI-camera', {
+      const response = await fetch('https://n8n.tenear.com/webhook/crops-AI-camera', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          shop_id: parseInt(shopId) || 0, // Ensure numeric safety standard matches database parameters
+          shop_id: parseInt(shopId) || 0, 
           userSession: userSession,
-          image_base64: cleanBase64Payload, // Send as clean text representation string, not an array
+          image_base64: cleanBase64Payload, // Sends pure base64 string data cleanly
           crop_context: dynamicCropContext, 
           plot_location: targetPlot        
         })
@@ -444,19 +450,18 @@ export const CropsHub: React.FC<CropsHubProps> = ({
       if (response.ok) {
         const payloadResult = await response.json();
         setDiagnosisResult(payloadResult);
-        fetchCropsDashboardData();
       } else {
         alert(`Server Error: Received status code ${response.status} from analysis endpoint.`);
       }
     } catch (err) {
-      // 👇 THIS KEEPS THE UI FROM LOCKING DOWN IF NETWORKS TRIP OUT
       console.error("Pathology transmission crashed:", err);
       alert("Pipeline Exception: Check browser console payload logs.");
     } finally {
-      // This will always execute now, unlocking your UI immediately
       setAiDiagnosing(false);
     }
   };
+     
+
 
   // Main Crops Hub Sub-Menu
   if (cropsView === 'menu') {
