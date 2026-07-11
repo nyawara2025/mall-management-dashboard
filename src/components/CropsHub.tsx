@@ -783,10 +783,18 @@ export const CropsHub: React.FC<CropsHubProps> = ({
               </div>
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Target Field / Plot</label>
-                <select value={targetPlot} onChange={e => setTargetPlot(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none">
-                  <option value="Plot A / Phase 1">Plot A (Lower Section)</option>
-                  <option value="Plot B / Upper Block">Plot B (Upper Section)</option>
-                  <option value="Greenhouse Alpha">Greenhouse Alpha</option>
+                <select 
+                  value={targetPlot} 
+                  onChange={e => setTargetPlot(e.target.value)} 
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none"
+                  required
+                >
+                  <option value="">-- Select Active Plot Location --</option>
+                  {activePlotsList && activePlotsList.map((plot: any) => (
+                    <option key={plot.id} value={plot.plot_name}>
+                      🗺️  {plot.plot_name} ({plot.allocated_acreage || plot.acreage} Ac)
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
@@ -830,10 +838,18 @@ export const CropsHub: React.FC<CropsHubProps> = ({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase block mb-1">Target Field / Plot</label>
-                <select value={targetPlot} onChange={e => setTargetPlot(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none">
-                  <option value="Plot A / Phase 1">Plot A (Lower Section)</option>
-                  <option value="Plot B / Upper Block">Plot B (Upper Section)</option>
-                  <option value="Greenhouse Alpha">Greenhouse Alpha</option>
+                <select 
+                  value={targetPlot} 
+                  onChange={e => setTargetPlot(e.target.value)} 
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none"
+                  required
+                >
+                  <option value="">-- Choose Field Assignment Location --</option>
+                  {activePlotsList && activePlotsList.map((plot: any) => (
+                    <option key={plot.id} value={plot.plot_name}>
+                      🗺️  {plot.plot_name}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div>
