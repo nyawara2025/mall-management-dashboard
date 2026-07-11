@@ -15,11 +15,6 @@ interface CropsModalProps {
   setCropVariety: (val: string) => void;
   setAcreage: (val: string) => void;
   setCropStartDate: (val: string) => void;
-
-  // 👇 ADD NEW PROPS TO FEED DATA FROM STATE PIPELINES
-  activePlotsList: Array<{ id: string | number; plot_name: string }>;
-  selectedPlotName: string;
-  setSelectedPlotName: (name: string) => void;
 }
 
 export const CropsModal: React.FC<CropsModalProps> = ({
@@ -36,11 +31,7 @@ export const CropsModal: React.FC<CropsModalProps> = ({
   setCropClass,
   setCropVariety,
   setAcreage,
-  setCropStartDate,
-  // 👇 INJECT THESE DESTRUCTURING EXTRACTORS HERE TO MAKE THE VARIABLES ACCESSIBLE INSIDE YOUR JSX FORM
-  activePlotsList,
-  selectedPlotName,
-  setSelectedPlotName
+  setCropStartDate
 }) => {
   const [loading, setLoading] = useState(false);
 
@@ -110,25 +101,6 @@ export const CropsModal: React.FC<CropsModalProps> = ({
         </div>
 
         <form onSubmit={handleSaveCropCycle} className="space-y-4 text-left">
-
-          {/* 🗺️ Dynamic Relational Plot Profile Target Selector */}
-          <div>
-            <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Target Farm Plot</label>
-            <select 
-              value={selectedPlotName} 
-              onChange={(e) => setSelectedPlotName(e.target.value)} 
-              className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none"
-              required
-            >
-              <option value="">-- Choose Active Field Target --</option>
-              {activePlotsList && activePlotsList.map((plot) => (
-                <option key={plot.id} value={plot.plot_name}>
-                  🗺️  {plot.plot_name}
-                </option>
-              ))}
-            </select>
-          </div>
-
           <div>
             <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Crop Class</label>
             <select 
@@ -139,7 +111,7 @@ export const CropsModal: React.FC<CropsModalProps> = ({
               <option value="Vegetables">🥬 Vegetables (Greens / Tomatoes)</option>
               <option value="Fruits">🥑 Fruits (Orchard Trees)</option>
               <option value="Tubers">🥔 Tubers (Root Crops)</option>
-              <option value="Grains">🌽 Grains (Grain Crops)</option>
+              <option value="Tubers">🥔 Grains (Grain Crops)</option>
             </select>
           </div>
 

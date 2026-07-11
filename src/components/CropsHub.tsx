@@ -59,6 +59,8 @@ export const CropsHub: React.FC<CropsHubProps> = ({
 
   const [activeCycles, setActiveCycles] = useState<CropCycle[]>([]);
 
+  const [isPlotModalOpen, setIsPlotModalOpen] = useState<boolean>(false);
+ 
   // 1. CHANGER OR ADD THIS EXACT LOCAL STATE INITIALIZER HERE 👇
   const [summaryMetrics, setSummaryMetrics] = useState({
     total_plots: 0,
@@ -70,9 +72,12 @@ export const CropsHub: React.FC<CropsHubProps> = ({
   const [marketPrices, setMarketPrices] = useState<any[]>([]);
 
   // Navigation State Panel Switcher
-  const [cropsView, setCropsView] = useState<'menu' | 'production' | 'inputs' | 'tasks' | 'weather' | 'market' | 'pathology'>('menu');
+  const [cropsView, setCropsView] = useState<'menu' | 'production' | 'inputs' | 'tasks' | 'weather' | 'market' | 'pathology' | 'plots_config'>('menu');
   const [loading, setLoading] = useState(false);
  
+  const [activePlotsList, setActivePlotsList] = useState<Array<{ id: string | number; plot_name: string }>>([]);
+  const [selectedPlotName, setSelectedPlotName] = useState<string>('');
+
   // 🎙️ AI Voice Logger Hardware State Trackers
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
@@ -462,7 +467,6 @@ export const CropsHub: React.FC<CropsHubProps> = ({
   };
      
 
-
   // Main Crops Hub Sub-Menu
   if (cropsView === 'menu') {
     return (
@@ -503,7 +507,17 @@ export const CropsHub: React.FC<CropsHubProps> = ({
         </div>
 
         {/* 🛠️ Dashboard Operation Selector Buttons */}
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-1.5">
+
+          {/* 👇 NEW DYNAMIC PLOT PROFILE LOG CONFIGURATION ACTION TILE */}
+          <button 
+            onClick={() => setCropsView('plots_config')}
+            className="bg-white border border-slate-200 p-2 rounded-xl shadow-2xs hover:border-blue-300 transition-all text-center flex flex-col items-center justify-center space-y-1"
+          >
+            <span className="text-base">🗺️</span>
+            <span className="text-[10px] font-black text-slate-800 uppercase tracking-tight">Plots Log</span>
+          </button>
+
           <button 
             onClick={() => setCropsView('inputs')}
             className="bg-white border border-slate-200 p-3 rounded-xl shadow-2xs hover:border-emerald-300 transition-all text-center flex flex-col items-center justify-center space-y-1"
@@ -680,6 +694,10 @@ export const CropsHub: React.FC<CropsHubProps> = ({
           setCropVariety={setCropVariety}
           setAcreage={setAcreage}
           setCropStartDate={setCropStartDate}
+          // 👇 ATTACH THESE NEW PARAMS TO SATISFY INTERFACE VALIDATION
+          activePlotsList={activePlotsList}
+          selectedPlotName={selectedPlotName}
+          setSelectedPlotName={setSelectedPlotName}
         />
       </div>
     );
@@ -1015,6 +1033,65 @@ export const CropsHub: React.FC<CropsHubProps> = ({
           <div className="mt-5 p-3 rounded-2xl text-[10px] font-black uppercase text-center bg-blue-50 text-blue-700 border border-blue-100 leading-relaxed">
             💡 Logistics Tip: Combined active cultivation matrices across your regional cluster reach substantial metrics this week. Coordinate cargo consolidations to lower transit transport freight expenses.
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (cropsView === 'plots_config') {
+    return (
+      <div className="space-y-4 animate-fadeIn text-left font-sans">
+        <button 
+          onClick={() => setCropsView('menu')} 
+          className="text-[11px] text-emerald-600 hover:text-emerald-700 font-black tracking-wide uppercase"
+        >
+          ← Back to Crops Menu
+        </button>
+
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs space-y-4">
+          <div className="flex justify-between items-center mb-1">
+            <div>
+              <h3 className="text-sm font-black text-slate-900 uppercase tracking-wide">Active Farm Plots</h3>
+              <p className="text-[10px] text-slate-400 font-medium">Topological layout partitions registered under Shop ID: {shopId}</p>
+            </div>
+            <span className="text-xl">🗺️</span>
+          </div>
+
+          {/* List of current active plots on the farm */}
+          <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
+            {activePlotsList && activePlotsList.length > 0 ? (
+              activePlotsList.map((plot: any) => (
+                <div key={plot.id} className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center">
+                  <div>
+                    <h5 className="text-xs font-black text-slate-800 uppercase tracking-wide">{plot.plot_name}</h5>
+                    <p className="text-[9px] text-slate-400 font-medium mt-0.5">
+                      Zone: {plot.farm_section || 'Main Field'} • Soil: {plot.soil_type || 'Red Volcanic'}
+                    </p>
+                  </div>
+                  <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-100/50 px-2 py-0.5 rounded-lg">
+                    {plot.allocated_acreage || plot.acreage} Ac
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 rounded-xl border border-dashed border-slate-200 text-center py-6 bg-slate-50/30">
+                <span className="text-lg block mb-1">🏜️</span>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">No Plots Defined Yet</p>
+                <p className="text-[9px] text-slate-400 font-medium px-4 mt-0.5">Click the trigger below to configure your first layout block.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Trigger to open your secondary Plot Configuration data entry form modal */}
+          <button 
+            onClick={() => {
+              // Direct boolean state trigger to mount your PlotConfigModal layout visibility rules
+              setIsPlotModalOpen(true); 
+            }}
+            className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-black text-xs uppercase tracking-wide rounded-xl shadow-xs transition-all flex items-center justify-center gap-1.5"
+          >
+            ➕ Register New Plot Layout
+          </button>
         </div>
       </div>
     );
