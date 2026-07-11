@@ -236,6 +236,9 @@ export const CropsHub: React.FC<CropsHubProps> = ({
       fetchTenantRegionalDashboardData(); // Loads coordinates, weather benchmarks, and soko prices in one go
       fetchCropsDashboardData();          // Automatically loads operational aggregates counters
       fetchActiveCycles();                // Automatically looks for active crop tracking timelines
+      // 👇 FIX: Explicitly trigger your plot database sync routine on mount
+      fetchActivePlots();
+
     }
   }, [shopId]); // Runs cleanly whenever switching between multi-tenant shops/tenants
 
@@ -738,7 +741,9 @@ export const CropsHub: React.FC<CropsHubProps> = ({
           shopId={shopId}
           farmName={farmName}
           userSession={userSession}
-          onPlotSaved={() => fetchActivePlots()} // Automatically updates list upon successful saving
+          onPlotSaved={() => {
+            fetchActivePlots();
+          }}
         />
 
       </div>
