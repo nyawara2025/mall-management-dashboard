@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CropsModal } from './CropsModal';
+import { PlotConfigModal } from './PlotConfigModal';
 
 interface CropsHubProps {
   shopId: string;
@@ -250,6 +251,37 @@ export const CropsHub: React.FC<CropsHubProps> = ({
       fetchActiveCycles();
     }
   }, [cropsView]); // Explicitly triggers layout synchronization when panels toggle
+
+
+  // Define the fetching mechanism using your n8n middleware path pattern
+  const fetchActivePlots = async () => {
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/update-plots', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'get_active_plots',
+          shop_id: parseInt(shopId)
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Expecting array structured response from your n8n pipeline router
+        setActivePlotsList(data.plots || []); 
+      }
+    } catch (error) {
+      console.error("Failed syncing topological grid matrix records:", error);
+    }
+  };
+
+  // Fire the network fetch hook automatically whenever the screen initializes
+  useEffect(() => {
+    if (shopId) {
+      fetchActivePlots();
+    }
+  }, [shopId]);
+
 
   // 📱 2. Evolution API Gateway WhatsApp Notification Dispatcher
   const triggerWhatsAppAlert = async (phone: string, message: string) => {
@@ -699,11 +731,19 @@ export const CropsHub: React.FC<CropsHubProps> = ({
           selectedPlotName={selectedPlotName}
           setSelectedPlotName={setSelectedPlotName}
         />
+
+        <PlotConfigModal
+          isOpen={isPlotModalOpen}
+          onClose={() => setIsPlotModalOpen(false)}
+          shopId={shopId}
+          farmName={farmName}
+          userSession={userSession}
+          onPlotSaved={() => fetchActivePlots()} // Automatically updates list upon successful saving
+        />
+
       </div>
     );
   }
-   
-
 
   // Input Tracking Input Management Form Component Layout
   if (cropsView === 'inputs') {
