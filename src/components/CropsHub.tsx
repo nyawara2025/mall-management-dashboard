@@ -1192,9 +1192,7 @@ export const CropsHub: React.FC<CropsHubProps> = ({
         shopId={shopId}
         farmName={farmName}
         userSession={userSession}
-        onPlotSaved={() => {
-          fetchActivePlots(); // Instantly sync entries to arrays upon modal saving
-        }}
+        onPlotSaved={() => fetchActivePlots()}
       />
 
       </div>
