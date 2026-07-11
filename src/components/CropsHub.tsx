@@ -717,39 +717,6 @@ export const CropsHub: React.FC<CropsHubProps> = ({
           </div>
         </div>
 
-        {/* 📱 Form Pop-up Integration */}
-        <CropsModal 
-          isOpen={isCropsModalOpen}
-          onClose={() => setIsCropsModalOpen(false)}
-          shopId={shopId}
-          farmName={farmName}
-          userSession={userSession}
-          cropClass={cropClass}
-          cropVariety={cropVariety}
-          acreage={acreage}
-          cropStartDate={cropStartDate}
-          harvestDate={harvestDate}
-          setCropClass={setCropClass}
-          setCropVariety={setCropVariety}
-          setAcreage={setAcreage}
-          setCropStartDate={setCropStartDate}
-          // 👇 ATTACH THESE NEW PARAMS TO SATISFY INTERFACE VALIDATION
-          activePlotsList={activePlotsList}
-          selectedPlotName={selectedPlotName}
-          setSelectedPlotName={setSelectedPlotName}
-        />
-
-        <PlotConfigModal
-          isOpen={isPlotModalOpen}
-          onClose={() => setIsPlotModalOpen(false)}
-          shopId={shopId}
-          farmName={farmName}
-          userSession={userSession}
-          onPlotSaved={() => {
-            fetchActivePlots();
-          }}
-        />
-
       </div>
     );
   }
@@ -1183,6 +1150,37 @@ export const CropsHub: React.FC<CropsHubProps> = ({
           </div>
         )}
    
+        <CropsModal
+        isOpen={isCropsModalOpen}
+        onClose={() => setIsCropsModalOpen(false)}
+        shopId={shopId}
+        farmName={farmName}
+        userSession={userSession}
+        cropClass={cropClass}
+        cropVariety={cropVariety}
+        acreage={acreage}
+        cropStartDate={cropStartDate}
+        harvestDate={harvestDate}
+        setCropClass={setCropClass}
+        setCropVariety={setCropVariety}
+        setAcreage={setAcreage}
+        setCropStartDate={setCropStartDate}
+        activePlotsList={activePlotsList}
+        selectedPlotName={selectedPlotName}
+        setSelectedPlotName={setSelectedPlotName}
+      />
+
+      <PlotConfigModal
+        isOpen={isPlotModalOpen}
+        onClose={() => setIsPlotModalOpen(false)}
+        shopId={shopId}
+        farmName={farmName}
+        userSession={userSession}
+        onPlotSaved={() => {
+          fetchActivePlots(); // Instantly sync entries to arrays upon modal saving
+        }}
+      />
+
       </div>
     </div>
   );
