@@ -1125,6 +1125,21 @@ export const CropsHub: React.FC<CropsHubProps> = ({
             ➕ Register New Plot Layout
           </button>
         </div>
+
+        {/* ========================================================== */}
+        {/* 🚀 FIXED LOCAL MOUNT ZONE: PLACED RIGHT INSIDE THE SUBVIEW */}
+        {/* ========================================================== */}
+        <PlotConfigModal
+          isOpen={isPlotModalOpen}
+          onClose={() => setIsPlotModalOpen(false)}
+          shopId={shopId}
+          farmName={farmName}
+          userSession={userSession}
+          onPlotSaved={() => {
+            fetchActivePlots();
+          }}
+        />
+
       </div>
     );
   }
@@ -1184,15 +1199,6 @@ export const CropsHub: React.FC<CropsHubProps> = ({
         activePlotsList={activePlotsList}
         selectedPlotName={selectedPlotName}
         setSelectedPlotName={setSelectedPlotName}
-      />
-
-      <PlotConfigModal
-        isOpen={isPlotModalOpen}
-        onClose={() => setIsPlotModalOpen(false)}
-        shopId={shopId}
-        farmName={farmName}
-        userSession={userSession}
-        onPlotSaved={() => fetchActivePlots()}
       />
 
       </div>
