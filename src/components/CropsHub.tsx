@@ -270,13 +270,17 @@ export const CropsHub: React.FC<CropsHubProps> = ({
 
       if (response.ok) {
         const data = await response.json();
-        // Expecting array structured response from your n8n pipeline router
-        setActivePlotsList(data.plots || []); 
+        if (Array.isArray(data)) {
+          setActivePlotsList(data);
+        } else {
+        setActivePlotsList(data.plots || []);
       }
-    } catch (error) {
-      console.error("Failed syncing topological grid matrix records:", error);
-    }
-  };
+    } 
+      
+  } catch (error) {
+    console.error("Failed syncing topological grid matrix records:", error);
+  }
+};
 
   // Fire the network fetch hook automatically whenever the screen initializes
   useEffect(() => {
