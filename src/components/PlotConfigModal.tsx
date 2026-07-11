@@ -95,18 +95,16 @@ export const PlotConfigModal: React.FC<PlotConfigModalProps> = ({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Farm Zone Section</label>
-              <select 
+              <input 
+                type="text" 
+                placeholder="e.g., Chula, West Valley, Hillside"
                 value={farmSection} 
                 onChange={(e) => setFarmSection(e.target.value)} 
-                className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none"
-              >
-                <option value="North Block">North Block</option>
-                <option value="South Terrace">South Terrace</option>
-                <option value="East Side Flats">East Side Flats</option>
-                <option value="West Hilltop">West Hilltop</option>
-                <option value="Greenhouse Zone">Greenhouse Zone</option>
-              </select>
+                required
+                className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 text-slate-800 font-bold focus:outline-none"
+              />
             </div>
+
             <div>
               <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Soil Profile Type</label>
               <select 
