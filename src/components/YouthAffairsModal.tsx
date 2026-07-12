@@ -183,8 +183,60 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
               </div>
             </>
           ) : (
-            /* Events Dashboard */
-            <div className="space-y-3">
+            /* Events Layout Matrix */
+            <div className="space-y-4">
+              
+              {/* Leader/Admin Event Creation Form Option */}
+              {(userData?.is_admin || userData?.role === 'leader' || userData?.is_leader) && (
+                <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100/80 space-y-3">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" /> Create New Youth Event
+                  </h4>
+                  
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    const form = e.currentTarget;
+                    const formData = new FormData(form);
+                    
+                    setLoadingEvents(true);
+                    try {
+                      const res = await fetch('https://your-n8n-instance.url', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          action: 'create_event',
+                          shop_id: shopId,
+                          title: formData.get('title'),
+                          description: formData.get('description'),
+                          event_date: formData.get('event_date'),
+                          venue: formData.get('venue'),
+                          created_by: userData?.id
+                        })
+                      });
+                      
+                      if (!res.ok) throw new Error();
+                      form.reset();
+                      fetchTenantEventsFromN8N(); // Auto-refresh the event deck instantly
+                    } catch (err) {
+                      setErrorMessage('Could not publish event.');
+                    } finally {
+                      setLoadingEvents(false);
+                    }
+                  }} className="space-y-2">
+                    <input required name="title" placeholder="Event Title (e.g., Youth Camp 2026)" className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                    <input required name="description" placeholder="Brief details..." className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input required name="event_date" placeholder="Date/Time (e.g., Fri, Aug 14 • 6PM)" className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                      <input required name="venue" placeholder="Venue Location" className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white" />
+                    </div>
+                    <button type="submit" className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all">
+                      Publish Event Live
+                    </button>
+                  </form>
+                </div>
+              )}
+
+              {/* Event Feed Output Deck */}
               {loadingEvents ? (
                 <div className="flex flex-col items-center justify-center py-12 gap-2 text-gray-500">
                   <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
