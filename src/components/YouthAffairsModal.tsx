@@ -200,7 +200,7 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
                     
                     setLoadingEvents(true);
                     try {
-                      const res = await fetch('https://your-n8n-instance.url', {
+                      const res = await fetch('https://n8n.tenear.com/webhook/create-youth-event', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
