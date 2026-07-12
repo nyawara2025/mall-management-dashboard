@@ -36,7 +36,6 @@ import { ChurchDocumentsModal } from './ChurchDocumentsModal';
 import { LeaderCreateBroadcast } from './LeaderCreateBroadcast';
 import { DioceseActivitiesModal } from './DioceseActivitiesModal';
 import { AppDownloadWidget } from './AppDownloadWidget';
-import YouthAffairsModal from './YouthAffairsModal';
 import { IntegratedVideoConference } from './IntegratedVideoConference'; 
 import { ConsentSection } from './ConsentSection';
 
@@ -1355,8 +1354,6 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
   const [isDioceseOpen, setIsDioceseOpen] = useState(false);
 
-  const [isYouthModalOpen, setIsYouthModalOpen] = useState(false);
-
   // 1. Force extract tracking variables from the active browser address bar
   const urlParams = new URLSearchParams(window.location.search);
   const isPublicChurchView = urlParams.get('view') === 'public_church';
@@ -2141,16 +2138,6 @@ if (isPublicChurchView) {
                 </span>
               </button>
 
-              <button
-                onClick={() => setIsYouthModalOpen(true)}
-                className="flex flex-col items-center justify-center p-6 bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-2xl shadow-md transition-all duration-200 transform hover:scale-[1.02] min-h-[140px]"
-              >
-                <Sparkles className="w-8 h-8 mb-2" />
-                <span className="font-bold text-xs md:text-sm tracking-wider uppercase text-center">
-                  YOUTH AFFAIRS
-                </span>
-              </button>
-
               <button 
                 onClick={() => setIsCommunityModalOpen(true)}
                 className="bg-blue-400 p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center gap-4 hover:shadow-md transition-all active:scale-95 group"
@@ -2421,15 +2408,6 @@ if (isPublicChurchView) {
         shopId={activeShopId}
         userData={userData}
       />
-
-      {isYouthModalOpen && (
-        <YouthAffairsModal 
-          isOpen={isYouthModalOpen} 
-          onClose={() => setIsYouthModalOpen(false)} 
-          userData={userData}
-          shopId={activeShopId}
-        />
-      )}
 
       <MemberChatModal 
         isOpen={isChatModalOpen} 
