@@ -24,43 +24,12 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
   const [submittingId, setSubmittingId] = useState<string | number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [socialMetrics, setSocialMetrics] = useState<any>(null);
-  const [loadingMetrics, setLoadingMetrics] = useState<boolean>(false);
-
+  // Fetch events via your n8n POST endpoint when opening the events view
   useEffect(() => {
-  if (isOpen && shopId) {
-    // Action A: Fire the existing n8n database pull for the event listings table
-    fetchTenantEventsFromN8N();
-
-    // Action B: Fire the Cloudflare Worker cache lookup for social interaction counts
-    setLoadingMetrics(true);
-    
-    // Constructing your Worker target domain text structure safely:
-    const workerDomain = "https://" + "churchyouthaffairsmetrics" + "." + "tenear" + "." + "workers" + "." + "dev";
-    const workerEndpoint = workerDomain + "/webhook/fetch-youth-events";
-
-    fetch(workerEndpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ shop_id: shopId })
-    })
-    .then(res => {
-      if (!res.ok) throw new Error('Metrics endpoint responded with an error status');
-      return res.json();
-    })
-    .then(data => {
-      if (data.success) {
-        setSocialMetrics(data.metrics);
-      }
-    })
-    .catch(err => {
-      console.error("Social metrics edge lookup bypassed:", err);
-    })
-    .finally(() => {
-      setLoadingMetrics(false);
-    });
-  }
-}, [isOpen, shopId]);
+    if (activeTab === 'events') {
+      fetchTenantEventsFromN8N();
+    }
+  }, [activeTab]);
 
   const fetchTenantEventsFromN8N = async () => {
     setLoadingEvents(true);
