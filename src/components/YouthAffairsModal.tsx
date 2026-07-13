@@ -36,7 +36,7 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
     setLoadingMetrics(true);
     
     // Constructing your Worker target domain text structure safely:
-    const workerDomain = "https://" + "churchyouthaffairsmetrics" + "." + "tenear" + "." + "workers" + "." + "dev";
+    const workerDomain = "https://" + "churchyouthaffairsmetrics" + "." + "onudi2012" + "." + "workers" + "." + "dev";
     const workerEndpoint = workerDomain + "/webhook/fetch-youth-events";
 
     fetch(workerEndpoint, {
