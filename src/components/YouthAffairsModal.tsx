@@ -18,7 +18,7 @@ interface YouthEvent {
 }
 
 export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }: YouthAffairsModalProps) {
-  const [activeTab, setActiveTab] = useState<'hub' | 'events'>('hub');
+  const [activeTab, setActiveTab] = useState<'hub' | 'events' | 'mentorship'>('hub');
   const [events, setEvents] = useState<YouthEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [submittingId, setSubmittingId] = useState<string | number | null>(null);
@@ -26,6 +26,11 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
 
   const [socialMetrics, setSocialMetrics] = useState<any>(null);
   const [loadingMetrics, setLoadingMetrics] = useState<boolean>(false);
+
+  const [mentorshipTab, setMentorshipTab] = useState<'hub' | 'events' | 'mentorship'>('hub');
+  const [mentors, setMentors] = useState<any[]>([]);
+  const [loadingMentors, setLoadingMentors] = useState<boolean>(false);
+  const [requestingMentorId, setRequestingMentorId] = useState<string | null>(null);
 
   useEffect(() => {
   if (isOpen && shopId) {
@@ -126,6 +131,35 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
     }
   };
 
+  const fetchMentorsFromN8N = async () => {
+    setLoadingMentors(true);
+    setErrorMessage(null);
+    try {
+      // Direct POST payload matching your strict workflow action criteria
+      const response = await fetch('https://n8n.tenear.com/webhook/youth-mentorship', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'get_mentors',
+          shop_id: shopId,
+          user_id: userData?.id || null
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to retrieve mentorship listings');
+      
+      const data = await response.json();
+      // Expecting n8n to return an array of available mentors from your youth_mentors table
+      setMentors(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('n8n mentor lookup failed:', err);
+      setErrorMessage('Could not load mentor profiles. Please try again.');
+    } finally {
+      setLoadingMentors(false);
+    }
+  };
+
+
   if (!isOpen) return null;
 
   return (
@@ -135,7 +169,7 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
         {/* Header Section */}
         <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-purple-50">
           <div className="flex items-center gap-3">
-            {activeTab === 'events' && (
+            {(activeTab === 'events' || activeTab === 'mentorship') && (
               <button 
                 onClick={() => setActiveTab('hub')}
                 className="p-1 -ml-1 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
@@ -192,11 +226,17 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
                   </div>
                 </button>
 
-                <button className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 opacity-50 cursor-not-allowed text-left">
-                  <div className="p-2.5 bg-purple-100 text-purple-700 rounded-lg">
+                <button 
+                  onClick={() => {
+                    setActiveTab('mentorship');
+                    fetchMentorsFromN8N();
+                  }}
+                  className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 hover:bg-purple-50/50 hover:border-purple-200 transition-all text-left group"
+                >
+                  <div className="p-2.5 bg-purple-100 text-purple-700 rounded-lg group-hover:scale-110 transition-transform">
                     <Users className="w-5 h-5" />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h4 className="font-semibold text-sm text-gray-800">Peer Mentorship Circles</h4>
                     <p className="text-xs text-gray-500">Get paired up with group leaders and spiritual mentors.</p>
                   </div>
@@ -262,9 +302,103 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
                   </div>
                 </div>
               )}
-
-
             </>
+          ) : activeTab === 'mentorship' ? (
+            
+            /* Mentorship Program Module View */
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                  Available Spiritual & Career Mentors
+                </span>
+              </div>
+
+              {loadingMentors ? (
+                <div className="flex flex-col items-center justify-center py-12 gap-2 text-gray-500">
+                  <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+                  <p className="text-xs">Loading mentor directory...</p>
+                </div>
+              ) : mentors.length === 0 ? (
+                <div className="p-8 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                  <Users className="w-8 h-8 mx-auto text-gray-300 mb-2" />
+                  <p className="text-sm font-medium text-gray-600">No active mentors found</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Please check back again later.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-3">
+                  {mentors.map((mentor) => (
+                    <div 
+                      key={mentor.id} 
+                      className="p-4 rounded-2xl border border-gray-100 bg-white hover:border-purple-200 shadow-sm transition-all flex items-start gap-4"
+                    >
+                      {/* Avatar Wrapper */}
+                      <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-700 font-bold text-sm flex items-center justify-center border border-purple-100/50 shrink-0 uppercase">
+                        {mentor.full_name?.substring(0, 2) || "M"}
+                      </div>
+
+                      {/* Mentor Bio Information Text block */}
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-bold text-sm text-gray-900">{mentor.full_name}</h4>
+                          <span className="px-2 py-0.5 bg-purple-50 border border-purple-100 text-purple-700 text-[10px] font-semibold rounded-md">
+                            {mentor.specialty}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500 leading-relaxed">
+                          {mentor.bio || "Dedicated mentor supporting youth spiritual development and strategic life tracking goals."}
+                        </p>
+
+                        {/* Direct Application Match Trigger Button */}
+                        <button
+                          disabled={requestingMentorId !== null || mentor.is_requested}
+                          onClick={async () => {
+                            setRequestingMentorId(mentor.id);
+                            setErrorMessage(null);
+                            try {
+                              const res = await fetch('https://n8n.tenear.com/webhook/youth-mentorship', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  action: 'request_mentor',
+                                  shop_id: shopId,
+                                  mentor_id: mentor.id,
+                                  student_id: userData?.id,
+                                  growth_track: mentor.specialty
+                                })
+                              });
+
+                              if (!res.ok) throw new Error();
+                              
+                              // Optimistically flag this card row item as requested in local UI layout
+                              setMentors(prev => prev.map(m => m.id === mentor.id ? { ...m, is_requested: true } : m));
+                            } catch (err) {
+                              setErrorMessage('Could not process connection application request.');
+                            } finally {
+                              setRequestingMentorId(null);
+                            }
+                          }}
+                          className={`w-full mt-2 py-1.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition-all ${
+                            mentor.is_requested 
+                              ? 'bg-emerald-50 border-emerald-200 text-emerald-700 cursor-default'
+                              : 'bg-purple-600 border-purple-600 hover:bg-purple-700 text-white shadow-sm'
+                          }`}
+                        >
+                          {requestingMentorId === mentor.id ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : mentor.is_requested ? (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Request Submitted
+                            </>
+                          ) : (
+                            'Request Connection'
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           ) : (
             /* Events Layout Matrix */
             <div className="space-y-4">
