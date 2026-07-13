@@ -212,6 +212,58 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
                   </div>
                 </button>
               </div>
+
+              {/* PASTE THE SOCIAL PERFORMANCE METRICS METRICS CODE BLOCK HERE */}
+              {socialMetrics && (
+                <div className="mt-6 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-400">
+                      Social Engagement Pulse
+                    </h4>
+                    {socialMetrics.last_updated && (
+                      <span className="text-[10px] text-gray-400">
+                        Updated: {new Date(socialMetrics.last_updated).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} EAT
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Instagram Analytics Card */}
+                    <div className="p-4 rounded-2xl border border-gray-100 bg-gradient-to-br from-pink-50/30 to-rose-50/30 flex flex-col">
+                      <span className="text-xs font-medium text-gray-500">Instagram Followers</span>
+                      <span className="text-xl font-black text-gray-900 mt-1">
+                        {socialMetrics.instagram?.followers?.toLocaleString() || 0}
+                      </span>
+                    </div>
+
+                    {/* TikTok Analytics Card */}
+                    <div className="p-4 rounded-2xl border border-gray-100 bg-gradient-to-br from-cyan-50/30 to-slate-50/30 flex flex-col">
+                      <span className="text-xs font-medium text-gray-500">TikTok Likes</span>
+                      <span className="text-xl font-black text-gray-900 mt-1">
+                        {socialMetrics.tiktok?.likes?.toLocaleString() || 0}
+                      </span>
+                    </div>
+
+                    {/* Facebook Analytics Card */}
+                    <div className="p-4 rounded-2xl border border-gray-100 bg-gradient-to-br from-blue-50/30 to-indigo-50/30 flex flex-col">
+                      <span className="text-xs font-medium text-gray-500">Facebook Impressions</span>
+                      <span className="text-xl font-black text-gray-900 mt-1">
+                        {socialMetrics.facebook_impressions?.toLocaleString() || 0}
+                      </span>
+                    </div>
+
+                    {/* Twitter / X Analytics Card */}
+                    <div className="p-4 rounded-2xl border border-gray-100 bg-gradient-to-br from-neutral-50 to-neutral-100/50 flex flex-col">
+                      <span className="text-xs font-medium text-gray-500">Twitter Impressions</span>
+                      <span className="text-xl font-black text-gray-900 mt-1">
+                        {socialMetrics.twitter?.impressions_30d?.toLocaleString() || 0}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+
             </>
           ) : (
             /* Events Layout Matrix */
