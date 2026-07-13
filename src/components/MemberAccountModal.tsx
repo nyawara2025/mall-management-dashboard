@@ -41,13 +41,23 @@ export const MemberAccountModal = ({
     personality_word: userData?.personality_word || ''
   });
 
+  // This hook guarantees your form fields re-sync with fresh database data every single time the modal is opened
   useEffect(() => {
-    if (userData) {
-      setProfession(userData.profession || '');
-      setHobbies(userData.hobbies || '');
-      setInterests(userData.interests || '');
+    if (userData && isOpen) {
+      setProfileData({
+        profession: userData.profession || '',
+        hobbies: userData.hobbies || '',
+        interests: userData.interests || '',
+        habits: userData.habits || '',
+        birthday: userData.birthday || '', 
+        personality_word: userData.personality_word || ''
+      });
+      
+      if (userData.signature_data_url) {
+        setCurrentSignature(userData.signature_data_url);
+      }
     }
-  }, [userData, isOpen]);
+  }, [userData, isOpen]); // Adding isOpen as a strict dependency forces the re-sync on click
 
   if (!isOpen) return null;
 
