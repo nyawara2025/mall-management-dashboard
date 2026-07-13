@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Shield, User, X, Briefcase, Heart, Sparkles, Cake, Loader2, Info } from 'lucide-react';
 // Import the existing component
 import { ChangePasswordModal } from './ChangePasswordModal'; 
@@ -10,7 +10,6 @@ interface MemberAccountModalProps {
   userData: any;
   shopId: number;
   phone: string;
-  onUpdateSuccess: (updatedUser: any) => void;
 }
 
 export const MemberAccountModal = ({ 
@@ -18,15 +17,10 @@ export const MemberAccountModal = ({
   onClose, 
   userData, 
   shopId, 
-  phone,
-  onUpdateSuccess 
+  phone 
 }: MemberAccountModalProps) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
   const [isSaving, setIsSaving] = useState(false);
-
-  const [profession, setProfession] = useState(userData?.profession || '');
-  const [hobbies, setHobbies] = useState(userData?.hobbies || '');
-  const [interests, setInterests] = useState(userData?.interests || '');
 
   // 🚀 ONBOARDING ARTILLERY HOOKS: Tracks signature state changes inside profile view
   const [isSigOpen, setIsSigOpen] = useState(false);
@@ -40,14 +34,6 @@ export const MemberAccountModal = ({
     birthday: userData?.birthday || '', 
     personality_word: userData?.personality_word || ''
   });
-
-  useEffect(() => {
-    if (userData) {
-      setProfession(userData.profession || '');
-      setHobbies(userData.hobbies || '');
-      setInterests(userData.interests || '');
-    }
-  }, [userData, isOpen]);
 
   if (!isOpen) return null;
 
@@ -65,16 +51,6 @@ export const MemberAccountModal = ({
       });
 
       if (response.ok) {
-        // Structure your updated object context array payload exactly
-        const updatedUserContext = {
-          ...userData,
-          profession: profession,
-          hobbies: hobbies,
-          interests: interests
-        };
-
-        // Execute your parent callback to force instant layout re-hydration!
-        onUpdateSuccess(updatedUserContext);
         alert("Profile bio updated successfully!");
         onClose();
       }

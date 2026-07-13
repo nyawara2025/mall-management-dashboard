@@ -2313,12 +2313,6 @@ if (isPublicChurchView) {
         userData={userData}
         shopId={activeShopId}
         phone={userData?.phone_number || ''}
-        onUpdateSuccess={(updatedUser: any) => {
-          // 1. Sync updated state inside the application context memory instantly
-          setUserData(updatedUser);
-          // 2. Commit updated object dataset down into localStorage cache to persist across browser reloads
-          localStorage.setItem(`church_user_${activeShopId}`, JSON.stringify(updatedUser));
-        }}
       />
 
       <GivingModal 
