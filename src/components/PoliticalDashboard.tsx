@@ -828,27 +828,72 @@ const ConstituencyHotspots = ({ shopId }: { shopId: string }) => {
     fetch('/data/kenya_constituencies.json')
       .then(res => res.json())
       .then(data => {
-        if (data && data.type === "FeatureCollection") setGeoData(data);
+        // This validation will pass smoothly now that you have real GeoJSON
+        if (data && data.type === "FeatureCollection") {
+          setGeoData(data);
+        }
       })
       .catch(err => console.error("Map Error:", err))
       .finally(() => setIsLoading(false));
   }, []);
 
-  if (isLoading) return <div className="h-[500px] flex items-center justify-center bg-gray-50">Loading Map...</div>;
+  // Crisp visual style to cleanly outline constituency limits
+  const boundaryStyle = {
+    fillColor: '#3B82F6',   // Base blue shade for regions
+    fillOpacity: 0.1,      // Kept translucent so the Heatmap points remain visible underneath
+    color: '#1E293B',       // Sharp Slate-800 border line for exact demarcation
+    weight: 1.5,           // Clean, thin line resolution
+    opacity: 0.85
+  };
+
+  // Hover highlighting mechanism for user exploration
+  const handleOnEachFeature = (feature: any, layer: any) => {
+    // Gracefully reads fields matching standard HDX properties layouts
+    const constituencyName = feature.properties?.CONST_NAM || feature.properties?.CONSTITUENCY_NAME || "Constituency";
+    const countyName = feature.properties?.COUNTY_NAM || feature.properties?.COUNTY_NAME || "County";
+
+    layer.bindTooltip(`<strong>${constituencyName}</strong><br/>${countyName}`, {
+      sticky: true,
+      className: 'bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm text-sm text-slate-800 font-medium'
+    });
+
+    layer.on({
+      mouseover: (e: any) => {
+        e.target.setStyle({
+          fillColor: '#10B981', // Flashes green on cursor hover
+          fillOpacity: 0.25,
+          weight: 2.5,
+          color: '#065F46'      // Dark green edge accentuation
+        });
+      },
+      mouseout: (e: any) => {
+        e.target.setStyle(boundaryStyle); // Restores back to slate separation smoothly
+      }
+    });
+  };
+
+  if (isLoading) return <div className="h-[500px] flex items-center justify-center bg-gray-50 text-gray-500 font-medium">Loading Demarcation Boundaries...</div>;
 
   return (
-    <div style={{ height: '500px', width: '100%' }}>
+    <div style={{ height: '500px', width: '100%' }} className="rounded-lg overflow-hidden border border-gray-200 relative z-0">
       <MapContainer center={[0.0236, 37.9062]} zoom={6} style={{ height: '100%', width: '100%' }}>
-        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        {geoData && <GeoJSON data={geoData} style={{ fillColor: "transparent", weight: 1, color: "#666" }} />}
+        <TileLayer 
+          attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
+        />
+        
+        {/* Dynamic Vector Demarcation Layer */}
+        {geoData && (
+          <GeoJSON 
+            data={geoData} 
+            style={boundaryStyle} 
+            onEachFeature={handleOnEachFeature} 
+          />
+        )}
+        
+        {/* Continuous Heatmap Layer representing dense voter pockets over the map vectors */}
         <HeatmapLayer points={heatPoints} />
       </MapContainer>
     </div>
   );
 };
-
-const Upload = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-  </svg>
-);
