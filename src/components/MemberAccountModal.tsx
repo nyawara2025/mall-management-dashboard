@@ -23,6 +23,8 @@ export const MemberAccountModal = ({
 }: MemberAccountModalProps) => {
   const [activeTab, setActiveTab] = useState<'profile' | 'security'>('profile');
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [profession, setProfession] = useState(userData?.profession || '');
   const [hobbies, setHobbies] = useState(userData?.hobbies || '');
@@ -41,25 +43,66 @@ export const MemberAccountModal = ({
     personality_word: userData?.personality_word || ''
   });
 
-  // This hook guarantees your form fields re-sync with fresh database data every single time the modal is opened
   useEffect(() => {
-    if (userData && isOpen) {
-      setProfileData({
-        profession: userData.profession || '',
-        hobbies: userData.hobbies || '',
-        interests: userData.interests || '',
-        habits: userData.habits || '',
-        birthday: userData.birthday || '', 
-        personality_word: userData.personality_word || ''
-      });
-      
-      if (userData.signature_data_url) {
-        setCurrentSignature(userData.signature_data_url);
+    if (!isOpen || !userData?.id) return;
+
+    async function fetchLatestWelfareData() {
+      setIsLoadingProfile(true);
+      setErrorMessage(null);
+      try {
+        const response = await fetch('https://n8n.tenear.com/webhook/fetch-member-bio2', { // Reusing your main authenticated node or dedicated profile fetch endpoint
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            action: 'get_member_profile',
+            shop_id: shopId,
+            user_id: userData.id,
+            phone: phone // Fallback search vector
+          }),
+        });
+
+        if (!response.ok) throw new Error('Failed to retrieve server bio');
+
+        const remoteData = await response.json();
+        
+        // Populate inputs with server data, falling back gracefully to base userData attributes
+        setProfileData({
+          profession: remoteData?.profession || userData.profession || '',
+          hobbies: remoteData?.hobbies || userData.hobbies || '',
+          interests: remoteData?.interests || userData.interests || '',
+          habits: remoteData?.habits || userData.habits || '',
+          birthday: remoteData?.birthday || userData.birthday || '', 
+          personality_word: remoteData?.personality_word || userData.personality_word || ''
+        });
+
+        if (remoteData?.signature_data_url || userData.signature_data_url) {
+          setCurrentSignature(remoteData?.signature_data_url || userData.signature_data_url);
+        }
+      } catch (err: any) {
+        console.error("Profile Fetch Error:", err);
+        // Fallback gracefully to basic prop values if offline or middleware fails
+        setProfileData({
+          profession: userData.profession || '',
+          hobbies: userData.hobbies || '',
+          interests: userData.interests || '',
+          habits: userData.habits || '',
+          birthday: userData.birthday || '', 
+          personality_word: userData.personality_word || ''
+        });
+      } finally {
+        setIsLoadingProfile(false);
       }
     }
-  }, [userData, isOpen]); // Adding isOpen as a strict dependency forces the re-sync on click
+
+    fetchLatestWelfareData();
+  }, [isOpen, userData?.id, shopId, phone]);
 
   if (!isOpen) return null;
+
+  // 📝 Input change handler helper
+  const handleInputChange = (field: keyof typeof profileData, value: string) => {
+    setProfileData(prev => ({ ...prev, [field]: value }));
+  };
 
   const handleUpdateProfile = async () => {
     setIsSaving(true);
@@ -145,52 +188,97 @@ export const MemberAccountModal = ({
               </div>
 
               <div className="space-y-4">
-                <div className="relative">
-                  <Briefcase className="absolute left-4 top-4 text-blue-500" size={18} />
-                  <input 
-                    className="w-full pl-12 p-4 bg-gray-50 rounded-2xl border-none text-sm font-bold"
-                    placeholder="Profession"
-                    value={profileData.profession}
-                    onChange={e => setProfileData({...profileData, profession: e.target.value})}
-                  />
-                </div>
+                {/* LOADING MASK */}
+                {isLoadingProfile ? (
+                  <div className="flex flex-col items-center justify-center py-16 gap-2 text-gray-500">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+                    <p className="text-xs font-medium">Synchronizing profile ledger...</p>
+                  </div>
+                ) : (
+                  <form onSubmit={handleUpdateProfile} className="space-y-4">
+                    {errorMessage && (
+                      <div className="p-2.5 text-xs font-semibold bg-red-50 border border-red-100 text-red-700 rounded-xl">
+                         ⚠️ {errorMessage}
+                      </div>
+                    )}
 
-                <div className="grid grid-cols-2 gap-4">
-                  <input 
-                    className="w-full p-4 bg-gray-50 rounded-2xl border-none text-sm font-bold"
-                    placeholder="Hobbies"
-                    value={profileData.hobbies}
-                    onChange={e => setProfileData({...profileData, hobbies: e.target.value})}
-                  />
-                  <input 
-                    className="w-full p-4 bg-gray-50 rounded-2xl border-none text-sm font-bold"
-                    placeholder="Interests"
-                    value={profileData.interests}
-                    onChange={e => setProfileData({...profileData, interests: e.target.value})}
-                  />
-                </div>
+                    {/* Profession Input Block */}
+                    <div className="relative">
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Profession</label>
+                      <div className="relative">
+                        <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          value={profileData.profession}
+                          onChange={(e) => handleInputChange('profession', e.target.value)}
+                          placeholder="Your Profession (e.g. Software Engineer)"
+                          className="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                        />
+                      </div>
+                    </div>
 
-                <textarea 
-                  className="w-full p-4 bg-gray-50 rounded-2xl border-none text-sm font-bold min-h-[100px]"
-                  placeholder="Unique habits..."
-                  value={profileData.habits}
-                  onChange={e => setProfileData({...profileData, habits: e.target.value})}
-                />
+                    {/* Hobbies & Interests Split Grid Rows */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Hobbies</label>
+                        <input
+                          type="text"
+                          value={profileData.hobbies}
+                          onChange={(e) => handleInputChange('hobbies', e.target.value)}
+                          placeholder="Cooking, hiking..."
+                          className="w-full px-3 py-2.5 text-sm border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Interests</label>
+                        <input
+                          type="text"
+                          value={profileData.interests}
+                          onChange={(e) => handleInputChange('interests', e.target.value)}
+                          placeholder="Mentorship, missions..."
+                          className="w-full px-3 py-2.5 text-sm border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                        />
+                      </div>
+                    </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <input 
-                    className="w-full p-4 bg-gray-50 rounded-2xl border-none text-sm font-bold"
-                    placeholder="Birthday (DD-MM)"
-                    value={profileData.birthday}
-                    onChange={e => setProfileData({...profileData, birthday: e.target.value})}
-                  />
-                  <input 
-                    className="w-full p-4 bg-blue-50 text-blue-600 rounded-2xl border-none text-sm font-black text-center"
-                    placeholder="One word bio"
-                    value={profileData.personality_word}
-                    onChange={e => setProfileData({...profileData, personality_word: e.target.value})}
-                  />
-                </div>
+                    {/* Unique Habits Text Field */}
+                    <div>
+                      <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Unique Habits</label>
+                      <input
+                        type="text"
+                        value={profileData.habits}
+                        onChange={(e) => handleInputChange('habits', e.target.value)}
+                        placeholder="Early bird, avid reader..."
+                        className="w-full px-3 py-2.5 text-sm border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                      />
+                    </div>
+
+                    {/* Birthday & One Word Bio Grid */}
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Birthday</label>
+                        <input
+                          type="text"
+                          value={profileData.birthday}
+                          onChange={(e) => handleInputChange('birthday', e.target.value)}
+                          placeholder="DD-MM-YYYY"
+                          className="w-full px-3 py-2.5 text-sm border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">One Word Bio</label>
+                        <input
+                          type="text"
+                          value={profileData.personality_word}
+                          onChange={(e) => handleInputChange('personality_word', e.target.value)}
+                          placeholder="Visionary, Catalyst..."
+                          className="w-full px-3 py-2.5 text-sm border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                        />
+                      </div>
+                    </div>
+                  </form>
+                )}
+
 
                 {/* 🚀 ONBOARDING SECURE SIGNATURE CARD ROW PANEL */}
                 <div className="p-5 bg-gray-50 rounded-3xl border border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-left">
