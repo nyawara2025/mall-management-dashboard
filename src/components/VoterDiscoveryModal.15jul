@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, Check, Loader2, MapPin } from 'lucide-react';
+import { X, ChevronRight, Check, Loader2 } from 'lucide-react';
 
 interface DiscoveryModalProps {
   isOpen: boolean;
@@ -10,7 +10,6 @@ interface DiscoveryModalProps {
 export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onClose, onSelectCandidate }) => {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [gpsLoading, setGpsLoading] = useState(false);
   
   // Data options from n8n
   const [counties, setCounties] = useState<string[]>([]);
@@ -48,6 +47,7 @@ export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onC
       const rawData = await res.json();
       console.log(`[VoterDiscovery] Raw response for ${type}:`, rawData);
 
+      // FIX: Force data into an array if n8n returns a single object
       const data = Array.isArray(rawData) ? rawData : (rawData ? [rawData] : []);
 
       if (data.length > 0) {
@@ -61,6 +61,7 @@ export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onC
           uniqueNames = [...new Set(data.map((item: any) => item?.ward_name))].filter(Boolean) as string[];
         }
 
+        console.log(`[VoterDiscovery] Processed ${type}:`, uniqueNames);
         return uniqueNames.sort();
       }
       return [];
@@ -68,58 +69,6 @@ export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onC
       console.error(`[VoterDiscovery] Fetch error for ${type}:`, e);
       return [];
     }
-  };
-
-  // --- AUTOMATED GPS REVERSE GEOLOCATION HANDLER ---
-  const handleGPSLocation = () => {
-    if (!("geolocation" in navigator)) {
-      alert("GPS location service is not supported by your smartphone browser.");
-      return;
-    }
-
-    setGpsLoading(true);
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          // Push coordinates directly into your dynamic n8n administrative pipeline
-          const res = await fetch('https://n8n.tenear.com/webhook/get-voter-location', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'fetch_by_gps',
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude
-            })
-          });
-
-          const locationData = await res.json();
-          console.log("[VoterDiscovery] GPS match output mapping:", locationData);
-
-          // If n8n successfully maps the coordinates against your tables boundary zones
-          if (locationData && locationData.county_name) {
-            setFilters(prev => ({
-              ...prev,
-              county: locationData.county_name,
-              constituency: locationData.constituency_name || '',
-              ward: locationData.ward_name || ''
-            }));
-          } else {
-            alert("Location detected, but could not match with IEBC voting maps.");
-          }
-        } catch (err) {
-          console.error("GPS Reverse lookup error:", err);
-        } finally {
-          setGpsLoading(false);
-        }
-      },
-      (error) => {
-        console.error("GPS tracking rejected:", error);
-        alert("Could not fetch location data. Please select your region via the dropdown options.");
-        setGpsLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 7000, maximumAge: 0 }
-    );
   };
 
   // 1. Fetch initial Counties
@@ -133,6 +82,7 @@ export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onC
   useEffect(() => {
     if (filters.county) {
       fetchUnits('constituencies', filters.county).then(setConstituencies);
+      setFilters(prev => ({ ...prev, constituency: '', ward: '' }));
     }
   }, [filters.county]);
 
@@ -140,6 +90,7 @@ export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onC
   useEffect(() => {
     if (filters.constituency) {
       fetchUnits('wards', filters.constituency).then(setWards);
+      setFilters(prev => ({ ...prev, ward: '' }));
     }
   }, [filters.constituency]);
 
@@ -182,38 +133,12 @@ export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onC
           {/* STEP 1: LOCATION */}
           {step === 1 && (
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <h3 className="font-bold text-lg">Where do you vote?</h3>
-                
-                {/* DYNAMIC GPS AUTO-DETECTOR BUTTON UTILITY */}
-                <button
-                  onClick={handleGPSLocation}
-                  disabled={gpsLoading}
-                  className="flex items-center gap-1.5 text-xs font-black text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-xl active:scale-95 transition-all disabled:opacity-50"
-                >
-                  {gpsLoading ? (
-                    <>
-                      <Loader2 size={13} className="animate-spin" />
-                      <span>Locating...</span>
-                    </>
-                  ) : (
-                    <>
-                      <MapPin size={13} />
-                      <span>Locate Me</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
+              <h3 className="font-bold text-lg">Where do you vote?</h3>
               <div className="space-y-3">
                 <select 
                   className="w-full p-4 bg-gray-100 rounded-xl font-bold border-2 border-transparent focus:border-blue-600 outline-none"
                   value={filters.county}
-                  onChange={(e) => {
-                    setFilters({ county: e.target.value, constituency: '', ward: '', level: '' });
-                    setConstituencies([]);
-                    setWards([]);
-                  }}
+                  onChange={(e) => setFilters({...filters, county: e.target.value})}
                 >
                   <option value="">Select County...</option>
                   {counties.map(c => <option key={c} value={c}>{c}</option>)}
@@ -223,10 +148,7 @@ export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onC
                   disabled={!filters.county}
                   className="w-full p-4 bg-gray-100 rounded-xl font-bold border-2 border-transparent focus:border-blue-600 outline-none disabled:opacity-50"
                   value={filters.constituency}
-                  onChange={(e) => {
-                    setFilters({ ...filters, constituency: e.target.value, ward: '' });
-                    setWards([]);
-                  }}
+                  onChange={(e) => setFilters({...filters, constituency: e.target.value})}
                 >
                   <option value="">Select Constituency...</option>
                   {constituencies.map(c => <option key={c} value={c}>{c}</option>)}
@@ -298,7 +220,7 @@ export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onC
                     className="w-full p-4 bg-white border border-gray-100 rounded-2xl flex items-center gap-4 hover:shadow-md transition group text-left"
                   >
                     <img 
-                      src={c.photo_url || 'https://placeholder.com'} 
+                      src={c.photo_url || 'https://via.placeholder.com'} 
                       className="w-14 h-14 rounded-full object-cover border-2 border-gray-50" 
                       alt={c.full_name}
                     />
