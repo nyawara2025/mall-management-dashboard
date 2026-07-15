@@ -848,8 +848,8 @@ const ConstituencyHotspots = ({ shopId }: { shopId: string }) => {
 
   const handleOnEachFeature = (feature: any, layer: any) => {
     // Extracting keys from your active dataset file
-    const constituencyName = feature.properties?.CONSTITUENCY || "Sub-District";
-    const countyName = feature.properties?.COUNTY || "County";
+    const constituencyName = feature.properties?.CONSTITUENCY_NAME || "Constituency";
+    const countyName = feature.properties?.COUNTY_NAME || "County";
 
     // Bind the true sub-district name to the tooltip popup
     layer.bindTooltip(`<strong>${constituencyName} Constituency</strong><br/>${countyName} County`, {
