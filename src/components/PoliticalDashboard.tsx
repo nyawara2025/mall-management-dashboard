@@ -2,6 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import { Globe, Camera, Save, Loader2, X, Plus, Bot, PieChart } from 'lucide-react';
 import { HeatmapLayer } from './HeatmapLayer'; 
+
+import { AgentIncidentTracker } from './AgentIncidentTracker';
+import { ParallelVoteTally } from './ParallelVoteTally';
+
 import 'leaflet/dist/leaflet.css';
 import { 
   Users, 
@@ -807,6 +811,11 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
         </div>
       )}
 
+      {/* Ground Team Operations Grid Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <AgentIncidentTracker shopId={String(user?.shop_id || shopId || '65')} />
+        <ParallelVoteTally shopId={String(user?.shop_id || shopId || '65')} />
+      </div>
 
     </div> // This closes the main dashboard container
   ); // This ends the return statement
