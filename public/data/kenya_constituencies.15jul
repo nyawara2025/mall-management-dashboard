@@ -1,0 +1,15 @@
+{
+    "created": "2015-09-18T08:13:13.883850",
+    "description": "Admin 2 Boundaries also known as constituencies in Kenya",
+    "format": "SHP",
+    "download_url": "https://data.humdata.org/dataset/4da920dc-c1dc-4889-b06c-66ecb65e2b94/resource/8c78dafe-f9f4-4dd3-b6be-a4e57ea7ac22/download/constituencies.zip",
+    "id": "8c78dafe-f9f4-4dd3-b6be-a4e57ea7ac22",
+    "last_modified": "2018-08-16T07:29:08.319738",
+    "metadata_modified": "2025-02-25T18:30:38.475042",
+    "microdata": false,
+    "dataset_id": "4da920dc-c1dc-4889-b06c-66ecb65e2b94",
+    "resource_type": "file.upload",
+    "name": "Admin2-constituencies.zip",
+    "mimetype": null,
+    "size": "552.4K"
+}
