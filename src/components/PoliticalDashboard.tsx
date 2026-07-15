@@ -846,28 +846,28 @@ const ConstituencyHotspots = ({ shopId }: { shopId: string }) => {
     opacity: 0.85
   };
 
-  // Hover highlighting mechanism for user exploration
   const handleOnEachFeature = (feature: any, layer: any) => {
-    // Mapping properties from mikelmaron's constituencies dataset
-    const constituencyName = feature.properties?.CONSTITUEN || "District";
-    const countyName = feature.properties?.COUNTY_NAM || "County";
+    // Extracting keys from your active dataset file
+    const constituencyName = feature.properties?.CONSTITUENCY || "Sub-District";
+    const countyName = feature.properties?.COUNTY || "County";
 
-    layer.bindTooltip(`<strong>${constituencyName}</strong><br/>${countyName}`, {
+    // Bind the true sub-district name to the tooltip popup
+    layer.bindTooltip(`<strong>${constituencyName} Constituency</strong><br/>${countyName} County`, {
       sticky: true,
-      className: 'bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm text-xs font-medium text-slate-800'
+      className: 'bg-white border border-slate-200 px-3 py-1.5 rounded-lg shadow-sm text-xs font-semibold text-slate-800'
     });
 
     layer.on({
       mouseover: (e: any) => {
         e.target.setStyle({
-          fillColor: '#10B981',
+          fillColor: '#10B981', // Flashes green on hover
           fillOpacity: 0.25,
           weight: 2,
-          color: '#065F46'
+          color: '#065F46'      // Crisp emerald border outline
         });
       },
       mouseout: (e: any) => {
-        e.target.setStyle(boundaryStyle); // Reverts back to your default stroke styling
+        e.target.setStyle(boundaryStyle); // Smoothly restores back to slate border styling
       }
     });
   };
