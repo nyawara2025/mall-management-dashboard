@@ -51,7 +51,7 @@ export const DirectorDashboard = ({ shopId, user, onLogout }: any) => {
   const fetchFinancialAnalytics = async () => {
     setFinanceLoading(true);
     try {
-      const response = await fetch('https://n8n.tenear.com/webhook/director-finance-analytics', {
+      const response = await fetch('https://n8n.tenear.com/webhook/edu-director-academic-intel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shop_id: shopId, action: 'get_financial_analytics' })
