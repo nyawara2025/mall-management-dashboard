@@ -44,9 +44,9 @@ export function AgentDashboard() {
   const [competitorVotes, setCompetitorVotes] = useState('');
 
 
-  // Extract the active campaign identifier straight from the active window's location query footprint
+  // Extract active campaign ID dynamically (Storage First, URL Parameter Second, absolute No Fallback Default)
   const currentParams = new URLSearchParams(window.location.search);
-  const activeShopId = currentParams.get('shop_id') || '65';
+  const activeShopId = localStorage.getItem('__native_shop_id') || currentParams.get('shop_id') || '';
 
   // Read the token profile context locally from storage on mount
   useEffect(() => {
@@ -98,6 +98,13 @@ export function AgentDashboard() {
   // Authentication Action Middleware Controller
   const handleCustomWebhookAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 🛡️ Strict Guard: Halt execution if no true tenant ID exists in memory context
+    if (!activeShopId) {
+      setAuthError("Terminal Error: Missing Campaign ID. Please reload via your candidate link.");
+      return;
+    }
+
     setLoading(true);
     setAuthError(null);
 
