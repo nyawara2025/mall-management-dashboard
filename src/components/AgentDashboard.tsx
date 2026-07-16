@@ -46,7 +46,7 @@ export function AgentDashboard() {
 
   // Extract active campaign ID cleanly using your native backup keys
   const currentParams = new URLSearchParams(window.location.search);
-  const activeShopId = currentParams.get('shop_id') || localStorage.getItem('__native_shop_id') || '68'; // Defaults securely to 68 if everything is blank
+  const activeShopId = currentParams.get('shop_id') || '65'; // Defaults securely to 68 if everything is blank
 
   // Read the token profile context locally from storage on mount
   useEffect(() => {
