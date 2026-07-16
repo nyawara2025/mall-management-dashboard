@@ -370,4 +370,3 @@ export const DirectorDashboard = ({ shopId, user, onLogout }: any) => {
       </main>
     </div>
   );
-};
