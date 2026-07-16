@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, BarChart3, AlertCircle, CheckCircle, Loader2, Send, Lock as LockIcon, User } from 'lucide-react';
+import { ShieldAlert, BarChart3, AlertCircle, CheckCircle, Loader2, Send, Lock as LockIcon, User as UserIcon } from 'lucide-react';
 
 import { useAuth } from '../contexts/AuthContext';
 
@@ -129,7 +129,7 @@ export function AgentDashboard() {
               <label className="block text-xs font-black text-gray-400 uppercase mb-1">Registered Agent Phone</label>
               <div className="relative">
                 {/* FIXED: Changed UserIcon back to User based on your imports */}
-                <User className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
+                <UserIcon className="absolute left-3 top-3.5 w-4 h-4 text-gray-400" />
                 <input 
                   type="text" required placeholder="e.g. 0716300197" value={phoneInput} onChange={e => setPhoneInput(e.target.value)}
                   className="w-full bg-gray-50 border border-gray-100 rounded-xl pl-10 pr-4 py-3 text-sm font-bold focus:outline-none focus:border-blue-600"
@@ -279,7 +279,7 @@ export function AgentDashboard() {
               }}
             />
           ) : (
-            <User className="w-8 h-8 text-gray-500" />
+            <UserIcon className="w-8 h-8 text-gray-500" />
           )}
         </div>
       </div>
