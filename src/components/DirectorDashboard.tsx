@@ -278,7 +278,11 @@ export const DirectorDashboard = ({ shopId, user, onLogout }: any) => {
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-bold text-slate-200 focus:outline-none focus:border-blue-500"
                 >
                   <option value="">-- Choose Target Class --</option>
-                  {classList.map((c: any) => <option key={c.id} value={c.id}>Grade {c.grade}{c.stream}</option>)}
+                  {classList.map((c: any) => (
+                    <option key={c.id} value={c.class_name || c.id}>
+                      Grade {c.class_name || `${c.grade}${c.stream}`}
+                    </option>
+                  ))}
                 </select>
               </div>
 
