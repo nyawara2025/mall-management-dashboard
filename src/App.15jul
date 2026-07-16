@@ -45,6 +45,7 @@ import { PublicGivingPage } from './components/PublicGivingPage';
 import { VisitorWelcomePage } from './components/VisitorWelcomePage';
 import { ScreenDisplay } from './components/ScreenDisplay';
 import { PublicAgricHub } from './components/PublicAgricHub';
+import { AgentDashboard } from './components/AgentDashboard';
 import { MediaPresentationController } from './components/MediaPresentationController';
 import SettingsPage from './pages/SettingsPage';
 import './index.css';
@@ -160,6 +161,11 @@ function AppContent() {
 
   if (window.location.pathname === '/broadcast-console') {
     return <MediaPresentationController />;
+  }
+
+  // 🗳️ 2027 ELECTION NIGHT NATIVE MOBILE AGENT PORTAL INTERCEPT
+  if (window.location.pathname === '/agent-dashboard') {
+    return <AgentDashboard />;
   }
 
 
