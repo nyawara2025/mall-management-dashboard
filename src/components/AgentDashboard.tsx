@@ -76,7 +76,14 @@ export function AgentDashboard() {
 
         const data = await response.json();
         if (response.ok && data) {
-          setCandidateMeta(data);
+          // 🛠️ FIX: Resolve array wrappers if n8n emits data as an item array [item]
+          const profile = Array.isArray(data) ? data[0] : data;
+          
+          setCandidateMeta({
+            full_name: profile.full_name || "Agent Command Portal",
+            photo_url: profile.photo_url || null,
+            campaign_motto: profile.campaign_motto || null
+          });
         }
       } catch (err) {
         console.error("Failed loading candidate profile context via n8n:", err);
@@ -248,6 +255,13 @@ export function AgentDashboard() {
     );
   }
 
+  // Add this logout handler logic block right inside your component body above the return statement
+  const handleAgentLogout = () => {
+    localStorage.removeItem(`__agent_session_${activeShopId}`);
+    setAgentUser(null);
+    window.location.reload(); // Instantly resets app context layout back to login terminal
+  };
+
   // =========================================================================
   // 🗳️ MAIN PROTECTED APPLICATION VIEW RENDERING LAYOUT
   // =========================================================================
@@ -257,7 +271,7 @@ export function AgentDashboard() {
       <div className="bg-gray-900 text-white p-6 rounded-b-[2rem] shadow-md flex items-center justify-between gap-4">
         <div className="flex-1">
           <span className="text-[10px] bg-blue-600 text-white font-black px-2.5 py-1 rounded-full uppercase tracking-wider">
-            Field Operations
+            Candidate Agent Portal
           </span>
           <h2 className="text-xl font-black mt-2 text-white">
             {candidateMeta ? candidateMeta.full_name : "Agent Command Portal"}
@@ -267,18 +281,32 @@ export function AgentDashboard() {
               "{candidateMeta.campaign_motto}"
             </p>
           )}
-          <p className="text-xs text-blue-400 font-bold mt-2">
-            Agent: {agentUser.agent_phone} ({agentUser.agent_first_name})
-          </p>
+
+          {/* Secured Session Actions Row */}
+          <div className="flex items-center gap-3 mt-2">
+            <p className="text-xs text-blue-400 font-bold">
+              Agent: {agentUser.agent_phone}
+            </p>
+            <span className="text-gray-600 text-xs">•</span>
+            <button 
+              onClick={handleAgentLogout}
+              className="text-[11px] text-red-400 font-black uppercase hover:text-red-300 transition-colors tracking-wide underline underline-offset-2"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
 
+        {/* Candidate Visual Anchor Circular Component */}
         <div className="w-16 h-16 rounded-full border-2 border-blue-500 bg-gray-800 overflow-hidden flex-shrink-0 flex items-center justify-center shadow-lg">
           {candidateMeta?.photo_url ? (
             <img 
               src={candidateMeta.photo_url} 
               alt="Candidate Profile" 
               className="w-full h-full object-cover"
+              crossOrigin="anonymous" // Avoids native Android WebView canvas security taint blocks
               onError={(e) => {
+                // Hides bad resource links gracefully from layout canvas tree
                 (e.target as HTMLElement).style.display = 'none';
               }}
             />
