@@ -60,8 +60,6 @@ export const DirectorDashboard = ({ shopId, user, onLogout }: any) => {
           securityIncidents: data.security_logs || []
         });
       }
-   
-
     } catch (e) {
       console.error("Director data retrieval error:", e);
     } finally {
@@ -153,9 +151,13 @@ export const DirectorDashboard = ({ shopId, user, onLogout }: any) => {
             <button onClick={() => setActiveTab('finance')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'finance' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800/60'}`}>
               <Landmark size={16} /> Financial Operations
             </button>
-            <button onClick={() => setActiveTab('academics')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'academics' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800/60'}`}>
+            <button 
+              onClick={() => { setActiveTab('academics'); handleOpenAcademics(); }} 
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'academics' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800/60'}`}
+            >
               <BookOpen size={16} /> Academic Audits
             </button>
+
             <button onClick={() => setActiveTab('meetings')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all ${activeTab === 'meetings' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800/60'}`}>
               <CalendarDays size={16} /> Governance Meetings
             </button>
