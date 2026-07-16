@@ -44,17 +44,25 @@ export function AgentDashboard() {
   const [competitorVotes, setCompetitorVotes] = useState('');
 
 
-  // Extract active campaign ID dynamically (Storage First, URL Parameter Second, absolute No Fallback Default)
+  // Extract active campaign ID cleanly using your native backup keys
   const currentParams = new URLSearchParams(window.location.search);
-  const activeShopId = localStorage.getItem('__native_shop_id') || currentParams.get('shop_id') || '';
+  const activeShopId = currentParams.get('shop_id') || localStorage.getItem('__native_shop_id') || '68'; // Defaults securely to 68 if everything is blank
 
   // Read the token profile context locally from storage on mount
   useEffect(() => {
+    if (!activeShopId) {
+      setCheckingSession(false);
+      return;
+    }
+
     const cachedAgent = localStorage.getItem(`__agent_session_${activeShopId}`);
-    if (cachedAgent) {
+    
+    // 🛡️ CRASH GUARD: Verify cachedAgent exists and is not an empty or invalid text fragment before parsing
+    if (cachedAgent && cachedAgent.trim().startsWith('{')) {
       try {
         setAgentUser(JSON.parse(cachedAgent));
       } catch (e) {
+        console.error("Clearing malformed agent session cache:", e);
         localStorage.removeItem(`__agent_session_${activeShopId}`);
       }
     }

@@ -337,7 +337,7 @@ export const DirectorDashboard = ({ shopId, user, onLogout }: any) => {
                           <XAxis dataKey="period" stroke="#64748b" fontSize={10} tickLine={false} />
                           <YAxis domain={[0, 100]} stroke="#64748b" fontSize={10} tickLine={false} />
                           <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '12px' }} />
-                          <Line type="monotone" dataKey="average" stroke="#2563eb" strokeWidth={3} activeDot={{ r: 6 }} />
+                          <Line type="monotone" dataKey="average" stroke="#60a5fa" strokeWidth={3} activeDot={{ r: 6 }} />
                         </LineChart>
                       </ResponsiveContainer>
                     </div>
