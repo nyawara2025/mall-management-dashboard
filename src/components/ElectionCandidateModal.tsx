@@ -27,7 +27,7 @@ export function ElectionCandidateModal() {
     setAuthLoading(true);
     setAuthError('');
     try {
-      const response = await fetch('https://tenear.com', {
+      const response = await fetch('https://n8n.tenear.com/webhook/political-agent-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -61,7 +61,7 @@ export function ElectionCandidateModal() {
     if (!authSession?.shopId) return;
     setLoading(true);
     try {
-      const response = await fetch('https://tenear.com', {
+      const response = await fetch('https://n8n.tenear.com/webhook/fetch-candidate-telemetry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
