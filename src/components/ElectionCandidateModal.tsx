@@ -39,62 +39,21 @@ export function ElectionCandidateModal() {
     engagement: '0%'
   });
 
-  const resolveConstituencyMap = async (metaCounty: string, metaConstituency: string, kvMetrics: any) => {
+  // --- 🗺️ LIGHTWEIGHT MULTI-TENANT MAP LOADER ---
+  const resolveConstituencyMap = async () => {
     try {
-      const geoRes = await fetch('/data/kenya_constituencies.json');
-      if (!geoRes.ok) return;
-      const geoData = await geoRes.json();
-
-      const filteredFeatures = (geoData.features || []).filter((f: any) => {
-        const featureConst = f.properties?.constituency_name?.toUpperCase() || f.properties?.CONSTITUEN?.toUpperCase();
-        const featureCounty = f.properties?.county_name?.toUpperCase() || f.properties?.COUNTY?.toUpperCase();
-        
-        return featureConst === metaConstituency?.toUpperCase() && featureCounty === metaCounty?.toUpperCase();
-      });
-
-      if (filteredFeatures.length > 0) {
-        const targetedGeoJson = { ...geoData, features: filteredFeatures };
-
-        // Bind metrics inline
-        targetedGeoJson.features = targetedGeoJson.features.map((f: any) => ({
-          ...f,
-          properties: {
-            ...f.properties,
-            intensityScore: kvMetrics?.intensity || 85,
-            voterReachCount: kvMetrics?.voterReach || '45.2k'
-          }
-        }));
-
-        setGeoJsonData(targetedGeoJson);
-
-        // 🎯 FIX: Extract coordinates using explicit index pointers from GeoJSON shapes
-        const geometry = filteredFeatures[0]?.geometry;
-        let samplePoint: [number, number] | null = null;
-
-        if (geometry?.type === 'Polygon') {
-          // Polygon coordinates shape: [[[lng, lat], [lng, lat], ...]]
-          const pt = geometry.coordinates[0]?.[0];
-          if (pt) samplePoint = [pt[1], pt[0]]; // Converts to Leaflet format [Lat, Lng]
-        } else if (geometry?.type === 'MultiPolygon') {
-          // MultiPolygon coordinates shape: [[[[lng, lat], ...]]]
-          const pt = geometry.coordinates[0]?.[0]?.[0];
-          if (pt) samplePoint = [pt[1], pt[0]]; // Converts to Leaflet format [Lat, Lng]
-        }
-
-        if (samplePoint && !isNaN(samplePoint[0]) && !isNaN(samplePoint[1])) {
-          setMapCenter(samplePoint);
-          setMapZoom(11);
-        } else {
-          // Absolute last-resort fallback: Center broadly on Kenya center if geometry parses corrupted
-          setMapCenter([-1.286389, 36.817223]);
-          setMapZoom(11);
-        }
+      const res = await fetch('/data/kenya_constituencies.json');
+      if (!res.ok) return;
+      const data = await res.json();
+      
+      if (data && data.type === "FeatureCollection") {
+        setGeoJsonData(data); // Stores full collection exactly like your working code
       }
     } catch (err) {
-      console.error("Geographical framework construction breakdown:", err);
+      console.error("Map Loader Error:", err);
     }
   };
-  
+         
 
   // --- 📡 FETCH CANDIDATE METADATA PIPELINE ---
   const fetchCandidateMetadata = async () => {
@@ -120,11 +79,8 @@ export function ElectionCandidateModal() {
             motto: data.campaign_motto || 'Real-time Mobilization 2027'
           });
          
-          // 🎯 DISPATCH AUTOMATIC RESOLUTION: Fire map processing using DB County & Constituency
-          if (data.county || data.constituency) {
-            // pass metrics through from the concurrent telemetry metrics data point context if needed
-            resolveConstituencyMap(data.county || 'Nairobi', data.constituency || 'Embakasi East', metrics);
-          }
+          // 🎯 DISPATCH
+          resolveConstituencyMap();
         }
       }
     } catch (e) {
@@ -364,20 +320,16 @@ export function ElectionCandidateModal() {
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
               <Layers size={12} className="text-blue-500" /> Constituency Hotspots Telemetry
             </h3>
-            {candidateProfile.name && (
-              <span className="text-[9px] font-black uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded">
-                Live Sync Active
-              </span>
-            )}
+            <span className="text-[9px] font-black uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">
+              Live Link Connected
+            </span>
           </div>
           
           <div className="h-56 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 relative z-10">
-            {/* 🔒 AUTO-CENTERING GUARD: Only mount Leaflet once mapCenter is calculated */}
-            {mapCenter !== null && geoJsonData !== null ? (
+            {geoJsonData ? (
               <MapContainer 
-                key={`${mapCenter[0]}-${mapCenter[1]}`} // Forces component reset upon tenant profile change
-                center={mapCenter} 
-                zoom={mapZoom} 
+                center={[0.0236, 37.9062]} // 🎯 Fixed broad baseline anchor exactly like desktop
+                zoom={5.5}                  // Tailored mobile zoom view matrix
                 scrollWheelZoom={false}
                 zoomControl={false}
                 className="w-full h-full"
@@ -387,23 +339,33 @@ export function ElectionCandidateModal() {
                   attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'
                 />
                 
-                {/* 🎨 Dynamic GeoJSON Overlay Layer */}
                 <GeoJSON 
                   data={geoJsonData}
-                  style={(feature: any) => ({
-                    fillColor: '#2563eb', // Matches your template theme color profile
-                    fillOpacity: (feature?.properties?.intensityScore || 75) / 100,
-                    color: '#3b82f6',
-                    weight: 2,
-                    opacity: 0.8
-                  })}
+                  style={(feature: any) => {
+                    // Read feature properties from your geojson rows
+                    const featConst = feature.properties?.CONSTITUEN || "";
+                    
+                    // Cross-examine with the logged in Candidate's authenticated profile row from n8n
+                    // If this shape is their active constituency, illuminate it brightly!
+                    const isTargetJurisdiction = featConst.toUpperCase() === candidateProfile.name.toUpperCase();
+
+                    return {
+                      fillColor: isTargetJurisdiction ? '#10b981' : '#3b82f6', 
+                      fillOpacity: isTargetJurisdiction ? 0.4 : 0.05,
+                      color: isTargetJurisdiction ? '#059669' : '#1e293b',
+                      weight: isTargetJurisdiction ? 2 : 1,
+                      opacity: 0.7
+                    };
+                  }}
                 />
               </MapContainer>
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 gap-2 text-xs font-bold animate-pulse">
-                <RefreshCw size={14} className="animate-spin text-blue-500" /> Compiling Vector Boundaries Matrix...
+                <RefreshCw size={14} className="animate-spin text-blue-500" /> Connecting Map Data Nodes...
               </div>
             )}
+          
+
           </div>
         </div>
 
