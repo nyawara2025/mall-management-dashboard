@@ -46,7 +46,6 @@ import { VisitorWelcomePage } from './components/VisitorWelcomePage';
 import { ScreenDisplay } from './components/ScreenDisplay';
 import { PublicAgricHub } from './components/PublicAgricHub';
 import { AgentDashboard } from './components/AgentDashboard';
-import { ElectionCandidateModal } from './components/ElectionCandidateModal';
 import { MediaPresentationController } from './components/MediaPresentationController';
 import SettingsPage from './pages/SettingsPage';
 import './index.css';
@@ -169,13 +168,6 @@ function AppContent() {
   // =========================================================================
   if (window.location.pathname === '/agent-dashboard') {
     return <AgentDashboard />; 
-  }
-
-  // =========================================================================
-  // 📱 DEDICATED HIGH-PRIORITY CANDIDATE MOBILE VIEW ROUTE INTERCEPT
-  // =========================================================================
-  if (window.location.pathname === '/candidate') {
-    return <ElectionCandidateModal />;
   }
 
 
