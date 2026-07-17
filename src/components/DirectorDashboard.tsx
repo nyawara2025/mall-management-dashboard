@@ -61,7 +61,12 @@ export const DirectorDashboard = ({ shopId, user, onLogout }: any) => {
         setFinanceData({
           summary: data.summary || { totalCollected: 0, netOutstanding: 0 },
           paymentMethods: data.paymentMethods || [],
-          termTrends: data.termTrends || []
+          // Normalize properties inline to safeguard your component rendering
+          termTrends: (data.termTrends || []).map((t: any) => ({
+            term: t.term,
+            invoiced: t.invoiced ?? t.Invoiced ?? 0,
+            collected: t.collected ?? t.Collected ?? 0
+          }))
         });
       }
     } catch (e) {
@@ -438,8 +443,8 @@ export const DirectorDashboard = ({ shopId, user, onLogout }: any) => {
                                <YAxis stroke="#64748b" fontSize={10} tickLine={false} />
                                <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '12px' }} />
                                <Legend iconSize={8} wrapperStyle={{ fontSize: '10px' }} />
-                               <Bar dataKey="Invoiced" name="Billed Amount" fill="#9333ea" radius={[4, 4, 0, 0]} />
-                               <Bar dataKey="Collected" name="Collected Revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                               <Bar dataKey="invoiced" name="Billed Amount" fill="#9333ea" radius={[4, 4, 0, 0]} />
+                               <Bar dataKey="collected" name="Collected Revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
                              </BarChart>
                            </ResponsiveContainer>
                          </div>
