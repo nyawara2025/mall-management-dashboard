@@ -42,12 +42,19 @@ export function ElectionCandidateModal() {
       if (response.ok) {
         const data = await response.json();
         
-        if (data?.authenticated && data?.role === 'candidate') {
-          // Binds the secure shop ID returned straight from your database row record
+        // Temporary logger to see exactly what lands inside your browser console dev tools
+        console.log("🔒 Candidate Auth Response:", data);
+        
+        // FIX: Change 'data.authenticated' to match your backend's 'data.passwordMatches'
+        if (data?.passwordMatches && data?.role === 'candidate') {
           const session = { 
             shopId: data.shop_id, 
-            name: data.name || 'Hon. Candidate' 
+            // Formats your split first and last name columns cleanly into the header banner
+            name: data.agent_first_name && data.agent_last_name 
+              ? `Hon. ${data.agent_first_name} ${data.agent_last_name}` 
+              : 'Hon. Candidate'
           };
+          
           localStorage.setItem('__candidate_agent_session', JSON.stringify(session));
           setAuthSession(session);
         } else {
@@ -57,11 +64,13 @@ export function ElectionCandidateModal() {
         setAuthError('Invalid credentials. Check profile records.');
       }
     } catch (err) {
+      console.error("Auth network error:", err);
       setAuthError('Network communication timeout.');
     } finally {
       setAuthLoading(false);
     }
-  };
+  };  
+
 
   // Fetch Telemetry Data Panel Parameters
   const fetchMobileCampaignIntel = async () => {
