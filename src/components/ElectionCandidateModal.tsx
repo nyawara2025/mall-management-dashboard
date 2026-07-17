@@ -220,10 +220,24 @@ export function ElectionCandidateModal() {
         {/* Profile Card Identity Strips */}
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex justify-between items-center shadow-lg">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center font-bold text-blue-400 text-xs uppercase">CAND</div>
-            <div>
-              <h2 className="text-sm font-black text-white">{authSession.name}</h2>
-              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-0.5">Real-time Mobilization 2027</p>
+            
+            {/* 📷 FIX 1: Render the image dynamically using your fetched photoUrl state */}
+            {candidateProfile?.photoUrl ? (
+              <img 
+                src={candidateProfile.photoUrl} 
+                alt="Profile" 
+                className="w-12 h-12 rounded-full object-cover border border-slate-700 shadow-sm shrink-0" 
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center font-bold text-blue-400 text-xs uppercase shrink-0">
+                CAND
+              </div>
+            )}
+            
+            <div className="truncate max-w-[180px]">
+              {/* 🏛️ FIX 2: Swap out hardcoded references for dynamic state variables */}
+              <h2 className="text-sm font-black text-white truncate">{candidateProfile?.name || authSession.name}</h2>
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-0.5 truncate">{candidateProfile?.motto || 'Real-time Mobilization 2027'}</p>
             </div>
           </div>
           
