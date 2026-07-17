@@ -41,12 +41,10 @@ export function ElectionCandidateModal() {
 
   const resolveConstituencyMap = async (metaCounty: string, metaConstituency: string, kvMetrics: any) => {
     try {
-      // 1. Fetch the static geographic vector layout maps
       const geoRes = await fetch('/data/kenya_constituencies.json');
       if (!geoRes.ok) return;
       const geoData = await geoRes.json();
 
-      // 2. Filter the explicit constituency polygon boundaries matching your database profile parameters
       const filteredFeatures = (geoData.features || []).filter((f: any) => {
         const featureConst = f.properties?.constituency_name?.toUpperCase() || f.properties?.CONSTITUEN?.toUpperCase();
         const featureCounty = f.properties?.county_name?.toUpperCase() || f.properties?.COUNTY?.toUpperCase();
@@ -55,30 +53,41 @@ export function ElectionCandidateModal() {
       });
 
       if (filteredFeatures.length > 0) {
-        // Enforce filtered collection wrapping
         const targetedGeoJson = { ...geoData, features: filteredFeatures };
 
-        // 3. Inject the real-time worker metrics into the GeoJSON feature properties dynamically
+        // Bind metrics inline
         targetedGeoJson.features = targetedGeoJson.features.map((f: any) => ({
           ...f,
           properties: {
             ...f.properties,
-            intensityScore: kvMetrics?.intensity || 85, // Bind value coming directly from Cloudflare KV
+            intensityScore: kvMetrics?.intensity || 85,
             voterReachCount: kvMetrics?.voterReach || '45.2k'
           }
         }));
 
         setGeoJsonData(targetedGeoJson);
 
-        // 4. Compute center array bounds using the coordinate indices from the feature matrix
-        const firstCoords = filteredFeatures[0].geometry?.coordinates[0];
-        if (Array.isArray(firstCoords) && firstCoords.length > 0) {
-          // Flatten multi-polygons if nested to extract sample points safely
-          const samplePoint = Array.isArray(firstCoords[0]) ? firstCoords[0] : firstCoords;
-          if (typeof samplePoint[1] === 'number' && typeof samplePoint[0] === 'number') {
-            setMapCenter([samplePoint[1], samplePoint[0]]); // Leaflet uses [Lat, Lng]
-            setMapZoom(11); // Set clear mobile target scale factor
-          }
+        // 🎯 FIX: Extract coordinates using explicit index pointers from GeoJSON shapes
+        const geometry = filteredFeatures[0]?.geometry;
+        let samplePoint: [number, number] | null = null;
+
+        if (geometry?.type === 'Polygon') {
+          // Polygon coordinates shape: [[[lng, lat], [lng, lat], ...]]
+          const pt = geometry.coordinates[0]?.[0];
+          if (pt) samplePoint = [pt[1], pt[0]]; // Converts to Leaflet format [Lat, Lng]
+        } else if (geometry?.type === 'MultiPolygon') {
+          // MultiPolygon coordinates shape: [[[[lng, lat], ...]]]
+          const pt = geometry.coordinates[0]?.[0]?.[0];
+          if (pt) samplePoint = [pt[1], pt[0]]; // Converts to Leaflet format [Lat, Lng]
+        }
+
+        if (samplePoint && !isNaN(samplePoint[0]) && !isNaN(samplePoint[1])) {
+          setMapCenter(samplePoint);
+          setMapZoom(11);
+        } else {
+          // Absolute last-resort fallback: Center broadly on Kenya center if geometry parses corrupted
+          setMapCenter([-1.286389, 36.817223]);
+          setMapZoom(11);
         }
       }
     } catch (err) {
