@@ -467,13 +467,15 @@ export const DirectorDashboard = ({ shopId, user, onLogout }: any) => {
                </div>
              )}
 
-             {!selectedStudent && !academicLoading && (
+             {activeTab === 'academics' && !selectedStudent && !academicLoading && (
               <div className="p-12 border border-dashed border-slate-800 rounded-2xl text-center text-slate-500 text-xs font-semibold">
                 Select parameters above to parse individual evaluation charts.
               </div>
             )}
+
           </div>
-        )}
+        )}  
+
       </main>
     </div>
   );
