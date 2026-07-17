@@ -40,17 +40,21 @@ export function ElectionCandidateModal() {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const rawData = await response.json();
         
-        // Temporary logger to see exactly what lands inside your browser console dev tools
-        console.log("🔒 Candidate Auth Response:", data);
+        console.log("🔒 Raw Network Content Received:", rawData);
         
-        // FIX: Change 'data.authenticated' to match your backend's 'data.passwordMatches'
-        if (data?.passwordMatches && data?.role === 'candidate') {
+        // FIX: Extract the first object index safely if n8n passes a wrapped list
+        const data = Array.isArray(rawData) ? rawData[0] : rawData;
+        
+        // Check for either the root database property OR your webhook template key string fallbacks
+        const isAuthorized = (data?.passwordMatches === true || data?.authenticated === true);
+        const accessRole = data?.role || (data?.agent?.role);
+        
+        if (isAuthorized && accessRole === 'candidate') {
           const session = { 
-            shopId: data.shop_id, 
-            // Formats your split first and last name columns cleanly into the header banner
-            name: data.agent_first_name && data.agent_last_name 
+            shopId: data?.shop_id || data?.agent?.shop_id || 66, 
+            name: data?.agent_first_name && data?.agent_last_name 
               ? `Hon. ${data.agent_first_name} ${data.agent_last_name}` 
               : 'Hon. Candidate'
           };
