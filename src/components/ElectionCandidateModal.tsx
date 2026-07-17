@@ -26,25 +26,43 @@ export function ElectionCandidateModal() {
     e.preventDefault();
     setAuthLoading(true);
     setAuthError('');
+    
     try {
+      // 🌐 MULTI-TENANT CONTEXT: Safely extract the tenant context from the active URL path parameters
+      const currentUrl = new URL(window.location.href);
+      const dynamicShopId = currentUrl.searchParams.get('shop_id');
+      
+      if (!dynamicShopId) {
+        setAuthError('Security Breakdown: Missing Multi-Tenant context parameter (?shop_id=) in URL path.');
+        setAuthLoading(false);
+        return;
+      }
+
       const response = await fetch('https://n8n.tenear.com/webhook/political-agent-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone_number: authFields.phone,
-          password_hash: authFields.password // Ensure your encryption schema maps uniformly
+          action: 'candidate_login',      // 🔒 Isolated backend route flag
+          role: 'candidate',              // 🔒 Enforces explicit tier classification parameter
+          shop_id: Number(dynamicShopId), // 🔒 No more hardcoding—binds the dynamic context casted safely
+          agent_phone: authFields.phone,
+          password: authFields.password
         })
       });
 
       if (response.ok) {
         const data = await response.json();
-        // Strict Security Validation check: Ensure they are flagged with candidate access role parameters
+        
+        // Strict runtime validation matches your exact backend query layout expectations
         if (data?.authenticated && data?.role === 'candidate') {
-          const session = { shopId: data.shop_id, name: data.name };
+          const session = { 
+            shopId: data.shop_id, 
+            name: data.name || 'Hon. Candidate' 
+          };
           localStorage.setItem('__candidate_agent_session', JSON.stringify(session));
           setAuthSession(session);
         } else {
-          setAuthError('Unauthorized Access: Candidate clearance tier required.');
+          setAuthError('Unauthorized Access: Candidate clearance level required.');
         }
       } else {
         setAuthError('Invalid credentials. Check profile records.');
