@@ -28,23 +28,12 @@ export function ElectionCandidateModal() {
     setAuthError('');
     
     try {
-      // 🌐 MULTI-TENANT CONTEXT: Safely extract the tenant context from the active URL path parameters
-      const currentUrl = new URL(window.location.href);
-      const dynamicShopId = currentUrl.searchParams.get('shop_id');
-      
-      if (!dynamicShopId) {
-        setAuthError('Security Breakdown: Missing Multi-Tenant context parameter (?shop_id=) in URL path.');
-        setAuthLoading(false);
-        return;
-      }
-
       const response = await fetch('https://n8n.tenear.com/webhook/political-agent-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'candidate_login',      // 🔒 Isolated backend route flag
-          role: 'candidate',              // 🔒 Enforces explicit tier classification parameter
-          shop_id: Number(dynamicShopId), // 🔒 No more hardcoding—binds the dynamic context casted safely
+          role: 'candidate', 
           agent_phone: authFields.phone,
           password: authFields.password
         })
@@ -53,8 +42,8 @@ export function ElectionCandidateModal() {
       if (response.ok) {
         const data = await response.json();
         
-        // Strict runtime validation matches your exact backend query layout expectations
         if (data?.authenticated && data?.role === 'candidate') {
+          // Binds the secure shop ID returned straight from your database row record
           const session = { 
             shopId: data.shop_id, 
             name: data.name || 'Hon. Candidate' 
