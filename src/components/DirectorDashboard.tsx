@@ -37,6 +37,9 @@ export const DirectorDashboard = ({ shopId, user, onLogout }: any) => {
   const [studentList, setStudentList] = useState<any[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<string>('');
   
+  const [meetingsLoading, setMeetingsLoading] = useState(false);
+  const [meetingsList, setMeetingsList] = useState<any[]>([]);
+
   // Analytics payload returned via n8n
   const [analytics, setAnalytics] = useState<{
     currentGrades: any[];
@@ -79,8 +82,36 @@ export const DirectorDashboard = ({ shopId, user, onLogout }: any) => {
   useEffect(() => {
     if (activeTab === 'finance') {
       fetchFinancialAnalytics();
+    } else if (activeTab === 'meetings') {
+      fetchGovernanceMeetings();
     }
   }, [activeTab]);
+
+ 
+  const fetchGovernanceMeetings = async () => {
+    setMeetingsLoading(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/edu-director-academic-intel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          shop_id: shopId, 
+          action: 'get_governance_meetings' 
+        })
+      });
+
+      if (response.ok) {
+        const rawData = await response.json();
+        // Handle array wrapping structure from n8n cleanly
+        const data = Array.isArray(rawData) ? rawData : [rawData];
+        setMeetingsList(data);
+      }
+    } catch (e) {
+      console.error("Governance panel breakdown:", e);
+    } finally {
+      setMeetingsLoading(false);
+    }
+  };
 
   const fetchDirectorInsights = async () => {
     setLoading(true);
@@ -483,6 +514,82 @@ export const DirectorDashboard = ({ shopId, user, onLogout }: any) => {
              )}
            </div>
          )}
+
+         {/* ========================================================= */}
+        {/* 🏛️ INSERTION POINT: GOVERNANCE MEETINGS CONTROL CENTER    */}
+        {/* ========================================================= */}
+        {activeTab === 'meetings' && (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            
+            {/* Structural Header Grid */}
+            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h3 className="text-xs font-black text-white uppercase tracking-widest">Board & Strategy Sessions Log</h3>
+                <p className="text-[11px] text-slate-500 mt-1 font-medium">Review and verify operational directives, agendas, and timelines.</p>
+              </div>
+              <div className="px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 font-black rounded-xl text-[10px] uppercase tracking-wider whitespace-nowrap">
+                {meetingsList.length} Sessions Logged
+              </div>
+            </div>
+
+            {meetingsLoading ? (
+              <div className="w-full flex items-center justify-center p-12 text-slate-500 gap-2 text-xs font-bold">
+                <RefreshCw size={14} className="animate-spin text-blue-500" /> Pulling Boardroom Ledger Matrix...
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {meetingsList.length > 0 ? (
+                  meetingsList.map((meeting: any) => (
+                    <div key={meeting.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl flex flex-col justify-between hover:border-slate-700/80 transition-all duration-200">
+                      
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-start gap-4">
+                          <h4 className="text-xs font-black text-slate-200 tracking-tight leading-relaxed">{meeting.title}</h4>
+                          <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border shrink-0 ${
+                            meeting.status === 'Completed' 
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                              : meeting.status === 'Cancelled'
+                              ? 'bg-red-500/10 text-red-400 border-red-500/20'
+                              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                          }`}>
+                            {meeting.status}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Metadata Footer Block */}
+                      <div className="mt-6 pt-3 border-t border-slate-800/60 flex justify-between items-center text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                        <div className="flex items-center gap-1.5">
+                          <CalendarDays size={12} className="text-slate-400" />
+                          <span>{meeting.meeting_date}</span>
+                        </div>
+                        <div className="bg-slate-950 px-2 py-1 border border-slate-800/80 rounded-lg text-slate-400 font-bold">
+                          {meeting.meeting_time} HRS
+                        </div>
+                      </div>
+
+                    </div>
+                  ))
+                ) : (
+                  <div className="col-span-1 md:col-span-2 p-12 border border-dashed border-slate-800 rounded-2xl text-center text-slate-500 text-xs font-semibold">
+                    No governance or strategy planning sessions found on record.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )} {/* 🏛️ GOVERNANCE MEETINGS CONTROL CENTER ENDS CLEANLY HERE */}
+
+
+        {/* ========================================================= */}
+        {/* CORE WORKSPACE ROOT LAYOUT OUTLETS                        */}
+        {/* ========================================================= */}
+        {activeTab === 'academics' && !selectedStudent && !academicLoading && (
+          <div className="p-12 border border-dashed border-slate-800 rounded-2xl text-center text-slate-500 text-xs font-semibold">
+            Select parameters above to parse individual evaluation charts.
+          </div>
+        )}
+
        </main>
      </div>
    );
