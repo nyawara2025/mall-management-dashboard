@@ -1,6 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Users, Heart, Megaphone, BarChart3, RefreshCw, Layers, Lock, Phone } from 'lucide-react';
 
+// 🎯 FIX: Explicitly import all map rendering components from 'react-leaflet'
+import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
+
+// Keep your standard leaflet styling sheet imported below it
+import 'leaflet/dist/leaflet.css';
+
 export function ElectionCandidateModal() {
   // --- INLINE ISOLATED LOCAL AUTH STATE MATRIX ---
   const [authSession, setAuthSession] = useState<{ shopId: string | number; name: string } | null>(() => {
@@ -19,6 +25,11 @@ export function ElectionCandidateModal() {
     motto: 'Real-time Mobilization 2027'
   });
 
+  // --- 🗺️ MULTI-TENANT DYNAMIC HEATMAP DATA BOUNDS MATRIX ---
+  const [geoJsonData, setGeoJsonData] = useState<any>(null);
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
+  const [mapZoom, setMapZoom] = useState<number>(11);
+
   // --- LEOPARD TELEMETRY STATE PIPELINE ---
   const [loading, setLoading] = useState(false);
   const [metrics, setMetrics] = useState({
@@ -27,6 +38,54 @@ export function ElectionCandidateModal() {
     activeAds: '0',
     engagement: '0%'
   });
+
+  const resolveConstituencyMap = async (metaCounty: string, metaConstituency: string, kvMetrics: any) => {
+    try {
+      // 1. Fetch the static geographic vector layout maps
+      const geoRes = await fetch('/data/kenya_constituencies.json');
+      if (!geoRes.ok) return;
+      const geoData = await geoRes.json();
+
+      // 2. Filter the explicit constituency polygon boundaries matching your database profile parameters
+      const filteredFeatures = (geoData.features || []).filter((f: any) => {
+        const featureConst = f.properties?.constituency_name?.toUpperCase() || f.properties?.CONSTITUEN?.toUpperCase();
+        const featureCounty = f.properties?.county_name?.toUpperCase() || f.properties?.COUNTY?.toUpperCase();
+        
+        return featureConst === metaConstituency?.toUpperCase() && featureCounty === metaCounty?.toUpperCase();
+      });
+
+      if (filteredFeatures.length > 0) {
+        // Enforce filtered collection wrapping
+        const targetedGeoJson = { ...geoData, features: filteredFeatures };
+
+        // 3. Inject the real-time worker metrics into the GeoJSON feature properties dynamically
+        targetedGeoJson.features = targetedGeoJson.features.map((f: any) => ({
+          ...f,
+          properties: {
+            ...f.properties,
+            intensityScore: kvMetrics?.intensity || 85, // Bind value coming directly from Cloudflare KV
+            voterReachCount: kvMetrics?.voterReach || '45.2k'
+          }
+        }));
+
+        setGeoJsonData(targetedGeoJson);
+
+        // 4. Compute center array bounds using the coordinate indices from the feature matrix
+        const firstCoords = filteredFeatures[0].geometry?.coordinates[0];
+        if (Array.isArray(firstCoords) && firstCoords.length > 0) {
+          // Flatten multi-polygons if nested to extract sample points safely
+          const samplePoint = Array.isArray(firstCoords[0]) ? firstCoords[0] : firstCoords;
+          if (typeof samplePoint[1] === 'number' && typeof samplePoint[0] === 'number') {
+            setMapCenter([samplePoint[1], samplePoint[0]]); // Leaflet uses [Lat, Lng]
+            setMapZoom(11); // Set clear mobile target scale factor
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Geographical framework construction breakdown:", err);
+    }
+  };
+  
 
   // --- 📡 FETCH CANDIDATE METADATA PIPELINE ---
   const fetchCandidateMetadata = async () => {
@@ -51,6 +110,12 @@ export function ElectionCandidateModal() {
             photoUrl: data.photo_url || '',
             motto: data.campaign_motto || 'Real-time Mobilization 2027'
           });
+         
+          // 🎯 DISPATCH AUTOMATIC RESOLUTION: Fire map processing using DB County & Constituency
+          if (data.county || data.constituency) {
+            // pass metrics through from the concurrent telemetry metrics data point context if needed
+            resolveConstituencyMap(data.county || 'Nairobi', data.constituency || 'Embakasi East', metrics);
+          }
         }
       }
     } catch (e) {
@@ -286,11 +351,50 @@ export function ElectionCandidateModal() {
 
         {/* Heatmap Visual Shell */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl">
-          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-800/80 pb-2 mb-3 flex items-center gap-2">
-            <Layers size={12} className="text-blue-500" /> Constituency Support Intensity
-          </h3>
-          <div className="h-48 rounded-xl bg-slate-950 border border-slate-800 border-dashed flex items-center justify-center text-xs font-semibold text-slate-600">
-            [ Heatmap Vector Active Layer - Tenant {authSession.shopId} ]
+          <div className="flex justify-between items-center border-b border-slate-800/80 pb-2 mb-3">
+            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+              <Layers size={12} className="text-blue-500" /> Constituency Hotspots Telemetry
+            </h3>
+            {candidateProfile.name && (
+              <span className="text-[9px] font-black uppercase bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded">
+                Live Sync Active
+              </span>
+            )}
+          </div>
+          
+          <div className="h-56 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 relative z-10">
+            {/* 🔒 AUTO-CENTERING GUARD: Only mount Leaflet once mapCenter is calculated */}
+            {mapCenter !== null && geoJsonData !== null ? (
+              <MapContainer 
+                key={`${mapCenter[0]}-${mapCenter[1]}`} // Forces component reset upon tenant profile change
+                center={mapCenter} 
+                zoom={mapZoom} 
+                scrollWheelZoom={false}
+                zoomControl={false}
+                className="w-full h-full"
+              >
+                <TileLayer
+                  url="https://{s}://{z}/{x}/{y}{r}.png"
+                  attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'
+                />
+                
+                {/* 🎨 Dynamic GeoJSON Overlay Layer */}
+                <GeoJSON 
+                  data={geoJsonData}
+                  style={(feature: any) => ({
+                    fillColor: '#2563eb', // Matches your template theme color profile
+                    fillOpacity: (feature?.properties?.intensityScore || 75) / 100,
+                    color: '#3b82f6',
+                    weight: 2,
+                    opacity: 0.8
+                  })}
+                />
+              </MapContainer>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 gap-2 text-xs font-bold animate-pulse">
+                <RefreshCw size={14} className="animate-spin text-blue-500" /> Compiling Vector Boundaries Matrix...
+              </div>
+            )}
           </div>
         </div>
 
