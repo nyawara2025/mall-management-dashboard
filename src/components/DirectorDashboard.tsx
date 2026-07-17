@@ -407,81 +407,83 @@ export const DirectorDashboard = ({ shopId, user, onLogout }: any) => {
                </div>
              )}
 
-             {/* VIEW 3: FINANCIAL OPERATIONS CONTROL CENTER */}
-             {(activeTab as string) === 'finance' && (
-               <div className="space-y-6 animate-in fade-in duration-300">
-            
-                 {financeLoading ? (
-                   <div className="w-full flex items-center justify-center p-12 text-slate-500 gap-2 text-xs font-bold">
-                     <RefreshCw size={14} className="animate-spin text-blue-500" /> Computing Ledger Statements...
-                   </div>
-                 ) : (
-                   <>
-                     {/* Metric Cards Summary */}
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                       <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                         <span className="text-[10px] font-black text-slate-500 block uppercase tracking-wider">Gross Fee Cash Realized</span>
-                         <span className="text-xl font-black text-emerald-400 block mt-1">KES {(financeData?.summary?.totalCollected || 0).toLocaleString()}</span>
-                       </div>
-                       <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
-                         <span className="text-[10px] font-black text-slate-500 block uppercase tracking-wider">Net Outstanding Arrears Balance</span>
-                         <span className="text-xl font-black text-red-400 block mt-1">KES {(financeData?.summary?.netOutstanding || 0).toLocaleString()}</span>
-                       </div>
-                     </div>
 
-                     {/* Visual Charts Allocation Matrix */}
-                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  
-                       {/* Term over Term Capital Flow Trend Line */}
-                       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                         <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider mb-4">Term-Over-Term Billing vs Collections Inflows</h4>
-                         <div className="h-60">
-                           <ResponsiveContainer width="100%" height="100%">
-                             <BarChart data={financeData?.termTrends || []}>
-                               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                               <XAxis dataKey="term" stroke="#64748b" fontSize={10} tickLine={false} />
-                               <YAxis stroke="#64748b" fontSize={10} tickLine={false} />
-                               <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '12px' }} />
-                               <Legend iconSize={8} wrapperStyle={{ fontSize: '10px' }} />
-                               <Bar dataKey="invoiced" name="Billed Amount" fill="#9333ea" radius={[4, 4, 0, 0]} />
-                               <Bar dataKey="collected" name="Collected Revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
-                             </BarChart>
-                           </ResponsiveContainer>
-                         </div>
-                       </div>
-
-                       {/* Revenue Breakdown Channels Column Grid */}
-                       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
-                         <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider mb-4">Payment Method Breakdown (Realized Revenue)</h4>
-                         <div className="h-60">
-                           <ResponsiveContainer width="100%" height="100%">
-                             <BarChart data={financeData?.paymentMethods || []} layout="vertical">
-                               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                               <XAxis type="number" stroke="#64748b" fontSize={10} tickLine={false} />
-                               <YAxis dataKey="name" type="category" stroke="#64748b" fontSize={10} tickLine={false} />
-                               <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '12px' }} />
-                               <Bar dataKey="value" name="Amount Realized" fill="#2563eb" radius={[0, 4, 4, 0]} />
-                             </BarChart>
-                           </ResponsiveContainer>
-                         </div>
-                       </div>
-
-                     </div>
-                   </>
-                 )}
+             {/* Default Academic Help Banner */}
+             {!selectedStudent && !academicLoading && (
+               <div className="p-12 border border-dashed border-slate-800 rounded-2xl text-center text-slate-500 text-xs font-semibold">
+                 Select parameters above to parse individual evaluation charts.
                </div>
              )}
 
-             {activeTab === 'academics' && !selectedStudent && !academicLoading && (
-              <div className="p-12 border border-dashed border-slate-800 rounded-2xl text-center text-slate-500 text-xs font-semibold">
-                Select parameters above to parse individual evaluation charts.
-              </div>
-            )}
+           </div> // ✅ Cleanly closes the space-y-6 div for Academics
+         )}      /
 
-          </div>
-        )}  
 
-      </main>
-    </div>
-  );
-};
+         {/* VIEW 3: FINANCIAL OPERATIONS CONTROL CENTER */}
+         {(activeTab as string) === 'finance' && (
+           <div className="space-y-6 animate-in fade-in duration-300">
+            
+             {financeLoading ? (
+               <div className="w-full flex items-center justify-center p-12 text-slate-500 gap-2 text-xs font-bold">
+                 <RefreshCw size={14} className="animate-spin text-blue-500" /> Computing Ledger Statements...
+               </div>
+             ) : (
+               <>
+                 {/* Metric Cards Summary */}
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                     <span className="text-[10px] font-black text-slate-500 block uppercase tracking-wider">Gross Fee Cash Realized</span>
+                     <span className="text-xl font-black text-emerald-400 block mt-1">KES {(financeData?.summary?.totalCollected || 0).toLocaleString()}</span>
+                   </div>
+                   <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+                     <span className="text-[10px] font-black text-slate-500 block uppercase tracking-wider">Net Outstanding Arrears Balance</span>
+                     <span className="text-xl font-black text-red-400 block mt-1">KES {(financeData?.summary?.netOutstanding || 0).toLocaleString()}</span>
+                   </div>
+                 </div>
+
+                 {/* Visual Charts Allocation Matrix */}
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  
+                   {/* Term over Term Capital Flow Trend Line */}
+                   <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                     <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider mb-4">Term-Over-Term Billing vs Collections Inflows</h4>
+                     <div className="h-60">
+                       <ResponsiveContainer width="100%" height="100%">
+                         <BarChart data={financeData?.termTrends || []}>
+                           <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                           <XAxis dataKey="term" stroke="#64748b" fontSize={10} tickLine={false} />
+                           <YAxis stroke="#64748b" fontSize={10} tickLine={false} />
+                           <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '12px' }} />
+                           <Legend iconSize={8} wrapperStyle={{ fontSize: '10px' }} />
+                           <Bar dataKey="invoiced" name="Billed Amount" fill="#9333ea" radius={[4, 4, 0, 0]} />
+                           <Bar dataKey="collected" name="Collected Revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
+                         </BarChart>
+                       </ResponsiveContainer>
+                     </div>
+                   </div>
+
+                   {/* Revenue Breakdown Channels Column Grid */}
+                   <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                     <h4 className="text-xs font-black text-slate-300 uppercase tracking-wider mb-4">Payment Method Breakdown (Realized Revenue)</h4>
+                     <div className="h-60">
+                       <ResponsiveContainer width="100%" height="100%">
+                         <BarChart data={financeData?.paymentMethods || []} layout="vertical">
+                           <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                           <XAxis type="number" stroke="#64748b" fontSize={10} tickLine={false} />
+                           <YAxis dataKey="name" type="category" stroke="#64748b" fontSize={10} tickLine={false} />
+                           <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '12px' }} />
+                           <Bar dataKey="value" name="Amount Realized" fill="#2563eb" radius={[0, 4, 4, 0]} />
+                         </BarChart>
+                       </ResponsiveContainer>
+                     </div>
+                   </div>
+
+                 </div>
+               </>
+             )}
+           </div>
+         )}
+       </main>
+     </div>
+   );
+ };
