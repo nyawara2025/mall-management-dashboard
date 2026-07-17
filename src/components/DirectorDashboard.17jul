@@ -58,11 +58,7 @@ export const DirectorDashboard = ({ shopId, user, onLogout }: any) => {
       });
       if (response.ok) {
         const data = await response.json();
-        setFinanceData({
-          summary: data.summary || { totalCollected: 0, netOutstanding: 0 },
-          paymentMethods: data.paymentMethods || [],
-          termTrends: data.termTrends || []
-        });
+        setFinanceData(data);
       }
     } catch (e) {
       console.error("Finance metrics parsing breakdown:", e);
