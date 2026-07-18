@@ -631,6 +631,10 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
                     </div>
                   )}
                 </div>
+
+   
+
+
               ) : (
                 /* --- TRACK B: NEW PROFESSIONAL MICRO-OPPORTUNITIES MARKETPLACE --- */
                 <div className="space-y-4">
@@ -693,14 +697,163 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
               )}
 
             </div>
-          ) : (          
+          ) : activeTab === ('forum' as any) ? (
+            /* --- INJECTED GENERIC DATA-DRIVEN DISCUSSION FORUM VIEW --- */
+            <div className="space-y-4">
+              {selectedThread ? (
+                /* --- A: INDIVIDUAL TOPIC THREAD VIEW LAYOUT LOOP --- */
+                <div className="space-y-4 animate-fade-in">
+                  <button 
+                    type="button" 
+                    onClick={() => { setSelectedThread(null); setForumReplies([]); }} 
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors"
+                  >
+                    ← Back to Board Feed
+                  </button>
 
-            /* Events Layout Matrix */
+                  <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-bold text-sm text-gray-900">{selectedThread.title}</h3>
+                      <span className="bg-white px-2 py-0.5 rounded-md text-[9px] text-slate-500 font-semibold border border-indigo-100 uppercase">
+                        {selectedThread.scope === 'intra_parish' ? 'Local' : 'Network'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-700 leading-relaxed">{selectedThread.content}</p>
+                    <div className="text-[10px] text-gray-400 flex justify-between pt-1 border-t border-indigo-100/40">
+                      <span>Posted by: <strong>{selectedThread.author_name}</strong></span>
+                      <span>{new Date(selectedThread.created_at || Date.now()).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Responses</span>
+                    {loadingReplies ? (
+                      <div className="text-center py-4 text-xs text-gray-400 flex items-center justify-center gap-1">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-600" /> Pulling responses...
+                      </div>
+                    ) : forumReplies.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic pl-1">No responses yet. Share your thoughts below!</p>
+                    ) : (
+                      forumReplies.map((reply: any) => (
+                        <div key={reply.id} className="p-3 bg-white border border-gray-100 rounded-xl space-y-1 shadow-sm">
+                          <p className="text-xs text-gray-600 leading-normal">{reply.content}</p>
+                          <div className="text-[9px] text-gray-400 flex justify-between items-center border-t pt-1">
+                            <span>🙌 {reply.author_name}</span>
+                            <span>{new Date(reply.created_at || Date.now()).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <form onSubmit={handleCreateReply} className="flex gap-2">
+                    <input
+                      required
+                      value={newReplyContent}
+                      onChange={(e) => setNewReplyContent(e.target.value)}
+                      placeholder="Type your encouraging thought or answer..."
+                      className="flex-1 px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                    />
+                    <button type="submit" disabled={loadingReplies} className="px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs transition-colors shrink-0">
+                      Reply
+                    </button>
+                  </form>
+                </div>
+              ) : (
+                /* --- B: CENTRAL BULK FORUM SELECTION INTERFACE DISPLAY --- */
+                <>
+                  <div className="flex flex-col gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                      <button
+                        type="button"
+                        onClick={() => { setForumScope('intra'); fetchForumThreadsFromN8N('intra'); }}
+                        className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-center ${
+                          forumScope === 'intra' ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                      >
+                        🔒 Local Parish Board
+                      </button>
+                      
+                      {isFederated && (
+                        <button
+                          type="button"
+                          onClick={() => { setForumScope('inter'); fetchForumThreadsFromN8N('inter'); }}
+                          className={`p-2.5 rounded-xl border text-xs font-bold transition-all text-center truncate ${
+                            forumScope === 'inter' ? 'bg-purple-600 border-purple-600 text-white' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        }`}
+                        >
+                          🌐 {dioceseName} Connect
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleCreateForumThread} className="p-3 bg-gray-50 rounded-2xl border border-gray-100 space-y-2">
+                    <input
+                      required
+                      value={newTopicTitle}
+                      onChange={(e) => setNewTopicTitle(e.target.value)}
+                      placeholder="Discussion Subject (e.g., Youth Outreach Ideas...)"
+                      className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white"
+                    />
+                    <textarea
+                      required
+                      value={newTopicContent}
+                      onChange={(e) => setNewTopicContent(e.target.value)}
+                      placeholder="Share details, modern Christian youth ideas, career insights, or prayer items..."
+                      rows={2}
+                      className="w-full px-3 py-1.5 text-xs border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white resize-none"
+                    />
+                    <button type="submit" disabled={loadingForum} className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-1">
+                      Post to {forumScope === 'intra' ? 'Local Board' : dioceseName}
+                    </button>
+                  </form>
+
+                  {loadingForum ? (
+                    <div className="flex flex-col items-center justify-center py-12 gap-2 text-gray-500">
+                      <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+                      <p className="text-xs">Loading community exchange...</p>
+                    </div>
+                  ) : forumThreads.length === 0 ? (
+                    <div className="text-center py-12 border border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
+                      <p className="text-sm font-medium text-gray-500">No discussions ongoing here yet.</p>
+                      <p className="text-xs text-gray-400 mt-1">Be the first to share an encouraging word or suggestion!</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 gap-3 max-h-[220px] overflow-y-auto pr-1">
+                      {forumThreads.map((thread: any) => (
+                        <button
+                          key={thread.id} 
+                          type="button"
+                          onClick={() => {
+                            setSelectedThread(thread);
+                            fetchThreadRepliesFromN8N(thread.id);
+                          }}   
+                          className="p-4 border border-gray-100 rounded-2xl bg-white shadow-sm space-y-1.5 text-left w-full hover:border-indigo-300 hover:shadow-md transition-all block"
+                        >
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-bold text-sm text-gray-800">{thread.title}</h4>
+                            <span className="text-[10px] text-gray-400">{new Date(thread.created_at || Date.now()).toLocaleDateString()}</span>
+                          </div>
+                          <p className="text-xs text-gray-600 leading-normal">{thread.content}</p>
+                          <div className="text-[11px] font-medium text-gray-400 border-t pt-1.5 flex justify-between items-center w-full">
+                            <span>✍️ {thread.author_name}</span>
+                            <span className="text-indigo-600 font-semibold text-[10px]">💬 View & Reply</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>  
+                  )}
+                </>
+              )}
+            </div>
+          ) : (          
+            /* --- C: RESTORED ORIGINAL STABLE EVENTS MATRIX BLOCK --- */
             <div className="space-y-4">
               
               {/* Leader/Admin Event Creation Form Option */}
               {(userData?.is_admin || userData?.role === 'leader' || userData?.is_leader) && (
-                <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100/80 space-y-3">
+                <div className="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100/80 space-y-3"> 
                   <h4 className="text-xs font-bold uppercase tracking-wider text-indigo-900 flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5" /> Create New Youth Event
                   </h4>
@@ -712,7 +865,7 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
                     
                     setLoadingEvents(true);
                     try {
-                      const res = await fetch('https://n8n.tenear.com/webhook/create-youth-event', {
+                      const res = await fetch('https://tenear.com', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
