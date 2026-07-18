@@ -328,30 +328,31 @@ export function ElectionCandidateModal() {
           <div className="h-56 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 relative z-10">
             {geoJsonData ? (
               <MapContainer 
-                center={[0.0236, 37.9062]} 
-                zoom={6} // Changed from decimal 5.5 to integer 6 for standard mobile scaling compatibility
-                minZoom={3} // Allows you to zoom right out to see macro data footprints
-                maxZoom={14} // Restricts excessive zoom to prevent pixel blowouts
-                scrollWheelZoom={true} // Re-activates mouse wheel and mobile pinching gestures
+                center={[0.0236, 37.9062]} // 🎯 Fixed broad baseline anchor exactly like desktop
+                zoom={5.5}                  // Tailored mobile zoom view matrix
+                scrollWheelZoom={false}
                 zoomControl={false}
                 className="w-full h-full"
               >
-                {/* 🎯 FIX: Swapped out CartoDB Dark All for the high-availability standard OpenStreetMap dark scheme */}
                 <TileLayer
                   url="https://{s}://{z}/{x}/{y}{r}.png"
-                  attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+                  attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'
                 />
                 
                 <GeoJSON 
                   data={geoJsonData}
                   style={(feature: any) => {
+                    // Read feature properties from your geojson rows
                     const featConst = feature.properties?.CONSTITUEN || "";
+                    
+                    // Cross-examine with the logged in Candidate's authenticated profile row from n8n
+                    // If this shape is their active constituency, illuminate it brightly!
                     const isTargetJurisdiction = featConst.toUpperCase() === candidateProfile.name.toUpperCase();
 
                     return {
                       fillColor: isTargetJurisdiction ? '#10b981' : '#3b82f6', 
                       fillOpacity: isTargetJurisdiction ? 0.4 : 0.05,
-                      color: isTargetJurisdiction ? '#10b981' : '#1e293b',
+                      color: isTargetJurisdiction ? '#059669' : '#1e293b',
                       weight: isTargetJurisdiction ? 2 : 1,
                       opacity: 0.7
                     };
@@ -363,10 +364,9 @@ export function ElectionCandidateModal() {
                 <RefreshCw size={14} className="animate-spin text-blue-500" /> Connecting Map Data Nodes...
               </div>
             )}
+          
+
           </div>
-
-
-
         </div>
 
       </div>
