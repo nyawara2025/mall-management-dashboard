@@ -34,6 +34,13 @@ export const MemberAccountModal = ({
   const [isSigOpen, setIsSigOpen] = useState(false);
   const [currentSignature, setCurrentSignature] = useState(userData?.signature_data_url || null);
 
+  // --- OPPORTUNITY CREATION BLOCK STATES ---
+  const [isFormExpanded, setIsFormExpanded] = useState(false);
+  const [loadingOpp, setLoadingOpp] = useState(false);
+  const [oppTitle, setOppTitle] = useState('');
+  const [oppType, setOppType] = useState('Shadow Day');
+  const [oppDesc, setOppDesc] = useState('');
+
   const [profileData, setProfileData] = useState({
     profession: userData?.profession || '',
     hobbies: userData?.hobbies || '',
@@ -102,6 +109,44 @@ export const MemberAccountModal = ({
   // 📝 Input change handler helper
   const handleInputChange = (field: keyof typeof profileData, value: string) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
+  };
+
+
+  // --- INJECT OPPORTUNITY DISPATCH PIPELINE ---
+  const handlePublishOpportunity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!oppTitle.trim() || !oppDesc.trim()) return;
+
+    setLoadingOpp(true);
+    setErrorMessage(null);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/publish-opportunity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_opportunity',
+          shop_id: shopId,
+          title: oppTitle,
+          type: oppType,
+          description: oppDesc,
+          company: profileData.profession || 'Parish Professional Network',
+          provider_name: userData?.full_name || userData?.name || 'Congregation Member'
+        })
+      });
+
+      if (!response.ok) throw new Error();
+
+      // Clear states upon successful creation
+      setOppTitle('');
+      setOppDesc('');
+      setIsFormExpanded(false);
+      alert('Micro-Opportunity successfully published to the youth portal!');
+    } catch (err) {
+      console.error('Could not submit career opportunity:', err);
+      setErrorMessage('Could not publish opportunity slot. Please try again.');
+    } finally {
+      setLoadingOpp(false);
+    }
   };
 
   const handleUpdateProfile = async () => {
@@ -280,7 +325,78 @@ export const MemberAccountModal = ({
                 )}
 
 
-                {/* 🚀 ONBOARDING SECURE SIGNATURE CARD ROW PANEL */}
+                {/* --- INJECTED OPPORTUNITY CREATOR COMPOSE SECTION --- */}
+                <div className="border border-dashed border-gray-200 rounded-3xl p-4 bg-gray-50/50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-black text-gray-900 uppercase tracking-tight">Youth Career Support</h4>
+                      <p className="text-[10px] text-gray-400 font-medium">Avail job shadowing slots or resume mentorships</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsFormExpanded(!isFormExpanded)}
+                      className={`px-3 py-2 border rounded-xl text-[10px] font-black uppercase tracking-wider shadow-2xs transition-all font-bold ${
+                        isFormExpanded 
+                          ? 'bg-red-50 border-red-200 text-red-600' 
+                          : 'bg-white text-blue-600 hover:bg-blue-50/50'
+                      }`}
+                    >
+                      {isFormExpanded ? 'Cancel' : '💼 Offer Micro-Opportunity'}
+                    </button>
+                  </div>
+
+                  {isFormExpanded && (
+                    <form onSubmit={handlePublishOpportunity} className="space-y-2 pt-2 border-t border-gray-200/50 animate-in fade-in duration-200">
+                      <div>
+                        <input
+                          required
+                          type="text"
+                          value={oppTitle}
+                          onChange={(e) => setOppTitle(e.target.value)}
+                          placeholder="Opportunity Title (e.g., Intro to Corporate IT Shadowing)"
+                          className="w-full px-3 py-2 text-xs border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm"
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2">
+                        <select
+                          value={oppType}
+                          onChange={(e) => setOppType(e.target.value)}
+                          className="w-full px-3 py-2 text-xs border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm font-medium text-gray-700"
+                        >
+                          <option value="Shadow Day">☀️ Shadow Day</option>
+                          <option value="Resume Review">📝 Resume Review</option>
+                          <option value="Mock Interview">🗣️ Mock Interview</option>
+                        </select>
+                        <span className="px-3 py-2 text-[11px] font-semibold text-gray-500 bg-gray-100 border border-gray-100 rounded-xl flex items-center truncate">
+                          🏢 Company: {profileData.profession || "Not Set"}
+                        </span>
+                      </div>
+
+                      <div>
+                        <textarea
+                          required
+                          value={oppDesc}
+                          onChange={(e) => setOppDesc(e.target.value)}
+                          placeholder="Briefly describe what the youth will learn, age requirements, or scheduling options..."
+                          rows={2}
+                          className="w-full px-3 py-2 text-xs border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm resize-none"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={loadingOpp}
+                        className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs shadow-md shadow-blue-50 transition-all flex items-center justify-center gap-1.5"
+                      >
+                        {loadingOpp ? <Loader2 size={14} className="animate-spin" /> : 'Publish Slot to Youth Hub'}
+                      </button>
+                    </form>
+                  )}
+                </div>
+
+                {/* --- END OF INJECTED SECTION --- */}
+
                 <div className="p-5 bg-gray-50 rounded-3xl border border-gray-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-left">
                   <div>
                     <h4 className="text-xs font-black text-gray-900 uppercase tracking-tight">Security Signing Identity</h4>
@@ -336,3 +452,4 @@ export const MemberAccountModal = ({
     </div>
   );
 };
+
