@@ -598,7 +598,7 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
                                 onClick={async () => {
                                   setRequestingMentorId(mentor.id);
                                   try {
-                                    const res = await fetch('https://tenear.com', {
+                                    const res = await fetch('https://n8n.tenear.com/webhook/youth-internship', {
                                       method: 'POST',
                                       headers: { 'Content-Type': 'application/json' },
                                       body: JSON.stringify({
@@ -670,7 +670,19 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
                           <p className="text-xs text-gray-600 leading-normal">{opp.description}</p>
                           
                           <div className="flex items-center justify-between pt-2 border-t text-[11px] text-gray-400">
-                            <span>Posted by: <strong className="text-gray-600">{opp.provider_name}</strong></span>
+                            <div className="flex flex-col gap-0.5">
+                              <span>Posted by: <strong className="text-gray-600">{opp.provider_name}</strong></span>
+                              {opp.opportunity_url && (
+                                <a 
+                                  href={opp.opportunity_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-purple-600 hover:underline font-bold text-[10px]"
+                                >
+                                  🔗 External Details Link →
+                                </a>
+                              )}
+                            </div>
                             <button
                               disabled={opp.is_applied || applyingOppId === opp.id}
                               onClick={() => handleApplyForOpportunity(opp.id)}
@@ -689,6 +701,7 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
                               )}
                             </button>
                           </div>
+
                         </div>
                       ))}
                     </div>
