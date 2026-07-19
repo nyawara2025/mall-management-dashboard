@@ -14,6 +14,9 @@ interface CattleAnimal {
   amount_kg_per_day?: number;
   vet_verified?: boolean;
   vet_name?: string;
+  // 🔥 Add these two lines to your interface at the top of the file:
+  stage_head_count?: number;
+  stage_total_mix_kg?: number;
 }
 
 interface LivestockHubProps {
@@ -311,6 +314,30 @@ export const LivestockHub: React.FC<LivestockHubProps> = ({ shopId, farmName, us
             <p className="text-[10px] text-blue-800 leading-relaxed font-medium">
               Kenyan veterinary rules require careful feeding per animal. Steaming cows require transition minerals to prevent milk fever or metabolic shock.
             </p>
+          </div>
+
+          {/* 🟢 INSERTED HERE: Dynamic Bulk Mixing Dashboard Insight Widget */}
+          <div className="bg-emerald-800 text-white p-4 rounded-2xl shadow-xs text-left">
+            <span className="text-[10px] font-black uppercase tracking-wider block opacity-75">Daily Cowshed Mix Directions</span>
+            
+            <div className="mt-2 space-y-2 divide-y divide-emerald-700/50">
+              {Array.from(new Set(animalsList.map(a => a.stage))).map((uniqueStage) => {
+                const target = animalsList.find(a => a.stage === uniqueStage);
+                if (!target || !target.stage_total_mix_kg) return null;
+                
+                return (
+                  <div key={uniqueStage} className="pt-2 flex justify-between items-center text-xs">
+                    <div>
+                      <p className="font-black capitalize">{uniqueStage.toLowerCase().replace('_', ' ')} Stage</p>
+                      <p className="text-[10px] opacity-75">{target.stage_head_count} Head • {target.feed_type || 'Standard Diet'}</p>
+                    </div>
+                    <span className="bg-emerald-950 px-2 py-1 rounded-lg font-black text-[11px]">
+                      {target.stage_total_mix_kg} KG Total
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
           <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
