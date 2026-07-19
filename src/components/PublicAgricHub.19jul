@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
 import { CropsHub } from './CropsHub';
-import { LivestockHub } from './LivestockHub';
 
 interface FarmOption {
   id: number;
@@ -1257,11 +1256,33 @@ export const PublicAgricHub: React.FC = () => {
 
           {/* 🐄 LIVESTOCK INVENTORY TRACKING PANELS */}
           {activeTab === 'livestock' && (
-            <LivestockHub 
-              shopId={shopId}
-              farmName={farmName}
-              userSession={userSession}
-            />
+            <div className="space-y-4 animate-fadeIn">
+              <div className="bg-white border border-slate-200/80 p-4 rounded-2xl flex justify-between items-center shadow-xs">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">Livestock Management</h3>
+                  <p className="text-[10px] text-slate-400">Log herd counts, breeding groups, and health states</p>
+                </div>
+                <button 
+                  onClick={() => setIsLiveModalOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[11px] tracking-wide py-2 px-3.5 rounded-xl transition-all shadow-xs"
+                >
+                  + UPDATE STOCK
+                </button>
+              </div>
+
+              {/* Displaying Livestock sectors */}
+              <div className="grid grid-cols-1 gap-3">
+                {['Cattle', 'Goats', 'Sheep'].map((cls) => (
+                  <div key={cls} className="bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center">
+                    <div>
+                      <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider">{cls} Inventory</h4>
+                      <p className="text-[11px] text-slate-400 font-medium mt-0.5">No logged tracking metrics on file</p>
+                    </div>
+                    <span className="text-lg">{cls === 'Cattle' ? '🐄' : cls === 'Goats' ? '🐐' : '🐑'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
 
 
