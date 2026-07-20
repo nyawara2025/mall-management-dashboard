@@ -19,6 +19,18 @@ interface CattleAnimal {
   stage_total_mix_kg?: number;
 }
 
+// 📜 Cattle Feed Audit Trail Tracking Type Blueprint
+interface CattleHistoryLogItem {
+  id: number;
+  tag_number: string;
+  stage: string;
+  feed_type_served: string;
+  quantity_served_kg: number;
+  authorized_by_role: string;
+  was_vet_approved: boolean;
+  formatted_date: string;
+}
+
 interface LivestockHubProps {
   shopId: string | null;
   farmName: string;
@@ -26,9 +38,11 @@ interface LivestockHubProps {
 }
 
 export const LivestockHub: React.FC<LivestockHubProps> = ({ shopId, farmName, userSession }) => {
-  const [livestockView, setLivestockView] = useState<'menu' | 'registry' | 'feeding'>('menu');
+  const [livestockView, setLivestockView] = useState<'menu' | 'registry' | 'feeding' | 'history'>('menu');
   const [animalsList, setAnimalsList] = useState<CattleAnimal[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
+  const [historyLogsList, setHistoryLogsList] = useState<CattleHistoryLogItem[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
 
   // New Cattle Profiling States
   const [isNewCattleModalOpen, setIsNewCattleModalOpen] = useState(false);
@@ -144,6 +158,35 @@ export const LivestockHub: React.FC<LivestockHubProps> = ({ shopId, farmName, us
   }
 };
 
+  const fetchCattleHistoryFromN8N = async () => {
+  if (!shopId) return;
+  setLoadingHistory(true);
+  try {
+    const response = await fetch('https://n8n.tenear.com/webhook/save-feeding-presciption', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        action: 'fetch_history', 
+        shop_id: parseInt(shopId) // Enforcing strict INT4 multi-tenancy rules
+      })
+    });
+    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+    const data = await response.json();
+    if (Array.isArray(data)) setHistoryLogsList(data);
+  } catch (err) {
+    console.error("Cattle history ledger fetch failure:", err);
+  } finally {
+    setLoadingHistory(false);
+  }
+};
+
+// Lifecycle trigger hook to auto-poll data when user transitions to the history log tab space
+useEffect(() => {
+  if (livestockView === 'history' && shopId) {
+    fetchCattleHistoryFromN8N();
+  }
+}, [livestockView, shopId]);
+
   // 📡 Write Hook 2: Individual Allocation Allotment Prescriptions
   const handleSaveFeedingPrescription = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,7 +271,21 @@ export const LivestockHub: React.FC<LivestockHubProps> = ({ shopId, farmName, us
               <span className="text-sm font-bold text-blue-600">Manage →</span>
             </button>
 
-            {/* 3. Small Stock Aggregate Card Block (Goats, Sheep, etc.) */}
+            {/* 🟢 INSERTED HERE: 3. Historical Nutrition Audit Logs Menu Button */}
+            <button 
+              onClick={() => setLivestockView('history')} 
+              className="w-full bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:border-slate-300 transition-colors group"
+            >
+              <div>
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
+                  📜 Nutrition Audit Logs
+                </h4>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Scroll through comprehensive daily feeding allocations histories</p>
+              </div>
+              <span className="text-sm font-bold text-blue-600">History →</span>
+            </button>
+
+            {/* 4. Other Livestock (Goats, Sheep, Pigs.) */}
             <div className="bg-slate-100/50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
               <div className="flex justify-between items-center">
                 <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">🐐 Small Stock Aggregate Fields</h4>
@@ -414,6 +471,64 @@ export const LivestockHub: React.FC<LivestockHubProps> = ({ shopId, farmName, us
                     >
                       Adjust
                     </button>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIEW D: HISTORICAL NUTRICIAL AUDIT LEDGER TRAIL RECOVERY PANELS */}
+      {livestockView === 'history' && (
+        <div className="space-y-4">
+          
+          {/* Informative Informational Analytics Helper Ribbon */}
+          <div className="bg-slate-100 border border-slate-200 p-4 rounded-2xl text-left shadow-xs">
+            <div className="flex items-center gap-1.5 mb-1 text-[11px] font-black text-slate-700 uppercase">
+              <span>📊</span> Nutritional Compliance Insight
+            </div>
+            <p className="text-[10px] text-slate-500 leading-relaxed font-medium">
+              This log represents an automated daily snapshot captured by background workers at 06:00 PM EAT. It tracks actual ration volumes served per animal for long-term health tracking.
+            </p>
+          </div>
+
+          {/* Dynamic Feed Audit Trail Container Box */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs text-left">
+            <div className="flex justify-between items-center mb-3">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Historical Audit Logs</h4>
+              {loadingHistory && <span className="text-[9px] font-bold text-blue-600 animate-pulse uppercase">Syncing Ledger...</span>}
+            </div>
+
+            <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
+              {historyLogsList.length === 0 ? (
+                <p className="text-[11px] text-slate-400 font-medium text-center py-6">No historical nutritional ledger entries on file</p>
+              ) : (
+                historyLogsList.map((log) => (
+                  <div key={log.id} className="flex justify-between items-center p-2.5 bg-slate-50/50 rounded-xl border border-slate-100/80 text-xs">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`w-1.5 h-1.5 rounded-full ${log.was_vet_approved ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                        <span className="font-black text-slate-800 text-[11px]">Tag: {log.tag_number}</span>
+                        <span className="text-[9px] bg-slate-200 px-1 rounded text-slate-500 uppercase font-bold">{log.stage.toLowerCase()}</span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-medium">
+                        Served {log.feed_type_served} • Logged by <span className="capitalize font-semibold text-slate-600">{log.authorized_by_role.replace('_', ' ')}</span>
+                      </p>
+                      {/* Formatted Date value returned smoothly from the SQL conversion helper view */}
+                      <p className="text-[9px] text-slate-300 font-bold">{log.formatted_date}</p>
+                    </div>
+                    
+                    <div className="text-right">
+                      <span className="font-black text-[11px] text-slate-800 block">
+                        {log.quantity_served_kg} KG
+                      </span>
+                      {log.was_vet_approved ? (
+                        <span className="text-[8px] text-emerald-600 font-extrabold uppercase tracking-wide">✓ Vet Sign</span>
+                      ) : (
+                        <span className="text-[8px] text-amber-600 font-extrabold uppercase tracking-wide">⚠️ Unsigned</span>
+                      )}
+                    </div>
                   </div>
                 ))
               )}
