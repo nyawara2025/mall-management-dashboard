@@ -684,6 +684,33 @@ useEffect(() => {
                 <input type="text" placeholder="e.g., KE-COW-042 or Baraka" value={newTagNumber} onChange={e => setNewTagNumber(e.target.value)} required className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold" />
               </div>
 
+              {/* 🛠️ RESTORED HERE: 2. Interactive Biological Gender Toggle Ribbon Element */}
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Gender</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(['FEMALE', 'MALE'] as const).map((g) => (
+                    <button 
+                      key={g} 
+                      type="button" 
+                      onClick={() => { 
+                        setNewCattleGender(g); 
+                        // Automatically safe-adjust stages when swapping to prevent illegal type state compiler loops
+                        if (g === 'MALE') {
+                          setCattlePregnancyFlag(false); 
+                          setNewCattleStage('BULL'); 
+                        } else {
+                          setNewCattleStage('DAIRY_LACTATING');
+                        }
+                      }} 
+                      className={`p-2.5 rounded-xl text-xs font-bold border transition-all ${
+                        newCattleGender === g ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200'
+                      }`}
+                    >
+                      {g}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
               {/* 3. Filtered Lifecycle Stage Selector Dropdown */}
               <div>
@@ -717,26 +744,49 @@ useEffect(() => {
               </div>
               
 
-
+              {/* 4. Gestation Parameters restricted cleanly to Female animals */}
               {newCattleGender === 'FEMALE' && (
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between">
                     <label className="text-[11px] font-bold text-slate-600 uppercase">Is Animal Pregnant?</label>
-                    <input type="checkbox" checked={cattlePregnancyFlag} onChange={(e) => { setCattlePregnancyFlag(e.target.checked); if(!e.target.checked) setCattleGestationDate(''); }} className="w-4 h-4 accent-blue-600" />
+                    <input 
+                      type="checkbox" 
+                      checked={cattlePregnancyFlag} 
+                      onChange={(e) => { 
+                        setCattlePregnancyFlag(e.target.checked); 
+                        if(!e.target.checked) setCattleGestationDate(''); 
+                      }} 
+                      className="w-4 h-4 accent-blue-600" 
+                    />
                   </div>
                   {cattlePregnancyFlag && (
                     <div>
                       <label className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Insemination / Conception Date</label>
-                      <input type="date" value={cattleGestationDate} onChange={e => setCattleGestationDate(e.target.value)} required={cattlePregnancyFlag} className="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-white font-bold" />
+                      <input 
+                        type="date" 
+                        value={cattleGestationDate} 
+                        onChange={e => setCattleGestationDate(e.target.value)} 
+                        required={cattlePregnancyFlag} 
+                        className="w-full p-2.5 border border-slate-200 rounded-xl text-xs bg-white font-bold focus:outline-none" 
+                      />
                     </div>
                   )}
                 </div>
               )}
-              <button type="submit" disabled={loading} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide">{loading ? 'Saving...' : 'SAVE ANIMAL'}</button>
+
+              <button 
+                type="submit" 
+                disabled={loading} 
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide transition-all"
+              >
+                {loading ? 'Saving...' : 'SAVE ANIMAL'}
+              </button>
             </form>
           </div>
         </div>
       )}
+
+
 
       {/* MODAL 2: FEED ALLOTMENT OVERLAY */}
       {isPrescriptionModalOpen && selectedAnimalForFeed && (
