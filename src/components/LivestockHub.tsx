@@ -120,6 +120,30 @@ export const LivestockHub: React.FC<LivestockHubProps> = ({ shopId, farmName, us
     finally { setLoading(false); }
   };
 
+  const handleDeleteFaultyFeed = async (regimeId: number, tagNum: string) => {
+  if (!window.confirm(`Are you sure you want to remove the feed line for Tag: ${tagNum}?`)) return;
+  setLoading(true);
+  try {
+    const response = await fetch('https://n8n.tenear.com/webhook/save-feeding-presciption', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'delete_feed_line',
+        shop_id: parseInt(shopId || '81'),
+        regime_id: regimeId
+      })
+    });
+    if (response.ok) {
+      alert("Faulty feed entry removed successfully.");
+      fetchCattleData(); // Refresh lists instantly
+    }
+  } catch (err) {
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
   // 📡 Write Hook 2: Individual Allocation Allotment Prescriptions
   const handleSaveFeedingPrescription = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -291,9 +315,22 @@ export const LivestockHub: React.FC<LivestockHubProps> = ({ shopId, farmName, us
                           Sex: {animal.gender.toLowerCase()} • {stageLabel}
                         </p>
                       </div>
-                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${badgeStyles}`}>
-                        {animal.stage}
-                      </span>
+        
+
+                      {/* 🛠️ Action Controls Container aligned on the right matching mobile responsive rules */}
+                      <div className="flex items-center space-x-2">
+                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${badgeStyles}`}>
+                          {animal.stage}
+                        </span>
+                        
+                        {/* 🛑 Inline Operational Delete Button */}
+                        <button
+                          onClick={() => handleDeleteFaultyFeed(animal.id, animal.tag_number)}
+                          className="text-[9px] bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 px-2 py-0.5 rounded-md font-extrabold uppercase transition-all tracking-wide"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   );
                 })
