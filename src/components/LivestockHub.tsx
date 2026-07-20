@@ -480,80 +480,83 @@ useEffect(() => {
                   Register records inside your herd registry to map out feed distributions
                 </p>
               ) : (
+
                 animalsList.map((animal) => (
-                  <div key={animal.animal_id} className="p-3 bg-slate-50/50 rounded-xl border border-slate-100/80 flex justify-between items-center text-xs">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-slate-800">Tag: {animal.tag_number}</span>
-                        <span className="text-[9px] bg-slate-200 px-1.5 py-0.2 rounded font-bold text-slate-500 uppercase">{animal.stage}</span>
+                  <div key={animal.animal_id} className="p-3 bg-white rounded-2xl border border-slate-200/60 shadow-xs flex flex-col space-y-3 text-xs text-left mb-3">
+                    
+                    {/* Top Section: Tag & Feed Intake Parameters */}
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-black text-slate-900 text-sm">Tag: {animal.tag_number}</span>
+                          <span className="text-[8px] bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded font-bold text-slate-500 uppercase">{animal.stage.replace('_', ' ')}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium mt-1">
+                          Ration: <span className="font-bold text-slate-600">{animal.amount_kg_per_day || 0} kg/day</span> of {animal.feed_type || 'Unassigned Feed'}
+                        </p>
                       </div>
-                      <p className="text-[10px] text-slate-400 font-medium mt-1">
-                        Allotment: <span className="font-bold text-slate-700">{animal.amount_kg_per_day || 0} kg/day</span> of {animal.feed_type || 'Unassigned Feed'}
-                      </p>
+
+                      {/* Yield Metric Display Container Badge */}
+                      {animal.stage === 'DAIRY_LACTATING' && (
+                        <div className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-center shadow-2xs border border-blue-100">
+                          <span className="text-[8px] font-black uppercase tracking-wider block opacity-70">Today</span>
+                          <span className="font-black text-xs">{animal.total_today_litres || 0}L</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Middle Section: Accountability Guard Lines */}
+                    <div className="border-t border-dashed border-slate-100 pt-2 flex justify-between items-center">
                       {animal.vet_verified ? (
-                        <p className="text-[9px] text-emerald-600 font-bold flex items-center gap-0.5 mt-0.5">
+                        <p className="text-[9px] text-emerald-600 font-bold flex items-center gap-0.5">
                           ✓ Vet Approved {animal.vet_name && `(${animal.vet_name})`}
                         </p>
                       ) : (
-                        <p className="text-[9px] text-rose-500 font-black uppercase mt-0.5">⚠️ Unverified Matrix</p>
+                        <p className="text-[9px] text-rose-500 font-black uppercase tracking-wide">⚠️ Unverified Matrix</p>
                       )}
-
-                      {/* 🥛 INSERTED HERE: Inline Production Parameter Display Metric Indicator */}
-                      <p className="text-[10px] text-blue-600 font-bold mt-1 bg-blue-50/50 py-0.5 px-1.5 rounded-md inline-block">
-                        Today's Yield: <span className="text-slate-800 font-black">{animal.total_today_litres || 0} Litres</span>
-                      </p>
                     </div>
 
-                    {/* 🛠️ Action Controls Container aligned on the right supporting multi-mode triggers */}
-                    <div className="flex flex-col space-y-1.5 text-right items-end">
-                      <div className="flex items-center space-x-1">
-                        <button
-                          onClick={() => {
-                            setSelectedAnimalForFeed(animal);
-                            setPrescribedFeedType(animal.feed_type || 'Dairy Meal');
-                            setPrescribedAmountKg(animal.amount_kg_per_day ? animal.amount_kg_per_day.toString() : '');
-                            setIsPrescriptionModalOpen(true);
-                          }}
-                          className="bg-slate-800 text-white font-bold text-[9px] px-2.5 py-1 rounded-md uppercase tracking-wide"
-                        >
-                          Diet
-                        </button>
+                    {/* Bottom Action Ribbon Layout: Spaced Grid Matrix Built for Fat Thumbs */}
+                    <div className="grid grid-cols-3 gap-2 pt-1">
+                      <button
+                        onClick={() => {
+                          setSelectedAnimalForFeed(animal);
+                          setPrescribedFeedType(animal.feed_type || 'Dairy Meal');
+                          setPrescribedAmountKg(animal.amount_kg_per_day ? animal.amount_kg_per_day.toString() : '');
+                          setIsPrescriptionModalOpen(true);
+                        }}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] py-2.5 rounded-xl text-center uppercase transition-all border border-slate-200/50"
+                      >
+                        ⚙️ Diet
+                      </button>
 
-                        <button
-                          onClick={() => handleDeleteFaultyFeed(animal.regime_id!, animal.tag_number)}
-                          className="text-[9px] bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 px-2 py-1 rounded-md font-extrabold uppercase transition-all tracking-wide"
-                        >
-                          Delete
-                        </button>
-                      </div>
-
-                      {/* 🥛 Quick Log Milk yield input overlay button - restricted strictly to lactating female stock */}
-                      {animal.stage === 'DAIRY_LACTATING' && (
+                      {animal.stage === 'DAIRY_LACTATING' ? (
                         <button
                           onClick={() => {
                             setSelectedAnimalForMilk(animal);
                             setIsMilkModalOpen(true);
                           }}
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-[9px] px-2.5 py-1 rounded-md uppercase text-center tracking-wide shadow-xs transition-all"
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] py-2.5 rounded-xl text-center uppercase tracking-wide transition-all shadow-xs"
                         >
-                          + Log Milk
+                          🥛 + Milk
                         </button>
+                      ) : (
+                        <div className="bg-slate-50 text-slate-300 font-bold text-[9px] py-2.5 rounded-xl text-center uppercase flex items-center justify-center select-none border border-slate-100">
+                          Dry Stage
+                        </div>
                       )}
 
+                      <button
+                        onClick={() => handleDeleteFaultyFeed(animal.regime_id!, animal.tag_number)}
+                        className="bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 py-2.5 rounded-xl text-center font-extrabold text-[10px] uppercase transition-all"
+                      >
+                        🗑️ Delete
+                      </button>
                     </div>
-                    <button
-                      onClick={() => {
-                        setSelectedAnimalForFeed(animal);
-                        setPrescribedFeedType(animal.feed_type || 'Dairy Meal');
-                        setPrescribedAmountKg(animal.amount_kg_per_day ? animal.amount_kg_per_day.toString() : '');
-                        setIsPrescriptionModalOpen(true);
-                      }}
-                      className="bg-slate-800 text-white font-bold text-[10px] px-2.5 py-1.5 rounded-lg uppercase"
-                    >
-                      Adjust
-                    </button>
+
                   </div>
                 ))
+
               )}
             </div>
           </div>
