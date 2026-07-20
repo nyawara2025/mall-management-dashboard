@@ -520,19 +520,26 @@ useEffect(() => {
                     log.was_vet_approved ? "YES" : "NO"
                   ]);
 
-                  // 3. Assemble the file data matrix array strings
-                  const csvContent = "data:text/csv;charset=utf-8," 
-                    + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+                  // 3. Compile the structural rows matrix array layout string
+                  const csvString = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
     
-                  // 4. Trigger a native programmatic download anchor action compatible with mobile webviews
-                  const encodedUri = encodeURI(csvContent);
+                  // 4. 🔥 FIX: Convert raw text string into a formal binary file memory block (Blob object)
+                  const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    
+                  // 5. Generate an explicit virtual file reference URL that mobile browsers can naturally resolve
+                  const blobUrl = window.URL.createObjectURL(blob);
+    
+                  // 6. Programmatically trigger a standard document download anchor action space bounds
                   const link = document.createElement("a");
-                  link.setAttribute("href", encodedUri);
+                  link.href = blobUrl;
                   link.setAttribute("download", `Nutrition_Audit_Report_Shop_${shopId || '81'}.csv`);
                   document.body.appendChild(link);
     
-                  link.click(); // Fires the download natively
-                  document.body.removeChild(link); // Clean context loop
+                  link.click(); // Fires the binary document download stream natively on Android/iOS
+    
+                  // 7. Free up mobile browser RAM memory space cleanly after transmission
+                  document.body.removeChild(link);
+                  window.URL.revokeObjectURL(blobUrl);
                 }}
                 className="bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-[10px] tracking-wide py-1.5 px-3 rounded-xl transition-all shadow-xs uppercase"
               >
