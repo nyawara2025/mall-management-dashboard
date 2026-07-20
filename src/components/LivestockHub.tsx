@@ -683,26 +683,41 @@ useEffect(() => {
                 <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Tag Number / Name</label>
                 <input type="text" placeholder="e.g., KE-COW-042 or Baraka" value={newTagNumber} onChange={e => setNewTagNumber(e.target.value)} required className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold" />
               </div>
-              <div>
-                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Gender</label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(['FEMALE', 'MALE'] as const).map((g) => (
-                    <button key={g} type="button" onClick={() => { setNewCattleGender(g); if(g==='MALE') setCattlePregnancyFlag(false); }} className={`p-2.5 rounded-xl text-xs font-bold border ${newCattleGender === g ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600'}`}>{g}</button>
-                  ))}
-                </div>
-              </div>
+
+
+              {/* 3. Filtered Lifecycle Stage Selector Dropdown */}
               <div>
                 <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Cattle Lifecycle Stage</label>
-                <select value={newCattleStage} onChange={(e) => setNewCattleStage(e.target.value as any)} className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700">
-                  <option value="CALF">🍼 Calf (Pre-weaning)</option>
-                  <option value="HEIFER">🌾 Heifer (Growing Female)</option>
-                  <option value="BULL">🐂 Breeding Bull</option>
-                  <option value="STEER">🥩 Steer (Castrated Male / Beef)</option>
-                  <option value="DAIRY_LACTATING">🥛 Dairy Cow (Lactating)</option>
-                  <option value="DRY_COW">🍂 Dry Cow (Resting gestation)</option>
-                  <option value="PREG_STEAMING">🤰 Pregnant - Steaming Stage (Transition)</option>
+                <select 
+                  value={newCattleStage} 
+                  onChange={(e) => setNewCattleStage(e.target.value as CattleStage)}
+                  className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold text-slate-700 focus:outline-none focus:border-blue-500"
+                >
+                  {/* Generic gender-neutral stage option */}
+                  <option value="CALF">🍼 Calf (Pre-weaning rearing)</option>
+
+                  {/* Strictly reveal male options if gender is set to MALE */}
+                  {newCattleGender === 'MALE' && (
+                    <>
+                      <option value="BULL">🐂 Breeding Bull (Condition tracking)</option>
+                      <option value="STEER">🥩 Steer (Castrated Male / Beef yield)</option>
+                    </>
+                  )}
+
+                  {/* Strictly reveal female production options if gender is set to FEMALE */}
+                  {newCattleGender === 'FEMALE' && (
+                    <>
+                      <option value="HEIFER">🌾 Heifer (Young growing female)</option>
+                      <option value="DAIRY_LACTATING">🥛 Dairy Cow (Active lactating milk track)</option>
+                      <option value="DRY_COW">🍂 Dry Cow (Resting gestation block)</option>
+                      <option value="PREG_STEAMING">🤰 Pregnant - Steaming Stage (Transition)</option>
+                    </>
+                  )}
                 </select>
               </div>
+              
+
+
               {newCattleGender === 'FEMALE' && (
                 <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-3">
                   <div className="flex items-center justify-between">

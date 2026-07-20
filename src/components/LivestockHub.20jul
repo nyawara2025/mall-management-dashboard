@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 type CattleStage = 'CALF' | 'HEIFER' | 'BULL' | 'STEER' | 'DAIRY_LACTATING' | 'DRY_COW' | 'PREG_STEAMING';
 
 interface CattleAnimal {
-  id: number;
+  animal_id: number;
+  regime_id?: number;
   tag_number: string;
   gender: 'MALE' | 'FEMALE';
   stage: CattleStage;
@@ -17,6 +18,7 @@ interface CattleAnimal {
   // 🔥 Add these two lines to your interface at the top of the file:
   stage_head_count?: number;
   stage_total_mix_kg?: number;
+  total_today_litres?: number;
 }
 
 // 📜 Cattle Feed Audit Trail Tracking Type Blueprint
@@ -51,6 +53,11 @@ export const LivestockHub: React.FC<LivestockHubProps> = ({ shopId, farmName, us
   const [newCattleStage, setNewCattleStage] = useState<CattleStage>('DAIRY_LACTATING');
   const [cattlePregnancyFlag, setCattlePregnancyFlag] = useState(false);
   const [cattleGestationDate, setCattleGestationDate] = useState('');
+
+  const [isMilkModalOpen, setIsMilkModalOpen] = useState(false);
+  const [selectedAnimalForMilk, setSelectedAnimalForMilk] = useState<CattleAnimal | null>(null);
+  const [milkVolumeLitres, setMilkVolumeLitres] = useState('');
+  const [milkingSession, setMilkingSession] = useState<'MORNING' | 'MIDDAY' | 'EVENING'>('MORNING');
 
   // Individual Prescription States
   const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
@@ -135,28 +142,59 @@ export const LivestockHub: React.FC<LivestockHubProps> = ({ shopId, farmName, us
   };
 
   const handleDeleteFaultyFeed = async (regimeId: number, tagNum: string) => {
-  if (!window.confirm(`Are you sure you want to remove the feed line for Tag: ${tagNum}?`)) return;
-  setLoading(true);
-  try {
-    const response = await fetch('https://n8n.tenear.com/webhook/save-feeding-presciption', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'delete_feed_line',
-        shop_id: parseInt(shopId || '81'),
-        regime_id: regimeId
-      })
-    });
-    if (response.ok) {
-      alert("Faulty feed entry removed successfully.");
-      fetchCattleData(); // Refresh lists instantly
+    if (!regimeId) return alert("This animal has no active feed row to delete.");
+    if (!window.confirm(`Are you sure you want to remove the feed line for Tag: ${tagNum}?`)) return;
+    setLoading(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/save-feeding-presciption', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_feed_line',
+          shop_id: parseInt(shopId || '81'),
+          regime_id: regimeId
+        })
+      });
+      if (response.ok) {
+        alert("Faulty feed entry removed successfully.");
+        fetchCattleData(); // Refresh lists instantly
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  const handleLogMilkYield = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAnimalForMilk || !milkVolumeLitres || parseFloat(milkVolumeLitres) < 0) {
+      return alert("Please enter valid milk yield measurements.");
+    }
+    setLoading(true);
+
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/save-feeding-presciption', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'log_milk_yield',
+          shop_id: parseInt(shopId || '81'),
+          animal_id: selectedAnimalForMilk.animal_id,
+          litres_milked: parseFloat(milkVolumeLitres),
+          milking_session: milkingSession,
+          logged_by_role: userSession?.role || 'farm_hand'
+        })
+      });
+      if (response.ok) {
+        alert(`Logged ${milkVolumeLitres} Litres for Tag: ${selectedAnimalForMilk.tag_number}!`);
+        setIsMilkModalOpen(false);
+        setMilkVolumeLitres('');
+        fetchCattleData(); // Hot reload UI values
+      }
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
+  };
 
   const fetchCattleHistoryFromN8N = async () => {
   if (!shopId) return;
@@ -202,7 +240,7 @@ useEffect(() => {
         body: JSON.stringify({
           action: 'update_individual_feed',
           shop_id: parseInt(shopId || '81'),
-          animal_id: selectedAnimalForFeed.id,
+          animal_id: selectedAnimalForFeed.animal_id,
           feed_type: prescribedFeedType,
           amount_kg_per_day: parseFloat(prescribedAmountKg),
           vet_verified: userSession?.role === 'vet' ? true : vetSigningFlag,
@@ -365,7 +403,7 @@ useEffect(() => {
                   }
 
                   return (
-                    <div key={animal.id} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                    <div key={animal.animal_id} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-xl border border-slate-100">
                       <div>
                         <p className="text-xs font-black text-slate-900">Tag: {animal.tag_number}</p>
                         <p className="text-[10px] text-slate-400 font-bold capitalize mt-0.5">
@@ -382,7 +420,7 @@ useEffect(() => {
                         
                         {/* 🛑 Inline Operational Delete Button */}
                         <button
-                          onClick={() => handleDeleteFaultyFeed(animal.id, animal.tag_number)}
+                          onClick={() => handleDeleteFaultyFeed(animal.regime_id!, animal.tag_number)}
                           className="text-[9px] bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 px-2 py-0.5 rounded-md font-extrabold uppercase transition-all tracking-wide"
                         >
                           Delete
@@ -442,37 +480,83 @@ useEffect(() => {
                   Register records inside your herd registry to map out feed distributions
                 </p>
               ) : (
+
                 animalsList.map((animal) => (
-                  <div key={animal.id} className="p-3 bg-slate-50/50 rounded-xl border border-slate-100/80 flex justify-between items-center text-xs">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-slate-800">Tag: {animal.tag_number}</span>
-                        <span className="text-[9px] bg-slate-200 px-1.5 py-0.2 rounded font-bold text-slate-500 uppercase">{animal.stage}</span>
+                  <div key={animal.animal_id} className="p-3 bg-white rounded-2xl border border-slate-200/60 shadow-xs flex flex-col space-y-3 text-xs text-left mb-3">
+                    
+                    {/* Top Section: Tag & Feed Intake Parameters */}
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-black text-slate-900 text-sm">Tag: {animal.tag_number}</span>
+                          <span className="text-[8px] bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded font-bold text-slate-500 uppercase">{animal.stage.replace('_', ' ')}</span>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium mt-1">
+                          Ration: <span className="font-bold text-slate-600">{animal.amount_kg_per_day || 0} kg/day</span> of {animal.feed_type || 'Unassigned Feed'}
+                        </p>
                       </div>
-                      <p className="text-[10px] text-slate-400 font-medium mt-1">
-                        Allotment: <span className="font-bold text-slate-700">{animal.amount_kg_per_day || 0} kg/day</span> of {animal.feed_type || 'Unassigned Feed'}
-                      </p>
+
+                      {/* Yield Metric Display Container Badge */}
+                      {animal.stage === 'DAIRY_LACTATING' && (
+                        <div className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-center shadow-2xs border border-blue-100">
+                          <span className="text-[8px] font-black uppercase tracking-wider block opacity-70">Today</span>
+                          <span className="font-black text-xs">{animal.total_today_litres || 0}L</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Middle Section: Accountability Guard Lines */}
+                    <div className="border-t border-dashed border-slate-100 pt-2 flex justify-between items-center">
                       {animal.vet_verified ? (
-                        <p className="text-[9px] text-emerald-600 font-bold flex items-center gap-0.5 mt-0.5">
+                        <p className="text-[9px] text-emerald-600 font-bold flex items-center gap-0.5">
                           ✓ Vet Approved {animal.vet_name && `(${animal.vet_name})`}
                         </p>
                       ) : (
-                        <p className="text-[9px] text-rose-500 font-black uppercase mt-0.5">⚠️ Unverified Matrix</p>
+                        <p className="text-[9px] text-rose-500 font-black uppercase tracking-wide">⚠️ Unverified Matrix</p>
                       )}
                     </div>
-                    <button
-                      onClick={() => {
-                        setSelectedAnimalForFeed(animal);
-                        setPrescribedFeedType(animal.feed_type || 'Dairy Meal');
-                        setPrescribedAmountKg(animal.amount_kg_per_day ? animal.amount_kg_per_day.toString() : '');
-                        setIsPrescriptionModalOpen(true);
-                      }}
-                      className="bg-slate-800 text-white font-bold text-[10px] px-2.5 py-1.5 rounded-lg uppercase"
-                    >
-                      Adjust
-                    </button>
+
+                    {/* Bottom Action Ribbon Layout: Spaced Grid Matrix Built for Fat Thumbs */}
+                    <div className="grid grid-cols-3 gap-2 pt-1">
+                      <button
+                        onClick={() => {
+                          setSelectedAnimalForFeed(animal);
+                          setPrescribedFeedType(animal.feed_type || 'Dairy Meal');
+                          setPrescribedAmountKg(animal.amount_kg_per_day ? animal.amount_kg_per_day.toString() : '');
+                          setIsPrescriptionModalOpen(true);
+                        }}
+                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] py-2.5 rounded-xl text-center uppercase transition-all border border-slate-200/50"
+                      >
+                        ⚙️ Diet
+                      </button>
+
+                      {animal.stage === 'DAIRY_LACTATING' ? (
+                        <button
+                          onClick={() => {
+                            setSelectedAnimalForMilk(animal);
+                            setIsMilkModalOpen(true);
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] py-2.5 rounded-xl text-center uppercase tracking-wide transition-all shadow-xs"
+                        >
+                          🥛 + Milk
+                        </button>
+                      ) : (
+                        <div className="bg-slate-50 text-slate-300 font-bold text-[9px] py-2.5 rounded-xl text-center uppercase flex items-center justify-center select-none border border-slate-100">
+                          Dry Stage
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => handleDeleteFaultyFeed(animal.regime_id!, animal.tag_number)}
+                        className="bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 py-2.5 rounded-xl text-center font-extrabold text-[10px] uppercase transition-all"
+                      >
+                        🗑️ Delete
+                      </button>
+                    </div>
+
                   </div>
                 ))
+
               )}
             </div>
           </div>
@@ -493,30 +577,78 @@ useEffect(() => {
             </p>
           </div>
 
-          {/* Dynamic Feed Audit Trail Container Box */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs text-left">
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Historical Audit Logs</h4>
-              {loadingHistory && <span className="text-[9px] font-bold text-blue-600 animate-pulse uppercase">Syncing Ledger...</span>}
+          {/* Dynamic Feed Audit Trail Container Box (Enriched with printable classes) */}
+          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs text-left printable-audit-ledger">
+            <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
+              <div>
+                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Nutrition Audit Report</h4>
+                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wide">Workspace ID: {shopId} • {farmName}</p>
+              </div>
+              
+              {/* 📄 Mobile-Responsive Excel / CSV Data Generation Action */}
+              <button
+                onClick={() => {
+                  if (historyLogsList.length === 0) return alert("No ledger logs available to export.");
+    
+                  // 1. Establish clear tabular header values
+                  const headers = ["Date/Time", "Animal Tag", "Lifecycle Stage", "Feed Type Served", "Volume (KG)", "Logged By Role", "Vet Verified"];
+    
+                  // 2. Map row records, removing line breaks or commas that could break CSV structure
+                  const rows = historyLogsList.map(log => [
+                    `"${log.formatted_date}"`,
+                    `"${log.tag_number}"`,
+                    `"${log.stage}"`,
+                    `"${log.feed_type_served}"`,
+                    log.quantity_served_kg,
+                    `"${log.authorized_by_role}"`,
+                    log.was_vet_approved ? "YES" : "NO"
+                  ]);
+
+                  // 3. Compile the structural rows matrix array layout string
+                  const csvString = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    
+                  // 4. 🔥 FIX: Convert raw text string into a formal binary file memory block (Blob object)
+                  const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    
+                  // 5. Generate an explicit virtual file reference URL that mobile browsers can naturally resolve
+                  const blobUrl = window.URL.createObjectURL(blob);
+    
+                  // 6. Programmatically trigger a standard document download anchor action space bounds
+                  const link = document.createElement("a");
+                  link.href = blobUrl;
+                  link.setAttribute("download", `Nutrition_Audit_Report_Shop_${shopId || '81'}.csv`);
+                  document.body.appendChild(link);
+    
+                  link.click(); // Fires the binary document download stream natively on Android/iOS
+    
+                  // 7. Free up mobile browser RAM memory space cleanly after transmission
+                  document.body.removeChild(link);
+                  window.URL.revokeObjectURL(blobUrl);
+                }}
+                className="bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-[10px] tracking-wide py-1.5 px-3 rounded-xl transition-all shadow-xs uppercase"
+              >
+                📊 Export Spreadsheet
+              </button>
+
             </div>
 
+            {/* Scroll tracking lists container viewport */}
             <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
               {historyLogsList.length === 0 ? (
                 <p className="text-[11px] text-slate-400 font-medium text-center py-6">No historical nutritional ledger entries on file</p>
               ) : (
                 historyLogsList.map((log) => (
-                  <div key={log.id} className="flex justify-between items-center p-2.5 bg-slate-50/50 rounded-xl border border-slate-100/80 text-xs">
+                  <div key={log.id} className="flex justify-between items-center p-2.5 bg-slate-50/50 rounded-xl border border-slate-100/80 text-xs break-inside-avoid">
                     <div className="space-y-0.5">
                       <div className="flex items-center gap-1.5">
-                        <span className={`w-1.5 h-1.5 rounded-full ${log.was_vet_approved ? 'bg-emerald-500' : 'bg-amber-500'}`}></span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 no-print"></span>
                         <span className="font-black text-slate-800 text-[11px]">Tag: {log.tag_number}</span>
                         <span className="text-[9px] bg-slate-200 px-1 rounded text-slate-500 uppercase font-bold">{log.stage.toLowerCase()}</span>
                       </div>
                       <p className="text-[10px] text-slate-400 font-medium">
                         Served {log.feed_type_served} • Logged by <span className="capitalize font-semibold text-slate-600">{log.authorized_by_role.replace('_', ' ')}</span>
                       </p>
-                      {/* Formatted Date value returned smoothly from the SQL conversion helper view */}
-                      <p className="text-[9px] text-slate-300 font-bold">{log.formatted_date}</p>
+                      <p className="text-[9px] text-slate-300 font-bold print:text-slate-500">{log.formatted_date}</p>
                     </div>
                     
                     <div className="text-right">
@@ -531,7 +663,8 @@ useEffect(() => {
                     </div>
                   </div>
                 ))
-              )}
+              )}  
+
             </div>
           </div>
         </div>
@@ -632,6 +765,62 @@ useEffect(() => {
           </div>
         </div>
       )}
+
+      {/* 🥛 MODAL 3: MOBILE-RESPONSIVE MILK RECORDING INPUT FORM OVERLAY */}
+      {isMilkModalOpen && selectedAnimalForMilk && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-end justify-center z-50 p-4">
+          <div className="w-full bg-white rounded-3xl p-5 shadow-xl max-w-md border border-slate-100 flex flex-col space-y-4 animate-slideUp">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+              <div>
+                <h3 className="text-sm font-black text-blue-900">Record Daily Milk Yield</h3>
+                <p className="text-[10px] text-slate-400 font-bold">Tag Reference: {selectedAnimalForMilk.tag_number}</p>
+              </div>
+              <button onClick={() => setIsMilkModalOpen(false)} className="text-slate-400 font-bold text-xs">Cancel</button>
+            </div>
+            
+            <form onSubmit={handleLogMilkYield} className="space-y-4 text-left">
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Milking Session</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['MORNING', 'MIDDAY', 'EVENING'] as const).map((session) => (
+                    <button
+                      key={session}
+                      type="button"
+                      onClick={() => setMilkingSession(session)}
+                      className={`p-2.5 rounded-xl text-[10px] font-black border uppercase transition-all ${
+                        milkingSession === session ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200'
+                      }`}
+                    >
+                      {session.toLowerCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Litres Milked</label>
+                <div className="relative flex items-center">
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    placeholder="e.g., 14.5" 
+                    value={milkVolumeLitres} 
+                    onChange={e => setMilkVolumeLitres(e.target.value)} 
+                    required 
+                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold pr-14" 
+                  />
+                  <span className="absolute right-4 text-xs font-black text-slate-400">LITRES</span>
+                </div>
+              </div>
+
+              <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide">
+                {loading ? 'Logging production metrics...' : 'SAVE PRODUCTION RECORD'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
