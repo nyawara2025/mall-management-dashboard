@@ -18,6 +18,7 @@ interface CattleAnimal {
   // 🔥 Add these two lines to your interface at the top of the file:
   stage_head_count?: number;
   stage_total_mix_kg?: number;
+  total_today_litres?: number;
 }
 
 // 📜 Cattle Feed Audit Trail Tracking Type Blueprint
@@ -52,6 +53,11 @@ export const LivestockHub: React.FC<LivestockHubProps> = ({ shopId, farmName, us
   const [newCattleStage, setNewCattleStage] = useState<CattleStage>('DAIRY_LACTATING');
   const [cattlePregnancyFlag, setCattlePregnancyFlag] = useState(false);
   const [cattleGestationDate, setCattleGestationDate] = useState('');
+
+  const [isMilkModalOpen, setIsMilkModalOpen] = useState(false);
+  const [selectedAnimalForMilk, setSelectedAnimalForMilk] = useState<CattleAnimal | null>(null);
+  const [milkVolumeLitres, setMilkVolumeLitres] = useState('');
+  const [milkingSession, setMilkingSession] = useState<'MORNING' | 'MIDDAY' | 'EVENING'>('MORNING');
 
   // Individual Prescription States
   const [isPrescriptionModalOpen, setIsPrescriptionModalOpen] = useState(false);
@@ -158,6 +164,36 @@ export const LivestockHub: React.FC<LivestockHubProps> = ({ shopId, farmName, us
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogMilkYield = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAnimalForMilk || !milkVolumeLitres || parseFloat(milkVolumeLitres) < 0) {
+      return alert("Please enter valid milk yield measurements.");
+    }
+    setLoading(true);
+
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/save-feeding-presciption', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'log_milk_yield',
+          shop_id: parseInt(shopId || '81'),
+          animal_id: selectedAnimalForMilk.animal_id,
+          litres_milked: parseFloat(milkVolumeLitres),
+          milking_session: milkingSession,
+          logged_by_role: userSession?.role || 'farm_hand'
+        })
+      });
+      if (response.ok) {
+        alert(`Logged ${milkVolumeLitres} Litres for Tag: ${selectedAnimalForMilk.tag_number}!`);
+        setIsMilkModalOpen(false);
+        setMilkVolumeLitres('');
+        fetchCattleData(); // Hot reload UI values
+      }
+    } catch (err) { console.error(err); }
+    finally { setLoading(false); }
   };
 
   const fetchCattleHistoryFromN8N = async () => {
@@ -461,6 +497,49 @@ useEffect(() => {
                       ) : (
                         <p className="text-[9px] text-rose-500 font-black uppercase mt-0.5">⚠️ Unverified Matrix</p>
                       )}
+
+                      {/* 🥛 INSERTED HERE: Inline Production Parameter Display Metric Indicator */}
+                      <p className="text-[10px] text-blue-600 font-bold mt-1 bg-blue-50/50 py-0.5 px-1.5 rounded-md inline-block">
+                        Today's Yield: <span className="text-slate-800 font-black">{animal.total_today_litres || 0} Litres</span>
+                      </p>
+                    </div>
+
+                    {/* 🛠️ Action Controls Container aligned on the right supporting multi-mode triggers */}
+                    <div className="flex flex-col space-y-1.5 text-right items-end">
+                      <div className="flex items-center space-x-1">
+                        <button
+                          onClick={() => {
+                            setSelectedAnimalForFeed(animal);
+                            setPrescribedFeedType(animal.feed_type || 'Dairy Meal');
+                            setPrescribedAmountKg(animal.amount_kg_per_day ? animal.amount_kg_per_day.toString() : '');
+                            setIsPrescriptionModalOpen(true);
+                          }}
+                          className="bg-slate-800 text-white font-bold text-[9px] px-2.5 py-1 rounded-md uppercase tracking-wide"
+                        >
+                          Diet
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteFaultyFeed(animal.regime_id!, animal.tag_number)}
+                          className="text-[9px] bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 px-2 py-1 rounded-md font-extrabold uppercase transition-all tracking-wide"
+                        >
+                          Delete
+                        </button>
+                      </div>
+
+                      {/* 🥛 Quick Log Milk yield input overlay button - restricted strictly to lactating female stock */}
+                      {animal.stage === 'DAIRY_LACTATING' && (
+                        <button
+                          onClick={() => {
+                            setSelectedAnimalForMilk(animal);
+                            setIsMilkModalOpen(true);
+                          }}
+                          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-[9px] px-2.5 py-1 rounded-md uppercase text-center tracking-wide shadow-xs transition-all"
+                        >
+                          + Log Milk
+                        </button>
+                      )}
+
                     </div>
                     <button
                       onClick={() => {
@@ -683,6 +762,62 @@ useEffect(() => {
           </div>
         </div>
       )}
+
+      {/* 🥛 MODAL 3: MOBILE-RESPONSIVE MILK RECORDING INPUT FORM OVERLAY */}
+      {isMilkModalOpen && selectedAnimalForMilk && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-end justify-center z-50 p-4">
+          <div className="w-full bg-white rounded-3xl p-5 shadow-xl max-w-md border border-slate-100 flex flex-col space-y-4 animate-slideUp">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+              <div>
+                <h3 className="text-sm font-black text-blue-900">Record Daily Milk Yield</h3>
+                <p className="text-[10px] text-slate-400 font-bold">Tag Reference: {selectedAnimalForMilk.tag_number}</p>
+              </div>
+              <button onClick={() => setIsMilkModalOpen(false)} className="text-slate-400 font-bold text-xs">Cancel</button>
+            </div>
+            
+            <form onSubmit={handleLogMilkYield} className="space-y-4 text-left">
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Milking Session</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['MORNING', 'MIDDAY', 'EVENING'] as const).map((session) => (
+                    <button
+                      key={session}
+                      type="button"
+                      onClick={() => setMilkingSession(session)}
+                      className={`p-2.5 rounded-xl text-[10px] font-black border uppercase transition-all ${
+                        milkingSession === session ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200'
+                      }`}
+                    >
+                      {session.toLowerCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 uppercase block mb-1">Litres Milked</label>
+                <div className="relative flex items-center">
+                  <input 
+                    type="number" 
+                    step="0.01" 
+                    placeholder="e.g., 14.5" 
+                    value={milkVolumeLitres} 
+                    onChange={e => setMilkVolumeLitres(e.target.value)} 
+                    required 
+                    className="w-full p-3 border border-slate-200 rounded-xl text-sm bg-slate-50 font-bold pr-14" 
+                  />
+                  <span className="absolute right-4 text-xs font-black text-slate-400">LITRES</span>
+                </div>
+              </div>
+
+              <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3.5 rounded-xl text-sm tracking-wide">
+                {loading ? 'Logging production metrics...' : 'SAVE PRODUCTION RECORD'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
