@@ -501,13 +501,44 @@ useEffect(() => {
                 <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wide">Workspace ID: {shopId} • {farmName}</p>
               </div>
               
-              {/* 📄 Print / PDF Generation Trigger Action */}
+              {/* 📄 Mobile-Responsive Excel / CSV Data Generation Action */}
               <button
-                onClick={() => window.print()}
-                className="no-print bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-[10px] tracking-wide py-1.5 px-3 rounded-xl transition-all shadow-xs uppercase"
+                onClick={() => {
+                  if (historyLogsList.length === 0) return alert("No ledger logs available to export.");
+    
+                  // 1. Establish clear tabular header values
+                  const headers = ["Date/Time", "Animal Tag", "Lifecycle Stage", "Feed Type Served", "Volume (KG)", "Logged By Role", "Vet Verified"];
+    
+                  // 2. Map row records, removing line breaks or commas that could break CSV structure
+                  const rows = historyLogsList.map(log => [
+                    `"${log.formatted_date}"`,
+                    `"${log.tag_number}"`,
+                    `"${log.stage}"`,
+                    `"${log.feed_type_served}"`,
+                    log.quantity_served_kg,
+                    `"${log.authorized_by_role}"`,
+                    log.was_vet_approved ? "YES" : "NO"
+                  ]);
+
+                  // 3. Assemble the file data matrix array strings
+                  const csvContent = "data:text/csv;charset=utf-8," 
+                    + [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    
+                  // 4. Trigger a native programmatic download anchor action compatible with mobile webviews
+                  const encodedUri = encodeURI(csvContent);
+                  const link = document.createElement("a");
+                  link.setAttribute("href", encodedUri);
+                  link.setAttribute("download", `Nutrition_Audit_Report_Shop_${shopId || '81'}.csv`);
+                  document.body.appendChild(link);
+    
+                  link.click(); // Fires the download natively
+                  document.body.removeChild(link); // Clean context loop
+                }}
+                className="bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-[10px] tracking-wide py-1.5 px-3 rounded-xl transition-all shadow-xs uppercase"
               >
-                📄 Export to PDF
+                📊 Export Spreadsheet
               </button>
+
             </div>
 
             {/* Scroll tracking lists container viewport */}
