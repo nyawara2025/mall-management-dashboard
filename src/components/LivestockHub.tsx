@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 type CattleStage = 'CALF' | 'HEIFER' | 'BULL' | 'STEER' | 'DAIRY_LACTATING' | 'DRY_COW' | 'PREG_STEAMING';
 
 interface CattleAnimal {
-  id: number;
+  animal_id: number;
+  regime_id?: number;
   tag_number: string;
   gender: 'MALE' | 'FEMALE';
   stage: CattleStage;
@@ -135,28 +136,29 @@ export const LivestockHub: React.FC<LivestockHubProps> = ({ shopId, farmName, us
   };
 
   const handleDeleteFaultyFeed = async (regimeId: number, tagNum: string) => {
-  if (!window.confirm(`Are you sure you want to remove the feed line for Tag: ${tagNum}?`)) return;
-  setLoading(true);
-  try {
-    const response = await fetch('https://n8n.tenear.com/webhook/save-feeding-presciption', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'delete_feed_line',
-        shop_id: parseInt(shopId || '81'),
-        regime_id: regimeId
-      })
-    });
-    if (response.ok) {
-      alert("Faulty feed entry removed successfully.");
-      fetchCattleData(); // Refresh lists instantly
+    if (!regimeId) return alert("This animal has no active feed row to delete.");
+    if (!window.confirm(`Are you sure you want to remove the feed line for Tag: ${tagNum}?`)) return;
+    setLoading(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/save-feeding-presciption', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'delete_feed_line',
+          shop_id: parseInt(shopId || '81'),
+          regime_id: regimeId
+        })
+      });
+      if (response.ok) {
+        alert("Faulty feed entry removed successfully.");
+        fetchCattleData(); // Refresh lists instantly
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const fetchCattleHistoryFromN8N = async () => {
   if (!shopId) return;
@@ -202,7 +204,7 @@ useEffect(() => {
         body: JSON.stringify({
           action: 'update_individual_feed',
           shop_id: parseInt(shopId || '81'),
-          animal_id: selectedAnimalForFeed.id,
+          animal_id: selectedAnimalForFeed.animal_id,
           feed_type: prescribedFeedType,
           amount_kg_per_day: parseFloat(prescribedAmountKg),
           vet_verified: userSession?.role === 'vet' ? true : vetSigningFlag,
@@ -365,7 +367,7 @@ useEffect(() => {
                   }
 
                   return (
-                    <div key={animal.id} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                    <div key={animal.animal_id} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-xl border border-slate-100">
                       <div>
                         <p className="text-xs font-black text-slate-900">Tag: {animal.tag_number}</p>
                         <p className="text-[10px] text-slate-400 font-bold capitalize mt-0.5">
@@ -382,7 +384,7 @@ useEffect(() => {
                         
                         {/* 🛑 Inline Operational Delete Button */}
                         <button
-                          onClick={() => handleDeleteFaultyFeed(animal.id, animal.tag_number)}
+                          onClick={() => handleDeleteFaultyFeed(animal.regime_id!, animal.tag_number)}
                           className="text-[9px] bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 px-2 py-0.5 rounded-md font-extrabold uppercase transition-all tracking-wide"
                         >
                           Delete
@@ -443,7 +445,7 @@ useEffect(() => {
                 </p>
               ) : (
                 animalsList.map((animal) => (
-                  <div key={animal.id} className="p-3 bg-slate-50/50 rounded-xl border border-slate-100/80 flex justify-between items-center text-xs">
+                  <div key={animal.animal_id} className="p-3 bg-slate-50/50 rounded-xl border border-slate-100/80 flex justify-between items-center text-xs">
                     <div>
                       <div className="flex items-center gap-2">
                         <span className="font-black text-slate-800">Tag: {animal.tag_number}</span>
