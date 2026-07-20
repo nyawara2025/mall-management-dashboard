@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { PigsHub } from './PigsHub';
+import { GoatsHub } from './GoatsHub';
+import { SheepHub } from './SheepHub';
 
 // 🐮 Exhaustive list of standard Kenyan cattle lifecycle segments
 type CattleStage = 'CALF' | 'HEIFER' | 'BULL' | 'STEER' | 'DAIRY_LACTATING' | 'DRY_COW' | 'PREG_STEAMING';
@@ -710,18 +712,14 @@ useEffect(() => {
           🐐 SECTOR 2: GOATS MODULE ENVIRONMENT
          ======================================================== */}
       {currentSector === 'goats' && (
-        <div className="text-center text-xs text-slate-400 py-8 bg-white border rounded-2xl shadow-2xs">
-          🐐 Caprine Goat Unit individual tracking layer is securely bound to workspace context.
-        </div>
+        <GoatsHub shopId={shopId} userSession={userSession} />
       )}
 
       {/* ========================================================
           🐑 SECTOR 3: SHEEP MODULE ENVIRONMENT
          ======================================================== */}
       {currentSector === 'sheep' && (
-        <div className="text-center text-xs text-slate-400 py-8 bg-white border rounded-2xl shadow-2xs">
-          🐑 Ovine Sheep Unit individual body condition monitoring tracking loop connected.
-        </div>
+        <SheepHub shopId={shopId} userSession={userSession} />
       )}
 
       {/* ========================================================

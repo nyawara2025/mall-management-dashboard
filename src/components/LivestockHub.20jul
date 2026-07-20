@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { PigsHub } from './PigsHub';
 
 // 🐮 Exhaustive list of standard Kenyan cattle lifecycle segments
 type CattleStage = 'CALF' | 'HEIFER' | 'BULL' | 'STEER' | 'DAIRY_LACTATING' | 'DRY_COW' | 'PREG_STEAMING';
@@ -53,6 +54,8 @@ export const LivestockHub: React.FC<LivestockHubProps> = ({ shopId, farmName, us
   const [newCattleStage, setNewCattleStage] = useState<CattleStage>('DAIRY_LACTATING');
   const [cattlePregnancyFlag, setCattlePregnancyFlag] = useState(false);
   const [cattleGestationDate, setCattleGestationDate] = useState('');
+
+  const [currentSector, setCurrentSector] = useState<'cattle' | 'goats' | 'sheep' | 'pigs'>('cattle');
 
   const [isMilkModalOpen, setIsMilkModalOpen] = useState(false);
   const [selectedAnimalForMilk, setSelectedAnimalForMilk] = useState<CattleAnimal | null>(null);
@@ -259,455 +262,479 @@ useEffect(() => {
   };
 
   return (
-    <div className="space-y-4 animate-fadeIn text-left">
+
+      <div className="space-y-4 animate-fadeIn text-left">
+      
+      {/* 🚀 Spacious Mobile-First Multi-Livestock Sector Switcher Ribbon Header */}
+      <div className="grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-xl no-print">
+        {(['cattle', 'goats', 'sheep', 'pigs'] as const).map((sec) => (
+          <button
+            key={sec}
+            onClick={() => { 
+              setCurrentSector(sec); 
+              setLivestockView('menu'); // Automatically resets view back to parent menu when switching species
+            }}
+            className={`py-2 text-[10px] font-black uppercase rounded-lg transition-all text-center ${
+              currentSector === sec ? 'bg-slate-800 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/50'
+            }`}
+          >
+            {sec === 'cattle' ? '🐄' : sec === 'goats' ? '🐐' : sec === 'sheep' ? '🐑' : '🐖'}
+            <span className="block mt-0.5 text-[8px]">{sec}</span>
+          </button>
+        ))}
+      </div>
+
       {/* 🧭 Isolated Back Ribbon Navigation */}
       {livestockView !== 'menu' && (
         <button
           onClick={() => setLivestockView('menu')}
           className="text-[11px] text-blue-600 hover:text-blue-700 font-black tracking-wide uppercase flex items-center gap-1 transition-all mb-1"
         >
-          ← Back to Livestock Sub-Menu
+          ← Back to {currentSector} Sub-Menu
         </button>
       )}
 
-      {/* VIEW A: LANDING MENU OPTIONS */}
-      {livestockView === 'menu' && (
-        <div className="space-y-3">
-          <div className="bg-white border border-slate-200/80 p-4 rounded-2xl flex justify-between items-center shadow-xs">
-            <div>
-              <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">Livestock Hub</h3>
-              <p className="text-[10px] text-slate-400">Manage individual cattle metrics or quick aggregate small stock balances</p>
-            </div>
-          </div>
+      {/* ========================================================
+          🐄 SECTOR 1: CATTLE MODULE ENVIRONMENT
+         ======================================================== */}
+      {currentSector === 'cattle' && (
+        <>
 
-          <div className="grid grid-cols-1 gap-3">
-            {/* 1. Deep Cattle Registry */}
-            <button 
-              onClick={() => setLivestockView('registry')} 
-              className="w-full bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:border-slate-300 transition-colors group"
-            >
-              <div>
-                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
-                  🐮 Cattle Registry & Life Stages
-                </h4>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Track individual calves, heifers, breeding bulls, & streaming cows</p>
+          {/* VIEW A: LANDING MENU OPTIONS */}
+          {livestockView === 'menu' && (
+            <div className="space-y-3">
+              <div className="bg-white border border-slate-200/80 p-4 rounded-2xl flex justify-between items-center shadow-xs">
+                <div>
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">Livestock Hub</h3>
+                  <p className="text-[10px] text-slate-400">Manage individual cattle metrics or quick aggregate small stock balances</p>
+                </div>
               </div>
-              <span className="text-sm font-bold text-blue-600">Manage →</span>
-            </button>
 
-            {/* 2. Cattle Feeding Allotments */}
-            <button 
-              onClick={() => setLivestockView('feeding')} 
-              className="w-full bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:border-slate-300 transition-colors group"
-            >
-              <div>
-                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
-                  🌾 Feeding Matrix Per Head
-                </h4>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Configure precise daily feed weights with required vet sign-offs</p>
-              </div>
-              <span className="text-sm font-bold text-blue-600">Manage →</span>
-            </button>
-
-            {/* 🟢 INSERTED HERE: 3. Historical Nutrition Audit Logs Menu Button */}
-            <button 
-              onClick={() => setLivestockView('history')} 
-              className="w-full bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:border-slate-300 transition-colors group"
-            >
-              <div>
-                <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
-                  📜 Nutrition Audit Logs
-                </h4>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">Scroll through comprehensive daily feeding allocations histories</p>
-              </div>
-              <span className="text-sm font-bold text-blue-600">History →</span>
-            </button>
-
-            {/* 4. Other Livestock (Goats, Sheep, Pigs.) */}
-            <div className="bg-slate-100/50 p-4 rounded-2xl border border-slate-200 space-y-2.5">
-              <div className="flex justify-between items-center">
-                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">🐐 Small Stock Aggregate Fields</h4>
+              <div className="grid grid-cols-1 gap-3">
+                {/* 1. Deep Cattle Registry */}
                 <button 
-                  onClick={() => {
-                    // This links straight to the parent's aggregate update form overlay you already built!
-                    // Assuming you pass setIsLiveModalOpen down as a prop if desired, or handle locally.
-                    alert("Click '+ UPDATE STOCK' at the top banner to alter quick aggregate numbers for Goats & Sheep.");
-                  }}
-                  className="text-[9px] bg-slate-800 text-white font-bold px-2 py-1 rounded-md uppercase"
+                  onClick={() => setLivestockView('registry')} 
+                  className="w-full bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:border-slate-300 transition-colors group"
                 >
-                  Quick Log
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
+                      🐮 Cattle Registry & Life Stages
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-medium mt-0.5">Track individual calves, heifers, breeding bulls, & streaming cows</p>
+                  </div>
+                  <span className="text-sm font-bold text-blue-600">Manage →</span>
+                </button>
+
+                {/* 2. Cattle Feeding Allotments */}
+                <button 
+                  onClick={() => setLivestockView('feeding')} 
+                  className="w-full bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:border-slate-300 transition-colors group"
+                >
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
+                      🌾 Feeding Matrix Per Head
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-medium mt-0.5">Configure precise daily feed weights with required vet sign-offs</p>
+                  </div>
+                  <span className="text-sm font-bold text-blue-600">Manage →</span>
+                </button>
+
+                {/* 🟢 INSERTED HERE: 3. Historical Nutrition Audit Logs Menu Button */}
+                <button 
+                  onClick={() => setLivestockView('history')} 
+                  className="w-full bg-white p-4 rounded-2xl border border-slate-200/60 shadow-xs flex justify-between items-center text-left hover:border-slate-300 transition-colors group"
+                >
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900 uppercase tracking-wider group-hover:text-blue-600 transition-colors">
+                      📜 Nutrition Audit Logs
+                    </h4>
+                    <p className="text-[11px] text-slate-400 font-medium mt-0.5">Scroll through comprehensive daily feeding allocations histories</p>
+                  </div>
+                  <span className="text-sm font-bold text-blue-600">History →</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW B: INDIVIDUAL CATTLE REGISTRY LEDGER */}
+          {livestockView === 'registry' && (
+            <div className="space-y-4">
+              <div className="bg-white border border-slate-200/80 p-4 rounded-2xl flex justify-between items-center shadow-xs">
+                <div>
+                  <h4 className="text-xs font-black text-slate-900 uppercase tracking-wide">Active Cattle Registry</h4>
+                  <p className="text-[10px] text-slate-400">Granular tracking per identification marker</p>
+                </div>
+                <button 
+                  onClick={() => setIsNewCattleModalOpen(true)} 
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[11px] tracking-wide py-2 px-3.5 rounded-xl transition-all shadow-xs"
+                >
+                  + REGISTER ANIMAL
                 </button>
               </div>
 
-              {/* Keeps your original visual inventory status block operating on screen */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-white p-3 rounded-xl border border-slate-200 flex justify-between items-center">
-                  <div>
-                    <span className="text-[10px] font-black text-slate-400 block uppercase">Goats</span>
-                    <span className="text-xs font-black text-slate-700">Tracked in Batches</span>
-                  </div>
-                  <span className="text-lg">🐐</span>
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Verified Stock Listing</h4>
+                  {loading && <span className="text-[9px] font-bold text-blue-600 animate-pulse uppercase">Syncing...</span>}
                 </div>
-                <div className="bg-white p-3 rounded-xl border border-slate-200 flex justify-between items-center">
-                  <div>
-                    <span className="text-[10px] font-black text-slate-400 block uppercase">Sheep</span>
-                    <span className="text-xs font-black text-slate-700">Tracked in Batches</span>
-                  </div>
-                  <span className="text-lg">🐑</span>
-                </div>
-              </div>
-            </div>
 
-          </div>
-        </div>
-      )}
+                <div className="space-y-2 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
+                  {animalsList.length === 0 ? (
+                    <p className="text-[11px] text-slate-400 font-medium text-center py-4">No individual cattle registered yet</p>
+                  ) : (
+                    animalsList.map((animal) => {
+                      let badgeStyles = 'text-slate-600 bg-slate-50';
+                      let stageLabel = animal.stage.replace('_', ' ');
 
-      {/* VIEW B: INDIVIDUAL CATTLE REGISTRY LEDGER */}
-      {livestockView === 'registry' && (
-        <div className="space-y-4">
-          <div className="bg-white border border-slate-200/80 p-4 rounded-2xl flex justify-between items-center shadow-xs">
-            <div>
-              <h4 className="text-xs font-black text-slate-900 uppercase tracking-wide">Active Cattle Registry</h4>
-              <p className="text-[10px] text-slate-400">Granular tracking per identification marker</p>
-            </div>
-            <button 
-              onClick={() => setIsNewCattleModalOpen(true)} 
-              className="bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-[11px] tracking-wide py-2 px-3.5 rounded-xl transition-all shadow-xs"
-            >
-              + REGISTER ANIMAL
-            </button>
-          </div>
+                      if (animal.stage === 'PREG_STEAMING') {
+                        stageLabel = '🤰 Steaming Cow';
+                        badgeStyles = 'text-amber-700 bg-amber-50 border border-amber-200';
+                      } else if (animal.stage === 'CALF') {
+                        stageLabel = '🍼 Calf';
+                      } else if (animal.stage === 'BULL') {
+                        stageLabel = '🐂 Breeding Bull';
+                        badgeStyles = 'text-blue-700 bg-blue-50';
+                      }
 
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-            <div className="flex justify-between items-center mb-3">
-              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Verified Stock Listing</h4>
-              {loading && <span className="text-[9px] font-bold text-blue-600 animate-pulse uppercase">Syncing...</span>}
-            </div>
-
-            <div className="space-y-2 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
-              {animalsList.length === 0 ? (
-                <p className="text-[11px] text-slate-400 font-medium text-center py-4">No individual cattle registered yet</p>
-              ) : (
-                animalsList.map((animal) => {
-                  let badgeStyles = 'text-slate-600 bg-slate-50';
-                  let stageLabel = animal.stage.replace('_', ' ');
-
-                  if (animal.stage === 'PREG_STEAMING') {
-                    stageLabel = '🤰 Steaming Cow';
-                    badgeStyles = 'text-amber-700 bg-amber-50 border border-amber-200';
-                  } else if (animal.stage === 'CALF') {
-                    stageLabel = '🍼 Calf';
-                  } else if (animal.stage === 'BULL') {
-                    stageLabel = '🐂 Breeding Bull';
-                    badgeStyles = 'text-blue-700 bg-blue-50';
-                  }
-
-                  return (
-                    <div key={animal.animal_id} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-xl border border-slate-100">
-                      <div>
-                        <p className="text-xs font-black text-slate-900">Tag: {animal.tag_number}</p>
-                        <p className="text-[10px] text-slate-400 font-bold capitalize mt-0.5">
-                          Sex: {animal.gender.toLowerCase()} • {stageLabel}
-                        </p>
-                      </div>
+                      return (
+                        <div key={animal.animal_id} className="flex justify-between items-center p-3 bg-slate-50/50 rounded-xl border border-slate-100">
+                          <div>
+                            <p className="text-xs font-black text-slate-900">Tag: {animal.tag_number}</p>
+                            <p className="text-[10px] text-slate-400 font-bold capitalize mt-0.5">
+                              Sex: {animal.gender.toLowerCase()} • {stageLabel}
+                            </p>
+                          </div>
         
 
-                      {/* 🛠️ Action Controls Container aligned on the right matching mobile responsive rules */}
-                      <div className="flex items-center space-x-2">
-                        <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${badgeStyles}`}>
-                          {animal.stage}
-                        </span>
-                        
-                        {/* 🛑 Inline Operational Delete Button */}
-                        <button
-                          onClick={() => handleDeleteFaultyFeed(animal.regime_id!, animal.tag_number)}
-                          className="text-[9px] bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 px-2 py-0.5 rounded-md font-extrabold uppercase transition-all tracking-wide"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-
-      {/* VIEW C: INDIVIDUAL VET FEEDING REGIMES */}
-      {livestockView === 'feeding' && (
-        <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl shadow-xs">
-            <div className="flex items-center gap-1.5 mb-1 text-[11px] font-black text-blue-900 uppercase">
-              <span>🩺</span> Veterinary Matrix Guard
-            </div>
-            <p className="text-[10px] text-blue-800 leading-relaxed font-medium">
-              Kenyan veterinary rules require careful feeding per animal. Steaming cows require transition minerals to prevent milk fever or metabolic shock.
-            </p>
-          </div>
-
-          {/* 🟢 INSERTED HERE: Dynamic Bulk Mixing Dashboard Insight Widget */}
-          <div className="bg-emerald-800 text-white p-4 rounded-2xl shadow-xs text-left">
-            <span className="text-[10px] font-black uppercase tracking-wider block opacity-75">Daily Cowshed Mix Directions</span>
-            
-            <div className="mt-2 space-y-2 divide-y divide-emerald-700/50">
-              {Array.from(new Set(animalsList.map(a => a.stage))).map((uniqueStage) => {
-                const target = animalsList.find(a => a.stage === uniqueStage);
-                if (!target || !target.stage_total_mix_kg) return null;
-                
-                return (
-                  <div key={uniqueStage} className="pt-2 flex justify-between items-center text-xs">
-                    <div>
-                      <p className="font-black capitalize">{uniqueStage.toLowerCase().replace('_', ' ')} Stage</p>
-                      <p className="text-[10px] opacity-75">{target.stage_head_count} Head • {target.feed_type || 'Standard Diet'}</p>
-                    </div>
-                    <span className="bg-emerald-950 px-2 py-1 rounded-lg font-black text-[11px]">
-                      {target.stage_total_mix_kg} KG Total
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-3">Individual Daily Feed Schedules</h4>
-            <div className="space-y-2">
-              {animalsList.length === 0 ? (
-                <p className="text-[11px] text-slate-400 font-medium text-center py-4">
-                  Register records inside your herd registry to map out feed distributions
-                </p>
-              ) : (
-                animalsList.map((animal) => {
-                  // 📊 Calculate Feed Conversion Efficiency dynamically on the fly
-                  const dailyFeedKg = animal.amount_kg_per_day || 0;
-                  const todayLitres = animal.total_today_litres || 0;
-                  
-                  let efficiencyRatio = 0;
-                  let efficiencyBadgeColor = "text-slate-500 bg-slate-50";
-                  let efficiencyText = "No Intake/Yield Data";
-
-                  if (dailyFeedKg > 0 && todayLitres > 0) {
-                    efficiencyRatio = parseFloat((todayLitres / dailyFeedKg).toFixed(2));
-                    
-                    if (efficiencyRatio >= 1.3) {
-                      efficiencyBadgeColor = "text-emerald-700 bg-emerald-50 border border-emerald-100";
-                      efficiencyText = `🎯 Optimal Efficiency: ${efficiencyRatio} L/KG`;
-                    } else if (efficiencyRatio >= 1.0) {
-                      efficiencyBadgeColor = "text-amber-700 bg-amber-50 border border-amber-100";
-                      efficiencyText = `⚠️ Moderate Yield: ${efficiencyRatio} L/KG`;
-                    } else {
-                      efficiencyBadgeColor = "text-rose-700 bg-rose-50 border border-rose-100";
-                      efficiencyText = `📉 Low Conversion: ${efficiencyRatio} L/KG`;
-                    }
-                  } else if (dailyFeedKg > 0 && todayLitres === 0 && animal.stage === 'DAIRY_LACTATING') {
-                    efficiencyText = "⏳ Pending Today's Milking Logs";
-                    efficiencyBadgeColor = "text-blue-600 bg-blue-50/50";
-                  }
-
-                  return (
-                    <div key={animal.animal_id} className="p-3 bg-white rounded-2xl border border-slate-200/60 shadow-xs flex flex-col space-y-3 text-xs text-left mb-3">
-                      
-                      {/* Top Section: Tag, Stage, and Yield display parameters */}
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-0.5">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-black text-slate-900 text-sm">Tag: {animal.tag_number}</span>
-                            <span className="text-[8px] bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded font-bold text-slate-500 uppercase">
-                              {animal.stage.replace('_', ' ')}
+                          {/* 🛠️ Action Controls Container aligned on the right matching mobile responsive rules */}
+                          <div className="flex items-center space-x-2">
+                            <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${badgeStyles}`}>
+                              {animal.stage}
                             </span>
+                        
+                            {/* 🛑 Inline Operational Delete Button */}
+                            <button
+                              onClick={() => handleDeleteFaultyFeed(animal.regime_id!, animal.tag_number)}
+                              className="text-[9px] bg-rose-50 border border-rose-200 text-rose-600 hover:bg-rose-100 px-2 py-0.5 rounded-md font-extrabold uppercase transition-all tracking-wide"
+                            >
+                              Delete
+                            </button>
                           </div>
-                          <p className="text-[10px] text-slate-400 font-medium mt-1">
-                            Ration: <span className="font-bold text-slate-600">{dailyFeedKg} kg/day</span> of {animal.feed_type || 'Unassigned Feed'}
-                          </p>
                         </div>
-
-                        {/* Yield Metric Display Container Badge */}
-                        {animal.stage === 'DAIRY_LACTATING' && (
-                          <div className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-center shadow-2xs border border-blue-100">
-                            <span className="text-[8px] font-black uppercase tracking-wider block opacity-70">Today</span>
-                            <span className="font-black text-xs">{todayLitres}L</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 📊 NEW INSIGHT STRIP: Real-Time Feed Conversion Ratio Indicator */}
-                      {animal.stage === 'DAIRY_LACTATING' && (
-                        <div className={`p-2 rounded-xl text-[10px] font-black flex items-center justify-between ${efficiencyBadgeColor}`}>
-                          <span>{efficiencyText}</span>
-                          {efficiencyRatio > 0 && (
-                            <span className="opacity-60 text-[8px] font-medium">Litres per 1KG feed</span>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Middle Section: Accountability Guard Lines */}
-                      <div className="border-t border-dashed border-slate-100 pt-2 flex justify-between items-center">
-                        {animal.vet_verified ? (
-                          <p className="text-[9px] text-emerald-600 font-bold flex items-center gap-0.5">
-                            ✓ Vet Approved {animal.vet_name && `(${animal.vet_name})`}
-                          </p>
-                        ) : (
-                          <p className="text-[9px] text-rose-500 font-black uppercase tracking-wide">⚠️ Unverified Matrix</p>
-                        )}
-                      </div>
-
-                      {/* Bottom Action Ribbon Layout: Grid Built for Fat Thumbs */}
-                      <div className="grid grid-cols-3 gap-2 pt-1">
-                        <button
-                          onClick={() => {
-                            setSelectedAnimalForFeed(animal);
-                            setPrescribedFeedType(animal.feed_type || 'Dairy Meal');
-                            setPrescribedAmountKg(dailyFeedKg ? dailyFeedKg.toString() : '');
-                            setIsPrescriptionModalOpen(true);
-                          }}
-                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] py-2.5 rounded-xl text-center uppercase transition-all border border-slate-200/50"
-                        >
-                          ⚙️ Diet
-                        </button>
-
-                        {animal.stage === 'DAIRY_LACTATING' ? (
-                          <button
-                            onClick={() => {
-                              setSelectedAnimalForMilk(animal);
-                              setIsMilkModalOpen(true);
-                            }}
-                            className="bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] py-2.5 rounded-xl text-center uppercase tracking-wide transition-all shadow-xs"
-                          >
-                            🥛 + Milk
-                          </button>
-                        ) : (
-                          <div className="bg-slate-50 text-slate-300 font-bold text-[9px] py-2.5 rounded-xl text-center uppercase flex items-center justify-center select-none border border-slate-100">
-                            Dry Stage
-                          </div>
-                        )}
-
-                        <button
-                          onClick={() => handleDeleteFaultyFeed(animal.regime_id!, animal.tag_number)}
-                          className="bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 py-2.5 rounded-xl text-center font-extrabold text-[10px] uppercase transition-all"
-                        >
-                          🗑️ Delete
-                        </button>
-                      </div>
-
-                    </div>
-                  );
-                })
-              )}
+                      );
+                    })
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-      )}  
+          )}
+
+
+          {/* VIEW C: INDIVIDUAL VET FEEDING REGIMES */}
+          {livestockView === 'feeding' && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-2xl shadow-xs">
+                <div className="flex items-center gap-1.5 mb-1 text-[11px] font-black text-blue-900 uppercase">
+                  <span>🩺</span> Veterinary Matrix Guard
+                </div>
+                <p className="text-[10px] text-blue-800 leading-relaxed font-medium">
+                  Kenyan veterinary rules require careful feeding per animal. Steaming cows require transition minerals to prevent milk fever or metabolic shock.
+                </p>
+              </div>
+
+              {/* 🟢 INSERTED HERE: Dynamic Bulk Mixing Dashboard Insight Widget */}
+              <div className="bg-emerald-800 text-white p-4 rounded-2xl shadow-xs text-left">
+                <span className="text-[10px] font-black uppercase tracking-wider block opacity-75">Daily Cowshed Mix Directions</span>
+            
+                <div className="mt-2 space-y-2 divide-y divide-emerald-700/50">
+                  {Array.from(new Set(animalsList.map(a => a.stage))).map((uniqueStage) => {
+                    const target = animalsList.find(a => a.stage === uniqueStage);
+                    if (!target || !target.stage_total_mix_kg) return null;
+                
+                    return (
+                      <div key={uniqueStage} className="pt-2 flex justify-between items-center text-xs">
+                        <div>
+                          <p className="font-black capitalize">{uniqueStage.toLowerCase().replace('_', ' ')} Stage</p>
+                          <p className="text-[10px] opacity-75">{target.stage_head_count} Head • {target.feed_type || 'Standard Diet'}</p>
+                        </div>
+                        <span className="bg-emerald-950 px-2 py-1 rounded-lg font-black text-[11px]">
+                          {target.stage_total_mix_kg} KG Total
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-3">Individual Daily Feed Schedules</h4>
+                <div className="space-y-2">
+                  {animalsList.length === 0 ? (
+                    <p className="text-[11px] text-slate-400 font-medium text-center py-4">
+                      Register records inside your herd registry to map out feed distributions
+                    </p>
+                  ) : (
+                    animalsList.map((animal) => {
+                      // 📊 Calculate Feed Conversion Efficiency dynamically on the fly
+                      const dailyFeedKg = animal.amount_kg_per_day || 0;
+                      const todayLitres = animal.total_today_litres || 0;
+                  
+                      let efficiencyRatio = 0;
+                      let efficiencyBadgeColor = "text-slate-500 bg-slate-50";
+                      let efficiencyText = "No Intake/Yield Data";
+
+                      if (dailyFeedKg > 0 && todayLitres > 0) {
+                        efficiencyRatio = parseFloat((todayLitres / dailyFeedKg).toFixed(2));
+                    
+                        if (efficiencyRatio >= 1.3) {
+                          efficiencyBadgeColor = "text-emerald-700 bg-emerald-50 border border-emerald-100";
+                          efficiencyText = `🎯 Optimal Efficiency: ${efficiencyRatio} L/KG`;
+                        } else if (efficiencyRatio >= 1.0) {
+                          efficiencyBadgeColor = "text-amber-700 bg-amber-50 border border-amber-100";
+                          efficiencyText = `⚠️ Moderate Yield: ${efficiencyRatio} L/KG`;
+                        } else {
+                          efficiencyBadgeColor = "text-rose-700 bg-rose-50 border border-rose-100";
+                          efficiencyText = `📉 Low Conversion: ${efficiencyRatio} L/KG`;
+                        }
+                      } else if (dailyFeedKg > 0 && todayLitres === 0 && animal.stage === 'DAIRY_LACTATING') {
+                        efficiencyText = "⏳ Pending Today's Milking Logs";
+                        efficiencyBadgeColor = "text-blue-600 bg-blue-50/50";
+                      }
+
+                      return (
+                        <div key={animal.animal_id} className="p-3 bg-white rounded-2xl border border-slate-200/60 shadow-xs flex flex-col space-y-3 text-xs text-left mb-3">
+                      
+                          {/* Top Section: Tag, Stage, and Yield display parameters */}
+                          <div className="flex justify-between items-start">
+                            <div className="space-y-0.5">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-black text-slate-900 text-sm">Tag: {animal.tag_number}</span>
+                                <span className="text-[8px] bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded font-bold text-slate-500 uppercase">
+                                  {animal.stage.replace('_', ' ')}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-slate-400 font-medium mt-1">
+                                Ration: <span className="font-bold text-slate-600">{dailyFeedKg} kg/day</span> of {animal.feed_type || 'Unassigned Feed'}
+                              </p>
+                            </div>
+
+                            {/* Yield Metric Display Container Badge */}
+                            {animal.stage === 'DAIRY_LACTATING' && (
+                              <div className="bg-blue-50 text-blue-700 px-3 py-1.5 rounded-xl text-center shadow-2xs border border-blue-100">
+                                <span className="text-[8px] font-black uppercase tracking-wider block opacity-70">Today</span>
+                                <span className="font-black text-xs">{todayLitres}L</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* 📊 NEW INSIGHT STRIP: Real-Time Feed Conversion Ratio Indicator */}
+                          {animal.stage === 'DAIRY_LACTATING' && (
+                            <div className={`p-2 rounded-xl text-[10px] font-black flex items-center justify-between ${efficiencyBadgeColor}`}>
+                              <span>{efficiencyText}</span>
+                              {efficiencyRatio > 0 && (
+                                <span className="opacity-60 text-[8px] font-medium">Litres per 1KG feed</span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Middle Section: Accountability Guard Lines */}
+                          <div className="border-t border-dashed border-slate-100 pt-2 flex justify-between items-center">
+                            {animal.vet_verified ? (
+                              <p className="text-[9px] text-emerald-600 font-bold flex items-center gap-0.5">
+                                ✓ Vet Approved {animal.vet_name && `(${animal.vet_name})`}
+                              </p>
+                            ) : (
+                              <p className="text-[9px] text-rose-500 font-black uppercase tracking-wide">⚠️ Unverified Matrix</p>
+                            )}
+                          </div>
+
+                          {/* Bottom Action Ribbon Layout: Grid Built for Fat Thumbs */}
+                          <div className="grid grid-cols-3 gap-2 pt-1">
+                            <button
+                              onClick={() => {
+                                setSelectedAnimalForFeed(animal);
+                                setPrescribedFeedType(animal.feed_type || 'Dairy Meal');
+                                setPrescribedAmountKg(dailyFeedKg ? dailyFeedKg.toString() : '');
+                                setIsPrescriptionModalOpen(true);
+                              }}
+                              className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-[10px] py-2.5 rounded-xl text-center uppercase transition-all border border-slate-200/50"
+                            >
+                              ⚙️ Diet
+                            </button>
+
+                            {animal.stage === 'DAIRY_LACTATING' ? (
+                              <button
+                                onClick={() => {
+                                  setSelectedAnimalForMilk(animal);
+                                  setIsMilkModalOpen(true);
+                                }}
+                                className="bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] py-2.5 rounded-xl text-center uppercase tracking-wide transition-all shadow-xs"
+                              >
+                                🥛 + Milk
+                              </button>
+                            ) : (
+                              <div className="bg-slate-50 text-slate-300 font-bold text-[9px] py-2.5 rounded-xl text-center uppercase flex items-center justify-center select-none border border-slate-100">
+                                Dry Stage
+                              </div>
+                            )}
+
+                            <button
+                              onClick={() => handleDeleteFaultyFeed(animal.regime_id!, animal.tag_number)}
+                              className="bg-rose-50 border border-rose-100 text-rose-600 hover:bg-rose-100 py-2.5 rounded-xl text-center font-extrabold text-[10px] uppercase transition-all"
+                            >
+                              🗑️ Delete
+                            </button>
+                          </div>
+
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            </div>
+          )}  
      
 
-      {/* VIEW D: HISTORICAL NUTRICIAL AUDIT LEDGER TRAIL RECOVERY PANELS */}
-      {livestockView === 'history' && (
-        <div className="space-y-4">
+          {/* VIEW D: HISTORICAL NUTRICIAL AUDIT LEDGER TRAIL RECOVERY PANELS */}
+          {livestockView === 'history' && (
+            <div className="space-y-4">
           
-          {/* Informative Informational Analytics Helper Ribbon */}
-          <div className="bg-slate-100 border border-slate-200 p-4 rounded-2xl text-left shadow-xs">
-            <div className="flex items-center gap-1.5 mb-1 text-[11px] font-black text-slate-700 uppercase">
-              <span>📊</span> Nutritional Compliance Insight
-            </div>
-            <p className="text-[10px] text-slate-500 leading-relaxed font-medium">
-              This log represents an automated daily snapshot captured by background workers at 06:00 PM EAT. It tracks actual ration volumes served per animal for long-term health tracking.
-            </p>
-          </div>
-
-          {/* Dynamic Feed Audit Trail Container Box (Enriched with printable classes) */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs text-left printable-audit-ledger">
-            <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
-              <div>
-                <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Nutrition Audit Report</h4>
-                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wide">Workspace ID: {shopId} • {farmName}</p>
+              {/* Informative Informational Analytics Helper Ribbon */}
+              <div className="bg-slate-100 border border-slate-200 p-4 rounded-2xl text-left shadow-xs">
+                <div className="flex items-center gap-1.5 mb-1 text-[11px] font-black text-slate-700 uppercase">
+                  <span>📊</span> Nutritional Compliance Insight
+                </div>
+                <p className="text-[10px] text-slate-500 leading-relaxed font-medium">
+                  This log represents an automated daily snapshot captured by background workers at 06:00 PM EAT. It tracks actual ration volumes served per animal for long-term health tracking.
+                </p>
               </div>
-              
-              {/* 📄 Mobile-Responsive Excel / CSV Data Generation Action */}
-              <button
-                onClick={() => {
-                  if (historyLogsList.length === 0) return alert("No ledger logs available to export.");
-    
-                  // 1. Establish clear tabular header values
-                  const headers = ["Date/Time", "Animal Tag", "Lifecycle Stage", "Feed Type Served", "Volume (KG)", "Logged By Role", "Vet Verified"];
-    
-                  // 2. Map row records, removing line breaks or commas that could break CSV structure
-                  const rows = historyLogsList.map(log => [
-                    `"${log.formatted_date}"`,
-                    `"${log.tag_number}"`,
-                    `"${log.stage}"`,
-                    `"${log.feed_type_served}"`,
-                    log.quantity_served_kg,
-                    `"${log.authorized_by_role}"`,
-                    log.was_vet_approved ? "YES" : "NO"
-                  ]);
 
-                  // 3. Compile the structural rows matrix array layout string
-                  const csvString = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-    
-                  // 4. 🔥 FIX: Convert raw text string into a formal binary file memory block (Blob object)
-                  const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
-    
-                  // 5. Generate an explicit virtual file reference URL that mobile browsers can naturally resolve
-                  const blobUrl = window.URL.createObjectURL(blob);
-    
-                  // 6. Programmatically trigger a standard document download anchor action space bounds
-                  const link = document.createElement("a");
-                  link.href = blobUrl;
-                  link.setAttribute("download", `Nutrition_Audit_Report_Shop_${shopId || '81'}.csv`);
-                  document.body.appendChild(link);
-    
-                  link.click(); // Fires the binary document download stream natively on Android/iOS
-    
-                  // 7. Free up mobile browser RAM memory space cleanly after transmission
-                  document.body.removeChild(link);
-                  window.URL.revokeObjectURL(blobUrl);
-                }}
-                className="bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-[10px] tracking-wide py-1.5 px-3 rounded-xl transition-all shadow-xs uppercase"
-              >
-                📊 Export Spreadsheet
-              </button>
-
-            </div>
-
-            {/* Scroll tracking lists container viewport */}
-            <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
-              {historyLogsList.length === 0 ? (
-                <p className="text-[11px] text-slate-400 font-medium text-center py-6">No historical nutritional ledger entries on file</p>
-              ) : (
-                historyLogsList.map((log) => (
-                  <div key={log.id} className="flex justify-between items-center p-2.5 bg-slate-50/50 rounded-xl border border-slate-100/80 text-xs break-inside-avoid">
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400 no-print"></span>
-                        <span className="font-black text-slate-800 text-[11px]">Tag: {log.tag_number}</span>
-                        <span className="text-[9px] bg-slate-200 px-1 rounded text-slate-500 uppercase font-bold">{log.stage.toLowerCase()}</span>
-                      </div>
-                      <p className="text-[10px] text-slate-400 font-medium">
-                        Served {log.feed_type_served} • Logged by <span className="capitalize font-semibold text-slate-600">{log.authorized_by_role.replace('_', ' ')}</span>
-                      </p>
-                      <p className="text-[9px] text-slate-300 font-bold print:text-slate-500">{log.formatted_date}</p>
-                    </div>
-                    
-                    <div className="text-right">
-                      <span className="font-black text-[11px] text-slate-800 block">
-                        {log.quantity_served_kg} KG
-                      </span>
-                      {log.was_vet_approved ? (
-                        <span className="text-[8px] text-emerald-600 font-extrabold uppercase tracking-wide">✓ Vet Sign</span>
-                      ) : (
-                        <span className="text-[8px] text-amber-600 font-extrabold uppercase tracking-wide">⚠️ Unsigned</span>
-                      )}
-                    </div>
+              {/* Dynamic Feed Audit Trail Container Box (Enriched with printable classes) */}
+              <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs text-left printable-audit-ledger">
+                <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
+                  <div>
+                    <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider">Nutrition Audit Report</h4>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wide">Workspace ID: {shopId} • {farmName}</p>
                   </div>
-                ))
-              )}  
+              
+                  {/* 📄 Mobile-Responsive Excel / CSV Data Generation Action */}
+                  <button
+                    onClick={() => {
+                      if (historyLogsList.length === 0) return alert("No ledger logs available to export.");
+    
+                      // 1. Establish clear tabular header values
+                      const headers = ["Date/Time", "Animal Tag", "Lifecycle Stage", "Feed Type Served", "Volume (KG)", "Logged By Role", "Vet Verified"];
+    
+                      // 2. Map row records, removing line breaks or commas that could break CSV structure
+                      const rows = historyLogsList.map(log => [
+                        `"${log.formatted_date}"`,
+                        `"${log.tag_number}"`,
+                        `"${log.stage}"`,
+                        `"${log.feed_type_served}"`,
+                        log.quantity_served_kg,
+                        `"${log.authorized_by_role}"`,
+                        log.was_vet_approved ? "YES" : "NO"
+                      ]);
 
+                      // 3. Compile the structural rows matrix array layout string
+                      const csvString = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
+    
+                      // 4. 🔥 FIX: Convert raw text string into a formal binary file memory block (Blob object)
+                      const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    
+                      // 5. Generate an explicit virtual file reference URL that mobile browsers can naturally resolve
+                      const blobUrl = window.URL.createObjectURL(blob);
+    
+                      // 6. Programmatically trigger a standard document download anchor action space bounds
+                      const link = document.createElement("a");
+                      link.href = blobUrl;
+                      link.setAttribute("download", `Nutrition_Audit_Report_Shop_${shopId || '81'}.csv`);
+                      document.body.appendChild(link);
+    
+                      link.click(); // Fires the binary document download stream natively on Android/iOS
+    
+                      // 7. Free up mobile browser RAM memory space cleanly after transmission
+                      document.body.removeChild(link);
+                      window.URL.revokeObjectURL(blobUrl);
+                    }}
+                    className="bg-slate-800 hover:bg-slate-900 text-white font-extrabold text-[10px] tracking-wide py-1.5 px-3 rounded-xl transition-all shadow-xs uppercase"
+                  >
+                    📊 Export Spreadsheet
+                  </button>
+
+                </div>
+
+                {/* Scroll tracking lists container viewport */}
+                <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
+                  {historyLogsList.length === 0 ? (
+                    <p className="text-[11px] text-slate-400 font-medium text-center py-6">No historical nutritional ledger entries on file</p>
+                  ) : (
+                    historyLogsList.map((log) => (
+                      <div key={log.id} className="flex justify-between items-center p-2.5 bg-slate-50/50 rounded-xl border border-slate-100/80 text-xs break-inside-avoid">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-400 no-print"></span>
+                            <span className="font-black text-slate-800 text-[11px]">Tag: {log.tag_number}</span>
+                            <span className="text-[9px] bg-slate-200 px-1 rounded text-slate-500 uppercase font-bold">{log.stage.toLowerCase()}</span>
+                          </div>
+                          <p className="text-[10px] text-slate-400 font-medium">
+                            Served {log.feed_type_served} • Logged by <span className="capitalize font-semibold text-slate-600">{log.authorized_by_role.replace('_', ' ')}</span>
+                          </p>
+                          <p className="text-[9px] text-slate-300 font-bold print:text-slate-500">{log.formatted_date}</p>
+                        </div>
+                    
+                        <div className="text-right">
+                          <span className="font-black text-[11px] text-slate-800 block">
+                            {log.quantity_served_kg} KG
+                          </span>
+                          {log.was_vet_approved ? (
+                            <span className="text-[8px] text-emerald-600 font-extrabold uppercase tracking-wide">✓ Vet Sign</span>
+                          ) : (
+                            <span className="text-[8px] text-amber-600 font-extrabold uppercase tracking-wide">⚠️ Unsigned</span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}  
+
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+        </>
+      )}
+
+      
+      {/* ========================================================
+          🐐 SECTOR 2: GOATS MODULE ENVIRONMENT
+         ======================================================== */}
+      {currentSector === 'goats' && (
+        <div className="text-center text-xs text-slate-400 py-8 bg-white border rounded-2xl shadow-2xs">
+          🐐 Caprine Goat Unit individual tracking layer is securely bound to workspace context.
         </div>
       )}
+
+      {/* ========================================================
+          🐑 SECTOR 3: SHEEP MODULE ENVIRONMENT
+         ======================================================== */}
+      {currentSector === 'sheep' && (
+        <div className="text-center text-xs text-slate-400 py-8 bg-white border rounded-2xl shadow-2xs">
+          🐑 Ovine Sheep Unit individual body condition monitoring tracking loop connected.
+        </div>
+      )}
+
+      {/* ========================================================
+          🐖 SECTOR 4: PIGS MODULE ENVIRONMENT
+         ======================================================== */}
+      {currentSector === 'pigs' && (
+        <PigsHub shopId={shopId} userSession={userSession} />
+      )}
+
+      {/* ========================================================
+          📱 GLOBAL WORKSPACE OVERLAY MODALS 
+          (Must sit inside the parent return wrapper layout container)
+         ======================================================== */}
 
       {/* MODAL 1: REGISTRATION OVERLAY */}
       {isNewCattleModalOpen && (
