@@ -133,9 +133,23 @@ export const PigsHub: React.FC<SectorProps> = ({ shopId, userSession }) => {
         queryN8nMiddleware('FETCH_VET_RECORDS')
       ]);
 
-      if (pigsData) setPigs(pigsData);
-      if (breedingData) setBreedingRecords(breedingData);
-      if (vetData) setVetRecords(vetData);
+      // Normalize fields if your backend returns mixed casing formats
+      if (pigsData && Array.isArray(pigsData)) {
+        const normalizedPigs = pigsData.map((pig: any) => ({
+          ...pig,
+          // Explicitly map shopId to match your variable assignment mapping requirements
+          shop_id: pig.shopId ? parseInt(pig.shopId, 10) : pig.shop_id 
+        }));
+        setPigs(normalizedPigs); // Ensure this matches your active state name (e.g., setAnimals or setPigs)
+      }
+
+      if (breedingData && Array.isArray(breedingData)) {
+        setBreedingRecords(breedingData);
+      }
+
+      if (vetData && Array.isArray(vetData)) {
+        setVetRecords(vetData);
+      }
 
     } catch (err) {
       setError('Unable to securely coordinate records over middleware mesh pipeline.');
