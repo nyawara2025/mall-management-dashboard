@@ -65,9 +65,6 @@ export const PigsHub: React.FC<SectorProps> = ({ shopId, userSession }) => {
   const [animals, setAnimals] = useState<PigAnimal[]>([]);
   const [breedingRecords, setBreedingRecords] = useState<BreedingRecord[]>([]);
   const [vetRecords, setVetRecords] = useState<VetRecord[]>([]);
-
-  // Structural Domain Lists
-  const [pigs, setPigs] = useState<PigAnimal[]>([]);
  
 
   // Hardcoded real-time market data targeted for standard Kenyan markets
@@ -140,7 +137,7 @@ export const PigsHub: React.FC<SectorProps> = ({ shopId, userSession }) => {
           // Explicitly map shopId to match your variable assignment mapping requirements
           shop_id: pig.shopId ? parseInt(pig.shopId, 10) : pig.shop_id 
         }));
-        setPigs(normalizedPigs); // Ensure this matches your active state name (e.g., setAnimals or setPigs)
+        setAnimals(normalizedPigs); // Ensure this matches your active state name (e.g., setAnimals or setPigs)
       }
 
       if (breedingData && Array.isArray(breedingData)) {
@@ -275,12 +272,12 @@ export const PigsHub: React.FC<SectorProps> = ({ shopId, userSession }) => {
             {/* SUB-VIEW TAB 1: PIG ROSTER LIST */}
             {activeTab === 'roster' && (
               <div className="space-y-3">
-                {pigs.length === 0 ? (
+                {animals.length === 0 ? (
                   <div className="p-6 bg-white border rounded-xl text-center text-sm text-gray-400">
                     No animals matched on this network node. Add your first pig.
                   </div>
                 ) : (
-                  pigs.map((p) => (
+                  animals.map((p) => (
                     <div key={p.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm relative overflow-hidden">
                       <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-600"></div>
                       <div className="flex justify-between items-start mb-2">
@@ -423,8 +420,8 @@ export const PigsHub: React.FC<SectorProps> = ({ shopId, userSession }) => {
                   <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wider mb-1 text-emerald-700">🌱 Circular Organic By-products</h3>
                   <p className="text-[11px] text-gray-500 mb-2">Mathematical parameters mapping metrics cross-sector over to crop storage units.</p>
                   <div className="p-2 bg-amber-50 border border-amber-200 text-amber-900 rounded-lg text-xs space-y-1">
-                    <div className="flex justify-between"><span>Est. Collectable Manure Volume:</span> <strong>{(pigs.length * 2.3).toFixed(1)} KG/Day</strong></div>
-                    <div className="flex justify-between text-[11px] opacity-80"><span>Potential Biogas Yield:</span> <span>{(pigs.length * 0.4).toFixed(1)} m³/Day</span></div>
+                    <div className="flex justify-between"><span>Est. Collectable Manure Volume:</span> <strong>{(animals.length * 2.3).toFixed(1)} KG/Day</strong></div>
+                    <div className="flex justify-between text-[11px] opacity-80"><span>Potential Biogas Yield:</span> <span>{(animals.length * 0.4).toFixed(1)} m³/Day</span></div>
                   </div>
                 </div>
               </div>
