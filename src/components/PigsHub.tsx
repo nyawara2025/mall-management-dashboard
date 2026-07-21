@@ -311,6 +311,37 @@ export const PigsHub: React.FC<SectorProps> = ({ shopId, userSession }) => {
             )}
 
             {/* SUB-VIEW TAB 2: SMART BREEDING REGISTER */}
+
+            {/* ==========================================
+                SUB-VIEW TAB 1: SMART HERD ROSTER REGISTER
+               ========================================== */}
+            {activeTab === 'roster' && (
+              <div className="space-y-3">
+                {animals.length === 0 ? (
+                  <div className="bg-white border border-dashed rounded-xl p-8 text-center text-xs text-gray-400 shadow-sm">
+                    No animals matched on this multi-tenant network node.
+                  </div>
+                ) : (
+                  animals.map((animal) => (
+                    <div key={animal.id} className="bg-white p-3 rounded-xl border text-xs shadow-sm">
+                      <div className="flex justify-between font-bold text-gray-900 mb-2 border-b pb-1.5">
+                        <span className="text-emerald-800">🏷️ Tag: {animal.tag_number}</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-100 text-emerald-800 uppercase tracking-wide">
+                          {animal.stage}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 text-gray-600">
+                        <p>🐖 Breed: <span className="font-semibold text-gray-800">{animal.breed}</span></p>
+                        <p>⚥ Gender: <span className="font-semibold text-gray-800">{animal.gender}</span></p>
+                        <p>🛖 Pen ID: <span className="font-semibold text-gray-800">{animal.pen_id || 'Mwalo'}</span></p>
+                        <p>🌾 Rations: <span className="font-semibold text-gray-800">{animal.daily_feed_kg} KG ({animal.feed_type})</span></p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
             {activeTab === 'breeding' && (
               <div className="space-y-3">
                 <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 text-xs text-emerald-800">
