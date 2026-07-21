@@ -81,7 +81,7 @@ export const PigsHub: React.FC<SectorProps> = ({ shopId, userSession }) => {
   // ==========================================
   const queryN8nMiddleware = async (action: string, payload: object = {}) => {
     // Isolated system route point handling communication logic to n8n instance
-    const N8N_WEBHOOK_URL = 'https://n8n.tenear.com/webhook/fetch-pigs2026'; 
+    const N8N_WEBHOOK_URL = 'https://n8n.tenear.com/webhook/fetch-pigs'; 
 
     const response = await fetch(N8N_WEBHOOK_URL, {
       method: 'POST',
@@ -181,7 +181,7 @@ export const PigsHub: React.FC<SectorProps> = ({ shopId, userSession }) => {
       {/* Dynamic Header Block mapping exact system structure properties */}
       <div className="bg-emerald-800 text-white p-4 shadow-sm flex justify-between items-center rounded-b-xl">
         <div>
-          <h1 className="text-lg font-bold tracking-tight">{userSession?.name || 'The Ranch'}</h1>
+          <h1 className="text-lg font-bold tracking-tight">{userSession?.name || 'Nyawara Ranch'}</h1>
           <p className="text-xs text-emerald-100 opacity-90">Tenant Context: {shopId || 'None'}</p>
         </div>
         <div className="bg-emerald-700 text-xs px-2.5 py-1 rounded-full font-medium border border-emerald-600">
