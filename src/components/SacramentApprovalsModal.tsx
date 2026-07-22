@@ -240,79 +240,80 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
               {/* Data Grid Layout */}
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 <table className="w-full text-left border-collapse">
-                  <thead>
+                    <thead>
                       <tr className="bg-slate-100 border-b border-slate-200 text-slate-400 text-[10px] font-black uppercase tracking-wider">
-                        <th className="p-4">Candidate File</th>
-                        <th className="p-4">Parent Records</th>
-                        <th className="p-4">Contact Phone</th>
-                        {/* 🔴 NEW HEADER COLUMN */}
-                        <th className="p-4">Application Date</th>
-                        <th className="p-4">Sacrament Status</th>
+                        <th className="p-4 w-1/4">Candidate File</th>
+                        <th className="p-4 w-1/4">Parent Records</th>
+                        <th className="p-4 w-1/5">Contact Phone</th>
+                        {/* 🔴 FIXED: Added explicit column headers to fit the grid */}
+                        <th className="p-4 w-1/5">Application Date</th>
+                        <th className="p-4 w-1/6 text-right">Sacrament Status</th>
                       </tr>
                     </thead>
-                  <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
-                    {allApplicationsList.map((row) => {
-                      // 🔴 UNPACK THE N8N INTERNAL NESTED PROPERTIES LAYER
-                      // Works flawlessly whether data is wrapped in .json or passed flat
-                      const app = row?.json ? row.json : row;
+                    <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                      {/* 🔴 SORTING MATRIX: Instantly orders applications from Newest to Oldest based on your database timestamps */}
+                      {[...allApplicationsList]
+                        .sort((a, b) => {
+                          const dateA = new Date(a?.json?.created_at || a?.created_at || 0).getTime();
+                          const dateB = new Date(b?.json?.created_at || b?.created_at || 0).getTime();
+                          return dateB - dateA; // Newest records float to the top
+                        })
+                        .map((row) => {
+                          // Standard safety fallback unpack layer
+                          const app = row?.json ? row.json : row;
 
-                      // Schema property extractions with trailing whitespace sanitation
-                      const firstName = app?.candidate_christian_name?.trim() || "";
-                      const lastName = app?.candidate_surname?.trim() || "";
-                      const fullCandidateName = `${firstName} ${lastName}`.trim() || "N/A";
-                      
-                      const contactPhone = app?.applicant_phone_number || app?.phone_number || "N/A";
-                      
-                      // Extracting DOB directly from your verified table keys
-                      const dateOfBirth = app?.date_of_birth || "N/A";
+                          // Extract human-readable string values
+                          const fullCandidateName = app?.candidate_name || "N/A";
+                          const contactPhone = app?.phone_number || "N/A";
+                          const dateOfBirth = app?.dob || "N/A";
 
-                      // Clean human-readable timestamp formatting for the intake log date column
-                      const applicationDate = app?.created_at 
-                        ? new Date(app.created_at).toLocaleDateString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })
-                        : "N/A";
+                          // Format the raw UTC timestamp into a clean date layout (e.g., "Jun 14, 2026")
+                          const applicationDate = app?.created_at 
+                            ? new Date(app.created_at).toLocaleDateString(undefined, {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })
+                            : "N/A";
 
-                      return (
-                        <tr key={app.id || Math.random()} className="hover:bg-slate-50/50 transition-colors">
-                          {/* Candidate File Column */}
-                          <td className="p-4">
-                            <p className="font-bold text-slate-900 uppercase tracking-wide">{fullCandidateName}</p>
-                            <p className="text-[10px] text-gray-400 uppercase mt-0.5">DOB: {dateOfBirth}</p>
-                          </td>
+                          return (
+                            <tr key={app.id || Math.random()} className="hover:bg-slate-50/50 transition-colors">
+                              {/* Column 1: Candidate Profile */}
+                              <td className="p-4">
+                                <p className="font-bold text-slate-900 uppercase tracking-wide">{fullCandidateName}</p>
+                                <p className="text-[10px] text-gray-400 uppercase mt-0.5">DOB: {dateOfBirth}</p>
+                              </td>
 
-                          {/* Parent Contexts Column */}
-                          <td className="p-4 text-slate-500">
-                            <div><span className="font-bold text-slate-400">F:</span> {app.father_name || 'N/A'}</div>
-                            <div><span className="font-bold text-slate-400">M:</span> {app.mother_name || 'N/A'}</div>
-                          </td>
+                              {/* Column 2: Parent References */}
+                              <td className="p-4 text-slate-500">
+                                <div><span className="font-bold text-slate-400">F:</span> {app.father_name || 'N/A'}</div>
+                                <div><span className="font-bold text-slate-400">M:</span> {app.mother_name || 'N/A'}</div>
+                              </td>
 
-                          {/* Contact Phone Column */}
-                          <td className="p-4 font-mono text-slate-600">{contactPhone}</td>
+                              {/* Column 3: Phone Contact Registry */}
+                              <td className="p-4 font-mono text-slate-600">{contactPhone}</td>
 
-                          {/* Application Date Column */}
-                          <td className="p-4">
-                            <p className="text-slate-900 font-semibold">{applicationDate}</p>
-                            <p className="text-[9px] text-slate-400 uppercase mt-0.5">Intake Record Date</p>
-                          </td>
+                              {/* 🔴 Column 4: Application Placement Date (Now visible inside the viewport) */}
+                              <td className="p-4">
+                                <p className="text-slate-900 font-semibold">{applicationDate}</p>
+                                <p className="text-[9px] text-slate-400 uppercase mt-0.5">Intake Timestamp</p>
+                              </td>
 
-                          {/* Sacrament Status Badging Column */}
-                          <td className="p-4">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                              app.status === 'Approved' ? 'bg-green-50 text-green-700' :
-                              app.status === 'Declined' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
-                            }`}>
-                              {app.status || 'Pending'}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
+                              {/* Column 5: Operational Workflow Status */}
+                              <td className="p-4 text-right">
+                                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                                  app.status === 'Approved' ? 'bg-green-50 text-green-700' :
+                                  app.status === 'Declined' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+                                }`}>
+                                  {app.status || 'Pending'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
 
-                </table>
               </div>
             </div>
 
