@@ -124,9 +124,6 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
     const inputDate = prompt("Enter the scheduled Baptism Date & Time (e.g. Sunday, 15th March at 9:00 AM):");
     if (!inputDate || !inputDate.trim()) return;
 
-    const confirmSend = window.confirm(`Are you sure you want to broadcast this date to all ${applications.length} pending applicants via your Whatsapp Gateway?`);
-    if (!confirmSend) return;
-
     setBroadcasting(true);
     try {
       // Direct integration matching your dynamic multi-tenant architectural design pattern
