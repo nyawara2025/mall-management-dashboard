@@ -251,15 +251,22 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
                       </tr>
                     </thead>
                   <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
-                    {allApplicationsList.map((app) => {
-                      // 🔴 SCHEMA MATCHING ASSIGNMENTS (Direct mapping from your database layout)
+                    {allApplicationsList.map((row) => {
+                      // 🔴 UNPACK THE N8N INTERNAL NESTED PROPERTIES LAYER
+                      // Works flawlessly whether data is wrapped in .json or passed flat
+                      const app = row?.json ? row.json : row;
+
+                      // Schema property extractions with trailing whitespace sanitation
                       const firstName = app?.candidate_christian_name?.trim() || "";
                       const lastName = app?.candidate_surname?.trim() || "";
                       const fullCandidateName = `${firstName} ${lastName}`.trim() || "N/A";
                       
                       const contactPhone = app?.applicant_phone_number || app?.phone_number || "N/A";
                       
-                      // Format the application timestamp cleanly (e.g., "Oct 24, 2024")
+                      // Extracting DOB directly from your verified table keys
+                      const dateOfBirth = app?.date_of_birth || "N/A";
+
+                      // Clean human-readable timestamp formatting for the intake log date column
                       const applicationDate = app?.created_at 
                         ? new Date(app.created_at).toLocaleDateString(undefined, {
                             year: 'numeric',
@@ -269,11 +276,11 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
                         : "N/A";
 
                       return (
-                        <tr key={app.id} className="hover:bg-slate-50/50 transition-colors">
-                          {/* Candidate Column */}
+                        <tr key={app.id || Math.random()} className="hover:bg-slate-50/50 transition-colors">
+                          {/* Candidate File Column */}
                           <td className="p-4">
                             <p className="font-bold text-slate-900 uppercase tracking-wide">{fullCandidateName}</p>
-                            <p className="text-[10px] text-gray-400 uppercase mt-0.5">DOB: {app.date_of_birth || 'N/A'}</p>
+                            <p className="text-[10px] text-gray-400 uppercase mt-0.5">DOB: {dateOfBirth}</p>
                           </td>
 
                           {/* Parent Contexts Column */}
@@ -282,16 +289,16 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
                             <div><span className="font-bold text-slate-400">M:</span> {app.mother_name || 'N/A'}</div>
                           </td>
 
-                          {/* Contact Info Column */}
+                          {/* Contact Phone Column */}
                           <td className="p-4 font-mono text-slate-600">{contactPhone}</td>
 
-                          {/* 🔴 NEW: Application Placement Log Window (Exposing creation logs) */}
+                          {/* Application Date Column */}
                           <td className="p-4">
                             <p className="text-slate-900 font-semibold">{applicationDate}</p>
                             <p className="text-[9px] text-slate-400 uppercase mt-0.5">Intake Record Date</p>
                           </td>
 
-                          {/* Status Badge Column */}
+                          {/* Sacrament Status Badging Column */}
                           <td className="p-4">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
                               app.status === 'Approved' ? 'bg-green-50 text-green-700' :
