@@ -14,9 +14,14 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
   const [actioningId, setActioningId] = useState<number | null>(null);
   const [reviewingApp, setReviewingApp] = useState<any | null>(null);
 
+  // 🔴 NEW: States for fetching and displaying the comprehensive multi-tenant list
+  const [showGlobalReview, setShowGlobalReview] = useState(false);
+  const [allApplicationsList, setAllApplicationsList] = useState<any[]>([]);
+  const [loadingGlobalList, setLoadingGlobalList] = useState(false);
+  const [broadcasting, setBroadcasting] = useState(false);
+
   // Production-safe feature flag configurations
   const [viewMode, setViewMode] = useState<'cards' | 'summary'>('cards');
-  const [broadcasting, setBroadcasting] = useState(false);
 
   const fetchApplications = async () => {
     setLoading(true);
@@ -94,6 +99,26 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
     }
   };
 
+  // 🔴 NEW: Dynamic multi-tenant aggregator webhook
+  const fetchAllCurrentApplications = async () => {
+    setLoadingGlobalList(true);
+    setShowGlobalReview(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/fetch-infant-baptism-records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: shopId }) // Isolated strictly by tenant
+      });
+      const data = await response.json();
+      setAllApplicationsList(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error aggregating comprehensive list:", err);
+      alert("Failed to compile global review data ledger.");
+    } finally {
+      setLoadingGlobalList(false);
+    }
+  };
+
   // Evolution API Whatsapp Broadcast Dispatcher
   const handleWhatsappBroadcast = async () => {
     const inputDate = prompt("Enter the scheduled Baptism Date & Time (e.g. Sunday, 15th March at 9:00 AM):");
@@ -147,14 +172,15 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
             </h3>
             <p className="text-xs text-blue-100 uppercase font-medium mt-0.5">Pending Church Intake Verification</p>
           </div>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-3">
             {/* Action Toggles for Multi-Layout Mode */}
+
             <button 
-              onClick={() => setViewMode(viewMode === 'cards' ? 'summary' : 'cards')}
+              onClick={fetchAllCurrentApplications}
               className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white border border-white/20 text-[11px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-1.5"
             >
-              <ListCollapse size={14} />
-              {viewMode === 'cards' ? 'Review All Applications' : 'View Detail Cards'}
+              <FileText size={14} />
+              Review All Applications
             </button>
             
             <button onClick={onClose} className="p-2 hover:bg-blue-500 rounded-full transition-colors">
@@ -424,6 +450,86 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* 🔴 NEW: UNFILTERED COMPREHENSIVE OVERLAY VIEW */}
+        {showGlobalReview && (
+          <div className="absolute inset-0 bg-white z-50 flex flex-col animate-in slide-in-from-right duration-200 text-slate-800">
+            {/* Overlay Header */}
+            <div className="p-6 bg-slate-900 text-white flex justify-between items-center flex-shrink-0">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 bg-blue-500 rounded text-white">
+                  Global Intake Audit Log
+                </span>
+                <h3 className="text-lg font-black uppercase tracking-tight mt-1">
+                  Active Comprehensive Registry ({allApplicationsList.length})
+                </h3>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Evolution API Gateway Dispatcher Trigger */}
+                <button
+                  onClick={handleWhatsappBroadcast}
+                  disabled={broadcasting || allApplicationsList.length === 0}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-sm transition-colors disabled:opacity-50"
+                >
+                  {broadcasting ? <Loader2 size={14} className="animate-spin"/> : <MessageSquare size={14}/>} Broadcast WhatsApp
+                </button>
+                <button onClick={() => setShowGlobalReview(false)} className="p-2 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white">
+                  <X size={20}/>
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Data Workspace */}
+            <div className="p-6 flex-1 overflow-y-auto bg-slate-50">
+              {loadingGlobalList ? (
+                <div className="flex flex-col items-center justify-center py-12 text-slate-400 gap-2">
+                  <Loader2 className="animate-spin text-blue-600" size={32} />
+                  <p className="text-xs font-bold uppercase tracking-wider">Compiling Tenant Registry...</p>
+                </div>
+              ) : allApplicationsList.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  <p className="text-sm font-bold uppercase tracking-wider">No active registry items returned for this shop.</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-100 border-b border-slate-200 text-slate-400 text-[10px] font-black uppercase tracking-wider">
+                        <th className="p-4">Candidate File</th>
+                        <th className="p-4">Parent Records</th>
+                        <th className="p-4">Contact Phone</th>
+                        <th className="p-4">Sacrament Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                      {allApplicationsList.map((app) => (
+                        <tr key={app.id} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="p-4">
+                            <p className="font-bold text-slate-900 uppercase tracking-wide">{app.candidate_name || 'N/A'}</p>
+                            <p className="text-[10px] text-slate-400 uppercase mt-0.5">DOB: {app.dob || 'N/A'}</p>
+                          </td>
+                          <td className="p-4 text-slate-500">
+                            <div><span className="font-bold text-slate-400">F:</span> {app.father_name || 'N/A'}</div>
+                            <div><span className="font-bold text-slate-400">M:</span> {app.mother_name || 'N/A'}</div>
+                          </td>
+                          <td className="p-4 font-mono text-slate-600">{app.phone_number || app.member_phone || 'N/A'}</td>
+                          <td className="p-4">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              app.status === 'Approved' ? 'bg-green-50 text-green-700' :
+                              app.status === 'Declined' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+                            }`}>
+                              {app.status || 'Pending'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
