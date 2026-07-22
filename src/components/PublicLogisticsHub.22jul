@@ -1,177 +1,164 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
-  Truck, 
-  MapPin, 
-  FileText, 
-  Fuel, 
-  ShieldAlert, 
-  DollarSign, 
-  UserCheck, 
-  MessageSquare,
-  Clock
+  Truck, MapPin, FileText, Fuel, ShieldAlert, 
+  DollarSign, UserCheck, Clock, Briefcase, ChevronRight, X
 } from 'lucide-react';
 
 interface DriverProfile {
   name: string;
+  role: string;
   assignedTruck: string;
   routeZone: string;
   currentMissions: string[];
 }
 
+interface Opportunity {
+  id: string;
+  client: string;
+  route: string;
+  cargo: string;
+  rate: string;
+}
+
 export const PublicLogisticsHub: React.FC = () => {
   const [searchParams] = useSearchParams();
   const shopId = searchParams.get('shop_id') || '90';
-  
-  // State for loading driver/client contextual metadata from Supabase
   const [profile, setProfile] = useState<DriverProfile | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [intelOpen, setIntelOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Fetch user context by shop_id and current metadata via Supabase / n8n middleware
-    const fetchHubData = async () => {
-      try {
-        // Simulating data payload returned based on your metadata architecture
-        setProfile({
-          name: "Eric Nyawara",
-          assignedTruck: "KBC 123X / Trailer 04",
-          routeZone: "Mombasa - Malaba Corridor",
-          currentMissions: ["Mombasa Port Clearance", "Transit Fuel Voucher Verification"]
-        });
-      } catch (error) {
-        console.error("Error loading logistics context:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchHubData();
-  }, [shopId]);
-
-  // High-utility action configurations mapping to your operational microservices
-  const hubActions = [
-    {
-      id: 'trip_manifest',
-      label: 'TRIP MANIFEST & NTSA LOG',
-      icon: <FileText className="w-6 h-6" />,
-      color: 'bg-blue-600',
-    },
-    {
-      id: 'fuel_allocation',
-      label: 'FUEL VOUCHER & EXPENSES',
-      icon: <Fuel className="w-6 h-6" />,
-      color: 'bg-blue-600',
-    },
-    {
-      id: 'cargo_tracking',
-      label: 'WAYBILL & CARGO STATUS',
-      icon: <MapPin className="w-6 h-6" />,
-      color: 'bg-blue-600',
-    },
-    {
-      id: 'weighbridge_clearance',
-      label: 'WEIGHBRIDGE & PORT DOCS',
-      icon: <UserCheck className="w-6 h-6" />,
-      color: 'bg-blue-600',
-    },
-    {
-      id: 'breakdown_alert',
-      label: 'EMERGENCY & BREAKDOWN',
-      icon: <ShieldAlert className="w-6 h-6" />,
-      color: 'bg-red-600', // Visual anchor for critical safety alerts
-    },
-    {
-      id: 'payments_invoicing',
-      label: 'M-PESA / FREIGHT PAYMENTS',
-      icon: <DollarSign className="w-6 h-6" />,
-      color: 'bg-blue-600',
-    },
+  // Simulated local market cargo requests tailored to current hub vicinity coordinates
+  const marketIntel: Opportunity[] = [
+    { id: '1', client: 'Bamburi Cement Ltd', route: 'Mombasa → Nairobi', cargo: 'Bulk Cement (28 Tons)', rate: 'KES 145,000' },
+    { id: '2', client: 'KTDA Tea Factory', route: 'Kericho → Mombasa Port', cargo: 'Export Tea Pallets', rate: 'KES 180,000' },
+    { id: '3', client: 'Grain Bulk Handlers', route: 'Mombasa → Eldoret', cargo: 'Wheat Mill Cargo', rate: 'KES 165,000' }
   ];
 
-  const handleActionClick = (actionId: string) => {
-    // Deep link or trigger n8n sub-orchestration workflows passing along multi-tenant metadata
-    console.log(`Executing ${actionId} for tenant shop_id: ${shopId}`);
+  useEffect(() => {
+    const loadContext = async () => {
+      setProfile({
+        name: "Eric Nyawara",
+        role: "OPERATOR / DRIVER",
+        assignedTruck: "KBC 123X / Trailer 04",
+        routeZone: "Mombasa - Malaba Corridor",
+        currentMissions: ["Mombasa Port Clearance", "Transit Fuel Voucher Verification"]
+      });
+      setLoading(false);
+    };
+    loadContext();
+  }, [shopId]);
+
+  const hubActions = [
+    { id: 'trip_manifest', label: 'TRIP MANIFEST & NTSA LOG', icon: <FileText className="w-5 h-5" />, color: 'bg-blue-600' },
+    { id: 'fuel_allocation', label: 'FUEL VOUCHER & EXPENSES', icon: <Fuel className="w-5 h-5" />, color: 'bg-blue-600' },
+    { id: 'cargo_tracking', label: 'WAYBILL & CARGO STATUS', icon: <MapPin className="w-5 h-5" />, color: 'bg-blue-600' },
+    { id: 'weighbridge_clearance', label: 'WEIGHBRIDGE & PORT DOCS', icon: <UserCheck className="w-5 h-5" />, color: 'bg-blue-600' },
+    { id: 'payments_invoicing', label: 'M-PESA / FREIGHT PAYMENTS', icon: <DollarSign className="w-5 h-5" />, color: 'bg-blue-600' },
+    { id: 'market_intel', label: 'MARKET OPPORTUNITIES', icon: <Briefcase className="w-5 h-5" />, color: 'bg-emerald-600' },
+    { id: 'breakdown_alert', label: 'EMERGENCY & BREAKDOWN', icon: <ShieldAlert className="w-5 h-5" />, color: 'bg-red-600' }
+  ];
+
+  const handleActionClick = (id: string) => {
+    if (id === 'market_intel') setIntelOpen(true);
+    else console.log(`Triggering module ${id} for shop ${shopId}`);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  if (loading) return <div className="p-20 text-center font-medium">Loading Fleet System Hub...</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 pb-10 px-4 md:px-8">
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="min-h-screen bg-slate-50 pt-20 pb-10 px-4 max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left Hand Column: User Profile Panel (Matches UI/UX Design System) */}
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col items-center text-center h-fit">
-          <div className="relative mb-4">
-            <div className="w-24 h-24 bg-blue-600 rounded-3xl flex items-center justify-center text-white text-3xl font-bold shadow-md">
-              {profile?.name ? profile.name.split(' ').map(n => n[0]).join('') : 'TR'}
+        {/* Profile Identity Sidebar */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm h-fit">
+          <div className="flex flex-col items-center border-b border-slate-100 pb-4 mb-4">
+            <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-xl font-bold mb-3 shadow-inner">
+              EN
             </div>
-            <span className="absolute -top-2 -right-4 bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full border border-blue-200">
-              OPERATOR
+            <span className="bg-blue-50 text-blue-700 text-[10px] font-bold tracking-wider px-2.5 py-0.5 rounded-full border border-blue-100 uppercase">
+              {profile?.role}
             </span>
+            <h2 className="text-xl font-bold text-slate-800 mt-2">{profile?.name}</h2>
           </div>
 
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">{profile?.name}</h2>
-
-          {/* Logistics Metadata Badges */}
-          <div className="w-full space-y-4 text-left border-t border-gray-100 pt-6">
-            <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-3">
-              <Truck className="w-5 h-5 text-blue-600 flex-shrink-0" />
+          <div className="space-y-3">
+            <div className="bg-slate-50 rounded-xl p-2.5 flex items-center gap-3">
+              <Truck className="w-4 h-4 text-blue-600 flex-shrink-0" />
               <div>
-                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Fleet / Asset ID</p>
-                <p className="text-sm font-medium text-gray-800">{profile?.assignedTruck}</p>
+                <span className="text-[10px] text-slate-400 font-bold block uppercase">Asset ID</span>
+                <span className="text-xs font-semibold text-slate-700">{profile?.assignedTruck}</span>
               </div>
             </div>
-
-            <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-3">
-              <MapPin className="w-5 h-5 text-blue-600 flex-shrink-0" />
+            <div className="bg-slate-50 rounded-xl p-2.5 flex items-center gap-3">
+              <MapPin className="w-4 h-4 text-blue-600 flex-shrink-0" />
               <div>
-                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Assigned Corridor</p>
-                <p className="text-sm font-medium text-gray-800">{profile?.routeZone}</p>
+                <span className="text-[10px] text-slate-400 font-bold block uppercase">Corridor Zone</span>
+                <span className="text-xs font-semibold text-slate-700">{profile?.routeZone}</span>
               </div>
             </div>
-
-            <div className="bg-gray-50 rounded-xl p-3 flex items-center gap-3">
-              <Clock className="w-5 h-5 text-blue-600 flex-shrink-0" />
-              <div>
-                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Active Assignments</p>
-                <div className="mt-1 space-y-1">
-                  {profile?.currentMissions.map((mission, idx) => (
-                    <span key={idx} className="block text-xs bg-white border border-gray-200 text-gray-700 px-2 py-0.5 rounded-md">
-                      • {mission}
-                    </span>
-                  ))}
-                </div>
-              </div>
+            <div className="bg-slate-50 rounded-xl p-2.5">
+              <span className="text-[10px] text-slate-400 font-bold block mb-1 uppercase">Active Missions</span>
+              {profile?.currentMissions.map((m, i) => (
+                <span key={i} className="block text-[11px] bg-white border border-slate-100 text-slate-600 px-2 py-1 rounded-md mt-1 font-medium">
+                  • {m}
+                </span>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Right Hand Column: Heavy Operations Grid */}
-        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 h-fit">
+        {/* Scaled-down action matrix Grid */}
+        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
           {hubActions.map((action) => (
             <button
               key={action.id}
               onClick={() => handleActionClick(action.id)}
-              className="bg-blue-500 hover:bg-blue-600 transition-all duration-200 rounded-2xl p-6 text-white flex flex-col items-center justify-center min-h-[140px] text-center shadow-sm relative group overflow-hidden"
-              style={{ backgroundColor: action.id === 'breakdown_alert' ? '#DC2626' : '#3B82F6' }}
+              className={`transition-all duration-150 rounded-xl p-4 text-white flex items-center gap-4 text-left shadow-sm hover:brightness-95 group font-medium ${action.color} ${
+                action.id === 'breakdown_alert' || action.id === 'market_intel' ? 'sm:col-span-2' : ''
+              }`}
             >
-              {/* Layout Icon Accent */}
-              <div className="mb-3 p-3 bg-white bg-opacity-20 rounded-xl group-hover:scale-110 transition-transform duration-200">
+              <div className="p-2 bg-white/20 rounded-lg group-hover:scale-105 transition-transform">
                 {action.icon}
               </div>
-              <span className="font-bold text-sm tracking-wide px-2 uppercase">
-                {action.label}
-              </span>
+              <span className="text-xs font-bold uppercase tracking-wider">{action.label}</span>
             </button>
           ))}
         </div>
 
       </div>
+
+      {/* Market Intel Slider Over Panel */}
+      {intelOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex justify-end">
+          <div className="bg-white w-full max-w-md h-full p-6 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between border-b pb-4 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Regional Market Intel</h3>
+                <p className="text-xs text-slate-400">Available cargo manifests matching your fleet capacity</p>
+              </div>
+              <button onClick={() => setIntelOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+              {marketIntel.map((job) => (
+                <div key={job.id} className="p-3 border border-slate-100 rounded-xl bg-slate-50/50 hover:border-emerald-200 transition-colors">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs font-bold text-slate-800">{job.client}</span>
+                    <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">{job.rate}</span>
+                  </div>
+                  <p className="text-xs text-slate-600 flex items-center gap-1 font-medium"><MapPin className="w-3 h-3 text-slate-400" /> {job.route}</p>
+                  <p className="text-[11px] text-slate-500 mt-1 pl-4">• Load Profile: {job.cargo}</p>
+                  <button className="w-full mt-3 bg-emerald-600 text-white font-bold text-[10px] tracking-wider py-1.5 rounded-lg flex items-center justify-center gap-1 uppercase">
+                    Bid for Load <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
