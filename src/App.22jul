@@ -47,7 +47,6 @@ import { ScreenDisplay } from './components/ScreenDisplay';
 import { PublicAgricHub } from './components/PublicAgricHub';
 import { AgentDashboard } from './components/AgentDashboard';
 import { ElectionCandidateModal } from './components/ElectionCandidateModal';
-import { PublicLogisticsHub } from './components/PublicLogisticsHub';
 import { MediaPresentationController } from './components/MediaPresentationController';
 import SettingsPage from './pages/SettingsPage';
 import './index.css';
@@ -91,13 +90,11 @@ function AppContent() {
   const hostname = window.location.hostname;
   const isSchoolDomain = hostname.includes('tenearedu') || hostname.includes('school');
   const isAgriDomain = hostname.includes('sbo2') || hostname.includes('agri'); // 🚜 Added Agri Domain detector
-  const isLogisticsDomain = hostname.includes('teneargroups2026') || hostname.includes('trucking') || hostname.includes('logistics');
-
 
   if (urlShopId) {
     // 1. If params exist, back them up instantly for future sessions
     localStorage.setItem('__native_shop_id', urlShopId);
-    localStorage.setItem('__native_biz_cat', currentUrl.searchParams.get('business_category') || (isSchoolDomain ? 'education' : isAgriDomain ? 'agricultural' : isLogisticsDomain ? 'logistics': 'church'));
+    localStorage.setItem('__native_biz_cat', currentUrl.searchParams.get('business_category') || (isSchoolDomain ? 'education' : isAgriDomain ? 'agricultural' : 'church'));
   } else if (isAndroidWebView || currentUrl.pathname === '/') {
     // 2. If Android stripped params OR we hit the base root, resolve by hostname context
     if (isSchoolDomain) {
@@ -116,14 +113,6 @@ function AppContent() {
       currentUrl.pathname = '/agri';
       currentUrl.searchParams.set('business_category', cachedBizCat);
       currentUrl.searchParams.set('shop_id', cachedShopId);
-
-    } else if (isLogisticsDomain || currentUrl.pathname === '/logistics') {
-      // 🚚 Commercial Transport Hub Fallbacks (New Intercept Entry)
-      const cachedShopId = localStorage.getItem('__native_shop_id') || '90'; // Default Logistics Shop ID
-      const cachedBizCat = localStorage.getItem('__native_biz_cat') || 'logistics';
-      currentUrl.pathname = '/logistics';
-      currentUrl.searchParams.set('business_category', cachedBizCat);
-      currentUrl.searchParams.set('shop_id', cachedShopId); 
 
     } else {
       // ⛪ Church Hub Fallbacks (Your original logic)
@@ -152,8 +141,7 @@ function AppContent() {
   const isChurchPath = window.location.pathname.includes('/church');
   const isSchoolPath = window.location.pathname.includes('/school');
   const isAgriPath = window.location.pathname.includes('/agri');
-  const isLogisticsPath = window.location.pathname.includes('/logistics') || window.location.pathname.startsWith('/truck'); // 🚚 Added for Logistics
- 
+  
   const handleSelectCandidate = (shopId: string) => {
     // Update the URL parameters without a page reload
     // We keep 'business_category=political' to ensure the Hub stays active
@@ -257,15 +245,6 @@ function AppContent() {
       <div className="min-h-screen bg-stone-50">
         {/* PublicAgriHub manages its internal login/registration state engine locally */}
         <PublicAgricHub />
-      </div>
-    );
-  }
-
-  // 🚚 KENYAN COMMERCIAL LOGISTICS HUB GATEKEEPER (New Intercept Injection)
-  if (bizCategory === 'logistics' || isLogisticsPath) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <PublicLogisticsHub />
       </div>
     );
   }
