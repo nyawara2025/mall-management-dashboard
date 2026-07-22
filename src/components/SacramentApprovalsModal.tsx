@@ -534,36 +534,77 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
                         <th className="p-4">Candidate File</th>
                         <th className="p-4">Parent Records</th>
                         <th className="p-4">Contact Phone</th>
-                        <th className="p-4">Sacrament Status</th>
+                        {/* 🔴 NEW COLUMN ACCURATELY ALIGNED TO WIDTH HEADER PROFILES */}
+                        <th className="p-4 w-1/5">Application Date</th>
+                        <th className="p-4 w-1/6 text-right">Sacrament Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
-                      {allApplicationsList.map((app) => (
-                        <tr key={app.id} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="p-4">
-                            <p className="font-bold text-slate-900 uppercase tracking-wide">{app.candidate_name || 'N/A'}</p>
-                            <p className="text-[10px] text-slate-400 uppercase mt-0.5">DOB: {app.dob || 'N/A'}</p>
-                          </td>
-                          <td className="p-4 text-slate-500">
-                            <div><span className="font-bold text-slate-400">F:</span> {app.father_name || 'N/A'}</div>
-                            <div><span className="font-bold text-slate-400">M:</span> {app.mother_name || 'N/A'}</div>
-                          </td>
-                          <td className="p-4 font-mono text-slate-600">{app.phone_number || app.member_phone || 'N/A'}</td>
-                          <td className="p-4">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                              app.status === 'Approved' ? 'bg-green-50 text-green-700' :
-                              app.status === 'Declined' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
-                            }`}>
-                              {app.status || 'Pending'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
+                      {/* 🔴 RUNS INSTANT CHRONOLOGICAL MATRIX SORTING */}
+                      {[...allApplicationsList]
+                        .sort((a, b) => {
+                          const dateA = new Date(a?.json?.created_at || a?.created_at || 0).getTime();
+                          const dateB = new Date(b?.json?.created_at || b?.created_at || 0).getTime();
+                          return dateB - dateA; // Newest records float directly to top row
+                        })
+                        .map((row) => {
+                          const app = row?.json ? row.json : row;
+
+                          // Extract formatted properties from your n8n transformer node
+                          const fullCandidateName = app?.candidate_name || "N/A";
+                          const contactPhone = app?.phone_number || "N/A";
+                          const dateOfBirth = app?.dob || "N/A";
+
+                          // Format UTC timestamp strings cleanly into visible dashboard dates
+                          const applicationDate = app?.created_at 
+                            ? new Date(app.created_at).toLocaleDateString(undefined, {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })
+                            : "N/A";
+
+                          return (
+                            <tr key={app.id || Math.random()} className="hover:bg-slate-50/50 transition-colors">
+                              {/* 1. Profile Context */}
+                              <td className="p-4">
+                                <p className="font-bold text-slate-900 uppercase tracking-wide">{fullCandidateName}</p>
+                                <p className="text-[10px] text-gray-400 uppercase mt-0.5">DOB: {dateOfBirth}</p>
+                              </td>
+
+                              {/* 2. Parent References */}
+                              <td className="p-4 text-slate-500">
+                                <div><span className="font-bold text-slate-400">F:</span> {app.father_name || 'N/A'}</div>
+                                <div><span className="font-bold text-slate-400">M:</span> {app.mother_name || 'N/A'}</div>
+                              </td>
+
+                              {/* 3. Phone Link */}
+                              <td className="p-4 font-mono text-slate-600">{contactPhone}</td>
+
+                              {/* 🔴 4. NEW WORKFLOW COLUMN FOR REAL-TIME SCREENING DATA */}
+                              <td className="p-4">
+                                <p className="text-slate-900 font-semibold">{applicationDate}</p>
+                                <p className="text-[9px] text-slate-400 uppercase mt-0.5">Intake Date</p>
+                              </td>
+
+                              {/* 5. Status Badge */}
+                              <td className="p-4 text-right">
+                                <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                                  app.status === 'Approved' ? 'bg-green-50 text-green-700' :
+                                  app.status === 'Declined' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+                                }`}>
+                                  {app.status || 'Pending'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>
               )}
             </div>
+
           </div>
         )}
 
