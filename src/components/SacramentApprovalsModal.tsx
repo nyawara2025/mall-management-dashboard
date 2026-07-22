@@ -251,23 +251,23 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
-                      {/* 🔴 SORTING MATRIX: Instantly orders applications from Newest to Oldest based on your database timestamps */}
+                      {/* Chronological sort: Newest to Oldest based on database created_at */}
                       {[...allApplicationsList]
                         .sort((a, b) => {
-                          const dateA = new Date(a?.json?.created_at || a?.created_at || 0).getTime();
-                          const dateB = new Date(b?.json?.created_at || b?.created_at || 0).getTime();
-                          return dateB - dateA; // Newest records float to the top
+                          const dateA = new Date(a?.created_at || 0).getTime();
+                          const dateB = new Date(b?.created_at || 0).getTime();
+                          return dateB - dateA;
                         })
-                        .map((row) => {
-                          // Standard safety fallback unpack layer
-                          const app = row?.json ? row.json : row;
+                        .map((app) => {
+                          // 🔴 DIRECT DATABASE KEY EXTRACTION (No wrappers, no alias maps)
+                          const firstName = app?.candidate_christian_name?.trim() || "";
+                          const lastName = app?.candidate_surname?.trim() || "";
+                          const fullCandidateName = `${firstName} ${lastName}`.trim() || "N/A";
+                          
+                          const contactPhone = app?.applicant_phone_number || "N/A";
+                          const dateOfBirth = app?.date_of_birth || "N/A";
 
-                          // Extract human-readable string values
-                          const fullCandidateName = app?.candidate_name || "N/A";
-                          const contactPhone = app?.phone_number || "N/A";
-                          const dateOfBirth = app?.dob || "N/A";
-
-                          // Format the raw UTC timestamp into a clean date layout (e.g., "Jun 14, 2026")
+                          // Format the raw DB timestamp (created_at) cleanly
                           const applicationDate = app?.created_at 
                             ? new Date(app.created_at).toLocaleDateString(undefined, {
                                 year: 'numeric',
@@ -278,28 +278,28 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
 
                           return (
                             <tr key={app.id || Math.random()} className="hover:bg-slate-50/50 transition-colors">
-                              {/* Column 1: Candidate Profile */}
+                              {/* 1. Candidate File */}
                               <td className="p-4">
                                 <p className="font-bold text-slate-900 uppercase tracking-wide">{fullCandidateName}</p>
                                 <p className="text-[10px] text-gray-400 uppercase mt-0.5">DOB: {dateOfBirth}</p>
                               </td>
 
-                              {/* Column 2: Parent References */}
+                              {/* 2. Parent Records */}
                               <td className="p-4 text-slate-500">
                                 <div><span className="font-bold text-slate-400">F:</span> {app.father_name || 'N/A'}</div>
                                 <div><span className="font-bold text-slate-400">M:</span> {app.mother_name || 'N/A'}</div>
                               </td>
 
-                              {/* Column 3: Phone Contact Registry */}
+                              {/* 3. Contact Phone */}
                               <td className="p-4 font-mono text-slate-600">{contactPhone}</td>
 
-                              {/* 🔴 Column 4: Application Placement Date (Now visible inside the viewport) */}
+                              {/* 4. Application Date */}
                               <td className="p-4">
                                 <p className="text-slate-900 font-semibold">{applicationDate}</p>
-                                <p className="text-[9px] text-slate-400 uppercase mt-0.5">Intake Timestamp</p>
+                                <p className="text-[9px] text-slate-400 uppercase mt-0.5">Intake Date</p>
                               </td>
 
-                              {/* Column 5: Operational Workflow Status */}
+                              {/* 5. Sacrament Status */}
                               <td className="p-4 text-right">
                                 <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
                                   app.status === 'Approved' ? 'bg-green-50 text-green-700' :
@@ -312,6 +312,7 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
                           );
                         })}
                     </tbody>
+
                   </table>
 
               </div>
