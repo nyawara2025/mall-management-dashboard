@@ -241,55 +241,70 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
               <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-100 text-gray-400 text-[10px] font-black uppercase tracking-wider">
-                      <th className="p-4">Candidate File</th>
-                      <th className="p-4">Parent Contexts</th>
-                      <th className="p-4">Contact Phone</th>
-                      <th className="p-4 text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 text-xs font-medium text-gray-700">
-                    {applications.map((app) => (
-                      <tr key={app.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="p-4">
-                          <p className="font-black text-gray-900 uppercase tracking-wide">{app.candidate_name || 'N/A'}</p>
-                          <p className="text-[10px] text-gray-400 uppercase mt-0.5">DOB: {app.dob || 'N/A'}</p>
-                        </td>
-                        <td className="p-4 text-gray-500">
-                          <div><span className="font-bold text-gray-400">F:</span> {app.father_name || 'N/A'}</div>
-                          <div><span className="font-bold text-gray-400">M:</span> {app.mother_name || 'N/A'}</div>
-                        </td>
-                        <td className="p-4 font-mono text-gray-600">{app.phone_number || app.member_phone || 'N/A'}</td>
-                        <td className="p-4">
-                          <div className="flex justify-center gap-2">
-                            <button 
-                              onClick={() => setReviewingApp(app)}
-                              className="p-1 text-slate-500 hover:bg-slate-100 rounded transition-colors"
-                              title="Review Record"
-                            >
-                              <FileText size={16} />
-                            </button>
-                            <button 
-                              onClick={() => handleUpdateStatus(app.id, 'Approved')}
-                              disabled={actioningId !== null}
-                              className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
-                              title="Approve"
-                            >
-                              <CheckCircle size={16} />
-                            </button>
-                            <button 
-                              onClick={() => handleUpdateStatus(app.id, 'Declined')}
-                              disabled={actioningId !== null}
-                              className="p-1 text-red-600 hover:bg-red-50 rounded transition-colors"
-                              title="Decline"
-                            >
-                              <XCircle size={16} />
-                            </button>
-                          </div>
-                        </td>
+                      <tr className="bg-slate-100 border-b border-slate-200 text-slate-400 text-[10px] font-black uppercase tracking-wider">
+                        <th className="p-4">Candidate File</th>
+                        <th className="p-4">Parent Records</th>
+                        <th className="p-4">Contact Phone</th>
+                        {/* 🔴 NEW HEADER COLUMN */}
+                        <th className="p-4">Application Date</th>
+                        <th className="p-4">Sacrament Status</th>
                       </tr>
-                    ))}
+                    </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                    {allApplicationsList.map((app) => {
+                      // 🔴 SCHEMA MATCHING ASSIGNMENTS (Direct mapping from your database layout)
+                      const firstName = app?.candidate_christian_name?.trim() || "";
+                      const lastName = app?.candidate_surname?.trim() || "";
+                      const fullCandidateName = `${firstName} ${lastName}`.trim() || "N/A";
+                      
+                      const contactPhone = app?.applicant_phone_number || app?.phone_number || "N/A";
+                      
+                      // Format the application timestamp cleanly (e.g., "Oct 24, 2024")
+                      const applicationDate = app?.created_at 
+                        ? new Date(app.created_at).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric'
+                          })
+                        : "N/A";
+
+                      return (
+                        <tr key={app.id} className="hover:bg-slate-50/50 transition-colors">
+                          {/* Candidate Column */}
+                          <td className="p-4">
+                            <p className="font-bold text-slate-900 uppercase tracking-wide">{fullCandidateName}</p>
+                            <p className="text-[10px] text-gray-400 uppercase mt-0.5">DOB: {app.date_of_birth || 'N/A'}</p>
+                          </td>
+
+                          {/* Parent Contexts Column */}
+                          <td className="p-4 text-slate-500">
+                            <div><span className="font-bold text-slate-400">F:</span> {app.father_name || 'N/A'}</div>
+                            <div><span className="font-bold text-slate-400">M:</span> {app.mother_name || 'N/A'}</div>
+                          </td>
+
+                          {/* Contact Info Column */}
+                          <td className="p-4 font-mono text-slate-600">{contactPhone}</td>
+
+                          {/* 🔴 NEW: Application Placement Log Window (Exposing creation logs) */}
+                          <td className="p-4">
+                            <p className="text-slate-900 font-semibold">{applicationDate}</p>
+                            <p className="text-[9px] text-slate-400 uppercase mt-0.5">Intake Record Date</p>
+                          </td>
+
+                          {/* Status Badge Column */}
+                          <td className="p-4">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                              app.status === 'Approved' ? 'bg-green-50 text-green-700' :
+                              app.status === 'Declined' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+                            }`}>
+                              {app.status || 'Pending'}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
+
                 </table>
               </div>
             </div>
