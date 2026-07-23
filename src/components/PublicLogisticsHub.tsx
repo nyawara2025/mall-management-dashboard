@@ -26,6 +26,10 @@ export const PublicLogisticsHub: React.FC = () => {
     return localStorage.getItem('remembered_logistics_name') ? 'dashboard' : 'login';
   });
 
+  // 📋 Real Database State Layer for Corporate Applications
+  const [appliedContracts, setAppliedContracts] = useState<any[]>([]);
+  const [loadingApplications, setLoadingApplications] = useState<boolean>(false);
+
   // Auth & Session Trackers
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
@@ -96,6 +100,37 @@ export const PublicLogisticsHub: React.FC = () => {
   }, [view, shopId]);
 
   
+  // Function to pull real contract application rows from your database retrieval node
+  const fetchAppliedHistory = async (targetShopId?: string) => {
+    const activeShopId = targetShopId || shopId || localStorage.getItem('remembered_logistics_shop_id');
+    if (!activeShopId) return;
+
+    setLoadingApplications(true);
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/logs-history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: parseInt(activeShopId, 10) })
+      });
+      const data = await res.json();
+      if (data && data.applications) {
+        setAppliedContracts(data.applications);
+      }
+    } catch (err) {
+      console.error("Error pulling contract application rows:", err);
+    } finally {
+      setLoadingApplications(false);
+    }
+  };
+
+  // 🔄 Update your main initialization hook to load this historical view on mount
+  useEffect(() => {
+    if (view === 'dashboard' && shopId) {
+      fetchDashboardData();
+      fetchAppliedHistory(); // <-- Injects real database history stream load
+    }
+  }, [view, shopId]);
+
   const handleCompanyBid = async (opportunity: Opportunity) => {
     const activeShopId = shopId || localStorage.getItem('remembered_logistics_shop_id');
     const companyName = localStorage.getItem('remembered_logistics_company') || 'Fleet Operator';
@@ -303,26 +338,92 @@ export const PublicLogisticsHub: React.FC = () => {
           </button>
         </div>
 
-        {/* Functional Matrix Grid Layout */}
-        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {hubActions.map((action) => (
-            <button
-              key={action.id}
-              onClick={() => {
-                if (action.id === 'market_intel') setIntelOpen(true);
-                else console.log(`Triggering POST workflow API node allocation context for option: ${action.id}`);
-              }}
-              className="transition-all duration-150 rounded-xl p-4 text-white flex items-center gap-4 text-left shadow-xs hover:brightness-95 group font-medium"
-              style={{ backgroundColor: action.id === 'breakdown_alert' ? '#DC2626' : action.id === 'market_intel' ? '#059669' : '#2563EB' }}
-            >
-              <div className="p-2 bg-white/20 rounded-lg group-hover:scale-105 transition-transform">
-                {action.icon}
+        {/* Right Hand Column Container Parent - Stacks Matrix and Table vertically */}
+        <div className="lg:col-span-2 space-y-6">
+          
+          {/* Main Grid Functional Matrix */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {hubActions.map((action) => (
+              <button
+                key={action.id}
+                onClick={() => {
+                  if (action.id === 'market_intel') setIntelOpen(true);
+                  else console.log(`Triggering POST workflow API node allocation context for option: ${action.id}`);
+                }}
+                className="transition-all duration-150 rounded-xl p-4 text-white flex items-center gap-4 text-left shadow-xs hover:brightness-95 group font-medium"
+                style={{ backgroundColor: action.id === 'breakdown_alert' ? '#DC2626' : action.id === 'market_intel' ? '#059669' : '#2563EB' }}
+              >
+                <div className="p-2 bg-white/20 rounded-lg group-hover:scale-105 transition-transform">
+                  {action.icon}
+                </div>
+                <span className="text-xs font-bold uppercase tracking-wider">{action.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* 📋 LIVE DATABASE CONTRACT APPLICATIONS VIEWPORT PANEL */}
+          <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <div>
+                <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase">Submitted Contract Status Logs</h3>
+                <p className="text-[11px] text-slate-400 font-medium">Real-time applications archive pulled from public.contract_applications</p>
               </div>
-              <span className="text-xs font-bold uppercase tracking-wider">{action.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+              <span className="text-[10px] bg-blue-50 text-blue-700 font-bold px-2 py-0.5 rounded-md border border-blue-100">
+                TOTAL: {appliedContracts.length}
+              </span>
+            </div>
+
+            {loadingApplications ? (
+              <div className="text-center text-xs text-slate-400 py-6 italic font-medium">Interrogating application logs...</div>
+            ) : appliedContracts.length === 0 ? (
+              <div className="text-center text-xs text-slate-400 py-8 border border-dashed border-slate-200 rounded-xl bg-slate-50/50 italic">
+                No active contract applications logged for this corporate workspace profile.
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-100 text-[10px] text-slate-400 font-black uppercase tracking-wider">
+                      <th className="pb-2">Client / Agency</th>
+                      <th className="pb-2">Route Itinerary Details</th>
+                      <th className="pb-2 text-right">Offered Rate</th>
+                      <th className="pb-2 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 text-xs font-medium text-slate-700">
+                    {appliedContracts.map((app) => (
+                      <tr key={app.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-3 pr-2">
+                          <span className="block font-bold text-slate-800">{app.client_company_name}</span>
+                          <span className="block text-[9px] text-slate-400 font-mono tracking-tight">{app.opportunity_id}</span>
+                        </td>
+                        <td className="py-3 pr-2">
+                          <span className="block text-slate-600 truncate max-w-[200px]">{app.cargo_type}</span>
+                          <span className="block text-[9px] text-slate-400 font-semibold">{app.origin_city} → {app.destination_city}</span>
+                        </td>
+                        <td className="py-3 pr-2 text-right font-black text-slate-900">
+                          KES {Number(app.offered_rate).toLocaleString()}
+                        </td>
+                        <td className="py-3 text-center">
+                          <span className={`inline-block text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                            app.status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                            app.status === 'rejected' ? 'bg-red-50 text-red-700 border-red-200' :
+                            'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}>
+                            {app.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+        </div> {/* Right Hand Column Container Parent Close */}
+      </div> {/* Main Grid Row Close */}
+
 
       {/* Dynamic Slide-Over Panel displaying active database entries */}
       {intelOpen && (
