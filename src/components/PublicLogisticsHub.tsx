@@ -96,6 +96,53 @@ export const PublicLogisticsHub: React.FC = () => {
   }, [view, shopId]);
 
   
+  const handleClaimContract = async (opportunity: Opportunity) => {
+    // Read clean structural parameters directly from cached user variables
+    const activeShopId = shopId || localStorage.getItem('remembered_logistics_shop_id');
+    const driverPhone = localStorage.getItem('remembered_logistics_phone');
+    
+    if (!activeShopId || !userSession) {
+      return alert("Session context synchronization dropped.");
+    }
+
+    if (!window.confirm(`Are you sure you want to claim the contract for ${opportunity.client_company_name}?`)) {
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/claim-logs-opportunity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: parseInt(activeShopId, 10),
+          phone_number: driverPhone,
+          opportunity_id: opportunity.id,
+          client_name: opportunity.client_company_name,
+          origin: opportunity.origin_city,
+          destination: opportunity.destination_city,
+          cargo_type: opportunity.cargo_type
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        alert("Freight contract claimed and synchronized successfully!");
+        setIntelOpen(false); // Close slider panel view
+        fetchDashboardData(activeShopId); // Refresh live telemetry data variables
+      } else {
+        alert(data.message || "Claim processing conflict exception.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network gateway execution dropped.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   // 🔐 Multi-Tenant Webhook POST Auth Engine
   const handleAuth = async (e: React.FormEvent, type: 'login' | 'register') => {
@@ -309,14 +356,21 @@ export const PublicLogisticsHub: React.FC = () => {
                       <MapPin className="w-3 h-3 text-slate-400" /> {job.origin_city} → {job.destination_city}
                     </p>
                     <p className="text-[11px] text-slate-500 mt-1 pl-4">• Load Spec: {job.cargo_type}</p>
-                    <button className="w-full mt-3 bg-emerald-600 text-white font-bold text-[10px] tracking-wider py-1.5 rounded-lg flex items-center justify-center gap-1 uppercase">
-                      Claim Freight Contract <ChevronRight className="w-3 h-3" />
+                    
+                    {/* Updated Functional Button Element */}
+                    <button 
+                      onClick={() => handleClaimContract(job)}
+                      disabled={loading}
+                      className="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] tracking-wider py-1.5 rounded-lg flex items-center justify-center gap-1 uppercase transition-colors disabled:opacity-50"
+                    >
+                      {loading ? 'Securing Contract...' : 'Claim Freight Contract'} <ChevronRight className="w-3 h-3" />
                     </button>
                   </div>
                 ))
               )}
             </div>
           </div>
+
         </div>
       )}
     </div>
