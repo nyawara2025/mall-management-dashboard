@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { 
   Truck, MapPin, FileText, Fuel, ShieldAlert, 
-  DollarSign, UserCheck, Clock, Briefcase, ChevronRight, X, Lock, Phone, User
+  DollarSign, UserCheck, Briefcase, ChevronRight, X, Lock, Phone, User
 } from 'lucide-react';
 
 interface OperatorSession {
@@ -23,26 +23,31 @@ export const PublicLogisticsHub: React.FC = () => {
   const [searchParams] = useSearchParams();
   const shopId = searchParams.get('shop_id');
   
-  // App views: 'auth' | 'dashboard'
   const [view, setView] = useState<'auth' | 'dashboard'>('auth');
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState(false);
 
-  // Authentication states matching agricultural login schema logic
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [category, setCategory] = useState('driver');
 
-  // Active Session states
   const [userSession, setUserSession] = useState<OperatorSession | null>(null);
-  
-  // Operational dashboard states populated from multi-tenant workflows
   const [marketIntel, setMarketIntel] = useState<Opportunity[]>([]);
   const [intelOpen, setIntelOpen] = useState(false);
 
-  // Check if session data exists on mount
+  // Safely extract initials without risking runtime null pointers
+  const getInitials = () => {
+    if (!userSession || !userSession.name) return 'TR';
+    return userSession.name
+      .split(' ')
+      .filter(Boolean)
+      .map(n => n[0])
+      .join('')
+      .toUpperCase();
+  };
+
   useEffect(() => {
     const cachedName = localStorage.getItem('remembered_logistics_name');
     const cachedRole = localStorage.getItem('remembered_logistics_role');
@@ -55,10 +60,8 @@ export const PublicLogisticsHub: React.FC = () => {
     }
   }, [shopId]);
 
-  // Fetch real market intel dynamically from n8n or public routes when on dashboard
   const fetchDashboardData = async () => {
     try {
-      // Example payload requesting fresh data for this tenant identity zone
       const res = await fetch('https://n8n.tenear.com/webhook/logistics-fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -73,7 +76,6 @@ export const PublicLogisticsHub: React.FC = () => {
     }
   };
 
-  // 🔐 Native 'POST' Authentication Hook Engine modeling your Agricultural architecture
   const handleAuth = async (e: React.FormEvent, type: 'login' | 'register') => {
     e.preventDefault();
     if (!shopId) return alert("Select logistics workspace.");
@@ -85,7 +87,7 @@ export const PublicLogisticsHub: React.FC = () => {
       : { action: 'login', shop_id: parseInt(shopId), phone_number: phone, password };
 
     try {
-      const response = await fetch('https://n8n.tenear.com/webhook/logistics/auth', {
+      const response = await fetch('https://n8n.tenear.com/webhook/logistics-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -133,7 +135,6 @@ export const PublicLogisticsHub: React.FC = () => {
 
   if (!shopId) return <div className="p-20 text-center font-bold text-red-500">Error: Invalid Multi-Tenant Fleet Identifier parameters.</div>;
 
-  // Render Login/Registration Form context Layout state
   if (view === 'auth') {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
@@ -204,7 +205,7 @@ export const PublicLogisticsHub: React.FC = () => {
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm h-fit">
           <div className="flex flex-col items-center border-b border-slate-100 pb-4 mb-4">
             <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center text-white text-lg font-black mb-3 shadow-inner">
-              {userSession?.name ? userSession.name.split(' ').map(n => n[0]).join('') : 'TR'}
+              {getInitials()}
             </div>
             <span className="bg-blue-50 text-blue-700 text-[9px] font-bold tracking-wider px-2.5 py-0.5 rounded-full border border-blue-100 uppercase">
               {userSession?.role}
@@ -226,9 +227,7 @@ export const PublicLogisticsHub: React.FC = () => {
                 if (action.id === 'market_intel') setIntelOpen(true);
                 else console.log(`Triggering POST workflow API node allocation context for option: ${action.id}`);
               }}
-              className={`transition-all duration-150 rounded-xl p-4 text-white flex items-center gap-4 text-left shadow-xs hover:brightness-95 group font-medium ${action.color} ${
-                action.id === 'breakdown_alert' || action.id === 'market_intel' ? 'sm:col-span-2' : ''
-              }`}
+              className="transition-all duration-150 rounded-xl p-4 text-white flex items-center gap-4 text-left shadow-xs hover:brightness-95 group font-medium"
               style={{ backgroundColor: action.id === 'breakdown_alert' ? '#DC2626' : action.id === 'market_intel' ? '#059669' : '#2563EB' }}
             >
               <div className="p-2 bg-white/20 rounded-lg group-hover:scale-105 transition-transform">
