@@ -52,13 +52,32 @@ export const PublicLogisticsHub: React.FC = () => {
     }
   }, [searchParams]);
 
+  // Helper utility extracting driver initials safely
+  const getInitials = () => {
+    if (!userSession || !userSession.name) return 'TR';
+    return userSession.name
+      .split(' ')
+      .filter(Boolean)
+      .map(n => n[0]) // Extracts the first character of each name segment safely
+      .join('')
+      .toUpperCase();
+  };
+
   // Pull real live telemetry datasets from your n8n workflows
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (targetShopId?: string) => {
+    // Resolve identity strictly: passed value -> state value -> localStorage value -> null
+    const activeShopId = targetShopId || shopId || localStorage.getItem('remembered_logistics_shop_id');
+    
+    if (!activeShopId) {
+      console.warn("Telemetry fetch skipped: Missing valid shop_id context identifier.");
+      return;
+    }
+
     try {
       const res = await fetch('https://n8n.tenear.com/webhook/logistics-fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shop_id: shopId ? parseInt(shopId) : null })
+        body: JSON.stringify({ shop_id: parseInt(activeShopId, 10) })
       });
       const data = await res.json();
       if (data && data.opportunities) {
@@ -76,16 +95,7 @@ export const PublicLogisticsHub: React.FC = () => {
     }
   }, [view, shopId]);
 
-  // Helper utility extracting driver initials safely
-  const getInitials = () => {
-    if (!userSession || !userSession.name) return 'TR';
-    return userSession.name
-      .split(' ')
-      .filter(Boolean)
-      .map(n => n[0])
-      .join('')
-      .toUpperCase();
-  };
+  
 
   // 🔐 Multi-Tenant Webhook POST Auth Engine
   const handleAuth = async (e: React.FormEvent, type: 'login' | 'register') => {
@@ -108,13 +118,21 @@ export const PublicLogisticsHub: React.FC = () => {
       const data = await response.json();
       
       if (response.ok && data.success && data.user) {
-        localStorage.setItem('remembered_logistics_shop_id', shopId);
+        const verifiedShopId = String(data.user.shop_id);
+      
+        localStorage.setItem('remembered_logistics_shop_id', verifiedShopId);
         localStorage.setItem('remembered_logistics_name', data.user.full_name);
         localStorage.setItem('remembered_logistics_role', data.user.user_category);
         localStorage.setItem('remembered_logistics_phone', phone);
-        
+      
+        setShopId(verifiedShopId);
         setUserSession({ name: data.user.full_name, role: data.user.user_category });
         setView('dashboard');
+      
+        // Pass the explicit fresh ID directly to crush the state race condition loop
+        fetchDashboardData(verifiedShopId);
+        
+       
       } else {
         alert(data.message || "Authentication verification match failure exception.");
       }
