@@ -124,7 +124,8 @@ export const PublicLogisticsHub: React.FC = () => {
         localStorage.setItem('remembered_logistics_name', data.user.full_name);
         localStorage.setItem('remembered_logistics_role', data.user.user_category);
         localStorage.setItem('remembered_logistics_phone', phone);
-      
+        localStorage.setItem('remembered_logistics_company', data.user.company_name || 'Fleet Operator');
+ 
         setShopId(verifiedShopId);
         setUserSession({ name: data.user.full_name, role: data.user.user_category });
         setView('dashboard');
@@ -233,6 +234,15 @@ export const PublicLogisticsHub: React.FC = () => {
         
         {/* Profile Sidebar Element */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm h-fit">
+
+          {/* Dynamic Company Banner Element on top left corner of the card container */}
+          <div className="w-full text-left mb-4 px-1 pb-3 border-b border-slate-100">
+            <span className="text-[10px] text-slate-400 font-black uppercase tracking-wider block">LOGISTICS FIRM</span>
+            <h1 className="text-base font-black text-slate-900 tracking-tight uppercase">
+              {localStorage.getItem('remembered_logistics_company') || 'TeNEAR Transporters'}
+            </h1>
+          </div>
+
           <div className="flex flex-col items-center border-b border-slate-100 pb-4 mb-4">
             <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center text-white text-lg font-black mb-3 shadow-inner">
               {getInitials()}
