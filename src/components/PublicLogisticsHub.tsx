@@ -67,6 +67,16 @@ export const PublicLogisticsHub: React.FC = () => {
       .toUpperCase();
   };
 
+  // 💾 Explicit URL Resolver Utility Function
+  const resolveCurrentShopId = (): string | null => {
+    const urlId = new URLSearchParams(window.location.search).get('shop_id');
+    if (urlId) return urlId;
+    
+    // Natively look for the explicit high-level fallback parameters backed up by App.tsx
+    return localStorage.getItem('__native_shop_id') || localStorage.getItem('remembered_logistics_shop_id');
+  };
+
+
   // Pull real live telemetry datasets from your n8n workflows
   const fetchDashboardData = async (targetShopId?: string) => {
     // Resolve identity strictly: passed value -> state value -> localStorage value -> null
@@ -102,7 +112,7 @@ export const PublicLogisticsHub: React.FC = () => {
   
   // Function to pull real contract application rows from your database retrieval node
   const fetchAppliedHistory = async (targetShopId?: string) => {
-    const activeShopId = targetShopId || shopId || localStorage.getItem('remembered_logistics_shop_id');
+    const activeShopId = targetShopId || resolveCurrentShopId();
     if (!activeShopId) return;
 
     setLoadingApplications(true);
@@ -123,13 +133,17 @@ export const PublicLogisticsHub: React.FC = () => {
     }
   };
 
-  // 🔄 Update your main initialization hook to load this historical view on mount
+  // 🔄 Unified Real-Time Lifecycle Orchestrator Hook
   useEffect(() => {
-    if (view === 'dashboard' && shopId) {
-      fetchDashboardData();
-      fetchAppliedHistory(); // <-- Injects real database history stream load
+    if (view === 'dashboard') {
+      const isolatedId = resolveCurrentShopId();
+      if (isolatedId) {
+        // Enforce the resolved context directly down into both fetches simultaneously
+        fetchDashboardData(isolatedId);
+        fetchAppliedHistory(isolatedId);
+      }
     }
-  }, [view, shopId]);
+  }, [view]); // Triggers cleanly whenever the dashboard view shifts active states
 
   const handleCompanyBid = async (opportunity: Opportunity) => {
     const activeShopId = shopId || localStorage.getItem('remembered_logistics_shop_id');
