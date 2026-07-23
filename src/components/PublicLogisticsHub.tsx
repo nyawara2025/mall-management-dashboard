@@ -116,6 +116,10 @@ export const PublicLogisticsHub: React.FC = () => {
           shop_id: parseInt(activeShopId, 10),
           company_name: companyName,
           opportunity_id: opportunity.id,
+          client_name: opportunity.client_company_name,
+          origin_city: opportunity.origin_city,
+          destination_city: opportunity.destination_city,
+          cargo_type: opportunity.cargo_type,
           offered_rate: opportunity.offered_rate,
           route: `${opportunity.origin_city} to ${opportunity.destination_city}`
         })
