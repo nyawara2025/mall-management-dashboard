@@ -5,11 +5,6 @@ import {
   DollarSign, UserCheck, Briefcase, ChevronRight, X, Lock, Phone, User
 } from 'lucide-react';
 
-interface OperatorSession {
-  name: string;
-  role: string;
-}
-
 interface Opportunity {
   id: string;
   client_company_name: string;
@@ -21,45 +16,43 @@ interface Opportunity {
 
 export const PublicLogisticsHub: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const shopId = searchParams.get('shop_id');
-  
-  const [view, setView] = useState<'auth' | 'dashboard'>('auth');
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [loading, setLoading] = useState(false);
 
+  // 💾 State Management Layer (Mirrors PublicAgricHub logic perfectly)
+  const [shopId, setShopId] = useState<string | null>(() => {
+    return searchParams.get('shop_id') || localStorage.getItem('__native_shop_id') || '90';
+  });
+  
+  const [view, setView] = useState<'login' | 'register' | 'dashboard'>(() => {
+    return localStorage.getItem('remembered_logistics_name') ? 'dashboard' : 'login';
+  });
+
+  // Auth & Session Trackers
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [category, setCategory] = useState('driver');
+  const [loading, setLoading] = useState(false);
 
-  const [userSession, setUserSession] = useState<OperatorSession | null>(null);
+  const [userSession, setUserSession] = useState<{ name: string; role: string } | null>(() => {
+    const cachedName = localStorage.getItem('remembered_logistics_name');
+    const cachedRole = localStorage.getItem('remembered_logistics_role');
+    return cachedName && cachedRole ? { name: cachedName, role: cachedRole } : null;
+  });
+
+  // 📊 Live Telemetry Data Layers & Modal Visibility Controllers
   const [marketIntel, setMarketIntel] = useState<Opportunity[]>([]);
   const [intelOpen, setIntelOpen] = useState(false);
 
-  // Safely extract initials without risking runtime null pointers
-  const getInitials = () => {
-    if (!userSession || !userSession.name) return 'TR';
-    return userSession.name
-      .split(' ')
-      .filter(Boolean)
-      .map(n => n[0])
-      .join('')
-      .toUpperCase();
-  };
-
+  // Sync shop_id down if URL context overrides state mid-session
   useEffect(() => {
-    const cachedName = localStorage.getItem('remembered_logistics_name');
-    const cachedRole = localStorage.getItem('remembered_logistics_role');
-    const cachedShop = localStorage.getItem('remembered_logistics_shop_id');
-
-    if (cachedName && cachedRole && cachedShop === shopId) {
-      setUserSession({ name: cachedName, role: cachedRole });
-      setView('dashboard');
-      fetchDashboardData();
+    const urlId = searchParams.get('shop_id');
+    if (urlId && urlId !== shopId) {
+      setShopId(urlId);
     }
-  }, [shopId]);
+  }, [searchParams]);
 
+  // Pull real live telemetry datasets from your n8n workflows
   const fetchDashboardData = async () => {
     try {
       const res = await fetch('https://n8n.tenear.com/webhook/logistics-fetch', {
@@ -76,9 +69,28 @@ export const PublicLogisticsHub: React.FC = () => {
     }
   };
 
+  // Trigger telemetry fetch immediately when view switches over to dashboard
+  useEffect(() => {
+    if (view === 'dashboard' && shopId) {
+      fetchDashboardData();
+    }
+  }, [view, shopId]);
+
+  // Helper utility extracting driver initials safely
+  const getInitials = () => {
+    if (!userSession || !userSession.name) return 'TR';
+    return userSession.name
+      .split(' ')
+      .filter(Boolean)
+      .map(n => n[0])
+      .join('')
+      .toUpperCase();
+  };
+
+  // 🔐 Multi-Tenant Webhook POST Auth Engine
   const handleAuth = async (e: React.FormEvent, type: 'login' | 'register') => {
     e.preventDefault();
-    if (!shopId) return alert("Select logistics workspace.");
+    if (!shopId) return alert("Select logistics workspace workspace tracking token.");
     setLoading(true);
 
     const combinedFullName = `${firstName.trim()} ${lastName.trim()}`;
@@ -103,13 +115,12 @@ export const PublicLogisticsHub: React.FC = () => {
         
         setUserSession({ name: data.user.full_name, role: data.user.user_category });
         setView('dashboard');
-        fetchDashboardData();
       } else {
-        alert(data.message || "Authentication matching exception error.");
+        alert(data.message || "Authentication verification match failure exception.");
       }
     } catch (err) {
       console.error(err);
-      alert("Network transport layer connection exception dropped.");
+      alert("Network gateway connection dropped.");
     } finally {
       setLoading(false);
     }
@@ -120,7 +131,7 @@ export const PublicLogisticsHub: React.FC = () => {
     localStorage.removeItem('remembered_logistics_role');
     localStorage.removeItem('remembered_logistics_phone');
     setUserSession(null);
-    setView('auth');
+    setView('login');
   };
 
   const hubActions = [
@@ -133,9 +144,10 @@ export const PublicLogisticsHub: React.FC = () => {
     { id: 'breakdown_alert', label: 'EMERGENCY & BREAKDOWN', icon: <ShieldAlert className="w-5 h-5" />, color: 'bg-red-600' }
   ];
 
-  if (!shopId) return <div className="p-20 text-center font-bold text-red-500">Error: Invalid Multi-Tenant Fleet Identifier parameters.</div>;
-
-  if (view === 'auth') {
+  // =========================================================================
+  // 🔘 FRONTEND LAYOUT VIEW ROUTING SECTION
+  // =========================================================================
+  if (view === 'login' || view === 'register') {
     return (
       <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xl w-full max-w-sm">
@@ -144,11 +156,11 @@ export const PublicLogisticsHub: React.FC = () => {
               <Truck className="w-6 h-6" />
             </div>
             <h2 className="text-xl font-black text-slate-800 tracking-tight uppercase">Logistics Workspace</h2>
-            <p className="text-xs text-slate-400 mt-1">Tenant Account Workspace Reference: ID #{shopId}</p>
+            <p className="text-xs text-slate-400 mt-1">Workspace Tenant Context Profile ID: #{shopId}</p>
           </div>
 
-          <form onSubmit={(e) => handleAuth(e, authMode)} className="space-y-3.5">
-            {authMode === 'register' && (
+          <form onSubmit={(e) => handleAuth(e, view === 'login' ? 'login' : 'register')} className="space-y-3.5">
+            {view === 'register' && (
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-slate-50 border rounded-xl p-2 flex items-center gap-2">
                   <User className="w-4 h-4 text-slate-400 flex-shrink-0" />
@@ -174,7 +186,7 @@ export const PublicLogisticsHub: React.FC = () => {
 
             <div className="bg-slate-50 border rounded-xl p-2 flex items-center gap-2">
               <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
-              <input type="tel" placeholder="Phone Number (e.g. 07...)" required className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" value={phone} onChange={e => setPhone(e.target.value)} />
+              <input type="tel" placeholder="Phone Number" required className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" value={phone} onChange={e => setPhone(e.target.value)} />
             </div>
 
             <div className="bg-slate-50 border rounded-xl p-2 flex items-center gap-2">
@@ -183,13 +195,13 @@ export const PublicLogisticsHub: React.FC = () => {
             </div>
 
             <button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition-colors shadow-md disabled:opacity-50">
-              {loading ? 'Processing System Gateway...' : authMode === 'login' ? 'Sign In to Fleet Panel' : 'Register Operator Credentials'}
+              {loading ? 'Processing System Gateway...' : view === 'login' ? 'Sign In to Fleet Panel' : 'Register Operator Credentials'}
             </button>
           </form>
 
           <div className="text-center mt-5 pt-4 border-t border-slate-100">
-            <button onClick={() => setAuthMode(authMode === 'login' ? 'register' : 'login')} className="text-xs text-blue-600 font-bold hover:underline">
-              {authMode === 'login' ? "New platform driver? Register details" : "Already registered? Login to portal"}
+            <button onClick={() => setView(view === 'login' ? 'register' : 'login')} className="text-xs text-blue-600 font-bold hover:underline">
+              {view === 'login' ? "New platform driver? Register details" : "Already registered? Login to portal"}
             </button>
           </div>
         </div>
@@ -201,7 +213,7 @@ export const PublicLogisticsHub: React.FC = () => {
     <div className="min-h-screen bg-slate-50 pt-20 pb-10 px-4 max-w-7xl mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Profile Sidebar */}
+        {/* Profile Sidebar Element */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm h-fit">
           <div className="flex flex-col items-center border-b border-slate-100 pb-4 mb-4">
             <div className="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center text-white text-lg font-black mb-3 shadow-inner">
