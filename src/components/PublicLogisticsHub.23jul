@@ -96,13 +96,16 @@ export const PublicLogisticsHub: React.FC = () => {
   }, [view, shopId]);
 
   
-  const handleCompanyBid = async (opportunity: Opportunity) => {
+  const handleClaimContract = async (opportunity: Opportunity) => {
+    // Read clean structural parameters directly from cached user variables
     const activeShopId = shopId || localStorage.getItem('remembered_logistics_shop_id');
-    const companyName = localStorage.getItem('remembered_logistics_company') || 'Fleet Operator';
+    const driverPhone = localStorage.getItem('remembered_logistics_phone');
     
-    if (!activeShopId) return alert("Workspace context lost.");
+    if (!activeShopId || !userSession) {
+      return alert("Session context synchronization dropped.");
+    }
 
-    if (!window.confirm(`Submit formal freight contract bid to ${opportunity.client_company_name}?`)) {
+    if (!window.confirm(`Are you sure you want to claim the contract for ${opportunity.client_company_name}?`)) {
       return;
     }
 
@@ -114,18 +117,21 @@ export const PublicLogisticsHub: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           shop_id: parseInt(activeShopId, 10),
-          company_name: companyName,
+          phone_number: driverPhone,
           opportunity_id: opportunity.id,
-          offered_rate: opportunity.offered_rate,
-          route: `${opportunity.origin_city} to ${opportunity.destination_city}`
+          client_name: opportunity.client_company_name,
+          origin: opportunity.origin_city,
+          destination: opportunity.destination_city,
+          cargo_type: opportunity.cargo_type
         })
       });
 
       const data = await response.json();
 
       if (response.ok && data.success) {
-        alert("Corporate bid submitted successfully to the client panel!");
-        setIntelOpen(false);
+        alert("Freight contract claimed and synchronized successfully!");
+        setIntelOpen(false); // Close slider panel view
+        fetchDashboardData(activeShopId); // Refresh live telemetry data variables
       } else {
         alert(data.message || "Claim processing conflict exception.");
       }
@@ -351,25 +357,18 @@ export const PublicLogisticsHub: React.FC = () => {
                     </p>
                     <p className="text-[11px] text-slate-500 mt-1 pl-4">• Load Spec: {job.cargo_type}</p>
                     
-                    {/* B2B Multi-Role Action Gatekeeper */}
-                    {['owner', 'manager'].includes(userSession?.role || '') ? (
-                      <button 
-                        onClick={() => handleCompanyBid(job)}
-                        disabled={loading}
-                        className="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] tracking-wider py-1.5 rounded-lg flex items-center justify-center gap-1 uppercase transition-colors disabled:opacity-50"
-                      >
-                        {loading ? 'Submitting Bid...' : 'Submit Contract Bid'} <ChevronRight className="w-3 h-3" />
-                      </button>
-                    ) : (
-                      <div className="mt-3 text-center text-[10px] bg-slate-100 text-slate-500 py-1 rounded-md font-bold uppercase tracking-wider">
-                       Viewing Only (Requires Manager Dispatch)
-                      </div>
-                    )}
+                    {/* Updated Functional Button Element */}
+                    <button 
+                      onClick={() => handleClaimContract(job)}
+                      disabled={loading}
+                      className="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] tracking-wider py-1.5 rounded-lg flex items-center justify-center gap-1 uppercase transition-colors disabled:opacity-50"
+                    >
+                      {loading ? 'Securing Contract...' : 'Claim Freight Contract'} <ChevronRight className="w-3 h-3" />
+                    </button>
                   </div>
                 ))
               )}
             </div>
-
           </div>
 
         </div>
