@@ -73,7 +73,7 @@ export const CropsHub: React.FC<CropsHubProps> = ({
   const [marketPrices, setMarketPrices] = useState<any[]>([]);
 
   // Navigation State Panel Switcher
-  const [cropsView, setCropsView] = useState<'menu' | 'production' | 'inputs' | 'tasks' | 'weather' | 'market' | 'pathology' | 'soil_analysis' | 'plots_config'>('menu');
+  const [cropsView, setCropsView] = useState<'menu' | 'production' | 'inputs' | 'tasks' | 'weather' | 'market' | 'pathology' | 'plots_config'>('menu');
   const [loading, setLoading] = useState(false);
  
   const [activePlotsList, setActivePlotsList] = useState<Array<{ id: string | number; plot_name: string }>>([]);
@@ -90,11 +90,6 @@ export const CropsHub: React.FC<CropsHubProps> = ({
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [aiDiagnosing, setAiDiagnosing] = useState<boolean>(false);
   const [diagnosisResult, setDiagnosisResult] = useState<any>(null);
-
-  // 🪵 NEW: Soil Scanning Engine Local States
-  const [capturedSoilImage, setCapturedSoilImage] = useState<string | null>(null);
-  const [aiAnalyzingSoil, setAiAnalyzingSoil] = useState<boolean>(false);
-  const [soilAnalysisResult, setSoilAnalysisResult] = useState<any>(null);
 
   // Local Weather Sync States
   const [weatherData, setWeatherData] = useState<{
@@ -510,34 +505,6 @@ export const CropsHub: React.FC<CropsHubProps> = ({
     }
   };
      
-  // Form submission handler function for Soil API route communication
-  const handleSoilAnalysis = async (base64Image: string) => {
-    setAiAnalyzingSoil(true);
-    setSoilAnalysisResult(null);
-    try {
-      const res = await fetch(`https://n8n.tenear.com/webhook/soil-capture`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          image: base64Image,
-          environmental_context: {
-            current_temp: weatherData?.temp,
-            rain_risk: weatherData?.rainProb
-          }
-        })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSoilAnalysisResult(data);
-      } else {
-        alert("Edge Worker pipeline encountered an evaluation error.");
-      }
-    } catch (e) {
-      console.error("Soil analysis routing engine error: ", e);
-    } finally {
-      setAiAnalyzingSoil(false);
-    }
-  };
 
   // Main Crops Hub Sub-Menu
   if (cropsView === 'menu') {
@@ -1032,150 +999,6 @@ export const CropsHub: React.FC<CropsHubProps> = ({
               <p className="text-[9px] text-slate-400 leading-normal pt-2 border-t border-slate-200/50 italic text-center">
                 ⚠ AI insights are for tracking only. Verify inputs with a certified agronomy official before chemical application.
               </p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // 🪵 Dedicated Soil Analyzer Screen Panel View with Calibration Layout Overlay
-  if (cropsView === 'soil_analysis') {
-    return (
-      <div className="space-y-4 animate-fadeIn text-left">
-        <button 
-          onClick={() => {
-            const videoEl = document.getElementById('soil-stream-feed') as HTMLVideoElement;
-            if (videoEl?.srcObject) {
-              (videoEl.srcObject as MediaStream).getTracks().forEach(track => track.stop());
-            }
-            setCapturedSoilImage(null);
-            setSoilAnalysisResult(null);
-            setCropsView('menu');
-          }} 
-          className="text-[11px] text-amber-700 hover:text-amber-800 font-black tracking-wide uppercase"
-        >
-          ← Cancel & Back to Menu
-        </button>
-
-        <div className="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-xs space-y-4">
-          <div>
-            <h3 className="text-xs font-black text-slate-900 uppercase tracking-wide">AI Soil Composition Analyzer</h3>
-            <p className="text-[10px] text-slate-500 font-bold mt-0.5">Active Target Plot: <span className="text-amber-600">{targetPlot || 'General Field'}</span></p>
-          </div>
-
-          {!capturedSoilImage ? (
-            <div className="relative bg-slate-900 rounded-2xl overflow-hidden aspect-video flex items-center justify-center shadow-inner">
-              <video 
-                id="soil-stream-feed" 
-                autoPlay 
-                playsInline 
-                className="w-full h-full object-cover"
-                ref={(ref) => {
-                  if (ref && !ref.srcObject) {
-                    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-                      .then(stream => { ref.srcObject = stream; })
-                      .catch(err => {
-                        console.error("Camera hardware block:", err);
-                        alert("Camera Access Blocked: Ensure permissions are allowed.");
-                      });
-                  }
-                }}
-              />
-              
-              {/* 🎯 TECHNICAL HUD: Calibration Reference Template Mask Overlay */}
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                {/* Center Capture Target Area */}
-                <div className="w-24 h-24 border-2 border-dashed border-amber-400 rounded-full flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 bg-amber-400 rounded-full animate-ping" />
-                </div>
-                
-                {/* Horizontal Alignment & Normalization Reference Bars */}
-                <div className="absolute bottom-3 left-3 right-3 bg-slate-950/80 backdrop-blur-xs rounded-xl p-1.5 border border-white/10 flex justify-between items-center text-[8px] font-black text-slate-400 uppercase tracking-wider">
-                  <div className="flex items-center gap-1">
-                    <span className="w-2.5 h-2.5 bg-white border border-slate-500 block rounded-xs" />
-                    <span>White Ref</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-2.5 h-2.5 bg-neutral-900 border border-slate-700 block rounded-xs" />
-                    <span>Black Ref</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span className="w-2.5 h-2.5 bg-amber-800 border border-amber-950 block rounded-xs" />
-                    <span>Loam Target</span>
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => {
-                  const video = document.getElementById('soil-stream-feed') as HTMLVideoElement;
-                  if (video) {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = video.videoWidth || 640;
-                    canvas.height = video.videoHeight || 480;
-                    const ctx = canvas.getContext('2d');
-                    if (ctx) {
-                      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                      setCapturedSoilImage(canvas.toDataURL('image/jpeg'));
-                      if (video.srcObject) {
-                        (video.srcObject as MediaStream).getTracks().forEach(track => track.stop());
-                      }
-                    }
-                  }
-                }}
-                className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-white text-slate-900 font-black text-[10px] tracking-wider uppercase px-5 py-2.5 rounded-xl shadow-xl active:scale-95 transition-all border border-slate-200 pointer-events-auto"
-              >
-                📸 Capture Ground Matrix
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <img src={capturedSoilImage} alt="Soil Sample Preview" className="w-full aspect-video object-cover rounded-2xl border border-slate-200 shadow-xs" />
-              
-              {!soilAnalysisResult && !aiAnalyzingSoil && (
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => setCapturedSoilImage(null)} 
-                    className="w-1/2 border border-slate-200 font-black text-[11px] uppercase tracking-wide py-3 rounded-xl text-slate-600 bg-white hover:bg-slate-50 transition-all"
-                  >
-                    🔄 Retake Photo
-                  </button>
-                  <button 
-                    onClick={() => handleSoilAnalysis(capturedSoilImage)}
-                    className="w-1/2 bg-amber-600 hover:bg-amber-700 text-white font-black text-[11px] uppercase tracking-wide py-3 rounded-xl shadow-xs transition-all"
-                  >
-                    🪵 Analyze Textures
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-
-          {aiAnalyzingSoil && (
-            <div className="p-6 text-center space-y-2 border border-slate-100 bg-slate-50/50 rounded-2xl animate-pulse">
-              <span className="text-2xl block animate-spin">⏳</span>
-              <h5 className="text-xs font-black text-slate-700 uppercase tracking-wider">Evaluating Substrate Imagery...</h5>
-              <p className="text-[10px] text-slate-400">Processing color histograms on Cloudflare Edge GPUs.</p>
-            </div>
-          )}
-
-          {soilAnalysisResult && (
-            <div className="bg-amber-50/40 border border-amber-200/60 p-4 rounded-2xl space-y-3 text-[11px] animate-fadeIn">
-              <div className="flex justify-between items-center border-b border-amber-200/40 pb-2">
-                <div>
-                  <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block">Texture Classification</span>
-                  <strong className="text-slate-800 uppercase text-xs">{soilAnalysisResult.soil_type || 'Unknown Type'}</strong>
-                </div>
-                <span className="px-2 py-0.5 rounded-md font-bold text-[9px] bg-amber-100 text-amber-800">
-                  Moisture: {soilAnalysisResult.moisture_estimate || 'Unknown'}
-                </span>
-              </div>
-
-              <div>
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Agronomic Management Field Advisory</span>
-                <p className="text-slate-700 font-medium leading-relaxed">{soilAnalysisResult.advisory}</p>
-              </div>
             </div>
           )}
         </div>
