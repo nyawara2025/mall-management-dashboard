@@ -473,25 +473,39 @@ export default function YouthAffairsModal({ isOpen, onClose, userData, shopId }:
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    {/* 📸 Update your Instagram value box text layout */}
-                    <div className="text-xl font-bold">
-                      {socialMetrics?.instagram_followers ?? 0}
+                    {/* Instagram Analytics Card */}
+                    <div className="p-4 rounded-2xl border border-gray-100 bg-gradient-to-br from-pink-50/30 to-rose-50/30 flex flex-col">
+                      <span className="text-xs font-medium text-gray-500">Instagram Followers</span>
+                      <span className="text-xl font-black text-gray-900 mt-1">
+                        {socialMetrics.instagram?.followers?.toLocaleString() || 0}
+                      </span>
                     </div>
 
-                    {/* 🎵 Update your TikTok value box text layout */}
-                    <div className="text-xl font-bold">
-                      {socialMetrics?.tiktok_likes ?? 0}
+                    {/* TikTok Analytics Card */}
+                    <div className="p-4 rounded-2xl border border-gray-100 bg-gradient-to-br from-cyan-50/30 to-slate-50/30 flex flex-col">
+                      <span className="text-xs font-medium text-gray-500">TikTok Likes</span>
+                      <span className="text-xl font-black text-gray-900 mt-1">
+                        {socialMetrics.tiktok?.likes?.toLocaleString() || 0}
+                      </span>
                     </div>
 
-                    {/* 👥 Update your Facebook value box text layout */}
-                    <div className="text-xl font-bold">
-                      {socialMetrics?.facebook_impressions ?? 0}
+                    {/* Facebook Analytics Card */}
+                    <div className="p-4 rounded-2xl border border-gray-100 bg-gradient-to-br from-blue-50/30 to-indigo-50/30 flex flex-col">
+                      <span className="text-xs font-medium text-gray-500">Facebook Impressions</span>
+                      <span className="text-xl font-black text-gray-900 mt-1">
+                        {socialMetrics.facebook_impressions?.toLocaleString() || 0}
+                      </span>
                     </div>
 
-                    {/* 🐦 Update your X value box text layout */}
-                    <div className="text-xl font-bold">
-                      {socialMetrics?.twitter_impressions ?? 0}
+                    {/* Twitter / X Analytics Card */}
+                    <div className="p-4 rounded-2xl border border-gray-100 bg-gradient-to-br from-neutral-50 to-neutral-100/50 flex flex-col">
+                      <span className="text-xs font-medium text-gray-500">Twitter Impressions</span>
+                      <span className="text-xl font-black text-gray-900 mt-1">
+                        {socialMetrics.twitter?.impressions_30d?.toLocaleString() || 0}
+                      </span>
                     </div>
+
+
                   </div>
                 </div>
               )}
