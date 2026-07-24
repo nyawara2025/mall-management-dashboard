@@ -637,6 +637,21 @@ export const CropsHub: React.FC<CropsHubProps> = ({
           </button>
         </div>
 
+        {/* 🪵 NEW INSERTION: SOIL ANALYZER MODULE CARD PANEL */}
+        <div className="bg-amber-50 rounded-2xl p-4 border border-amber-100 flex justify-between items-center mb-3 text-left animate-fadeIn">
+          <div>
+            <h4 className="text-xs font-black text-amber-900 uppercase tracking-wide">Soil Condition Analyzer</h4>
+            <p className="text-[11px] text-amber-700">Verify surface texturing, profile structures & field moisture stability.</p>
+          </div>
+          <button 
+            onClick={() => setCropsView('soil_analysis')} 
+            className="bg-amber-600 text-white text-xs px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1 shadow-xs whitespace-nowrap"
+          >
+            🪵 Scan Soil
+          </button>
+        </div>
+
+
         {/* 🤖 Embedded AI Voice Logger Action Panel */}
         <div className="bg-slate-900 text-white rounded-3xl p-5 shadow-sm space-y-3">
           <div className="flex justify-between items-center">
