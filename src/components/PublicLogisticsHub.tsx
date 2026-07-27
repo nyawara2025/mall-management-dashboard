@@ -47,6 +47,9 @@ export const PublicLogisticsHub: React.FC = () => {
   const [isTrackingActive, setIsTrackingActive] = useState<boolean>(false);
   const [geoWatchId, setGeoWatchId] = useState<number | null>(null);
 
+  // Executive Fleet Location Monitor State tracking layers
+  const [activeTrackingLogs, setActiveTrackingLogs] = useState<any[]>([]);
+
   // Fuel Voucher & Expenses State Layer
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [vouchersOpen, setVouchersOpen] = useState(false);
@@ -233,11 +236,17 @@ export const PublicLogisticsHub: React.FC = () => {
         fetchFreightPayments(isolatedId);
         fetchPortDocuments(isolatedId);
         fetchBreakdownAlerts(isolatedId);
-      } else {
-        console.warn("Unified Lifecycle: Execution skipped due to missing tenant identity context.");
+      
+        // 🔒 Run live fleet tracking sync strictly for executive roles
+        if (['owner', 'manager', 'supervisor'].includes(userSession?.role || '')) {
+          fetchLiveFleetTracking(isolatedId);
+          // Set up a 1-minute automated polling refresh loop for real-time tracking
+          const pollInterval = setInterval(() => fetchLiveFleetTracking(isolatedId), 60000);
+          return () => clearInterval(pollInterval);
+        }
       }
     }
-  }, [view, shopId]); // Reacts cleanly to both view shifts and URL tenant swaps
+  }, [view, shopId, userSession]);
 
   
   // Function to pull real contract application rows from your database retrieval node
@@ -706,6 +715,26 @@ export const PublicLogisticsHub: React.FC = () => {
     }
   };
 
+
+  const fetchLiveFleetTracking = async (targetShopId?: string) => {
+    const activeShopId = targetShopId || resolveCurrentShopId();
+    if (!activeShopId) return;
+
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/live-fleet-tracking', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: parseInt(activeShopId, 10) })
+      });
+      const data = await res.json();
+      if (data && data.tracking) {
+        setActiveTrackingLogs(data.tracking);
+      }
+    } catch (err) {
+      console.error("Error pulling real-time platform tracking logs:", err);
+    }
+  };
+
   // 🔐 Multi-Tenant Webhook POST Auth Engine
   const handleAuth = async (e: React.FormEvent, type: 'login' | 'register') => {
     e.preventDefault();
@@ -928,6 +957,50 @@ export const PublicLogisticsHub: React.FC = () => {
                 </button>
             ))}
           </div>
+
+          {/* 📡 EXECUTIVE MANAGEMENT LIVE TELEMETRY RADAR CONTROL PANEL */}
+          {['owner', 'manager', 'supervisor'].includes(userSession?.role || '') && (
+            <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
+              <div className="border-b border-slate-100 pb-3 mb-3">
+                <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-blue-600">
+                  📡 Live Fleet Tracking Radar
+                </h3>
+                <p className="text-[11px] text-slate-400 font-medium">Real-time driver smartphone coordinate updates polled from logstrip_gps_pings</p>
+              </div>
+
+              {activeTrackingLogs.length === 0 ? (
+                <div className="text-center text-xs text-slate-400 py-6 italic border border-dashed rounded-xl bg-slate-50/50">
+                  No active driver location transit streams broadcasting on this workspace channel right now.
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {activeTrackingLogs.map((log) => (
+                    <div key={log.driver_phone} className="p-3 border border-slate-100 rounded-xl bg-slate-50/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-blue-200 transition-colors">
+                      <div>
+                        <span className="block text-xs font-bold text-slate-800">{log.driver_name || 'Active Operator Line'}</span>
+                        <span className="block text-[10px] font-mono text-slate-400 mt-0.5">📞 Ref: +{log.driver_phone}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 justify-between sm:justify-end">
+                        <span className="text-[10px] font-semibold text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded-md">
+                          Last Ping: {new Date(log.pinged_at).toLocaleTimeString()}
+                        </span>
+                        <a 
+                          href={`https://google.com{log.latitude},${log.longitude}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] tracking-wider px-3 py-1.5 rounded-lg uppercase transition-colors"
+                        >
+                          🗺️ View Map Location
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
 
           {/* 📋 LIVE DATABASE CONTRACT APPLICATIONS VIEWPORT PANEL */}
           <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-sm">
