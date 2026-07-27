@@ -38,10 +38,6 @@ export const PublicLogisticsHub: React.FC = () => {
   const [category, setCategory] = useState('driver');
   const [loading, setLoading] = useState(false);
 
-  // State variables for the Trip Manifest system
-  const [manifests, setManifests] = useState<any[]>([]);
-  const [manifestsOpen, setManifestsOpen] = useState(false);
-
   const [userSession, setUserSession] = useState<{ name: string; role: string } | null>(() => {
     const cachedName = localStorage.getItem('remembered_logistics_name');
     const cachedRole = localStorage.getItem('remembered_logistics_role');
@@ -106,23 +102,12 @@ export const PublicLogisticsHub: React.FC = () => {
     }
   };
 
-  // 🔄 Unified Real-Time Lifecycle Orchestrator Hook
-  // Fires instantly on login view changes OR multi-tenant workspace context shifts
+  // Trigger telemetry fetch immediately when view switches over to dashboard
   useEffect(() => {
-    if (view === 'dashboard') {
-      // 1. Resolve identity instantly (bypasses asynchronous React state delays)
-      const isolatedId = resolveCurrentShopId() || shopId;
-      
-      if (isolatedId) {
-        // 2. Synchronously blast the resolved identity down to all three data views
-        fetchDashboardData(isolatedId);
-        fetchAppliedHistory(isolatedId);
-        fetchManifestLogs(isolatedId);
-      } else {
-        console.warn("Unified Lifecycle: Execution skipped due to missing tenant identity context.");
-      }
+    if (view === 'dashboard' && shopId) {
+      fetchDashboardData();
     }
-  }, [view, shopId]); // Reacts cleanly to both view shifts and URL tenant swaps
+  }, [view, shopId]);
 
   
   // Function to pull real contract application rows from your database retrieval node
@@ -148,6 +133,17 @@ export const PublicLogisticsHub: React.FC = () => {
     }
   };
 
+  // 🔄 Unified Real-Time Lifecycle Orchestrator Hook
+  useEffect(() => {
+    if (view === 'dashboard') {
+      const isolatedId = resolveCurrentShopId();
+      if (isolatedId) {
+        // Enforce the resolved context directly down into both fetches simultaneously
+        fetchDashboardData(isolatedId);
+        fetchAppliedHistory(isolatedId);
+      }
+    }
+  }, [view]); // Triggers cleanly whenever the dashboard view shifts active states
 
   const handleCompanyBid = async (opportunity: Opportunity) => {
     const activeShopId = shopId || localStorage.getItem('remembered_logistics_shop_id');
@@ -191,30 +187,6 @@ export const PublicLogisticsHub: React.FC = () => {
       alert("Network gateway execution dropped.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Pull real live trip manifest datasets from your n8n workflows
-  const fetchManifestLogs = async (targetShopId?: string) => {
-    const activeShopId = targetShopId || shopId || localStorage.getItem('remembered_logistics_shop_id');
-    
-    if (!activeShopId) {
-      console.warn("Manifest logs fetch skipped: Missing valid shop_id context identifier.");
-      return;
-    }
-
-    try {
-      const res = await fetch('https://n8n.tenear.com/webhook/fetch-manifest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ shop_id: parseInt(activeShopId, 10) })
-      });
-      const data = await res.json();
-      if (data && data.manifests) {
-        setManifests(data.manifests);
-      }
-    } catch (err) {
-      console.error("Error pulling database manifest logs:", err);
     }
   };
 
@@ -390,7 +362,6 @@ export const PublicLogisticsHub: React.FC = () => {
                 key={action.id}
                 onClick={() => {
                   if (action.id === 'market_intel') setIntelOpen(true);
-                  else if (action.id === 'trip_manifest') setManifestsOpen(true); // Activated!
                   else console.log(`Triggering POST workflow API node allocation context for option: ${action.id}`);
                 }}
                 className="transition-all duration-150 rounded-xl p-4 text-white flex items-center gap-4 text-left shadow-xs hover:brightness-95 group font-medium"
@@ -522,55 +493,6 @@ export const PublicLogisticsHub: React.FC = () => {
 
         </div>
       )}
-
-      {/* Dynamic Slide-Over Panel displaying active Trip Manifests & NTSA status */}
-      {manifestsOpen && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex justify-end">
-          <div className="bg-white w-full max-w-md h-full p-6 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
-            <div className="flex items-center justify-between border-b pb-4 mb-4">
-              <div>
-                <h3 className="text-lg font-bold text-slate-800">Trip Manifests & NTSA Logs</h3>
-                <p className="text-xs text-slate-400">Live multi-tenant dispatch records tracking system approvals</p>
-              </div>
-              <button onClick={() => setManifestsOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
-              {manifests.length === 0 ? (
-                <div className="text-center text-xs text-slate-400 py-10 italic">No available active trip manifests or log runs found for this shop.</div>
-              ) : (
-                manifests.map((manifest) => (
-                  <div key={manifest.id} className="p-3 border border-slate-100 rounded-xl bg-slate-50/50 hover:border-blue-200 transition-colors">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-xs font-bold text-slate-800">Manifest: #{manifest.manifest_no || manifest.id.substring(0,8)}</span>
-                      <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                        manifest.ntsa_status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                        manifest.ntsa_status === 'failed' ? 'bg-red-50 text-red-700 border-red-200' :
-                        'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
-                        NTSA: {manifest.ntsa_status || 'PENDING'}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 flex items-center gap-1 font-medium">
-                      <Truck className="w-3 h-3 text-slate-400" /> Fleet Vehicle: <span className="font-bold text-slate-800">{manifest.vehicle_plate}</span>
-                    </p>
-                    <p className="text-xs text-slate-600 flex items-center gap-1 font-medium mt-1">
-                      <MapPin className="w-3 h-3 text-slate-400" /> Route: {manifest.route_itinerary}
-                    </p>
-                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-500">
-                      <span>Driver: {manifest.driver_name}</span>
-                      <span className="font-mono text-slate-400">{manifest.dispatch_date}</span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 };
