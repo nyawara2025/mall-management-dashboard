@@ -38,6 +38,11 @@ export const PublicLogisticsHub: React.FC = () => {
   const [category, setCategory] = useState('driver');
   const [loading, setLoading] = useState(false);
 
+  const [formOpen, setFormOpen] = useState(false);
+  const [vehiclePlate, setVehiclePlate] = useState('');
+  const [routeItinerary, setRouteItinerary] = useState('');
+  const [submittingManifest, setSubmittingManifest] = useState(false);
+
   // State variables for the Trip Manifest system
   const [manifests, setManifests] = useState<any[]>([]);
   const [manifestsOpen, setManifestsOpen] = useState(false);
@@ -218,6 +223,53 @@ export const PublicLogisticsHub: React.FC = () => {
     }
   };
 
+  const handleCreateManifest = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const activeShopId = shopId || localStorage.getItem('remembered_logistics_shop_id');
+    const savedName = localStorage.getItem('remembered_logistics_name') || 'Unknown Driver';
+    const savedPhone = localStorage.getItem('remembered_logistics_phone') || '';
+
+    if (!activeShopId) return alert("Multi-tenant tracking token lost.");
+    if (!vehiclePlate.trim() || !routeItinerary.trim()) return alert("Please fill in all layout text fields.");
+
+    setSubmittingManifest(true);
+    // Auto-generate a clean manifest tracking string using timestamp numbers
+    const generatedNo = `MNF-${Date.now().toString().slice(-6)}`;
+
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/create-trip-maifest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: parseInt(activeShopId, 10),
+          manifest_no: generatedNo,
+          vehicle_plate: vehiclePlate.toUpperCase().trim(),
+          route_itinerary: routeItinerary.trim(),
+          driver_name: savedName,
+          driver_phone: savedPhone
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        alert(`Trip Manifest ${generatedNo} successfully logged and synchronized!`);
+        // Reset local form input layers
+        setVehiclePlate('');
+        setRouteItinerary('');
+        setFormOpen(false);
+        // Instantly sync layout viewport logs down
+        fetchManifestLogs(activeShopId);
+      } else {
+        alert(data.message || "Manifest submission execution error.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network gateway failed to upload trip logging details.");
+    } finally {
+      setSubmittingManifest(false);
+    }
+  };
 
   // 🔐 Multi-Tenant Webhook POST Auth Engine
   const handleAuth = async (e: React.FormEvent, type: 'login' | 'register') => {
@@ -537,40 +589,88 @@ export const PublicLogisticsHub: React.FC = () => {
               </button>
             </div>
             
+            {/* CTA action layer allowing authorized logged drivers to toggle form options */}
+            <div className="mb-4">
+              <button 
+                onClick={() => setFormOpen(!formOpen)}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider py-2 rounded-xl transition-colors shadow-xs"
+              >
+                {formOpen ? "← View Running Logs" : "+ File New Dispatch Manifest"}
+              </button>
+            </div>
+            
             <div className="space-y-3 overflow-y-auto flex-1 pr-1">
-              {manifests.length === 0 ? (
-                <div className="text-center text-xs text-slate-400 py-10 italic">No available active trip manifests or log runs found for this shop.</div>
-              ) : (
-                manifests.map((manifest) => (
-                  <div key={manifest.id} className="p-3 border border-slate-100 rounded-xl bg-slate-50/50 hover:border-blue-200 transition-colors">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-xs font-bold text-slate-800">Manifest: #{manifest.manifest_no || manifest.id.substring(0,8)}</span>
-                      <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                        manifest.ntsa_status === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                        manifest.ntsa_status === 'failed' ? 'bg-red-50 text-red-700 border-red-200' :
-                        'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
-                        NTSA: {manifest.ntsa_status || 'PENDING'}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 flex items-center gap-1 font-medium">
-                      <Truck className="w-3 h-3 text-slate-400" /> Fleet Vehicle: <span className="font-bold text-slate-800">{manifest.vehicle_plate}</span>
-                    </p>
-                    <p className="text-xs text-slate-600 flex items-center gap-1 font-medium mt-1">
-                      <MapPin className="w-3 h-3 text-slate-400" /> Route: {manifest.route_itinerary}
-                    </p>
-                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-500">
-                      <span>Driver: {manifest.driver_name}</span>
-                      <span className="font-mono text-slate-400">{manifest.dispatch_date}</span>
-                    </div>
+              {formOpen ? (
+                /* Dynamic Creation Form Element Layer */
+                <form onSubmit={handleCreateManifest} className="space-y-4 p-1">
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Vehicle Registration Plate</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. KCX 123A" 
+                      required 
+                      className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" 
+                      value={vehiclePlate} 
+                      onChange={e => setVehiclePlate(e.target.value)} 
+                    />
                   </div>
-                ))
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Route Itinerary Details</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Mombasa Port to Nairobi Inland Container Depot" 
+                      required 
+                      className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" 
+                      value={routeItinerary} 
+                      onChange={e => setRouteItinerary(e.target.value)} 
+                    />
+                  </div>
+                  <div className="p-2.5 bg-blue-50 border border-blue-100 rounded-xl text-[11px] text-blue-700 font-medium">
+                    Signing manifest as driver: <span className="font-bold">{userSession?.name || 'Authorized Operator'}</span>
+                  </div>
+                  <button 
+                    type="submit" 
+                    disabled={submittingManifest} 
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition-colors disabled:opacity-50"
+                  >
+                    {submittingManifest ? 'Registering Logs...' : 'Submit to NTSA Verification Node'}
+                  </button>
+                </form>
+              ) : (
+
+                manifests.length === 0 ? (
+                  <div className="text-center text-xs text-slate-400 py-10 italic">No available active trip manifests or log runs found for this shop.</div>
+                ) : (
+                  manifests.map((manifest) => (
+                    <div key={manifest.id} className="p-3 border border-slate-100 rounded-xl bg-slate-50/50 hover:border-blue-200 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-xs font-bold text-slate-800">Manifest: #{manifest.manifest_no}</span>
+                        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                          manifest.ntsa_status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          manifest.ntsa_status === 'FAILED' ? 'bg-red-50 text-red-700 border-red-200' :
+                          'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          NTSA: {manifest.ntsa_status || 'PENDING'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 flex items-center gap-1 font-medium">
+                        <Truck className="w-3 h-3 text-slate-400" /> Fleet Vehicle: <span className="font-bold text-slate-800">{manifest.vehicle_plate}</span>
+                      </p>
+                      <p className="text-xs text-slate-600 flex items-center gap-1 font-medium mt-1">
+                        <MapPin className="w-3 h-3 text-slate-400" /> Route: {manifest.route_itinerary}
+                      </p>
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-500">
+                        <span>Driver: {manifest.driver_name}</span>
+                        <span className="font-mono text-slate-400">{manifest.dispatch_date ? new Date(manifest.dispatch_date).toLocaleDateString() : ''}</span>
+                      </div>
+                    </div>
+                  ))
+                )
               )}
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
-};
+}; 
