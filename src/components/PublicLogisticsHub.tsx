@@ -237,7 +237,7 @@ export const PublicLogisticsHub: React.FC = () => {
     const generatedNo = `MNF-${Date.now().toString().slice(-6)}`;
 
     try {
-      const res = await fetch('https://n8n.tenear.com/webhook/create-trip-maifest', {
+      const res = await fetch('https://n8n.tenear.com/webhook/create-trip-manifest', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
