@@ -256,7 +256,7 @@ export const PublicLogisticsHub: React.FC = () => {
 
   const handleCreateWaybill = async (e: React.FormEvent) => {
     e.preventDefault();
-    const activeShopId = shopId || localStorage.getItem('remembered_logistics_shop_id');
+    const activeShopId = resolveCurrentShopId();
     if (!activeShopId) return alert("Multi-tenant tracking token lost.");
     if (!selectedManifest || !cargoDesc.trim() || !currentLoc.trim()) {
       return alert("Please select a manifest and complete all fields.");
