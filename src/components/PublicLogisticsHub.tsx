@@ -51,6 +51,13 @@ export const PublicLogisticsHub: React.FC = () => {
   const [waybills, setWaybills] = useState<any[]>([]);
   const [waybillsOpen, setWaybillsOpen] = useState(false);
 
+  // Waybill Form Generation State Layer
+  const [wbFormOpen, setWbFormOpen] = useState(false);
+  const [selectedManifest, setSelectedManifest] = useState('');
+  const [cargoDesc, setCargoDesc] = useState('');
+  const [currentLoc, setCurrentLoc] = useState('');
+  const [submittingWaybill, setSubmittingWaybill] = useState(false);
+
   const [userSession, setUserSession] = useState<{ name: string; role: string } | null>(() => {
     const cachedName = localStorage.getItem('remembered_logistics_name');
     const cachedRole = localStorage.getItem('remembered_logistics_role');
@@ -244,6 +251,51 @@ export const PublicLogisticsHub: React.FC = () => {
       }
     } catch (err) {
       console.error("Error pulling database waybill logs:", err);
+    }
+  };
+
+  const handleCreateWaybill = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const activeShopId = shopId || localStorage.getItem('remembered_logistics_shop_id');
+    if (!activeShopId) return alert("Multi-tenant tracking token lost.");
+    if (!selectedManifest || !cargoDesc.trim() || !currentLoc.trim()) {
+      return alert("Please select a manifest and complete all fields.");
+    }
+
+    setSubmittingWaybill(true);
+    const generatedWbNo = `WAY-${Date.now().toString().slice(-6)}`;
+
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/create-waybill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: parseInt(activeShopId, 10),
+          waybill_no: generatedWbNo,
+          manifest_no: selectedManifest,
+          cargo_description: cargoDesc.trim(),
+          current_location: currentLoc.trim(),
+          transit_status: 'DISPATCHED'
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        alert(`Waybill ${generatedWbNo} created and driver notification queued!`);
+        setCargoDesc('');
+        setCurrentLoc('');
+        setSelectedManifest('');
+        setWbFormOpen(false);
+        fetchWaybillLogs(activeShopId); // Instantly refresh the viewport list
+      } else {
+        alert(data.message || "Waybill generation execution failure.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network gateway failed to push waybill processing metrics.");
+    } finally {
+      setSubmittingWaybill(false);
     }
   };
 
@@ -711,39 +763,106 @@ export const PublicLogisticsHub: React.FC = () => {
               </button>
             </div>
             
+            {/* CTA Option Toggle Header available only to Corporate Fleet Operators */}
+            {['owner', 'manager', 'supervisor'].includes(userSession?.role || '') && (
+              <div className="mb-4">
+                <button 
+                  onClick={() => setWbFormOpen(!wbFormOpen)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider py-2 rounded-xl transition-colors shadow-xs"
+                >
+                  {wbFormOpen ? "← View Waybill Archive" : "+ Issue Cargo Waybill Document"}
+                </button>
+              </div>
+            )}
+            
             <div className="space-y-3 overflow-y-auto flex-1 pr-1">
-              {waybills.length === 0 ? (
-                <div className="text-center text-xs text-slate-400 py-10 italic">No cargo manifests or tracking waybills recorded for this shop.</div>
-              ) : (
-                waybills.map((wb) => (
-                  <div key={wb.id} className="p-3 border border-slate-100 rounded-xl bg-slate-50/50 hover:border-blue-200 transition-colors">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-xs font-bold text-slate-800">Waybill: #{wb.waybill_no}</span>
-                      <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                        wb.transit_status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                        wb.transit_status === 'DELAYED' ? 'bg-red-50 text-red-700 border-red-200' :
-                        wb.transit_status === 'EN_ROUTE' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                        'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
-                        {wb.transit_status}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-600 font-medium">
-                      📦 Cargo Spec: <span className="text-slate-800 font-semibold">{wb.cargo_description}</span>
-                    </p>
-                    <p className="text-xs text-slate-600 font-medium mt-1">
-                      📄 Ref Manifest: <span className="font-mono text-slate-500 font-semibold">#{wb.manifest_no}</span>
-                    </p>
-                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-500">
-                      <span className="flex items-center gap-1 font-semibold text-blue-600">
-                        📍 Live Loc: {wb.current_location}
-                      </span>
-                      <span className="font-mono text-slate-400">
-                        {wb.last_updated ? new Date(wb.last_updated).toLocaleDateString() : ''}
-                      </span>
-                    </div>
+              {wbFormOpen ? (
+                /* Interactive Waybill Form Component Layer */
+                <form onSubmit={handleCreateWaybill} className="space-y-4 p-1">
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Link to Approved Trip Manifest</label>
+                    <select 
+                      required
+                      className="bg-transparent w-full text-xs font-semibold focus:outline-hidden"
+                      value={selectedManifest}
+                      onChange={e => setSelectedManifest(e.target.value)}
+                    >
+                      <option value="">-- Choose Running Trip Manifest --</option>
+                      {manifests.map(m => (
+                        <option key={m.id} value={m.manifest_no}>
+                          {m.manifest_no} ({m.vehicle_plate})
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                ))
+
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Cargo Consignment Description</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. 20ft Container - Electronics & Spares" 
+                      required 
+                      className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" 
+                      value={cargoDesc} 
+                      onChange={e => setCargoDesc(e.target.value)} 
+                    />
+                  </div>
+
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Current Transit Dispatch Node</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Mombasa Port Gate 18" 
+                      required 
+                      className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" 
+                      value={currentLoc} 
+                      onChange={e => setCurrentLoc(e.target.value)} 
+                    />
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={submittingWaybill} 
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition-colors disabled:opacity-50"
+                  >
+                    {submittingWaybill ? 'Generating Documentation...' : 'Authorize Waybill & Alert Driver'}
+                  </button>
+                </form>
+              ) : (
+                /* Waybill Display Cards Layer Template */
+                waybills.length === 0 ? (
+                  <div className="text-center text-xs text-slate-400 py-10 italic">No cargo manifests or tracking waybills recorded for this shop.</div>
+                ) : (
+                  waybills.map((wb) => (
+                    <div key={wb.id} className="p-3 border border-slate-100 rounded-xl bg-slate-50/50 hover:border-blue-200 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-xs font-bold text-slate-800">Waybill: #{wb.waybill_no}</span>
+                        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                          wb.transit_status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          wb.transit_status === 'DELAYED' ? 'bg-red-50 text-red-700 border-red-200' :
+                          wb.transit_status === 'EN_ROUTE' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {wb.transit_status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 font-medium">
+                        📦 Cargo Spec: <span className="text-slate-800 font-semibold">{wb.cargo_description}</span>
+                      </p>
+                      <p className="text-xs text-slate-600 font-medium mt-1">
+                        📄 Ref Manifest: <span className="font-mono text-slate-500 font-semibold">#{wb.manifest_no}</span>
+                      </p>
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-500">
+                        <span className="flex items-center gap-1 font-semibold text-blue-600">
+                          📍 Live Loc: {wb.current_location}
+                        </span>
+                        <span className="font-mono text-slate-400">
+                          {wb.last_updated ? new Date(wb.last_updated).toLocaleDateString() : ''}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )
               )}
             </div>
           </div>
