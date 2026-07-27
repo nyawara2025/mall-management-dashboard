@@ -156,7 +156,7 @@ export const PublicLogisticsHub: React.FC = () => {
     if (urlId) return urlId;
     
     // Natively look for the explicit high-level fallback parameters backed up by App.tsx
-    return localStorage.getItem('__native_shop_id') || localStorage.getItem('remembered_logistics_shop_id');
+    return localStorage.getItem('remembered_logistics_shop_id') || localStorage.getItem('__native_shop_id');
   };
 
 
