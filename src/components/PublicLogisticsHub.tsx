@@ -999,14 +999,17 @@ export const PublicLogisticsHub: React.FC = () => {
                         <span className="text-[10px] font-semibold text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded-md">
                           Last Ping: {new Date(log.pinged_at).toLocaleTimeString()}
                         </span>
-                        <a 
-                          href={`https://google.com{log.latitude},${log.longitude}`}
-                          target="_blank"
-                          rel="noreferrer"
+                        {/* 🔥 MOBILE COMPLIANT MAP LINK: Bypasses about:blank#blocked hooks */}
+                        <button 
+                          onClick={() => {
+                            const mapUrl = `https://google.com{log.latitude},${log.longitude}`;
+                            window.location.href = mapUrl; // Opens directly inside native Google Maps App or phone browser tab
+                          }}
                           className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] tracking-wider px-3 py-1.5 rounded-lg uppercase transition-colors"
                         >
                           🗺️ View Map Location
-                        </a>
+                        </button>
+                        
                       </div>
                     </div>
                   ))}
