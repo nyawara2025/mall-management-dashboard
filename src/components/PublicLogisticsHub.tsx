@@ -53,6 +53,16 @@ export const PublicLogisticsHub: React.FC = () => {
   const [fuelLiters, setFuelLiters] = useState('');
   const [submittingVoucher, setSubmittingVoucher] = useState(false);
 
+  // Emergency & Breakdown State Layer
+  const [breakdowns, setBreakdowns] = useState<any[]>([]);
+  const [breakdownsOpen, setBreakdownsOpen] = useState(false);
+  const [emergencyFormOpen, setEmergencyFormOpen] = useState(false);
+  const [emManifest, setEmManifest] = useState('');
+  const [emType, setEmType] = useState('MECHANICAL');
+  const [emLocation, setEmLocation] = useState('');
+  const [emComments, setEmComments] = useState('');
+  const [submittingEmergency, setSubmittingEmergency] = useState(false);
+
   // Weighbridge & Port Docs State Layer
   const [portDocs, setPortDocs] = useState<any[]>([]);
   const [portDocsOpen, setPortDocsOpen] = useState(false);
@@ -170,6 +180,7 @@ export const PublicLogisticsHub: React.FC = () => {
         fetchFuelVouchers(isolatedId);
         fetchFreightPayments(isolatedId);
         fetchPortDocuments(isolatedId);
+        fetchBreakdownAlerts(isolatedId);
       } else {
         console.warn("Unified Lifecycle: Execution skipped due to missing tenant identity context.");
       }
@@ -343,6 +354,70 @@ export const PublicLogisticsHub: React.FC = () => {
       }
     } catch (err) {
       console.error("Error pulling database port/weighbridge logs:", err);
+    }
+  };
+
+  const fetchBreakdownAlerts = async (targetShopId?: string) => {
+    const activeShopId = targetShopId || resolveCurrentShopId();
+    if (!activeShopId) return;
+
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/fetch-breakdowns', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: parseInt(activeShopId, 10) })
+      });
+      const data = await res.json();
+      if (data && data.breakdowns) {
+        setBreakdowns(data.breakdowns);
+      }
+    } catch (err) {
+      console.error("Error pulling database emergency logs:", err);
+    }
+  };
+
+  const handleCreateBreakdownAlert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const activeShopId = resolveCurrentShopId();
+    if (!activeShopId) return alert("Multi-tenant tracking token lost.");
+    if (!emManifest || !emLocation.trim()) {
+      return alert("Please select a manifest reference and pinpoint your current location.");
+    }
+
+    setSubmittingEmergency(true);
+    const generatedAlertNo = `SOS-${Date.now().toString().slice(-6).toUpperCase()}`;
+
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/breakdown-alert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: parseInt(activeShopId, 10),
+          alert_no: generatedAlertNo,
+          manifest_no: emManifest,
+          breakdown_type: emType,
+          current_location: emLocation.trim(),
+          driver_comments: emComments.trim()
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        alert(`CRITICAL ALERT ${generatedAlertNo} Broadcasted to Fleet Control!`);
+        setEmLocation('');
+        setEmComments('');
+        setEmManifest('');
+        setEmergencyFormOpen(false);
+        fetchBreakdownAlerts(activeShopId);
+      } else {
+        alert(data.message || "Emergency tracking synchronization processing fault.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Emergency network alert gateway failure.");
+    } finally {
+      setSubmittingEmergency(false);
     }
   };
 
@@ -760,7 +835,8 @@ export const PublicLogisticsHub: React.FC = () => {
                   else if (action.id === 'cargo_tracking') setWaybillsOpen(true);
                   else if (action.id === 'fuel_allocation') setVouchersOpen(true);
                   else if (action.id === 'payments_invoicing') setPaymentsOpen(true);
-                  else if (action.id === 'weighbridge_clearance') setPortDocsOpen(true); 
+                  else if (action.id === 'weighbridge_clearance') setPortDocsOpen(true);
+                  else if (action.id === 'breakdown_alert') setBreakdownsOpen(true); 
                   else console.log(`Triggering POST workflow API node allocation context for option: ${action.id}`);
                 }}
                 className="transition-all duration-150 rounded-xl p-4 text-white flex items-center gap-4 text-left shadow-xs hover:brightness-95 group font-medium"
@@ -1407,6 +1483,110 @@ export const PublicLogisticsHub: React.FC = () => {
                       <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1.5 border-t border-slate-100/60 mt-2">
                         <span>Voyage Ref: #{d.manifest_no}</span>
                         <span>{d.logged_at ? new Date(d.logged_at).toLocaleDateString() : ''}</span>
+                      </div>
+                    </div>
+                  ))
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dynamic Slide-Over Panel displaying Emergency & Roadside Breakdown Incidents */}
+      {breakdownsOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex justify-end">
+          <div className="bg-white w-full max-w-md h-full p-6 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between border-b pb-4 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800 text-red-600 flex items-center gap-1">🚨 Emergency & Breakdowns</h3>
+                <p className="text-xs text-slate-400">Live multi-tenant incident alerts and active corridor crisis panels</p>
+              </div>
+              <button onClick={() => { setBreakdownsOpen(false); setEmergencyFormOpen(false); }} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <button 
+                onClick={() => setEmergencyFormOpen(!emergencyFormOpen)}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider py-2 rounded-xl transition-colors shadow-xs"
+              >
+                {emergencyFormOpen ? "← View Active Incidents" : "⚠️ Report Fleet Incident / SOS"}
+              </button>
+            </div>
+            
+            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+              {emergencyFormOpen ? (
+                <form onSubmit={handleCreateBreakdownAlert} className="space-y-4 p-1">
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Impacted Trip Manifest Link</label>
+                    <select 
+                      required
+                      className="bg-transparent w-full text-xs font-semibold focus:outline-hidden"
+                      value={emManifest}
+                      onChange={e => setEmManifest(e.target.value)}
+                    >
+                      <option value="">-- Choose Target Voyage --</option>
+                      {manifests.map(m => (
+                        <option key={m.id} value={m.manifest_no}>{m.manifest_no} ({m.vehicle_plate})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Incident Category Classification</label>
+                    <select className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" value={emType} onChange={e => setEmType(e.target.value)}>
+                      <option value="MECHANICAL">Mechanical Breakdown (Engine/Gearbox)</option>
+                      <option value="TYRE_BURST">Tyre Burst Failure</option>
+                      <option value="ACCIDENT">Road Transit Accident</option>
+                      <option value="FUEL_RUNOUT">Dry Fuel Depletion</option>
+                      <option value="POLICE_RESISTANCE">Highway Harassment / Police Intercept</option>
+                    </select>
+                  </div>
+
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Current Geographic Location Coordinates</label>
+                    <input type="text" placeholder="e.g. 20KM past Mtito Andei Town" required className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" value={emLocation} onChange={e => setEmLocation(e.target.value)} />
+                  </div>
+
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">On-Ground Situation Remarks</label>
+                    <textarea rows={3} placeholder="Provide specific operational visibility data here..." className="bg-transparent w-full text-xs font-semibold focus:outline-hidden resize-none" value={emComments} onChange={e => setEmComments(e.target.value)} />
+                  </div>
+
+                  <button type="submit" disabled={submittingEmergency} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition-colors disabled:opacity-50 animate-pulse">
+                    {submittingEmergency ? 'Broadcasting SOS Coordinates...' : '🚨 Broadcast Incident Alert'}
+                  </button>
+                </form>
+              ) : (
+                breakdowns.length === 0 ? (
+                  <div className="text-center text-xs text-slate-400 py-10 italic">No historical emergency incidents or active alerts reported. All fleet lines clear.</div>
+                ) : (
+                  breakdowns.map((b) => (
+                    <div key={b.id} className="p-3 border border-red-100 rounded-xl bg-red-50/20 hover:border-red-300 transition-colors">
+                      <div className="flex justify-between items-start mb-1.5">
+                        <div>
+                          <span className="text-xs font-black bg-red-600 text-white px-1.5 py-0.5 rounded font-mono uppercase tracking-wide">{b.breakdown_type.replace('_', ' ')}</span>
+                          <span className="text-[10px] font-mono font-medium text-slate-400 block mt-1">Ticket: #{b.alert_no}</span>
+                        </div>
+                        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                          b.alert_status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          b.alert_status === 'DISPATCHED' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          'bg-red-50 text-red-700 border-red-200 animate-pulse'
+                        }`}>{b.alert_status}</span>
+                      </div>
+                      
+                      <div className="text-xs text-slate-600 font-medium space-y-1 mt-2">
+                        <p>📍 Location: <span className="text-slate-800 font-semibold">{b.current_location}</span></p>
+                        {b.driver_comments && (
+                          <p className="p-1.5 bg-slate-50 border border-slate-100 rounded text-slate-500 italic mt-1">"{b.driver_comments}"</p>
+                        )}
+                      </div>
+
+                      <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1.5 border-t border-slate-100 mt-2">
+                        <span>Voyage Reference: #{b.manifest_no}</span>
+                        <span>{b.reported_at ? new Date(b.reported_at).toLocaleTimeString() : ''}</span>
                       </div>
                     </div>
                   ))

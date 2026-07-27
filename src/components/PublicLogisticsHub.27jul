@@ -582,13 +582,13 @@ export const PublicLogisticsHub: React.FC = () => {
   // 🔐 Multi-Tenant Webhook POST Auth Engine
   const handleAuth = async (e: React.FormEvent, type: 'login' | 'register') => {
     e.preventDefault();
-    if (!shopId) return alert("Select logistics workspace workspace tracking token.");
+    const targetShopId = shopId || '6';
     setLoading(true);
 
     const combinedFullName = `${firstName.trim()} ${lastName.trim()}`;
     const payload = type === 'register'
-      ? { action: 'register', shop_id: parseInt(shopId), phone_number: phone, password, full_name: combinedFullName, user_category: category }
-      : { action: 'login', shop_id: parseInt(shopId), phone_number: phone, password };
+      ? { action: 'register', shop_id: parseInt(targetShopId, 10), phone_number: phone, password, full_name: combinedFullName, user_category: category }
+      : { action: 'login', phone_number: phone, password }; // Architecture B login payload
 
     try {
       const response = await fetch('https://n8n.tenear.com/webhook/logistics-auth', {
@@ -610,12 +610,18 @@ export const PublicLogisticsHub: React.FC = () => {
  
         setShopId(verifiedShopId);
         setUserSession({ name: data.user.full_name, role: data.user.user_category });
-        setView('dashboard');
-      
-        // Pass the explicit fresh ID directly to crush the state race condition loop
+
+        // 3. Trigger database fetching directly using the verified string token
         fetchDashboardData(verifiedShopId);
-        
-       
+        fetchAppliedHistory(verifiedShopId);
+        fetchManifestLogs(verifiedShopId);
+        fetchWaybillLogs(verifiedShopId);
+        fetchFuelVouchers(verifiedShopId);
+        fetchFreightPayments(verifiedShopId);
+        fetchPortDocuments(verifiedShopId);
+
+
+        setView('dashboard');
       } else {
         alert(data.message || "Authentication verification match failure exception.");
       }
