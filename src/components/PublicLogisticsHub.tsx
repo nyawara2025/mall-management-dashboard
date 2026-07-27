@@ -19,8 +19,22 @@ export const PublicLogisticsHub: React.FC = () => {
 
   // 💾 State Management Layer (Mirrors PublicAgricHub logic perfectly)
   const [shopId, setShopId] = useState<string | null>(() => {
-    return searchParams.get('shop_id') || localStorage.getItem('__native_shop_id') || '90';
+    // 1. Look for direct URL context overrides if present
+    const urlId = new URLSearchParams(window.location.search).get('shop_id');
+    if (urlId) return urlId;
+
+    // 2. 🔥 RECOVERY FIX: Read the exact key saved by handleAuth on successful login
+    const savedSessionId = localStorage.getItem('remembered_logistics_shop_id');
+    if (savedSessionId) return savedSessionId;
+
+    // 3. Fallback to platform-wide containers if they exist
+    const nativeId = localStorage.getItem('__native_shop_id');
+    if (nativeId) return nativeId;
+
+    // 4. Default to null if completely unauthenticated (User must input credentials)
+    return null; 
   });
+   
   
   const [view, setView] = useState<'login' | 'register' | 'dashboard'>(() => {
     return localStorage.getItem('remembered_logistics_name') ? 'dashboard' : 'login';
