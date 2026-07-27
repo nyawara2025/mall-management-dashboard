@@ -43,9 +43,30 @@ export const PublicLogisticsHub: React.FC = () => {
   const [routeItinerary, setRouteItinerary] = useState('');
   const [submittingManifest, setSubmittingManifest] = useState(false);
 
+  // Fuel Voucher & Expenses State Layer
+  const [vouchers, setVouchers] = useState<any[]>([]);
+  const [vouchersOpen, setVouchersOpen] = useState(false);
+  const [fuelFormOpen, setFuelFormOpen] = useState(false);
+  const [fuelManifest, setFuelManifest] = useState('');
+  const [fuelStation, setFuelStation] = useState('');
+  const [fuelAmount, setFuelAmount] = useState('');
+  const [fuelLiters, setFuelLiters] = useState('');
+  const [submittingVoucher, setSubmittingVoucher] = useState(false);
+
   // State variables for the Trip Manifest system
   const [manifests, setManifests] = useState<any[]>([]);
   const [manifestsOpen, setManifestsOpen] = useState(false);
+
+  // Waybill & Cargo Status State Layer
+  const [waybills, setWaybills] = useState<any[]>([]);
+  const [waybillsOpen, setWaybillsOpen] = useState(false);
+
+  // Waybill Form Generation State Layer
+  const [wbFormOpen, setWbFormOpen] = useState(false);
+  const [selectedManifest, setSelectedManifest] = useState('');
+  const [cargoDesc, setCargoDesc] = useState('');
+  const [currentLoc, setCurrentLoc] = useState('');
+  const [submittingWaybill, setSubmittingWaybill] = useState(false);
 
   const [userSession, setUserSession] = useState<{ name: string; role: string } | null>(() => {
     const cachedName = localStorage.getItem('remembered_logistics_name');
@@ -123,6 +144,8 @@ export const PublicLogisticsHub: React.FC = () => {
         fetchDashboardData(isolatedId);
         fetchAppliedHistory(isolatedId);
         fetchManifestLogs(isolatedId);
+        fetchWaybillLogs(isolatedId);
+        fetchFuelVouchers(isolatedId);
       } else {
         console.warn("Unified Lifecycle: Execution skipped due to missing tenant identity context.");
       }
@@ -220,6 +243,135 @@ export const PublicLogisticsHub: React.FC = () => {
       }
     } catch (err) {
       console.error("Error pulling database manifest logs:", err);
+    }
+  };
+
+  const fetchWaybillLogs = async (targetShopId?: string) => {
+    const activeShopId = targetShopId || shopId || localStorage.getItem('remembered_logistics_shop_id');
+    if (!activeShopId) return;
+
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/fetch-waybill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: parseInt(activeShopId, 10) })
+      });
+      const data = await res.json();
+      if (data && data.waybills) {
+        setWaybills(data.waybills);
+      }
+    } catch (err) {
+      console.error("Error pulling database waybill logs:", err);
+    }
+  };
+
+  const fetchFuelVouchers = async (targetShopId?: string) => {
+    const activeShopId = targetShopId || resolveCurrentShopId();
+    if (!activeShopId) return;
+
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/fetch-fuel-voucher', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: parseInt(activeShopId, 10) })
+      });
+      const data = await res.json();
+      if (data && data.vouchers) {
+        setVouchers(data.vouchers);
+      }
+    } catch (err) {
+      console.error("Error pulling database fuel vouchers:", err);
+    }
+  };
+
+  const handleCreateFuelVoucher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const activeShopId = resolveCurrentShopId();
+    if (!activeShopId) return alert("Multi-tenant tracking token lost.");
+    if (!fuelManifest || !fuelStation.trim() || !fuelAmount || !fuelLiters) {
+      return alert("Please complete all tracking entry parameters.");
+    }
+
+    setSubmittingVoucher(true);
+    const generatedVoucherNo = `VCH-${Date.now().toString().slice(-6)}`;
+
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/generate-logs-voucher', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: parseInt(activeShopId, 10),
+          voucher_no: generatedVoucherNo,
+          manifest_no: fuelManifest,
+          fuel_station: fuelStation.trim(),
+          amount_kes: parseFloat(fuelAmount),
+          allocated_liters: parseFloat(fuelLiters)
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        alert(`Fuel Voucher ${generatedVoucherNo} logged successfully for allocation vetting!`);
+        setFuelStation('');
+        setFuelAmount('');
+        setFuelLiters('');
+        setFuelManifest('');
+        setFuelFormOpen(false);
+        fetchFuelVouchers(activeShopId);
+      } else {
+        alert(data.message || "Voucher generation execution failed.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network gateway failed to sync budget allocation data.");
+    } finally {
+      setSubmittingVoucher(false);
+    }
+  };
+
+  const handleCreateWaybill = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const activeShopId = resolveCurrentShopId();
+    if (!activeShopId) return alert("Multi-tenant tracking token lost.");
+    if (!selectedManifest || !cargoDesc.trim() || !currentLoc.trim()) {
+      return alert("Please select a manifest and complete all fields.");
+    }
+
+    setSubmittingWaybill(true);
+    const generatedWbNo = `WAY-${Date.now().toString().slice(-6)}`;
+
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/create-waybill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: parseInt(activeShopId, 10),
+          waybill_no: generatedWbNo,
+          manifest_no: selectedManifest,
+          cargo_description: cargoDesc.trim(),
+          current_location: currentLoc.trim(),
+          transit_status: 'DISPATCHED'
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        alert(`Waybill ${generatedWbNo} created and driver notification queued!`);
+        setCargoDesc('');
+        setCurrentLoc('');
+        setSelectedManifest('');
+        setWbFormOpen(false);
+        fetchWaybillLogs(activeShopId); // Instantly refresh the viewport list
+      } else {
+        alert(data.message || "Waybill generation execution failure.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network gateway failed to push waybill processing metrics.");
+    } finally {
+      setSubmittingWaybill(false);
     }
   };
 
@@ -443,6 +595,8 @@ export const PublicLogisticsHub: React.FC = () => {
                 onClick={() => {
                   if (action.id === 'market_intel') setIntelOpen(true);
                   else if (action.id === 'trip_manifest') setManifestsOpen(true); // Activated!
+                  else if (action.id === 'cargo_tracking') setWaybillsOpen(true);
+                  else if (action.id === 'fuel_allocation') setVouchersOpen(true); 
                   else console.log(`Triggering POST workflow API node allocation context for option: ${action.id}`);
                 }}
                 className="transition-all duration-150 rounded-xl p-4 text-white flex items-center gap-4 text-left shadow-xs hover:brightness-95 group font-medium"
@@ -671,6 +825,217 @@ export const PublicLogisticsHub: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Dynamic Slide-Over Panel displaying active Waybill & Cargo Status */}
+      {waybillsOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex justify-end">
+          <div className="bg-white w-full max-w-md h-full p-6 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between border-b pb-4 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Waybill & Cargo Status</h3>
+                <p className="text-xs text-slate-400">Real-time live multi-tenant transit tracking indexes</p>
+              </div>
+              <button onClick={() => setWaybillsOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* CTA Option Toggle Header available only to Corporate Fleet Operators */}
+            {['owner', 'manager', 'supervisor'].includes(userSession?.role || '') && (
+              <div className="mb-4">
+                <button 
+                  onClick={() => setWbFormOpen(!wbFormOpen)}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider py-2 rounded-xl transition-colors shadow-xs"
+                >
+                  {wbFormOpen ? "← View Waybill Archive" : "+ Issue Cargo Waybill Document"}
+                </button>
+              </div>
+            )}
+            
+            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+              {wbFormOpen ? (
+                /* Interactive Waybill Form Component Layer */
+                <form onSubmit={handleCreateWaybill} className="space-y-4 p-1">
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Link to Approved Trip Manifest</label>
+                    <select 
+                      required
+                      className="bg-transparent w-full text-xs font-semibold focus:outline-hidden"
+                      value={selectedManifest}
+                      onChange={e => setSelectedManifest(e.target.value)}
+                    >
+                      <option value="">-- Choose Running Trip Manifest --</option>
+                      {manifests.map(m => (
+                        <option key={m.id} value={m.manifest_no}>
+                          {m.manifest_no} ({m.vehicle_plate})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Cargo Consignment Description</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. 20ft Container - Electronics & Spares" 
+                      required 
+                      className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" 
+                      value={cargoDesc} 
+                      onChange={e => setCargoDesc(e.target.value)} 
+                    />
+                  </div>
+
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Current Transit Dispatch Node</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. Mombasa Port Gate 18" 
+                      required 
+                      className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" 
+                      value={currentLoc} 
+                      onChange={e => setCurrentLoc(e.target.value)} 
+                    />
+                  </div>
+
+                  <button 
+                    type="submit" 
+                    disabled={submittingWaybill} 
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition-colors disabled:opacity-50"
+                  >
+                    {submittingWaybill ? 'Generating Documentation...' : 'Authorize Waybill & Alert Driver'}
+                  </button>
+                </form>
+              ) : (
+                /* Waybill Display Cards Layer Template */
+                waybills.length === 0 ? (
+                  <div className="text-center text-xs text-slate-400 py-10 italic">No cargo manifests or tracking waybills recorded for this shop.</div>
+                ) : (
+                  waybills.map((wb) => (
+                    <div key={wb.id} className="p-3 border border-slate-100 rounded-xl bg-slate-50/50 hover:border-blue-200 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-xs font-bold text-slate-800">Waybill: #{wb.waybill_no}</span>
+                        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                          wb.transit_status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          wb.transit_status === 'DELAYED' ? 'bg-red-50 text-red-700 border-red-200' :
+                          wb.transit_status === 'EN_ROUTE' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                          'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {wb.transit_status}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-600 font-medium">
+                        📦 Cargo Spec: <span className="text-slate-800 font-semibold">{wb.cargo_description}</span>
+                      </p>
+                      <p className="text-xs text-slate-600 font-medium mt-1">
+                        📄 Ref Manifest: <span className="font-mono text-slate-500 font-semibold">#{wb.manifest_no}</span>
+                      </p>
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-500">
+                        <span className="flex items-center gap-1 font-semibold text-blue-600">
+                          📍 Live Loc: {wb.current_location}
+                        </span>
+                        <span className="font-mono text-slate-400">
+                          {wb.last_updated ? new Date(wb.last_updated).toLocaleDateString() : ''}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dynamic Slide-Over Panel displaying Fuel Vouchers & Allocations */}
+      {vouchersOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex justify-end">
+          <div className="bg-white w-full max-w-md h-full p-6 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between border-b pb-4 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Fuel Vouchers & Expenses</h3>
+                <p className="text-xs text-slate-400">Multi-tenant fleet fueling limits and payment allocations</p>
+              </div>
+              <button onClick={() => { setVouchersOpen(false); setFuelFormOpen(false); }} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <button 
+                onClick={() => setFuelFormOpen(!fuelFormOpen)}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider py-2 rounded-xl transition-colors shadow-xs"
+              >
+                {fuelFormOpen ? "← View Voucher History" : "+ Request Refueling Voucher"}
+              </button>
+            </div>
+            
+            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+              {fuelFormOpen ? (
+                <form onSubmit={handleCreateFuelVoucher} className="space-y-4 p-1">
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Target Trip Manifest Link</label>
+                    <select 
+                      required
+                      className="bg-transparent w-full text-xs font-semibold focus:outline-hidden"
+                      value={fuelManifest}
+                      onChange={e => setFuelManifest(e.target.value)}
+                    >
+                      <option value="">-- Select Active Voyage Ref --</option>
+                      {manifests.map(m => (
+                        <option key={m.id} value={m.manifest_no}>{m.manifest_no} ({m.vehicle_plate})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Fuel Station Station/Brand</label>
+                    <input type="text" placeholder="e.g. Rubis Mombasa Road" required className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" value={fuelStation} onChange={e => setFuelStation(e.target.value)} />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-slate-50 border rounded-xl p-2.5">
+                      <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Total Amount (KES)</label>
+                      <input type="number" placeholder="e.g. 25000" required className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" value={fuelAmount} onChange={e => setFuelAmount(e.target.value)} />
+                    </div>
+                    <div className="bg-slate-50 border rounded-xl p-2.5">
+                      <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Volume (Liters)</label>
+                      <input type="number" step="0.01" placeholder="e.g. 148.5" required className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" value={fuelLiters} onChange={e => setFuelLiters(e.target.value)} />
+                    </div>
+                  </div>
+
+                  <button type="submit" disabled={submittingVoucher} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition-colors disabled:opacity-50">
+                    {submittingVoucher ? 'Processing Voucher allocation...' : 'Authorize Station Fuel Expense'}
+                  </button>
+                </form>
+              ) : (
+                vouchers.length === 0 ? (
+                  <div className="text-center text-xs text-slate-400 py-10 italic">No historical fuel vouchers logged for this tenant profile.</div>
+                ) : (
+                  vouchers.map((v) => (
+                    <div key={v.id} className="p-3 border border-slate-100 rounded-xl bg-slate-50/50 hover:border-blue-200 transition-colors">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="text-xs font-bold text-slate-800">Voucher: #{v.voucher_no}</span>
+                        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                          v.approval_status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          v.approval_status === 'REJECTED' ? 'bg-red-50 text-red-700 border-red-200' :
+                          'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>{v.approval_status}</span>
+                      </div>
+                      <p className="text-xs text-slate-600 font-medium">⛽ Station: <span className="text-slate-800 font-semibold">{v.fuel_station}</span></p>
+                      <p className="text-xs text-slate-600 font-medium mt-0.5">📄 Manifest Ref: <span className="font-mono text-slate-500 font-semibold">#{v.manifest_no}</span></p>
+                      <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between items-center text-[11px] font-bold text-slate-900">
+                        <span className="text-blue-600 font-mono">{Number(v.allocated_liters).toFixed(1)} L</span>
+                        <span>KES {Number(v.amount_kes).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }; 
