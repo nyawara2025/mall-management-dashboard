@@ -610,12 +610,18 @@ export const PublicLogisticsHub: React.FC = () => {
  
         setShopId(verifiedShopId);
         setUserSession({ name: data.user.full_name, role: data.user.user_category });
-        setView('dashboard');
-      
-        // Pass the explicit fresh ID directly to crush the state race condition loop
+
+        // 3. Trigger database fetching directly using the verified string token
         fetchDashboardData(verifiedShopId);
-        
-       
+        fetchAppliedHistory(verifiedShopId);
+        fetchManifestLogs(verifiedShopId);
+        fetchWaybillLogs(verifiedShopId);
+        fetchFuelVouchers(verifiedShopId);
+        fetchFreightPayments(verifiedShopId);
+        fetchPortDocuments(verifiedShopId);
+
+
+        setView('dashboard');
       } else {
         alert(data.message || "Authentication verification match failure exception.");
       }
