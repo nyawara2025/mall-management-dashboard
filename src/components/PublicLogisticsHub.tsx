@@ -43,6 +43,10 @@ export const PublicLogisticsHub: React.FC = () => {
   const [routeItinerary, setRouteItinerary] = useState('');
   const [submittingManifest, setSubmittingManifest] = useState(false);
 
+  // Real-Time GPS Tracking Session Managers
+  const [isTrackingActive, setIsTrackingActive] = useState<boolean>(false);
+  const [geoWatchId, setGeoWatchId] = useState<number | null>(null);
+
   // Fuel Voucher & Expenses State Layer
   const [vouchers, setVouchers] = useState<any[]>([]);
   const [vouchersOpen, setVouchersOpen] = useState(false);
@@ -138,6 +142,54 @@ export const PublicLogisticsHub: React.FC = () => {
     return localStorage.getItem('__native_shop_id') || localStorage.getItem('remembered_logistics_shop_id');
   };
 
+
+  const toggleTripTracking = () => {
+    const activeShopId = resolveCurrentShopId() || shopId || '92';
+    const savedPhone = localStorage.getItem('remembered_logistics_phone') || '';
+
+    if (isTrackingActive) {
+      // 🛑 Halt Active Tracking Session
+      if (geoWatchId !== null) {
+        navigator.geolocation.clearWatch(geoWatchId);
+        setGeoWatchId(null);
+      }
+      setIsTrackingActive(false);
+      alert("Trip tracking halted. Fleet location stream deactivated.");
+    } else {
+      // 🚀 Initialize Real-Time Tracking Session
+      if (!navigator.geolocation) {
+        return alert("Your device does not support geolocation mapping tracking.");
+      }
+
+      const watchId = navigator.geolocation.watchPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+
+          try {
+            await fetch('https://n8n.tenear.com/webhook/track-truck-driver', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                shop_id: parseInt(activeShopId, 10),
+                driver_phone: savedPhone.replace(/\D/g, '').replace(/^0/, '254').replace(/^(?=)/, '254'),
+                latitude,
+                longitude,
+                timestamp: new Date().toISOString()
+              })
+            });
+          } catch (err) {
+            console.error("Failed to stream real-time coordinate node data:", err);
+          }
+        },
+        (error) => alert(`GPS Failure: ${error.message}. Please check application localization settings.`),
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+      );
+
+      setGeoWatchId(watchId);
+      setIsTrackingActive(true);
+      alert("🚀 Voyage manifest started! Live transit tracking stream is now broadcasting to dispatch controllers.");
+    }
+  };
 
   // Pull real live telemetry datasets from your n8n workflows
   const fetchDashboardData = async (targetShopId?: string) => {
@@ -717,13 +769,13 @@ export const PublicLogisticsHub: React.FC = () => {
   };
 
   const hubActions = [
-    { id: 'trip_manifest', label: 'TRIP MANIFEST & NTSA LOG', icon: <FileText className="w-5 h-5" />, color: 'bg-blue-600' },
-    { id: 'fuel_allocation', label: 'FUEL VOUCHER & EXPENSES', icon: <Fuel className="w-5 h-5" />, color: 'bg-blue-600' },
-    { id: 'cargo_tracking', label: 'WAYBILL & CARGO STATUS', icon: <MapPin className="w-5 h-5" />, color: 'bg-blue-600' },
-    { id: 'weighbridge_clearance', label: 'WEIGHBRIDGE & PORT DOCS', icon: <UserCheck className="w-5 h-5" />, color: 'bg-blue-600' },
-    { id: 'payments_invoicing', label: 'M-PESA / FREIGHT PAYMENTS', icon: <DollarSign className="w-5 h-5" />, color: 'bg-blue-600' },
-    { id: 'market_intel', label: 'MARKET OPPORTUNITIES', icon: <Briefcase className="w-5 h-5" />, color: 'bg-emerald-600' },
-    { id: 'breakdown_alert', label: 'EMERGENCY & BREAKDOWN', icon: <ShieldAlert className="w-5 h-5" />, color: 'bg-red-600' }
+    { id: 'trip_manifest', label: 'TRIP MANIFEST & NTSA LOG', icon: <FileText className="w-5 h-5" />, color: 'bg-blue-600', allowedRoles: ['driver', 'manager', 'owner', 'supervisor'] },
+    { id: 'fuel_allocation', label: 'FUEL VOUCHER & EXPENSES', icon: <Fuel className="w-5 h-5" />, color: 'bg-blue-600', allowedRoles: ['driver', 'manager', 'owner', 'supervisor'] },
+    { id: 'cargo_tracking', label: 'WAYBILL & CARGO STATUS', icon: <MapPin className="w-5 h-5" />, color: 'bg-blue-600', allowedRoles: ['driver', 'manager', 'owner', 'supervisor'] },
+    { id: 'weighbridge_clearance', label: 'WEIGHBRIDGE & PORT DOCS', icon: <UserCheck className="w-5 h-5" />, color: 'bg-blue-600', allowedRoles: ['driver', 'manager', 'owner', 'supervisor'] },
+    { id: 'payments_invoicing', label: 'M-PESA / FREIGHT PAYMENTS', icon: <DollarSign className="w-5 h-5" />, color: 'bg-blue-600', allowedRoles: ['manager', 'owner'] }, // 🔒 Hidden from Drivers
+    { id: 'market_intel', label: 'MARKET OPPORTUNITIES', icon: <Briefcase className="w-5 h-5" />, color: 'bg-emerald-600', allowedRoles: ['manager', 'owner'] }, // 🔒 Hidden from Drivers
+    { id: 'breakdown_alert', label: 'EMERGENCY & BREAKDOWN', icon: <ShieldAlert className="w-5 h-5" />, color: 'bg-red-600', allowedRoles: ['driver', 'manager', 'owner', 'supervisor'] }
   ];
 
   // =========================================================================
@@ -816,6 +868,31 @@ export const PublicLogisticsHub: React.FC = () => {
             <h2 className="text-lg font-bold text-slate-800 mt-2">{userSession?.name}</h2>
           </div>
 
+          {/* 📡 Driver Geolocation Tracking Controller Switch Card (Visible strictly to logged drivers) */}
+          {userSession?.role === 'driver' && (
+            <div className="mb-3.5 p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-2">
+                Active Transit Dispatch Link
+              </p>
+              <button
+                onClick={toggleTripTracking}
+                className={`w-full font-black text-xs uppercase tracking-wider py-2 rounded-xl transition-all shadow-md ${
+                  isTrackingActive 
+                    ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' 
+                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                }`}
+              >
+                {isTrackingActive ? "🛑 Stop Trip / Stop Live Stream" : "🚀 Start Trip / Go Live"}
+              </button>
+              {isTrackingActive && (
+                <span className="inline-block text-[9px] text-emerald-600 font-bold uppercase tracking-widest mt-1.5 animate-pulse">
+                  📡 Broadcasting GPS Telemetry
+                </span>
+              )}
+            </div>
+          )}
+
+
           <button onClick={handleLogout} className="w-full text-center text-xs font-bold text-red-600 bg-red-50 hover:bg-red-100/70 border border-red-100 py-1.5 rounded-lg transition-colors uppercase tracking-wide">
             Exit Workspace
           </button>
@@ -826,27 +903,29 @@ export const PublicLogisticsHub: React.FC = () => {
           
           {/* Main Grid Functional Matrix */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {hubActions.map((action) => (
-              <button
-                key={action.id}
-                onClick={() => {
-                  if (action.id === 'market_intel') setIntelOpen(true);
-                  else if (action.id === 'trip_manifest') setManifestsOpen(true); // Activated!
-                  else if (action.id === 'cargo_tracking') setWaybillsOpen(true);
-                  else if (action.id === 'fuel_allocation') setVouchersOpen(true);
-                  else if (action.id === 'payments_invoicing') setPaymentsOpen(true);
-                  else if (action.id === 'weighbridge_clearance') setPortDocsOpen(true);
-                  else if (action.id === 'breakdown_alert') setBreakdownsOpen(true); 
-                  else console.log(`Triggering POST workflow API node allocation context for option: ${action.id}`);
-                }}
-                className="transition-all duration-150 rounded-xl p-4 text-white flex items-center gap-4 text-left shadow-xs hover:brightness-95 group font-medium"
-                style={{ backgroundColor: action.id === 'breakdown_alert' ? '#DC2626' : action.id === 'market_intel' ? '#059669' : '#2563EB' }}
-              >
-                <div className="p-2 bg-white/20 rounded-lg group-hover:scale-105 transition-transform">
-                  {action.icon}
-                </div>
-                <span className="text-xs font-bold uppercase tracking-wider">{action.label}</span>
-              </button>
+            {hubActions
+              .filter(action => action.allowedRoles.includes(userSession?.role || ''))
+              .map((action) => (
+                <button
+                  key={action.id}
+                  onClick={() => {
+                    if (action.id === 'market_intel') setIntelOpen(true);
+                    else if (action.id === 'trip_manifest') setManifestsOpen(true); // Activated!
+                    else if (action.id === 'cargo_tracking') setWaybillsOpen(true);
+                    else if (action.id === 'fuel_allocation') setVouchersOpen(true);
+                    else if (action.id === 'payments_invoicing') setPaymentsOpen(true);
+                    else if (action.id === 'weighbridge_clearance') setPortDocsOpen(true);
+                    else if (action.id === 'breakdown_alert') setBreakdownsOpen(true); 
+                    else console.log(`Triggering POST workflow API node allocation context for option: ${action.id}`);
+                  }}
+                  className="transition-all duration-150 rounded-xl p-4 text-white flex items-center gap-4 text-left shadow-xs hover:brightness-95 group font-medium"
+                  style={{ backgroundColor: action.id === 'breakdown_alert' ? '#DC2626' : action.id === 'market_intel' ? '#059669' : '#2563EB' }}
+                >
+                  <div className="p-2 bg-white/20 rounded-lg group-hover:scale-105 transition-transform">
+                    {action.icon}
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-wider">{action.label}</span>
+                </button>
             ))}
           </div>
 
