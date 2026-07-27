@@ -47,6 +47,10 @@ export const PublicLogisticsHub: React.FC = () => {
   const [manifests, setManifests] = useState<any[]>([]);
   const [manifestsOpen, setManifestsOpen] = useState(false);
 
+  // Waybill & Cargo Status State Layer
+  const [waybills, setWaybills] = useState<any[]>([]);
+  const [waybillsOpen, setWaybillsOpen] = useState(false);
+
   const [userSession, setUserSession] = useState<{ name: string; role: string } | null>(() => {
     const cachedName = localStorage.getItem('remembered_logistics_name');
     const cachedRole = localStorage.getItem('remembered_logistics_role');
@@ -123,6 +127,7 @@ export const PublicLogisticsHub: React.FC = () => {
         fetchDashboardData(isolatedId);
         fetchAppliedHistory(isolatedId);
         fetchManifestLogs(isolatedId);
+        fetchWaybillLogs(isolatedId); // Add this line here
       } else {
         console.warn("Unified Lifecycle: Execution skipped due to missing tenant identity context.");
       }
@@ -220,6 +225,25 @@ export const PublicLogisticsHub: React.FC = () => {
       }
     } catch (err) {
       console.error("Error pulling database manifest logs:", err);
+    }
+  };
+
+  const fetchWaybillLogs = async (targetShopId?: string) => {
+    const activeShopId = targetShopId || shopId || localStorage.getItem('remembered_logistics_shop_id');
+    if (!activeShopId) return;
+
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/fetch-waybill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: parseInt(activeShopId, 10) })
+      });
+      const data = await res.json();
+      if (data && data.waybills) {
+        setWaybills(data.waybills);
+      }
+    } catch (err) {
+      console.error("Error pulling database waybill logs:", err);
     }
   };
 
@@ -443,6 +467,7 @@ export const PublicLogisticsHub: React.FC = () => {
                 onClick={() => {
                   if (action.id === 'market_intel') setIntelOpen(true);
                   else if (action.id === 'trip_manifest') setManifestsOpen(true); // Activated!
+                  else if (action.id === 'cargo_tracking') setWaybillsOpen(true); 
                   else console.log(`Triggering POST workflow API node allocation context for option: ${action.id}`);
                 }}
                 className="transition-all duration-150 rounded-xl p-4 text-white flex items-center gap-4 text-left shadow-xs hover:brightness-95 group font-medium"
@@ -671,6 +696,60 @@ export const PublicLogisticsHub: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Dynamic Slide-Over Panel displaying active Waybill & Cargo Status */}
+      {waybillsOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex justify-end">
+          <div className="bg-white w-full max-w-md h-full p-6 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between border-b pb-4 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Waybill & Cargo Status</h3>
+                <p className="text-xs text-slate-400">Real-time live multi-tenant transit tracking indexes</p>
+              </div>
+              <button onClick={() => setWaybillsOpen(false)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+              {waybills.length === 0 ? (
+                <div className="text-center text-xs text-slate-400 py-10 italic">No cargo manifests or tracking waybills recorded for this shop.</div>
+              ) : (
+                waybills.map((wb) => (
+                  <div key={wb.id} className="p-3 border border-slate-100 rounded-xl bg-slate-50/50 hover:border-blue-200 transition-colors">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-xs font-bold text-slate-800">Waybill: #{wb.waybill_no}</span>
+                      <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                        wb.transit_status === 'DELIVERED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                        wb.transit_status === 'DELAYED' ? 'bg-red-50 text-red-700 border-red-200' :
+                        wb.transit_status === 'EN_ROUTE' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                        'bg-amber-50 text-amber-700 border-amber-200'
+                      }`}>
+                        {wb.transit_status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 font-medium">
+                      📦 Cargo Spec: <span className="text-slate-800 font-semibold">{wb.cargo_description}</span>
+                    </p>
+                    <p className="text-xs text-slate-600 font-medium mt-1">
+                      📄 Ref Manifest: <span className="font-mono text-slate-500 font-semibold">#{wb.manifest_no}</span>
+                    </p>
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-500">
+                      <span className="flex items-center gap-1 font-semibold text-blue-600">
+                        📍 Live Loc: {wb.current_location}
+                      </span>
+                      <span className="font-mono text-slate-400">
+                        {wb.last_updated ? new Date(wb.last_updated).toLocaleDateString() : ''}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }; 
