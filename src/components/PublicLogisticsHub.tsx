@@ -53,6 +53,17 @@ export const PublicLogisticsHub: React.FC = () => {
   const [fuelLiters, setFuelLiters] = useState('');
   const [submittingVoucher, setSubmittingVoucher] = useState(false);
 
+  // Weighbridge & Port Docs State Layer
+  const [portDocs, setPortDocs] = useState<any[]>([]);
+  const [portDocsOpen, setPortDocsOpen] = useState(false);
+  const [docFormOpen, setDocFormOpen] = useState(false);
+  const [docManifest, setDocManifest] = useState('');
+  const [docType, setDocType] = useState('PORT_CLEARANCE');
+  const [stationName, setStationName] = useState('');
+  const [grossWeight, setGrossWeight] = useState('');
+  const [clearanceStatus, setClearanceStatus] = useState('CLEARED');
+  const [submittingDoc, setSubmittingDoc] = useState(false);
+
   // M-Pesa / Freight Payments State Layer
   const [payments, setPayments] = useState<any[]>([]);
   const [paymentsOpen, setPaymentsOpen] = useState(false);
@@ -158,6 +169,7 @@ export const PublicLogisticsHub: React.FC = () => {
         fetchWaybillLogs(isolatedId);
         fetchFuelVouchers(isolatedId);
         fetchFreightPayments(isolatedId);
+        fetchPortDocuments(isolatedId);
       } else {
         console.warn("Unified Lifecycle: Execution skipped due to missing tenant identity context.");
       }
@@ -312,6 +324,71 @@ export const PublicLogisticsHub: React.FC = () => {
       }
     } catch (err) {
       console.error("Error pulling database freight payments:", err);
+    }
+  };
+
+  const fetchPortDocuments = async (targetShopId?: string) => {
+    const activeShopId = targetShopId || resolveCurrentShopId();
+    if (!activeShopId) return;
+
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/fetch-port-docs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: parseInt(activeShopId, 10) })
+      });
+      const data = await res.json();
+      if (data && data.documents) {
+        setPortDocs(data.documents);
+      }
+    } catch (err) {
+      console.error("Error pulling database port/weighbridge logs:", err);
+    }
+  };
+
+  const handleCreatePortDocRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const activeShopId = resolveCurrentShopId();
+    if (!activeShopId) return alert("Multi-tenant tracking token lost.");
+    if (!docManifest || !stationName.trim() || !clearanceStatus) {
+      return alert("Please fill in all mandatory clearance log elements.");
+    }
+
+    setSubmittingDoc(true);
+    const generatedClNo = `DOC-${Date.now().toString().slice(-6).toUpperCase()}`;
+
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/generate-port-doc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: parseInt(activeShopId, 10),
+          clearance_no: generatedClNo,
+          manifest_no: docManifest,
+          document_type: docType,
+          station_name: stationName.trim(),
+          gross_weight_kg: grossWeight ? parseFloat(grossWeight) : null,
+          clearance_status: clearanceStatus
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        alert(`Port clearance entry ${generatedClNo} registered successfully!`);
+        setStationName('');
+        setGrossWeight('');
+        setDocManifest('');
+        setDocFormOpen(false);
+        fetchPortDocuments(activeShopId);
+      } else {
+        alert(data.message || "Clearance document processing entry execution error.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network checkpoint gateway synchronization dropped.");
+    } finally {
+      setSubmittingDoc(false);
     }
   };
 
@@ -676,7 +753,8 @@ export const PublicLogisticsHub: React.FC = () => {
                   else if (action.id === 'trip_manifest') setManifestsOpen(true); // Activated!
                   else if (action.id === 'cargo_tracking') setWaybillsOpen(true);
                   else if (action.id === 'fuel_allocation') setVouchersOpen(true);
-                  else if (action.id === 'payments_invoicing') setPaymentsOpen(true); 
+                  else if (action.id === 'payments_invoicing') setPaymentsOpen(true);
+                  else if (action.id === 'weighbridge_clearance') setPortDocsOpen(true); 
                   else console.log(`Triggering POST workflow API node allocation context for option: ${action.id}`);
                 }}
                 className="transition-all duration-150 rounded-xl p-4 text-white flex items-center gap-4 text-left shadow-xs hover:brightness-95 group font-medium"
@@ -1208,6 +1286,121 @@ export const PublicLogisticsHub: React.FC = () => {
                       <div className="flex justify-between items-center text-[11px] text-slate-500 pt-1.5 border-t border-slate-100/60 mt-2">
                         <span className="font-medium text-slate-600">🎯 {p.payment_purpose} ({p.payment_method})</span>
                         <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">MNF: #{p.manifest_no}</span>
+                      </div>
+                    </div>
+                  ))
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dynamic Slide-Over Panel displaying Weighbridge & Port Docs */}
+      {portDocsOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex justify-end">
+          <div className="bg-white w-full max-w-md h-full p-6 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between border-b pb-4 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Weighbridge & Port Docs</h3>
+                <p className="text-xs text-slate-400">Multi-tenant checkpoint clearances, axle weighings, and gate logs</p>
+              </div>
+              <button onClick={() => { setPortDocsOpen(false); setDocFormOpen(false); }} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <button 
+                onClick={() => setDocFormOpen(!docFormOpen)}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider py-2 rounded-xl transition-colors shadow-xs"
+              >
+                {docFormOpen ? "← View Clearance Logs" : "+ File Checkpoint Clearance Ticket"}
+              </button>
+            </div>
+            
+            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+              {docFormOpen ? (
+                <form onSubmit={handleCreatePortDocRecord} className="space-y-4 p-1">
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Target Trip Manifest Link</label>
+                    <select 
+                      required
+                      className="bg-transparent w-full text-xs font-semibold focus:outline-hidden"
+                      value={docManifest}
+                      onChange={e => setDocManifest(e.target.value)}
+                    >
+                      <option value="">-- Choose Target Voyage --</option>
+                      {manifests.map(m => (
+                        <option key={m.id} value={m.manifest_no}>{m.manifest_no} ({m.vehicle_plate})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-slate-50 border rounded-xl p-2.5">
+                      <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Document Category</label>
+                      <select className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" value={docType} onChange={e => setDocType(e.target.value)}>
+                        <option value="PORT_CLEARANCE">Port Gate Release</option>
+                        <option value="WEIGHBRIDGE_TICKET">Weighbridge Axle Ticket</option>
+                        <option value="CUSTOMS_BOND">Customs Bond Entry</option>
+                        <option value="EXPORT_RELEASE">Export Transit Release</option>
+                      </select>
+                    </div>
+                    <div className="bg-slate-50 border rounded-xl p-2.5">
+                      <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Inspection Status Outcome</label>
+                      <select className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" value={clearanceStatus} onChange={e => setClearanceStatus(e.target.value)}>
+                        <option value="CLEARED">PASSED / CLEARED</option>
+                        <option value="PENDING">AWAITING REVIEW</option>
+                        <option value="REJECTED_OVERWEIGHT">FAIL - OVERWEIGHT</option>
+                        <option value="HELD_FOR_INSPECTION">HELD / SUSPENDED</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Checkpoint / Station Name Location</label>
+                    <input type="text" placeholder="e.g. Mariakani Weighbridge (A109)" required className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" value={stationName} onChange={e => setStationName(e.target.value)} />
+                  </div>
+
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Gross Freight Mass Weight (KG) - Optional</label>
+                    <input type="number" placeholder="e.g. 42500" className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" value={grossWeight} onChange={e => setGrossWeight(e.target.value)} />
+                  </div>
+
+                  <button type="submit" disabled={submittingDoc} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition-colors disabled:opacity-50">
+                    {submittingDoc ? 'Saving Document Verification Logs...' : 'Post Gate Checkpoint Record'}
+                  </button>
+                </form>
+              ) : (
+                portDocs.length === 0 ? (
+                  <div className="text-center text-xs text-slate-400 py-10 italic">No historical checkpoint clearance parameters recorded for this workspace.</div>
+                ) : (
+                  portDocs.map((d) => (
+                    <div key={d.id} className="p-3 border border-slate-100 rounded-xl bg-slate-50/50 hover:border-blue-200 transition-colors">
+                      <div className="flex justify-between items-start mb-1.5">
+                        <div>
+                          <span className="text-xs font-black bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-mono uppercase tracking-wide">{d.document_type.replace('_', ' ')}</span>
+                          <span className="text-[10px] font-mono font-medium text-slate-400 block mt-1">Doc Code: #{d.clearance_no}</span>
+                        </div>
+                        <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md border ${
+                          d.clearance_status === 'CLEARED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          d.clearance_status === 'REJECTED_OVERWEIGHT' ? 'bg-red-50 text-red-700 border-red-200' :
+                          d.clearance_status === 'HELD_FOR_INSPECTION' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                          'bg-slate-50 text-slate-700 border-slate-200'
+                        }`}>{d.clearance_status.replace('_', ' ')}</span>
+                      </div>
+                      
+                      <div className="text-xs text-slate-600 font-medium space-y-0.5 mt-2">
+                        <p>📍 Location Point: <span className="text-slate-800 font-semibold">{d.station_name}</span></p>
+                        {d.gross_weight_kg && (
+                          <p>⚖️ Verified Weight: <span className="text-slate-900 font-black font-mono">{Number(d.gross_weight_kg).toLocaleString()} KG</span></p>
+                        )}
+                      </div>
+
+                      <div className="flex justify-between items-center text-[10px] text-slate-400 pt-1.5 border-t border-slate-100/60 mt-2">
+                        <span>Voyage Ref: #{d.manifest_no}</span>
+                        <span>{d.logged_at ? new Date(d.logged_at).toLocaleDateString() : ''}</span>
                       </div>
                     </div>
                   ))

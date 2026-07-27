@@ -53,6 +53,17 @@ export const PublicLogisticsHub: React.FC = () => {
   const [fuelLiters, setFuelLiters] = useState('');
   const [submittingVoucher, setSubmittingVoucher] = useState(false);
 
+  // M-Pesa / Freight Payments State Layer
+  const [payments, setPayments] = useState<any[]>([]);
+  const [paymentsOpen, setPaymentsOpen] = useState(false);
+  const [payFormOpen, setPayFormOpen] = useState(false);
+  const [payManifest, setPayManifest] = useState('');
+  const [payerName, setPayerName] = useState('');
+  const [payMethod, setPayMethod] = useState('M-PESA');
+  const [payAmount, setPayAmount] = useState('');
+  const [payPurpose, setPayPurpose] = useState('Freight Clearance');
+  const [submittingPayment, setSubmittingPayment] = useState(false);
+
   // State variables for the Trip Manifest system
   const [manifests, setManifests] = useState<any[]>([]);
   const [manifestsOpen, setManifestsOpen] = useState(false);
@@ -146,6 +157,7 @@ export const PublicLogisticsHub: React.FC = () => {
         fetchManifestLogs(isolatedId);
         fetchWaybillLogs(isolatedId);
         fetchFuelVouchers(isolatedId);
+        fetchFreightPayments(isolatedId);
       } else {
         console.warn("Unified Lifecycle: Execution skipped due to missing tenant identity context.");
       }
@@ -281,6 +293,73 @@ export const PublicLogisticsHub: React.FC = () => {
       }
     } catch (err) {
       console.error("Error pulling database fuel vouchers:", err);
+    }
+  };
+
+  const fetchFreightPayments = async (targetShopId?: string) => {
+    const activeShopId = targetShopId || resolveCurrentShopId();
+    if (!activeShopId) return;
+
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/fetch-logs-freight-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: parseInt(activeShopId, 10) })
+      });
+      const data = await res.json();
+      if (data && data.payments) {
+        setPayments(data.payments);
+      }
+    } catch (err) {
+      console.error("Error pulling database freight payments:", err);
+    }
+  };
+
+  const handleCreatePaymentRecord = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const activeShopId = resolveCurrentShopId();
+    if (!activeShopId) return alert("Multi-tenant tracking token lost.");
+    if (!payManifest || !payerName.trim() || !payAmount || !payPurpose) {
+      return alert("Please fill in all transaction ledger details.");
+    }
+
+    setSubmittingPayment(true);
+    // Generate a unique system tracking string if it's not a verified M-Pesa input code
+    const generatedTxNo = payMethod === 'M-PESA' ? `MP-${Date.now().toString().slice(-6).toUpperCase()}` : `TX-${Date.now().toString().slice(-6)}`;
+
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/logs-mpesa-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          shop_id: parseInt(activeShopId, 10),
+          transaction_no: generatedTxNo,
+          manifest_no: payManifest,
+          payer_name: payerName.trim(),
+          payment_method: payMethod,
+          amount_kes: parseFloat(payAmount),
+          payment_purpose: payPurpose,
+          payment_status: 'COMPLETED'
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        alert(`Transaction Ledger ${generatedTxNo} mapped and registered cleanly!`);
+        setPayerName('');
+        setPayAmount('');
+        setPayManifest('');
+        setPayFormOpen(false);
+        fetchFreightPayments(activeShopId);
+      } else {
+        alert(data.message || "Payment transaction execution failure.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network finance gateway synchronization drop error.");
+    } finally {
+      setSubmittingPayment(false);
     }
   };
 
@@ -596,7 +675,8 @@ export const PublicLogisticsHub: React.FC = () => {
                   if (action.id === 'market_intel') setIntelOpen(true);
                   else if (action.id === 'trip_manifest') setManifestsOpen(true); // Activated!
                   else if (action.id === 'cargo_tracking') setWaybillsOpen(true);
-                  else if (action.id === 'fuel_allocation') setVouchersOpen(true); 
+                  else if (action.id === 'fuel_allocation') setVouchersOpen(true);
+                  else if (action.id === 'payments_invoicing') setPaymentsOpen(true); 
                   else console.log(`Triggering POST workflow API node allocation context for option: ${action.id}`);
                 }}
                 className="transition-all duration-150 rounded-xl p-4 text-white flex items-center gap-4 text-left shadow-xs hover:brightness-95 group font-medium"
@@ -1026,6 +1106,108 @@ export const PublicLogisticsHub: React.FC = () => {
                       <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between items-center text-[11px] font-bold text-slate-900">
                         <span className="text-blue-600 font-mono">{Number(v.allocated_liters).toFixed(1)} L</span>
                         <span>KES {Number(v.amount_kes).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))
+                )
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Dynamic Slide-Over Panel displaying M-Pesa / Freight Payments */}
+      {paymentsOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex justify-end">
+          <div className="bg-white w-full max-w-md h-full p-6 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+            <div className="flex items-center justify-between border-b pb-4 mb-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">M-Pesa / Freight Payments</h3>
+                <p className="text-xs text-slate-400">Multi-tenant transport collection accounts and revenue log books</p>
+              </div>
+              <button onClick={() => { setPaymentsOpen(false); setPayFormOpen(false); }} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mb-4">
+              <button 
+                onClick={() => setPayFormOpen(!payFormOpen)}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider py-2 rounded-xl transition-colors shadow-xs"
+              >
+                {payFormOpen ? "← View Transaction Ledger" : "+ Log Fresh Freight Payment"}
+              </button>
+            </div>
+            
+            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+              {payFormOpen ? (
+                <form onSubmit={handleCreatePaymentRecord} className="space-y-4 p-1">
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Link Voyage Trip Manifest</label>
+                    <select 
+                      required
+                      className="bg-transparent w-full text-xs font-semibold focus:outline-hidden"
+                      value={payManifest}
+                      onChange={e => setPayManifest(e.target.value)}
+                    >
+                      <option value="">-- Choose Target Manifest --</option>
+                      {manifests.map(m => (
+                        <option key={m.id} value={m.manifest_no}>{m.manifest_no} ({m.vehicle_plate})</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Payer Client / Entity Name</label>
+                    <input type="text" placeholder="e.g. East African Breweries Ltd" required className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" value={payerName} onChange={e => setPayerName(e.target.value)} />
+                  </div>
+
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Settlement Method</label>
+                    <select className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" value={payMethod} onChange={e => setPayMethod(e.target.value)}>
+                      <option value="M-PESA">M-Pesa Mobile Wallet</option>
+                      <option value="BANK_TRANSFER">Direct Commercial Bank Wire</option>
+                      <option value="CASH">Spot Cash Remittance</option>
+                    </select>
+                  </div>
+
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Payment Purpose Allocation</label>
+                    <select className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" value={payPurpose} onChange={e => setPayPurpose(e.target.value)}>
+                      <option value="Freight Clearance">Freight Clearance Fee</option>
+                      <option value="Demurrage Settlement">Demurrage & Port Charges</option>
+                      <option value="Fuel Advance Repayment">Fuel Advance Re-payment</option>
+                      <option value="Balance Clearance">Milestone Balance Settlement</option>
+                    </select>
+                  </div>
+
+                  <div className="bg-slate-50 border rounded-xl p-2.5">
+                    <label className="text-[10px] text-slate-400 font-bold block uppercase mb-1">Total Remitted Amount (KES)</label>
+                    <input type="number" placeholder="e.g. 185000" required className="bg-transparent w-full text-xs font-semibold focus:outline-hidden" value={payAmount} onChange={e => setPayAmount(e.target.value)} />
+                  </div>
+
+                  <button type="submit" disabled={submittingPayment} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition-colors disabled:opacity-50">
+                    {submittingPayment ? 'Securing Transaction Entry...' : 'Post Financial Record Entry'}
+                  </button>
+                </form>
+              ) : (
+                payments.length === 0 ? (
+                  <div className="text-center text-xs text-slate-400 py-10 italic">No registered financial receipts found for this workspace.</div>
+                ) : (
+                  payments.map((p) => (
+                    <div key={p.id} className="p-3 border border-slate-100 rounded-xl bg-slate-50/50 hover:border-emerald-200 transition-colors">
+                      <div className="flex justify-between items-start mb-1.5">
+                        <div>
+                          <span className="text-xs font-bold text-slate-800block">{p.payer_name}</span>
+                          <span className="text-[10px] font-mono font-medium text-slate-400 block mt-0.5">Ref: #{p.transaction_no}</span>
+                        </div>
+                        <span className="text-xs font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+                          KES {Number(p.amount_kes).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-[11px] text-slate-500 pt-1.5 border-t border-slate-100/60 mt-2">
+                        <span className="font-medium text-slate-600">🎯 {p.payment_purpose} ({p.payment_method})</span>
+                        <span className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">MNF: #{p.manifest_no}</span>
                       </div>
                     </div>
                   ))
