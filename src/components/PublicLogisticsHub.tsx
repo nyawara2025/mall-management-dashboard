@@ -997,7 +997,7 @@ export const PublicLogisticsHub: React.FC = () => {
                         {/* 🔥 MOBILE COMPLIANT MAP LINK: Bypasses about:blank#blocked hooks */}
                         <button 
                           onClick={() => {
-                            const mapUrl = `https://google.com{log.latitude},${log.longitude}`;
+                            const mapUrl = `https://google.com${log.latitude},${log.longitude}`;
                             window.location.href = mapUrl; // Opens directly inside native Google Maps App or phone browser tab
                           }}
                           className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] tracking-wider px-3 py-1.5 rounded-lg uppercase transition-colors"
