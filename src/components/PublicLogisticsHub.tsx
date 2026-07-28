@@ -20,19 +20,7 @@ export const PublicLogisticsHub: React.FC = () => {
   // 💾 State Management Layer (Mirrors PublicAgricHub logic perfectly)
   const [shopId, setShopId] = useState<string | null>(() => {
     // 1. Look for direct URL context overrides if present
-    const urlId = new URLSearchParams(window.location.search).get('shop_id');
-    if (urlId) return urlId;
-
-    // 2. 🔥 RECOVERY FIX: Read the exact key saved by handleAuth on successful login
-    const savedSessionId = localStorage.getItem('remembered_logistics_shop_id');
-    if (savedSessionId) return savedSessionId;
-
-    // 3. Fallback to platform-wide containers if they exist
-    const nativeId = localStorage.getItem('__native_shop_id');
-    if (nativeId) return nativeId;
-
-    // 4. Default to null if completely unauthenticated (User must input credentials)
-    return null; 
+    return localStorage.getItem('remembered_logistics_shop_id'); 
   });
    
   
@@ -152,24 +140,20 @@ export const PublicLogisticsHub: React.FC = () => {
 
   // 💾 Explicit URL Resolver Utility Function
   const resolveCurrentShopId = (): string | null => {
-    const urlId = new URLSearchParams(window.location.search).get('shop_id');
-    if (urlId) return urlId;
-    
     // Natively look for the explicit high-level fallback parameters backed up by App.tsx
-    return localStorage.getItem('remembered_logistics_shop_id') || localStorage.getItem('__native_shop_id');
+    return localStorage.getItem('remembered_logistics_shop_id');
   };
 
 
   const toggleTripTracking = () => {
     // 🚀 FORCE FRESH LOOKUP: Read the logistics-specific token directly from storage
     // to avoid getting contaminated by fallback tokens (__native_shop_id) from other sectors.
-    const dynamicShopId = localStorage.getItem('remembered_logistics_shop_id') || shopId;
+    const activeShopId = resolveCurrentShopId();
   
-    if (!dynamicShopId) {
+    if (!activeShopId) {
       return alert("Tracking Error: Active Logistics Shop ID context not found. Please log out and log back in.");
     }
 
-    const activeShopId = dynamicShopId;
     const savedPhone = localStorage.getItem('remembered_logistics_phone') || '';
     const savedName = localStorage.getItem('remembered_logistics_name') || 'Fleet Driver';
     
@@ -249,10 +233,7 @@ export const PublicLogisticsHub: React.FC = () => {
   useEffect(() => {
     if (view === 'dashboard') {
       // 1. Resolve identity instantly (bypasses asynchronous React state delays)
-      const isolatedId = resolveCurrentShopId() || shopId;
-      
-      // 🔥 THE LIFECYCLE SYNC FIX: Reads role directly from storage to bypass the initial state lag on refresh
-      const activeRole = userSession?.role || localStorage.getItem('remembered_logistics_role') || '';
+      const isolatedId = resolveCurrentShopId();
 
       if (isolatedId) {
         // 2. Synchronously blast the resolved identity down to all three data views
@@ -265,7 +246,7 @@ export const PublicLogisticsHub: React.FC = () => {
         fetchPortDocuments(isolatedId);
         fetchBreakdownAlerts(isolatedId);
       
-        // 🔒 Run live fleet tracking sync strictly for executive roles
+        const activeRole = userSession?.role || localStorage.getItem('remembered_logistics_role') || '';
         if (['owner', 'manager', 'supervisor'].includes(userSession?.role || '')) {
           fetchLiveFleetTracking(isolatedId);
           // Set up a 1-minute automated polling refresh loop for real-time tracking
@@ -274,7 +255,7 @@ export const PublicLogisticsHub: React.FC = () => {
         }
       }
     }
-  }, [view, shopId]);
+  }, [view]);
 
   
   // Function to pull real contract application rows from your database retrieval node
