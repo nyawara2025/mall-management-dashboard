@@ -48,7 +48,6 @@ import { PublicAgricHub } from './components/PublicAgricHub';
 import { AgentDashboard } from './components/AgentDashboard';
 import { ElectionCandidateModal } from './components/ElectionCandidateModal';
 import { PublicLogisticsHub } from './components/PublicLogisticsHub';
-import { DiocesanRouter } from './components/DiocesanRouter';
 import { MediaPresentationController } from './components/MediaPresentationController';
 import SettingsPage from './pages/SettingsPage';
 import './index.css';
@@ -154,8 +153,7 @@ function AppContent() {
   const isSchoolPath = window.location.pathname.includes('/school');
   const isAgriPath = window.location.pathname.includes('/agri');
   const isLogisticsPath = window.location.pathname.includes('/logistics') || window.location.pathname.startsWith('/truck'); // 🚚 Added for Logistics
-  const isDiocesePath = window.location.pathname.includes('/diocese') || bizCategory === 'diocesan-erp';
-
+ 
   const handleSelectCandidate = (shopId: string) => {
     // Update the URL parameters without a page reload
     // We keep 'business_category=political' to ensure the Hub stays active

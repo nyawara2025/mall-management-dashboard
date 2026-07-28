@@ -1,0 +1,58 @@
+import React, { useState, useEffect } from 'react';
+import { DaughterChurchDashboard } from './DaughterChurchDashboard';
+import { ParishERPDashboard } from './ParishERPDashboard';
+import { ArchdeaconryDashboard } from './ArchdeaconryDashboard';
+import { BishopDiocesanRadar } from './BishopDiocesanRadar';
+import { DiocesanAuthNode } from './DiocesanAuthNode';
+
+interface DiocesanUserSession {
+  name: string;
+  role: string;
+  tier_access: 'DAUGHTER_CHURCH' | 'PARISH' | 'ARCHDEACONRY' | 'DIOCESE';
+  assigned_id: number;
+}
+
+export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ onLogout }) => {
+  const [session, setSession] = useState<DiocesanUserSession | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Read the tier profile cached by your new n8n authentication webhook
+    const cachedTier = localStorage.getItem('ack_erp_tier_access') as any;
+    const cachedId = localStorage.getItem('ack_erp_assigned_id');
+    const cachedName = localStorage.getItem('ack_erp_user_name');
+    const cachedRole = localStorage.getItem('ack_erp_user_role');
+
+    if (cachedTier && cachedId) {
+      setSession({
+        name: cachedName || 'Church Official',
+        role: cachedRole || 'MEMBER',
+        tier_access: cachedTier,
+        assigned_id: parseInt(cachedId, 10)
+      });
+    }
+    setLoading(false);
+  }, []);
+
+  if (loading) return <div className="p-6 text-center text-xs font-bold">Initializing Diocesan Channel Access...</div>;
+
+  // 🔒 If not logged into the ERP, display the new hierarchical login workflow panel
+  if (!session) {
+    return <DiocesanAuthNode onAuthSuccess={() => window.location.reload()} />;
+  }
+
+  // 🎛️ Render the custom workspace layout based on their assigned structural tier level
+  switch (session.tier_access) {
+    case 'DAUGHTER_CHURCH':
+      return <DaughterChurchDashboard session={session} onLogout={onLogout} />;
+    case 'PARISH':
+      return <ParishERPDashboard session={session} onLogout={onLogout} />;
+    case 'ARCHDEACONRY':
+      return <ArchdeaconryDashboard session={session} onLogout={onLogout} />;
+    case 'DIOCESE':
+      // This view handles executive analytics tracking for the Bishop and departments
+      return <BishopDiocesanRadar session={session} onLogout={onLogout} />;
+    default:
+      return <div className="p-6 text-red-600 font-bold">Unauthorized System Access Profile Level Exception.</div>;
+  }
+};
