@@ -278,6 +278,17 @@ function AppContent() {
     );
   }
 
+  // 🏛️ INJECT HERE: ACK DIOCESE OF NAIROBI INTEGRATED MULTI-TIER ERP GATEKEEPER
+ 
+  if (isDiocesePath) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <DiocesanRouter user={user} onLogout={logout} /> 
+      </div>
+    );
+  }
+
+
   // 🚚 KENYAN COMMERCIAL LOGISTICS HUB GATEKEEPER (New Intercept Injection)
   if (bizCategory === 'logistics' || isLogisticsPath) {
     return (
