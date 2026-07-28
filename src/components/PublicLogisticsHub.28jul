@@ -5,19 +5,6 @@ import {
   DollarSign, UserCheck, Briefcase, ChevronRight, X, Lock, Phone, User
 } from 'lucide-react';
 
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-
-// 🚀 Fix default leaflet icon paths so they load accurately inside your build structure
-const DefaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com',
-  shadowUrl: 'https://unpkg.com',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41]
-});
-L.Marker.prototype.options.icon = DefaultIcon;
-
 interface Opportunity {
   id: string;
   client_company_name: string;
@@ -995,46 +982,32 @@ export const PublicLogisticsHub: React.FC = () => {
                   No active driver location transit streams broadcasting on this workspace channel right now.
                 </div>
               ) : (
-
-
-                <div className="w-full h-80 rounded-xl overflow-hidden border border-slate-200 shadow-inner z-0">
-                  {/* Initialize map centering on the first broadcasting driver's coordinates */}
-                  <MapContainer 
-                    center={[
-                      parseFloat(activeTrackingLogs[0].latitude || '0'), 
-                      parseFloat(activeTrackingLogs[0].longitude || '0')
-                    ]} 
-                    zoom={13} 
-                    style={{ height: '100%', width: '100%' }}
-                  >
-                    <TileLayer
-                      attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-          
-                    {/* Dynamic Pin Layer: Drops an active marker point for every active driver */}
-                    {activeTrackingLogs.map((log) => {
-                      const lat = parseFloat(log.latitude);
-                      const lng = parseFloat(log.longitude);
-            
-                      // Defensively ignore invalid coordinate data anomalies
-                      if (isNaN(lat) || isNaN(lng)) return null;
-
-                      return (
-                        <Marker key={log.driver_phone} position={[lat, lng]}>
-                          <Popup>
-                            <div className="p-1 space-y-1">
-                              <span className="block font-bold text-slate-900 text-xs">{log.driver_name || 'Fleet Operator'}</span>
-                              <span className="block text-[10px] text-slate-500 font-mono">📞 +{log.driver_phone}</span>
-                              <span className="block text-[9px] bg-slate-100 px-1 py-0.5 rounded text-slate-600 mt-1 font-semibold">
-                                Last Ping: {new Date(log.pinged_at).toLocaleTimeString()}
-                              </span>
-                            </div>
-                          </Popup>
-                        </Marker>
-                      );
-                    })}
-                  </MapContainer>
+                <div className="space-y-2.5">
+                  {activeTrackingLogs.map((log) => (
+                    <div key={log.driver_phone} className="p-3 border border-slate-100 rounded-xl bg-slate-50/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 hover:border-blue-200 transition-colors">
+                      <div>
+                        <span className="block text-xs font-bold text-slate-800">{log.driver_name || 'Active Operator Line'}</span>
+                        <span className="block text-[10px] font-mono text-slate-400 mt-0.5">📞 Ref: +{log.driver_phone}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2 justify-between sm:justify-end">
+                        <span className="text-[10px] font-semibold text-slate-500 font-mono bg-slate-100 px-2 py-1 rounded-md">
+                          Last Ping: {new Date(log.pinged_at).toLocaleTimeString()}
+                        </span>
+                        {/* 🔥 MOBILE COMPLIANT MAP LINK: Bypasses about:blank#blocked hooks */}
+                        <button 
+                          onClick={() => {
+                            const mapUrl = `https://google.com${log.latitude},${log.longitude}`;
+                            window.location.href = mapUrl; // Opens directly inside native Google Maps App or phone browser tab
+                          }}
+                          className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[10px] tracking-wider px-3 py-1.5 rounded-lg uppercase transition-colors"
+                        >
+                          🗺️ View Map Location
+                        </button>
+                        
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
