@@ -18,7 +18,7 @@ export const DiocesanAuthNode: React.FC<AuthNodeProps> = ({ onAuthSuccess }) => 
     setErrorMsg(null);
 
     try {
-      const response = await fetch('https://tenear.com', {
+      const response = await fetch('https://n8n.tenear.com/webhook/ack-diocese-auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
