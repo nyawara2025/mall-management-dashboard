@@ -161,10 +161,17 @@ export const PublicLogisticsHub: React.FC = () => {
 
 
   const toggleTripTracking = () => {
-    const activeShopId = resolveCurrentShopId() || shopId || '92';
+    // 🚀 FORCE FRESH LOOKUP: Read the logistics-specific token directly from storage
+    // to avoid getting contaminated by fallback tokens (__native_shop_id) from other sectors.
+    const dynamicShopId = localStorage.getItem('remembered_logistics_shop_id') || shopId;
+  
+    if (!dynamicShopId) {
+      return alert("Tracking Error: Active Logistics Shop ID context not found. Please log out and log back in.");
+    }
+
+    const activeShopId = dynamicShopId;
     const savedPhone = localStorage.getItem('remembered_logistics_phone') || '';
     const savedName = localStorage.getItem('remembered_logistics_name') || 'Fleet Driver';
-    
     
 
     if (isTrackingActive) {
@@ -192,8 +199,9 @@ export const PublicLogisticsHub: React.FC = () => {
               body: JSON.stringify({
                 shop_id: parseInt(activeShopId, 10),
                 driver_phone: savedPhone.replace(/\D/g, '').replace(/^0/, '254').replace(/^(?=)/, '254'),
-                latitude: latitude,
-                longitude: longitude,
+                driver_name: savedName,
+                latitude,
+                longitude,
                 timestamp: new Date().toISOString()
               })
             });
