@@ -93,7 +93,10 @@ function AppContent() {
   const isSchoolDomain = hostname.includes('tenearedu') || hostname.includes('school');
   const isAgriDomain = hostname.includes('sbo2') || hostname.includes('agri'); // 🚜 Added Agri Domain detector
   const isLogisticsDomain = hostname.includes('teneargroups2026') || hostname.includes('trucking') || hostname.includes('logistics');
-
+  const isDioceseDomain = hostname.includes('diocese') || 
+                        hostname.includes('ackerp') || 
+                        hostname.includes('acknairobidiocese') || // ⬅️ Detects your Cloudflare Pages domain globally
+                        currentUrl.pathname.startsWith('/diocese');
 
   if (urlShopId) {
     // 1. If params exist, back them up instantly for future sessions
