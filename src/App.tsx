@@ -104,7 +104,19 @@ function AppContent() {
     localStorage.setItem('__native_biz_cat', currentUrl.searchParams.get('business_category') || (isSchoolDomain ? 'education' : isAgriDomain ? 'agricultural' : isLogisticsDomain ? 'logistics': 'church'));
   } else if (isAndroidWebView || currentUrl.pathname === '/') {
     // 2. If Android stripped params OR we hit the base root, resolve by hostname context
-    if (isSchoolDomain) {
+
+    // 🏛️ STEP 1: Check if the user is connecting through the global Diocesan domain
+    const isDioceseDomain = hostname.includes('diocese') || hostname.includes('ackerp') || hostname.includes('acknairobidiocese');
+
+    if (isDioceseDomain) {
+      // Rewrite parameters specifically to target your high-level church gatekeeper
+      currentUrl.pathname = '/diocese';
+      currentUrl.searchParams.set('business_category', 'diocesan-erp');
+      currentUrl.searchParams.delete('shop_id'); // Keeps the hierarchy clean of flat shop IDs
+
+    } else if (isSchoolDomain) {
+
+  
       // 🎓 School Hub Fallbacks
       const cachedShopId = localStorage.getItem('__native_shop_id') || 'YOUR_SCHOOL_DEFAULT_SHOP_ID'; // <-- Put your school shop ID string here
       const cachedBizCat = localStorage.getItem('__native_biz_cat') || 'education';
