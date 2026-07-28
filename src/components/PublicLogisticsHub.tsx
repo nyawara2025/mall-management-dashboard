@@ -163,6 +163,9 @@ export const PublicLogisticsHub: React.FC = () => {
   const toggleTripTracking = () => {
     const activeShopId = resolveCurrentShopId() || shopId || '92';
     const savedPhone = localStorage.getItem('remembered_logistics_phone') || '';
+    const savedName = localStorage.getItem('remembered_logistics_name') || 'Fleet Driver';
+    
+    
 
     if (isTrackingActive) {
       // 🛑 Halt Active Tracking Session
@@ -189,8 +192,8 @@ export const PublicLogisticsHub: React.FC = () => {
               body: JSON.stringify({
                 shop_id: parseInt(activeShopId, 10),
                 driver_phone: savedPhone.replace(/\D/g, '').replace(/^0/, '254').replace(/^(?=)/, '254'),
-                latitude,
-                longitude,
+                latitude: latitude,
+                longitude: longitude,
                 timestamp: new Date().toISOString()
               })
             });
@@ -240,6 +243,9 @@ export const PublicLogisticsHub: React.FC = () => {
       // 1. Resolve identity instantly (bypasses asynchronous React state delays)
       const isolatedId = resolveCurrentShopId() || shopId;
       
+      // 🔥 THE LIFECYCLE SYNC FIX: Reads role directly from storage to bypass the initial state lag on refresh
+      const activeRole = userSession?.role || localStorage.getItem('remembered_logistics_role') || '';
+
       if (isolatedId) {
         // 2. Synchronously blast the resolved identity down to all three data views
         fetchDashboardData(isolatedId);
@@ -260,7 +266,7 @@ export const PublicLogisticsHub: React.FC = () => {
         }
       }
     }
-  }, [view, shopId, userSession]);
+  }, [view, shopId]);
 
   
   // Function to pull real contract application rows from your database retrieval node
