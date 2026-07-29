@@ -29,15 +29,13 @@ interface LedgerTransaction {
 }
 
 interface BishopRadarProps {
-  session: {
-    name: string;
-    role: string;
-    assigned_id: number;
-  };
+  session: any;
   onLogout: () => void;
+  isBishop?: boolean; 
 }
 
-export const BishopDiocesanRadar: React.FC<BishopRadarProps> = ({ session, onLogout }) => {
+// 🚀 STEP 2: Destructure isBishop here and default it to false for standard Diocesan Officials
+export const BishopDiocesanRadar: React.FC<BishopRadarProps> = ({ session, onLogout, isBishop = false }) => {
   // 📊 Core Strategic Plan Monitoring State Layers
   const [metrics, setMetrics] = useState<RadarMetrics | null>(null);
   const [projectLogs, setProjectLogs] = useState<ProjectLog[]>([]);
@@ -131,12 +129,16 @@ export const BishopDiocesanRadar: React.FC<BishopRadarProps> = ({ session, onLog
         </div>
 
         <div className="flex items-center gap-2 self-end sm:self-auto">
-          <button 
-            onClick={() => setMetricFormOpen(true)}
-            className="bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
-          >
-            ➕ Log KPI Data
-          </button>
+          {/* 🚀 SAFETY CHECK: Only render the upload button if the user is NOT the Bishop */}
+          {!isBishop && (
+            <button 
+              onClick={() => setMetricFormOpen(true)}
+              className="bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
+            >
+              ➕ Log KPI Data
+            </button>
+          )}
+
           <button 
             onClick={fetchRadarData}
             disabled={refreshing}
@@ -144,6 +146,7 @@ export const BishopDiocesanRadar: React.FC<BishopRadarProps> = ({ session, onLog
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
+
           <button 
             onClick={onLogout}
             className="bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors"

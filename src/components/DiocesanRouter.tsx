@@ -80,6 +80,7 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
       return (
         <BishopDiocesanRadar 
           session={session} 
+          isBishop={session.role === 'BISHOP'}
           onLogout={() => {
             localStorage.clear();
             onLogout();
