@@ -59,7 +59,7 @@ export const BishopDiocesanRadar: React.FC<BishopRadarProps> = ({ session, onLog
   const fetchRadarData = async () => {
     setRefreshing(true);
     try {
-      const res = await fetch('https://tenear.com', {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-diocesan-radar-fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tenant_id: session.assigned_id })
@@ -85,7 +85,7 @@ export const BishopDiocesanRadar: React.FC<BishopRadarProps> = ({ session, onLog
     e.preventDefault();
     setSubmitting(true);
     try {
-      const res = await fetch('https://tenear.com', {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-submit-kpi', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
