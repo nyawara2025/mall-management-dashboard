@@ -44,51 +44,15 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
   // 🎛️ Render the custom workspace layout based on their assigned structural tier level
   switch (session.tier_access) {
     case 'DAUGHTER_CHURCH':
-      return (
-        <DaughterChurchDashboard 
-          session={session} 
-          onLogout={() => {
-            localStorage.clear(); // 🚀 Wipes out all old sessions instantly
-            onLogout();
-            window.location.href = 'https://acknairobidiocese.pages.dev';
-          }} 
-        />
-      );
+      return <DaughterChurchDashboard session={session} onLogout={onLogout} />;
     case 'PARISH':
-      return (
-        <ParishERPDashboard 
-          session={session} 
-          onLogout={() => {
-            localStorage.clear();
-            onLogout();
-            window.location.href = 'https://acknairobidiocese.pages.dev';
-          }} 
-        />
-      );
+      return <ParishERPDashboard session={session} onLogout={onLogout} />;
     case 'ARCHDEACONRY':
-      return (
-        <ArchdeaconryDashboard 
-          session={session} 
-          onLogout={() => {
-            localStorage.clear();
-            onLogout();
-            window.location.href = 'https://acknairobidiocese.pages.dev';
-          }} 
-        />
-      );
+      return <ArchdeaconryDashboard session={session} onLogout={onLogout} />;
     case 'DIOCESE':
-      return (
-        <BishopDiocesanRadar 
-          session={session} 
-          onLogout={() => {
-            localStorage.clear();
-            onLogout();
-            window.location.href = 'https://acknairobidiocese.pages.dev';
-          }} 
-        />
-      );
+      // This view handles executive analytics tracking for the Bishop and departments
+      return <BishopDiocesanRadar session={session} onLogout={onLogout} />;
     default:
       return <div className="p-6 text-red-600 font-bold">Unauthorized System Access Profile Level Exception.</div>;
   }
-
 };
