@@ -1,21 +1,375 @@
-import React from 'react';
-import { Layers, LogOut } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { 
+  Layers, RefreshCw, LogOut, Users, DollarSign, Calendar, 
+  TrendingUp, ClipboardCheck, FileText, CheckCircle2, X 
+} from 'lucide-react';
 
-export const ParishERPDashboard: React.FC<any> = ({ session, onLogout }) => {
+interface ParishMetrics {
+  total_attendance: number;
+  total_collections_kes: number;
+  reporting_assemblies_count: number;
+  target_variance_percentage: number;
+}
+
+interface AttendanceLog {
+  id: string;
+  reporting_period: string;
+  church_name: string;
+  worship_attendance_count: number;
+  sacraments_administered_count: number;
+  is_approved: boolean;
+}
+
+interface MpesaTransaction {
+  id: string;
+  transaction_reference: string;
+  amount_kes: number;
+  fund_purpose: string;
+  payment_status: string;
+  created_at: string;
+}
+
+interface ParishDashboardProps {
+  session: {
+    name: string;
+    role: string;
+    assigned_id: number;
+  };
+  onLogout: () => void;
+}
+
+export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, onLogout }) => {
+  // 📊 Local Operational State Management
+  const [metrics, setMetrics] = useState<ParishMetrics | null>(null);
+  const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>([]);
+  const [ledger, setLedger] = useState<MpesaTransaction[]>([]);
+  
+  // ⚙️ Component Lifecycle and UI Toggles
+  const [refreshing, setRefreshing] = useState(false);
+  const [logFormOpen, setLogFormOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  // 📝 Attendance Modal Controlled Input Fields
+  const [period, setPeriod] = useState('2026-W31'); // Aligned with mid-2026
+  const [selectedChurchId, setSelectedChurchId] = useState('');
+  const [attendanceCount, setAttendanceCount] = useState('');
+  const [sacramentalCount, setSacramentalCount] = useState('');
+
+  // Mock lookup representing daughter churches assigned to this parish structure
+  const daughterChurches = [
+    { id: '30', name: 'ACK St. Barnabas Daughter Church' },
+    { id: '31', name: 'Bethlehem Zone Local Assembly' }
+  ];
+
+  // 🔄 Consolidated Parish Data Fetcher Engine
+  const fetchParishData = async () => {
+    setRefreshing(true);
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-parish-ledger-fetch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenant_id: session.assigned_id })
+      });
+      const data = await res.json();
+      if (data) {
+        setMetrics(data.metrics || null);
+        setAttendanceLogs(data.attendance || []);
+        setLedger(data.ledger || []);
+      }
+    } catch (err) {
+      console.error("Error synchronizing parish ERP metrics:", err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchParishData();
+  }, [session.assigned_id]);
+
+  const handleSubmitAttendance = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-submit-kpi', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: parseInt(selectedChurchId, 10),
+          reporting_period: period,
+          worship_attendance: parseInt(attendanceCount, 10) || 0,
+          sacraments_administered: parseInt(sacramentalCount, 10) || 0,
+          milestones_completed: 0,
+          finance_reached: 0
+        })
+      });
+      if (res.ok) {
+        alert("Weekly parish attendance metrics submitted and approved successfully!");
+        setLogFormOpen(false);
+        setAttendanceCount('');
+        setSacramentalCount('');
+        fetchParishData();
+      }
+    } catch (err) {
+      console.error("Failed logging weekly metrics:", err);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 p-6">
-      <header className="bg-white p-4 rounded-xl border flex justify-between items-center shadow-xs">
+    <div className="min-h-screen bg-slate-100 p-4 sm:p-6 pb-12">
+      {/* 👑 PARISH COUNCIL TOP BAR */}
+      <header className="bg-white rounded-2xl border border-slate-200 shadow-xs p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
-          <Layers className="w-5 h-5 text-blue-700" />
-          <h2 className="text-sm font-black uppercase tracking-tight">Parish Consolidated ERP: {session.name}</h2>
+          <div className="w-10 h-10 bg-blue-700 rounded-xl flex items-center justify-center text-white shadow-md">
+            <Layers className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">Parish Consolidated ERP</h1>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+              {session.name} • <span className="text-blue-700">{session.role} Portal</span>
+            </p>
+          </div>
         </div>
-        <button onClick={onLogout} className="text-xs bg-red-50 text-red-600 font-bold px-3 py-1.5 rounded-lg flex items-center gap-1">
-          <LogOut className="w-3.5 h-3.5" /> Sign Out
-        </button>
+
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <button 
+            onClick={() => setLogFormOpen(true)}
+            className="bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
+          >
+            📋 Log Attendance
+          </button>
+          <button 
+            onClick={fetchParishData}
+            disabled={refreshing}
+            className="p-2 border border-slate-200 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          </button>
+          <button 
+            onClick={onLogout}
+            className="bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" /> Sign Out
+          </button>
+        </div>
       </header>
-      <main className="mt-6 text-center text-xs text-slate-400 font-medium py-12 border border-dashed rounded-xl bg-white">
-        Parish Data Aggregation & Finance Ledgers Loading...
-      </main>
+
+      {/* 📊 PARISH OPERATIONAL STATS GRID */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="text-blue-700 bg-blue-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
+            <Users className="w-4 h-4" />
+          </div>
+          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Total Attendance Roll</span>
+          <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5">
+            {metrics?.total_attendance?.toLocaleString() || '0'}
+          </span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="text-emerald-700 bg-emerald-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
+            <DollarSign className="w-4 h-4" />
+          </div>
+          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Parish Collections</span>
+          <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5 font-mono">
+            KES {metrics?.total_collections_kes?.toLocaleString() || '0.00'}
+          </span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="text-purple-700 bg-purple-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
+            <Calendar className="w-4 h-4" />
+          </div>
+          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Reporting Assemblies</span>
+          <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5">
+            {metrics?.reporting_assemblies_count || '0'} Churches
+          </span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="text-amber-700 bg-amber-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
+            <TrendingUp className="w-4 h-4" />
+          </div>
+          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Budget Target Efficiency</span>
+          <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5">
+            {metrics?.target_variance_percentage || '0'}% Target
+          </span>
+        </div>
+      </div>
+
+      {/* 🎛️ DUAL PANELS: LOGS & LEDGER CHANNELS */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* 📋 REGIONAL ATTENDANCE APPROVAL MATRIX */}
+        <div className="lg:col-span-1 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+          <div className="border-b border-slate-100 pb-3">
+            <h3 className="text-xs font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-blue-700">
+              <ClipboardCheck className="w-4 h-4" /> Worship Attendance Metrics
+            </h3>
+            <p className="text-[10px] text-slate-400 font-medium">Weekly tracking from assigned daughter churches</p>
+          </div>
+
+          {attendanceLogs.length === 0 ? (
+            <div className="text-center text-xs text-slate-400 py-12 italic border border-dashed rounded-xl bg-slate-50/50">
+              No recent attendance or sacramental data entries submitted this period.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {attendanceLogs.map((log) => (
+                <div key={log.id} className="p-3 border border-slate-100 rounded-xl bg-slate-50/50 space-y-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="block text-xs font-black text-slate-800 uppercase tracking-tight">{log.church_name}</span>
+                      <span className="block text-[9px] text-slate-400 font-bold font-mono">Period: {log.reporting_period}</span>
+                    </div>
+                    <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded font-black tracking-wide flex items-center gap-0.5 uppercase">
+                      <CheckCircle2 className="w-3 h-3" /> Approved
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100">
+                    <div>👥 Attended: <span className="text-slate-800 font-black">{log.worship_attendance_count}</span></div>
+                    <div>🍷 Sacraments: <span className="text-slate-800 font-black">{log.sacraments_administered_count}</span></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 📊 PARISH AUTOMATED M-PESA TRANSACTION LEDGER */}
+        <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+          <div className="border-b border-slate-100 pb-3">
+            <h3 className="text-xs font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-emerald-700">
+              <FileText className="w-4 h-4" /> Live M-Pesa Income Stream
+            </h3>
+            <p className="text-[10px] text-slate-400 font-medium">Real-time unfragmented accounting audit trail matching regional code collections</p>
+          </div>
+
+          {ledger.length === 0 ? (
+            <div className="text-center text-xs text-slate-400 py-12 italic border border-dashed rounded-xl bg-slate-50/50">
+              No recent M-Pesa transaction records cleared through local accounting lines.
+            </div>
+          ) : (
+            <div className="overflow-x-auto border border-slate-100 rounded-xl">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-[9px] font-black tracking-wider text-slate-400 uppercase">
+                    <th className="p-2.5">Ref Reference</th>
+                    <th className="p-2.5">Allocation Purpose</th>
+                    <th className="p-2.5 text-right">Amount (KES)</th>
+                    <th className="p-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-600">
+                  {ledger.map((tx) => (
+                    <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-2.5 font-mono text-[10px] font-bold text-slate-900 uppercase">{tx.transaction_reference}</td>
+                      <td className="p-2.5">
+                        <span className="bg-slate-100 text-slate-700 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
+                          {tx.fund_purpose?.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="p-2.5 text-right font-bold text-slate-900">
+                        {Number(tx.amount_kes).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td className="p-2.5">
+                        <span className="inline-flex text-[9px] font-black tracking-wider bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full uppercase">
+                          {tx.payment_status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 🏛️ INPUT MODAL LAYER: LOG ATTENDANCE VALUES REGISTER */}
+      {logFormOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+            <button 
+              onClick={() => setLogFormOpen(false)}
+              className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mb-4">
+              <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-blue-700">
+                <ClipboardCheck className="w-4 h-4" /> Log Assembly Attendance
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium">Record validated indicators straight to parish database tables</p>
+            </div>
+
+            <form onSubmit={handleSubmitAttendance} className="space-y-4">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Select Church Entity</label>
+                <select 
+                  required
+                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none"
+                  value={selectedChurchId}
+                  onChange={e => setSelectedChurchId(e.target.value)}
+                >
+                  <option value="">-- Choose Assigned Location --</option>
+                  {daughterChurches.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Reporting Period</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g., 2026-W31" 
+                  required 
+                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none" 
+                  value={period} 
+                  onChange={e => setPeriod(e.target.value.toUpperCase())} 
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Total Worshipers</label>
+                  <input 
+                    type="number" 
+                    placeholder="0" 
+                    required 
+                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none" 
+                    value={attendanceCount} 
+                    onChange={e => setAttendanceCount(e.target.value)} 
+                  />
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Sacraments Run</label>
+                  <input 
+                    type="number" 
+                    placeholder="0" 
+                    required 
+                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none" 
+                    value={sacramentalCount} 
+                    onChange={e => setSacramentalCount(e.target.value)} 
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black text-xs tracking-widest py-3 rounded-xl uppercase shadow-md transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+              >
+                {submitting ? 'Uploading Data...' : 'Approve & Submit Metrics'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
