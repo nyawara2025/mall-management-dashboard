@@ -52,6 +52,14 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
   const [newMemberCommunicant, setNewMemberCommunicant] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
+  // 🏡 Phase 4: Household Management State Layers
+  const [householdsList, setHouseholdsList] = useState<any[]>([]);
+  const [householdModalOpen, setHouseholdModalOpen] = useState(false);
+  const [newHouseholdName, setNewHouseholdName] = useState('');
+  const [newHouseholdPhone, setNewHouseholdPhone] = useState('');     // <-- Add this
+  const [newHouseholdAddress, setNewHouseholdAddress] = useState(''); // <-- Add this
+  const [loadingHouseholds, setLoadingHouseholds] = useState(false);
+
   // 🔄 Consolidated Local Data Fetcher Engine
   const fetchLocalChurchData = async () => {
     setRefreshing(true);
@@ -134,6 +142,35 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
       console.error("Member registry transaction failure exception:", err);
     } finally {
       setLoadingMembers(false);
+    }
+  };
+
+  const handleRegisterHousehold = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoadingHouseholds(true);
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-register-household', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          parish_id: session.assigned_id, // Maps to your schema's parish_id parameter
+          household_name: newHouseholdName,
+          primary_contact_phone: newHouseholdPhone, // State field for the contact number
+          physical_address: newHouseholdAddress // State field for the address layout
+        })
+      });
+      if (res.ok) {
+        alert("New family household registry profile successfully committed!");
+        setHouseholdModalOpen(false);
+        setNewHouseholdName('');
+        setNewHouseholdPhone('');
+        setNewHouseholdAddress('');
+        fetchLocalChurchData(); 
+      }
+    } catch (err) {
+      console.error("Household creation transaction failure exception:", err);
+    } finally {
+      setLoadingHouseholds(false);
     }
   };
 
@@ -448,12 +485,21 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             
             {/* 🔒 Restrictions: Recorders and Admins can build entries */}
             {session.role !== 'MEMBER' && (
-              <button 
-                onClick={() => setMemberModalOpen(true)}
-                className="bg-emerald-700 hover:bg-emerald-800 text-white font-black text-[10px] tracking-wider px-3 py-1.5 rounded-lg uppercase transition-colors"
-              >
-                ➕ Register Member
-              </button>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setHouseholdModalOpen(true)}
+                  className="bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] tracking-wider px-3 py-1.5 rounded-lg uppercase transition-colors"
+                >
+                  🏡 Register Household
+                </button>
+
+                <button 
+                  onClick={() => setMemberModalOpen(true)}
+                  className="bg-emerald-700 hover:bg-emerald-800 text-white font-black text-[10px] tracking-wider px-3 py-1.5 rounded-lg uppercase transition-colors"
+                >
+                  ➕ Register Member
+                </button>
+              </div>
             )}
           </div>
 
@@ -495,8 +541,73 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
               </table>
             </div>
           )}
-        </div>
 
+          {/* 🏡 PHASE 4: CORRECTED HOUSEHOLD REGISTER MODAL PANEL */}
+          {householdModalOpen && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+              <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+                <button 
+                  onClick={() => setHouseholdModalOpen(false)}
+                  className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                <div className="mb-4">
+                  <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-blue-700">
+                    🏡 Create Family Household Hub
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-medium">Preserve central family structures under localized congregations</p>
+                </div>
+
+                <form onSubmit={handleRegisterHousehold} className="space-y-4">
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Household Name</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. THE RICKY NYAWARA FAMILY" 
+                      required 
+                      className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase" 
+                      value={newHouseholdName} 
+                      onChange={e => setNewHouseholdName(e.target.value)} 
+                    />
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Primary Contact Phone</label>
+                    <input 
+                      type="text" 
+                      placeholder="e.g. +254 7XX XXX XXX" 
+                      required 
+                      className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none" 
+                      value={newHouseholdPhone} 
+                      onChange={e => setNewHouseholdPhone(e.target.value)} 
+                    />
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Physical Address</label>
+                    <textarea 
+                      placeholder="e.g. Court 4, House 12, Estate Sub-location" 
+                      rows={2}
+                      className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase resize-none" 
+                      value={newHouseholdAddress} 
+                      onChange={e => setNewHouseholdAddress(e.target.value)} 
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loadingHouseholds}
+                    className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black text-xs tracking-widest py-3 rounded-xl uppercase shadow-md transition-colors disabled:bg-slate-300"
+                  >
+                    {loadingHouseholds ? 'Registering Household...' : 'Commit Family Profile'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+      </div>
     </div>
   );
 };
