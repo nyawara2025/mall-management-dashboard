@@ -65,6 +65,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
       if (data) {
         setMetrics(data.metrics || null);
         setWelfareLogs(data.welfare || []);
+        setMembersList(data.members || []);
       }
     } catch (err) {
       console.error("Error synchronizing daughter church operational data:", err);
@@ -345,6 +346,90 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
                 className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs tracking-widest py-3 rounded-xl uppercase shadow-md transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
               >
                 {submitting ? 'Uploading Metrics...' : 'Log Congregation Stats'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+
+      {/* 👥 MISSING PHASE 4: MEMBERSHIP REGISTER MODAL ENTRY PANEL */}
+      {memberModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+            <button 
+              onClick={() => setMemberModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mb-4">
+              <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-emerald-700">
+                👥 Register New Assembly Member
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium">Record a member into the family household registry layout</p>
+            </div>
+
+            <form onSubmit={handleRegisterMember} className="space-y-4">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Full Name</label>
+                <input 
+                  type="text" 
+                  placeholder="Enter full name" 
+                  required 
+                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase" 
+                  value={newMemberName} 
+                  onChange={e => setNewMemberName(e.target.value)} 
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Life Stage Group</label>
+                  <select 
+                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none"
+                    value={newMemberStage}
+                    onChange={e => setNewMemberStage(e.target.value)}
+                  >
+                    <option value="ADULT">ADULT</option>
+                    <option value="YOUTH">YOUTH</option>
+                    <option value="CHILD">CHILD</option>
+                  </select>
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Alert Channel</label>
+                  <select 
+                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none"
+                    value={newMemberComm}
+                    onChange={e => setNewMemberComm(e.target.value)}
+                  >
+                    <option value="SMS">SMS</option>
+                    <option value="EMAIL">EMAIL</option>
+                    <option value="NONE">NONE</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 p-1">
+                <input 
+                  type="checkbox" 
+                  id="communicant"
+                  className="w-4 h-4 text-emerald-700 border-slate-300 rounded focus:ring-emerald-500"
+                  checked={newMemberCommunicant}
+                  onChange={e => setNewMemberCommunicant(e.target.checked)}
+                />
+                <label htmlFor="communicant" className="text-xs font-bold text-slate-600 select-none">
+                  Confirmed Communicant Status (🍷)
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loadingMembers}
+                className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs tracking-widest py-3 rounded-xl uppercase shadow-md transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+              >
+                {loadingMembers ? 'Registering...' : 'Commit Member Profile'}
               </button>
             </form>
           </div>
