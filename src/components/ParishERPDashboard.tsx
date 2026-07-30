@@ -98,7 +98,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
 
   const fetchLocalStaff = async () => {
     try {
-      const res = await fetch('https://n8n.tenear.com/webhook/ack-provision-staff', {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-parish-staff-fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tenant_id: session.assigned_id })
