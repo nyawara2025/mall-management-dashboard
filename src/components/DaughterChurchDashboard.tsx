@@ -59,6 +59,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
   const [newHouseholdPhone, setNewHouseholdPhone] = useState('');     // <-- Add this
   const [newHouseholdAddress, setNewHouseholdAddress] = useState(''); // <-- Add this
   const [loadingHouseholds, setLoadingHouseholds] = useState(false);
+  const [selectedHouseholdId, setSelectedHouseholdId] = useState('');
 
   // 🔄 Consolidated Local Data Fetcher Engine
   const fetchLocalChurchData = async () => {
@@ -74,6 +75,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
         setMetrics(data.metrics || null);
         setWelfareLogs(data.welfare || []);
         setMembersList(data.members || []);
+        setHouseholdsList(data.households || []);
       }
     } catch (err) {
       console.error("Error synchronizing daughter church operational data:", err);
@@ -128,13 +130,15 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
           full_name: newMemberName,
           life_stage: newMemberStage,
           communication_preference: newMemberComm,
-          is_communicant: newMemberCommunicant
+          is_communicant: newMemberCommunicant,
+          household_id: selectedHouseholdId ? parseInt(selectedHouseholdId, 10) : null
         })
       });
       if (res.ok) {
         alert("New congregation member profile successfully committed into family register!");
         setMemberModalOpen(false);
         setNewMemberName('');
+        setSelectedHouseholdId('');
         // Refresh local data engine arrays
         fetchLocalChurchData(); 
       }
@@ -419,6 +423,23 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
                   value={newMemberName} 
                   onChange={e => setNewMemberName(e.target.value)} 
                 />
+              </div>
+
+              {/* 🏡 HOUSEHOLD ASSOCIATION DROPDOWN LINK */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Assign to Family Household</label>
+                <select 
+                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase"
+                  value={selectedHouseholdId}
+                  onChange={e => setSelectedHouseholdId(e.target.value)}
+                >
+                  <option value="">-- INDEPENDENT MEMBER (NO HOUSEHOLD LINK) --</option>
+                  {householdsList.map((hh) => (
+                    <option key={hh.id} value={hh.id}>
+                      {hh.household_name} ({hh.primary_contact_phone})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
