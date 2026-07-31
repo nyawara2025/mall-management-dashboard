@@ -296,12 +296,22 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
                           {log.purpose_zone}
                         </span>
                       </td>
+                      
+                      {/* 🛡️ SAFE AMOUNT RENDERING WITH FALLBACK */}
                       <td className="p-3 text-right font-mono font-bold text-emerald-700">
-                        {Number(log.amount_kes).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        {log.amount_kes && !isNaN(Number(log.amount_kes)) 
+                          ? Number(log.amount_kes).toLocaleString(undefined, { minimumFractionDigits: 2 }) 
+                          : '0.00'}
                       </td>
+                      
+                      {/* 🛡️ SAFE DATE RENDERING WITH FALLBACK */}
                       <td className="p-3 text-center font-mono text-[10px] text-slate-400">
-                        {new Date(log.recorded_at).toLocaleDateString()}
+                        {log.recorded_at && !isNaN(Date.parse(log.recorded_at)) 
+                          ? new Date(log.recorded_at).toLocaleDateString() 
+                          : 'N/A'}
                       </td>
+
+
                     </tr>
                   ))}
                 </tbody>
