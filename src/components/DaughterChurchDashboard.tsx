@@ -88,6 +88,14 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
   const [selectedLeaderMemberId, setSelectedLeaderMemberId] = useState(''); // Stores member primary key ID
   const [submittingGroup, setSubmittingGroup] = useState(false);
 
+  // 🏗️ MVP No. 6: Corrected Capital Project Tracking State Layers
+  const [projectModalOpen, setProjectModalOpen] = useState(false);
+  const [projectTitle, setProjectTitle] = useState('');
+  const [projectScope, setProjectScope] = useState('');
+  const [projectCost, setProjectCost] = useState('');
+  const [identifiedRisks, setIdentifiedRisks] = useState('');
+  const [submittingProject, setSubmittingProject] = useState(false);
+
   // 🔄 Consolidated Local Data Fetcher Engine
   const fetchLocalChurchData = async () => {
     setRefreshing(true);
@@ -304,6 +312,55 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
       console.error("Relational welfare tracking trace exception:", err);
     } finally {
       setSubmittingWelfare(false);
+    }
+  };
+
+  // 🏗️ Phase 5: Register New Capital Project Execution Method
+  const handleRegisterProject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const parsedCost = parseFloat(projectCost);
+    if (isNaN(parsedCost) || parsedCost <= 0) {
+      alert("Validation Error: Total estimated cost must be a positive numeric value.");
+      return;
+    }
+
+    if (!projectScope.trim()) {
+      alert("Validation Error: Project scope and operational objectives cannot be blank.");
+      return;
+    }
+
+    setSubmittingProject(true);
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-register-project', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: session.assigned_id, // Maps to your schema foreign key constraint
+          project_title: projectTitle.trim().toUpperCase(),
+          project_scope: projectScope.trim(),
+          total_estimated_cost_kes: parsedCost,
+          identified_risks: identifiedRisks.trim() || null,
+          photograph_evidence_url: null // Handled downstream via Supabase Storage buckets
+        })
+      });
+
+      if (res.ok) {
+        alert("New capital project blueprint successfully committed to development registries!");
+        setProjectModalOpen(false);
+        setProjectTitle('');
+        setProjectScope('');
+        setProjectCost('');
+        setIdentifiedRisks('');
+        fetchLocalChurchData(); // Refresh unified local lists
+      } else {
+        alert("Transaction Aborted: Failed to execute project registration payload.");
+      }
+    } catch (err) {
+      console.error("Project registry transaction failure exception:", err);
+      alert("Network Error: Unable to establish connection to n8n intake gateways.");
+    } finally {
+      setSubmittingProject(false);
     }
   };
 
@@ -965,6 +1022,92 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
                 className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black text-xs tracking-widest py-3 rounded-xl uppercase shadow-md transition-colors disabled:bg-slate-300"
               >
                 {submittingGroup ? 'Registering Group...' : 'Commit Group Profile'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 🏗️ PHASE 5: CAPITAL DEVELOPMENT PROJECT CREATION ENTRY PANEL */}
+      {projectModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+            <button 
+              onClick={() => setProjectModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mb-4">
+              <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-blue-700">
+                🏗️ Initiate Local Capital Project
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium">Log development tracking requirements directly to the project ledger</p>
+            </div>
+
+            <form onSubmit={handleRegisterProject} className="space-y-4">
+        
+              {/* PROJECT TITLE */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Project Title / Name</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. PERMANENT SANCTUARY EXTENSION PHASE 1" 
+                  required 
+                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase" 
+                  value={projectTitle} 
+                  onChange={e => setProjectTitle(e.target.value)} 
+                />
+              </div>
+
+              {/* TOTAL ESTIMATED BUDGET COST */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Total Estimated Cost Budget (KES)</label>
+                <input 
+                  type="number" 
+                  placeholder="0.00" 
+                  required 
+                  min="1"
+                  step="0.01"
+                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none font-mono" 
+                  value={projectCost} 
+                  onChange={e => setProjectCost(e.target.value)} 
+                />
+              </div>
+
+              {/* PROJECT SCOPE OBJECTIVES */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Project Scope Description</label>
+                <textarea 
+                  placeholder="Outline materials, construction phases, and targeted spatial boundaries..." 
+                  required 
+                  rows={2}
+                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase resize-none leading-normal" 
+                  value={projectScope} 
+                  onChange={e => setProjectScope(e.target.value)} 
+                />
+              </div>
+
+              {/* IDENTIFIED RISKS */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Identified Risks & Mitigations (Optional)</label>
+                <textarea 
+                  placeholder="e.g. Rainy season delays, material supply fluctuations..." 
+                  rows={2}
+                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase resize-none leading-normal" 
+                  value={identifiedRisks} 
+                  onChange={e => setIdentifiedRisks(e.target.value)} 
+                />
+              </div>
+
+              {/* SUBMIT BUTTON TRIGGER */}
+              <button
+                type="submit"
+                disabled={submittingProject}
+                className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black text-xs tracking-widest py-3 rounded-xl uppercase shadow-md transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+              >
+                {submittingProject ? 'Committing Blueprint Spec...' : 'Commit Project Blueprint'}
               </button>
             </form>
           </div>
