@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Award, Calendar, User, Heart, CheckCircle, FileText, XCircle, Loader2, ListCollapse, MessageSquare } from 'lucide-react';
+import { X, Award, Calendar, User, Heart, CheckCircle, FileText, XCircle, Loader2, ListCollapse, MessageSquare, Download } from 'lucide-react';
+
+import { useSacramentPdf } from './useSacramentPdf';
 
 interface SacramentApprovalsModalProps {
   isOpen: boolean;
@@ -13,6 +15,8 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
   const [loading, setLoading] = useState(false);
   const [actioningId, setActioningId] = useState<number | null>(null);
   const [reviewingApp, setReviewingApp] = useState<any | null>(null);
+
+  const { downloadReport, loadingPdf } = useSacramentPdf(shopId);
 
   // 🔴 NEW: States for fetching and displaying the comprehensive multi-tenant list
   const [showGlobalReview, setShowGlobalReview] = useState(false);
@@ -231,6 +235,25 @@ export const SacramentApprovalsModal: React.FC<SacramentApprovalsModalProps> = (
                   >
                     {broadcasting ? <Loader2 size={12} className="animate-spin"/> : <MessageSquare size={12}/>} Broadcast WhatsApp
                   </button>
+
+                  <button
+                    onClick={() => downloadReport(allApplicationsList)}
+                    disabled={loadingPdf || allApplicationsList.length === 0}
+                    className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white px-4 py-2 rounded-md font-medium text-sm transition-colors border border-slate-700"
+                  >
+                    {loadingPdf ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-4 h-4" />
+                        Download Report
+                      </>
+                    )}
+                  </button>
+
                 </div>
               </div>
 
