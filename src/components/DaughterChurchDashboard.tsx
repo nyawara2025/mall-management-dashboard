@@ -416,6 +416,22 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             💝 Welfare
           </button>
 
+          {/* 👤 RE-INJECTED MEMBERSHIP ENTRY TRIGGER */}
+          <button 
+            onClick={() => setMemberModalOpen(true)}
+            className="bg-emerald-800 hover:bg-emerald-950 text-white font-black text-[9px] tracking-wide px-2.5 py-2 rounded-xl uppercase flex items-center justify-center gap-1 transition-colors shadow-xs active:scale-95"
+          >
+            👥 Add Member
+          </button>
+
+          {/* 🏡 RE-INJECTED HOUSEHOLD ENTRY TRIGGER */}
+          <button 
+            onClick={() => setHouseholdModalOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-black text-[9px] tracking-wide px-2.5 py-2 rounded-xl uppercase flex items-center justify-center gap-1 transition-colors shadow-xs active:scale-95"
+          >
+            🏠 Household
+          </button>
+
           <button 
             onClick={() => setGroupModalOpen(true)}
             className="bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
