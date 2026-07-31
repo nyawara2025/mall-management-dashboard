@@ -19,6 +19,17 @@ interface WelfareContributionRow {
   recorded_at: string;
 }
 
+interface DiscipleshipGroupRow {
+  id: number;
+  church_id: number;
+  group_type: string;
+  group_name: string;
+  leader_name: string;
+  active_members_count: number;
+  current_topic: string | null;
+  created_at: string;
+}
+
 interface DaughterChurchDashboardProps {
   session: {
     name: string;
@@ -70,11 +81,11 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
   const [submittingWelfare, setSubmittingWelfare] = useState(false);
 
   // 🏡 Discipleship Group Registry State Layers
-  const [groupsList, setGroupsList] = useState<any[]>([]);
+  const [groupsList, setGroupsList] = useState<DiscipleshipGroupRow[]>([]);
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
-  const [newGroupType, setNewGroupType] = useState('CELL_GROUP'); // e.g., CELL_GROUP, BIBLE_STUDY
-  const [newGroupLeader, setNewGroupLeader] = useState('');
+  const [newGroupType, setNewGroupType] = useState('CELL_GROUP');
+  const [selectedLeaderMemberId, setSelectedLeaderMemberId] = useState(''); // Stores member primary key ID
   const [submittingGroup, setSubmittingGroup] = useState(false);
 
   // 🔄 Consolidated Local Data Fetcher Engine
@@ -198,10 +209,14 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
   // 🏡 Phase 4: Create Discipleship Group Execution Handler
   const handleRegisterGroup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newGroupName.trim() || !newGroupLeader.trim()) {
+    if (!newGroupName.trim() || !selectedLeaderMemberId) {
       alert("Validation Error: Please fill in all mandatory group profile description fields.");
       return;
     }
+
+    // Unpack the verified text name corresponding to the selected member ID reference
+    const selectedMemberRow = membersList.find(m => String(m.id) === selectedLeaderMemberId);
+    const resolvedLeaderName = selectedMemberRow ? selectedMemberRow.full_name : 'UNRESOLVED MEMBER';
 
     setSubmittingGroup(true);
     try {
@@ -212,7 +227,10 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
           church_id: session.assigned_id,
           group_type: newGroupType,
           group_name: newGroupName.trim().toUpperCase(),
-          leader_name: newGroupLeader.trim().toUpperCase()
+          leader_name: resolvedLeaderName,
+          metadata: {
+            leader_member_id: parseInt(selectedLeaderMemberId, 10) // Appends relational schema check tracking
+          } 
         })
       });
 
@@ -220,8 +238,11 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
         alert("New discipleship group registered and locked into the local assembly layout successfully!");
         setGroupModalOpen(false);
         setNewGroupName('');
-        setNewGroupLeader('');
+        setSelectedLeaderMemberId('');
+        // Refresh local data engine arrays to sync list dropdowns
         fetchLocalChurchData(); // Sync list arrays
+      } else {
+        alert("Transaction Failed: Unable to commit group structural record.");
       }
     } catch (err) {
       console.error("Failed executing group registration transaction:", err);
@@ -822,7 +843,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
                   onChange={e => setSelectedWelfareGroupId(e.target.value)}
                 >
                   <option value="">-- CHOOSE LOCAL CELL ZONE --</option>
-                  {groupsList.map((g) => (
+                  {groupsList.map((g: DiscipleshipGroupRow) => (
                     <option key={g.id} value={g.id}>{g.group_name} ({g.leader_name})</option>
                   ))}
                 </select>
@@ -908,15 +929,22 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
                   <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Leader Name</label>
-                  <input 
-                    type="text" 
-                    placeholder="Enter leader full name" 
-                    required 
-                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase" 
-                    value={newGroupLeader} 
-                    onChange={e => setNewGroupLeader(e.target.value)} 
-                  />
+                  <select 
+                    required
+                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase truncate"
+                    value={selectedLeaderMemberId}
+                    onChange={e => setSelectedLeaderMemberId(e.target.value)}
+                  >
+                    <option value="" disabled>-- SELECT LEADER --</option>
+                    {membersList.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        👤 {m.full_name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
+
+
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
                   <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Classification Type</label>
                   <select 
