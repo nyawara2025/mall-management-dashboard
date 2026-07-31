@@ -30,6 +30,20 @@ interface DiscipleshipGroupRow {
   created_at: string;
 }
 
+interface DevelopmentProjectRow {
+  id: number;
+  tenant_id: number;
+  project_title: string;
+  project_scope: string;
+  total_estimated_cost_kes: number;
+  funds_raised_kes: number;
+  expenditure_to_date_kes: number;
+  percentage_progress: number;
+  identified_risks: string | null;
+  photograph_evidence_url: string | null;
+  created_at: string;
+}
+
 interface DaughterChurchDashboardProps {
   session: {
     name: string;
@@ -63,6 +77,8 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
   const [newMemberCommunicant, setNewMemberCommunicant] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
+  const [projectsList, setProjectsList] = useState<DevelopmentProjectRow[]>([])
+  
   // 🏡 Phase 4: Household Management State Layers
   const [householdsList, setHouseholdsList] = useState<any[]>([]);
   const [householdModalOpen, setHouseholdModalOpen] = useState(false);
@@ -112,6 +128,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
         setMembersList(data.members || []);
         setHouseholdsList(data.households || []);
         setGroupsList(data.groups || []);
+        setProjectsList(data.projects || []);
       }
     } catch (err) {
       console.error("Error synchronizing daughter church operational data:", err);
@@ -400,6 +417,14 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             className="bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
           >
             🏡 Create Group/Zone
+          </button>
+
+          {/* 🏗️ INJECT THIS MVP CAPABILITY NO.6 ACTION BUTTON */}
+          <button 
+            onClick={() => setProjectModalOpen(true)}
+            className="bg-blue-800 hover:bg-blue-900 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
+          >
+            🏗️ Initiate Project
           </button>
 
           <button 
@@ -787,6 +812,53 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             </div>
           )}
         </div>   
+
+        {/* 🏗️ MVP NO. 6: DEVELOPMENT PROJECTS CAPITAL TRACKING VIEWPANEL */}
+        <div className="mt-6 space-y-3">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block border-b border-slate-100 pb-1.5">
+             🏗️ Active Structural & Capital Development Projects ({projectsList.length})
+          </span>
+          {projectsList.length === 0 ? (
+            <div className="text-center text-xs text-slate-400 py-8 italic border border-dashed rounded-xl bg-slate-50/50">
+              No capital development projects or structural blueprints registered under this checkpoint location.
+            </div>
+          ) : (
+            <div className="overflow-x-auto border border-slate-100 rounded-xl bg-slate-50/30">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-[9px] font-black tracking-wider text-slate-400 uppercase">
+                    <th className="p-3">Project Title</th>
+                    <th className="p-3">Scope Target</th>
+                    <th className="p-3 text-right">Estimated Budget</th>
+                    <th className="p-3 text-center">Progress Metrics</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-600">
+                  {projectsList.map((project, idx) => (
+                    <tr key={idx} className="hover:bg-white transition-colors">
+                      <td className="p-3 font-bold text-slate-900 uppercase">🏗️ {project.project_title}</td>
+                      <td className="p-3 text-slate-500 uppercase truncate max-w-[200px]">{project.project_scope}</td>
+                      <td className="p-3 text-right font-mono font-bold text-blue-900">
+                        KES {Number(project.total_estimated_cost_kes).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
+                      <td className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-16 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                            <div 
+                              className="bg-blue-600 h-1.5 rounded-full" 
+                              style={{ width: `${project.percentage_progress}%` }}
+                            ></div>
+                          </div>
+                          <span className="font-mono text-[10px] font-bold text-slate-700">{project.percentage_progress}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
         {/* 🏡 PHASE 4: CORRECTED HOUSEHOLD REGISTER MODAL PANEL */}
         {householdModalOpen && (
