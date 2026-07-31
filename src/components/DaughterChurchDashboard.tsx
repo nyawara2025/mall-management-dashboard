@@ -389,15 +389,19 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
           <div className="w-10 h-10 bg-emerald-700 rounded-xl flex items-center justify-center text-white shadow-md">
             <Church className="w-5 h-5" />
           </div>
-          <div>
-            <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">Local Assembly Hub</h1>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-              {session.name} • <span className="text-emerald-700">{session.role} Workspace</span>
+          <div className="min-w-0">
+            <h1 className="text-sm font-black text-slate-900 uppercase tracking-tight truncate">Local Assembly Hub</h1>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate mt-0.5">
+              {session.name} • <span className="text-emerald-700">{session.role.replace('_', ' ')}</span>
             </p>
+
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-end sm:self-auto">
+        {/* DYNAMIC ACTION CONTROLS BUTTONS GRID */}
+        {/* Drops to a 2-column stacked layout on small viewports, changing to inline-flex rows on medium screens */}
+        <div className="grid grid-cols-2 xs:flex xs:flex-wrap sm:flex md:items-center gap-2 w-full md:w-auto">
+
           <button 
             onClick={() => setKpiFormOpen(true)}
             className="bg-emerald-700 hover:bg-emerald-800 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
@@ -409,14 +413,14 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             onClick={() => setWelfareModalOpen(true)}
             className="bg-emerald-700 hover:bg-emerald-800 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
           >
-            💝 Record Welfare
+            💝 Welfare
           </button>
 
           <button 
             onClick={() => setGroupModalOpen(true)}
             className="bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
           >
-            🏡 Create Group/Zone
+            🏡 Cell Group
           </button>
 
           {/* 🏗️ INJECT THIS MVP CAPABILITY NO.6 ACTION BUTTON */}
@@ -424,45 +428,54 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             onClick={() => setProjectModalOpen(true)}
             className="bg-blue-800 hover:bg-blue-900 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
           >
-            🏗️ Initiate Project
+            🏗️  Project
           </button>
 
-          <button 
-            onClick={fetchLocalChurchData}
-            disabled={refreshing}
-            className="p-2 border border-slate-200 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-          </button>
-          <button 
-            onClick={onLogout}
-            className="bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors"
-          >
-            <LogOut className="w-3.5 h-3.5" /> Sign Out
-          </button>
-        </div>
+          {/* UTILITY SYSTEMS ROW LOOP CONTAINER */}
+          <div className="col-span-2 flex items-center justify-between sm:justify-start gap-2 border-t border-slate-100 pt-2 sm:pt-0 sm:border-0 mt-1 sm:mt-0">
+
+            <button 
+              onClick={fetchLocalChurchData}
+              disabled={refreshing}
+              className="p-2 border border-slate-200 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </button>
+            <button 
+              onClick={onLogout}
+              className="flex-[2] sm:flex-none bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black text-[9px] tracking-wide px-3 py-2 rounded-xl uppercase flex items-center justify-center gap-1 transition-colors"
+            >
+              <LogOut className="w-3.5 h-3.5" /> Sign Out
+            </button>
+          </div>
+        </div> 
       </header>
 
-      {/* 📊 LOCAL CONGREGATIONAL METRICS GRID */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="text-emerald-700 bg-emerald-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
+      {/* 📊 DYNAMICALLY RESIZING LOCAL CONGREGATIONAL METRICS GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
+  
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3 sm:block">
+          <div className="text-emerald-700 bg-emerald-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 sm:mb-2.5">
             <Users className="w-4 h-4" />
           </div>
-          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Last Attendance Count</span>
-          <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5">
-            {metrics?.total_attendance?.toLocaleString() || '0'}
-          </span>
+          <div>
+            <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wide">Attendance Count</span>
+            <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5">
+              {metrics?.total_attendance?.toLocaleString() || '0'}
+            </span>
+          </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="text-red-700 bg-red-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
+        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3 sm:block">
+          <div className="text-red-700 bg-red-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 sm:mb-2.5">
             <Heart className="w-4 h-4" />
           </div>
-          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Local Welfare Pool</span>
-          <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5 font-mono">
-            KES {metrics?.total_welfare_kes?.toLocaleString() || '0.00'}
-          </span>
+          <div>
+            <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wide">Local Welfare Pool</span>
+            <span className="block text-base font-black text-slate-800 tracking-tight mt-0.5 font-mono">
+              KES {metrics?.total_welfare_kes?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
+            </span>
+          </div>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
