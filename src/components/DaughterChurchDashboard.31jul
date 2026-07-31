@@ -61,6 +61,13 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
   const [loadingHouseholds, setLoadingHouseholds] = useState(false);
   const [selectedHouseholdId, setSelectedHouseholdId] = useState('');
 
+  // 💸 Phase 4: Welfare Contribution State Layers
+  const [welfareModalOpen, setWelfareModalOpen] = useState(false);
+  const [welfareMemberName, setWelfareMemberName] = useState('');
+  const [welfareAmount, setWelfareAmount] = useState('');
+  const [welfarePurpose, setWelfarePurpose] = useState('');
+  const [submittingWelfare, setSubmittingWelfare] = useState(false);
+
   // 🔄 Consolidated Local Data Fetcher Engine
   const fetchLocalChurchData = async () => {
     setRefreshing(true);
@@ -178,6 +185,35 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
     }
   };
 
+  const handleRegisterWelfare = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingWelfare(true);
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-register-welfare', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: session.assigned_id,
+          member_name: welfareMemberName,
+          amount_kes: parseFloat(welfareAmount) || 0,
+          purpose_zone: welfarePurpose
+        })
+      });
+      if (res.ok) {
+        alert("Welfare pool mutual ledger contribution successfully saved!");
+        setWelfareModalOpen(false);
+        setWelfareMemberName('');
+        setWelfareAmount('');
+        setWelfarePurpose('');
+        fetchLocalChurchData();
+      }
+    } catch (err) {
+      console.error("Welfare logging entry operation error exception:", err);
+    } finally {
+      setSubmittingWelfare(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 pb-12">
       {/* 👑 CONGREGATION HUB TOP BAR */}
@@ -201,6 +237,14 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
           >
             📋 Log Weekly Stats
           </button>
+
+          <button 
+            onClick={() => setWelfareModalOpen(true)}
+            className="bg-emerald-700 hover:bg-emerald-800 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
+          >
+            💝 Record Welfare
+          </button>
+
           <button 
             onClick={fetchLocalChurchData}
             disabled={refreshing}
@@ -652,6 +696,75 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             </div>
           </div>
         )}
+
+        {/* 💝 PHASE 4: WELFARE TRANSACTION ENTRY FORM MODAL */}
+      {welfareModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+            <button 
+              onClick={() => setWelfareModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mb-4">
+              <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-emerald-700">
+                💝 Record Welfare Contribution
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium">Log mutual aid pool funds to the sub-zone register ledger</p>
+            </div>
+
+            <form onSubmit={handleRegisterWelfare} className="space-y-4">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Member Name / Contributor</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. RICKY NYAWARA" 
+                  required 
+                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase" 
+                  value={welfareMemberName} 
+                  onChange={e => setWelfareMemberName(e.target.value)} 
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Amount (KES)</label>
+                  <input 
+                    type="number" 
+                    placeholder="0.00" 
+                    required 
+                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none" 
+                    value={welfareAmount} 
+                    onChange={e => setWelfareAmount(e.target.value)} 
+                  />
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Sub-Zone / Purpose</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. WESTLANDS SECTOR" 
+                    required 
+                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase" 
+                    value={welfarePurpose} 
+                    onChange={e => setWelfarePurpose(e.target.value)} 
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submittingWelfare}
+                className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs tracking-widest py-3 rounded-xl uppercase shadow-md transition-colors disabled:bg-slate-300"
+              >
+                {submittingWelfare ? 'Logging Entry...' : 'Commit Welfare Log'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   </div>
 );

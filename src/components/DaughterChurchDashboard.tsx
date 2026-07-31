@@ -61,12 +61,21 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
   const [loadingHouseholds, setLoadingHouseholds] = useState(false);
   const [selectedHouseholdId, setSelectedHouseholdId] = useState('');
 
-  // 💸 Phase 4: Welfare Contribution State Layers
+  // 💸 Phase 4: Refactored Welfare Contribution State Layers
   const [welfareModalOpen, setWelfareModalOpen] = useState(false);
-  const [welfareMemberName, setWelfareMemberName] = useState('');
+  const [selectedWelfareMemberId, setSelectedWelfareMemberId] = useState(''); // Stores member primary key ID
+  const [selectedWelfareGroupId, setSelectedWelfareGroupId] = useState('');   // Stores discipleship group ID (Zone/Cell)
+  const [welfarePurposeEnum, setWelfarePurposeEnum] = useState('');           // Stores exact database enum type
   const [welfareAmount, setWelfareAmount] = useState('');
-  const [welfarePurpose, setWelfarePurpose] = useState('');
   const [submittingWelfare, setSubmittingWelfare] = useState(false);
+
+  // 🏡 Discipleship Group Registry State Layers
+  const [groupsList, setGroupsList] = useState<any[]>([]);
+  const [groupModalOpen, setGroupModalOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupType, setNewGroupType] = useState('CELL_GROUP'); // e.g., CELL_GROUP, BIBLE_STUDY
+  const [newGroupLeader, setNewGroupLeader] = useState('');
+  const [submittingGroup, setSubmittingGroup] = useState(false);
 
   // 🔄 Consolidated Local Data Fetcher Engine
   const fetchLocalChurchData = async () => {
@@ -83,6 +92,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
         setWelfareLogs(data.welfare || []);
         setMembersList(data.members || []);
         setHouseholdsList(data.households || []);
+        setGroupsList(data.groups || []);
       }
     } catch (err) {
       console.error("Error synchronizing daughter church operational data:", err);
@@ -185,30 +195,92 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
     }
   };
 
+  // 🏡 Phase 4: Create Discipleship Group Execution Handler
+  const handleRegisterGroup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGroupName.trim() || !newGroupLeader.trim()) {
+      alert("Validation Error: Please fill in all mandatory group profile description fields.");
+      return;
+    }
+
+    setSubmittingGroup(true);
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-register-groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          church_id: session.assigned_id,
+          group_type: newGroupType,
+          group_name: newGroupName.trim().toUpperCase(),
+          leader_name: newGroupLeader.trim().toUpperCase()
+        })
+      });
+
+      if (res.ok) {
+        alert("New discipleship group registered and locked into the local assembly layout successfully!");
+        setGroupModalOpen(false);
+        setNewGroupName('');
+        setNewGroupLeader('');
+        fetchLocalChurchData(); // Sync list arrays
+      }
+    } catch (err) {
+      console.error("Failed executing group registration transaction:", err);
+    } finally {
+      setSubmittingGroup(false);
+    }
+  };
+
+  // 💸 Phase 4: Refactored Relational Welfare Contribution Handler
   const handleRegisterWelfare = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const parsedAmount = parseFloat(welfareAmount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      alert("Validation Error: Welfare transaction amount must be a positive numeric value.");
+      return;
+    }
+
+    if (!selectedWelfareMemberId || !selectedWelfareGroupId || !welfarePurposeEnum) {
+      alert("Validation Error: Please select valid options for Member, Zone/Group, and Target Purpose.");
+      return;
+    }
+
     setSubmittingWelfare(true);
+    
+    // Generate a secure transaction reference checking trace
+    const structuralPseudoRef = `ACK-WEL-${session.assigned_id}-${Date.now()}`;
+
     try {
       const res = await fetch('https://n8n.tenear.com/webhook/ack-register-welfare', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tenant_id: session.assigned_id,
-          member_name: welfareMemberName,
-          amount_kes: parseFloat(welfareAmount) || 0,
-          purpose_zone: welfarePurpose
+          origin_tenant_id: session.assigned_id,
+          recorded_by_user_id: session.assigned_id, 
+          amount_kes: parsedAmount,
+          fund_purpose: welfarePurposeEnum, // Sends exact database public.ack_fund_purpose value
+          payment_method: 'M-PESA',
+          transaction_reference: structuralPseudoRef,
+          payment_status: 'COMPLETED',
+          // Pass relational primary keys down to your n8n middleware for metadata/join logging
+          metadata: {
+            member_id: parseInt(selectedWelfareMemberId, 10),
+            discipleship_group_id: parseInt(selectedWelfareGroupId, 10)
+          }
         })
       });
+
       if (res.ok) {
-        alert("Welfare pool mutual ledger contribution successfully saved!");
+        alert("Welfare contribution record committed to ledger archives successfully!");
         setWelfareModalOpen(false);
-        setWelfareMemberName('');
+        setSelectedWelfareMemberId('');
+        setSelectedWelfareGroupId('');
+        setWelfarePurposeEnum('');
         setWelfareAmount('');
-        setWelfarePurpose('');
         fetchLocalChurchData();
       }
     } catch (err) {
-      console.error("Welfare logging entry operation error exception:", err);
+      console.error("Relational welfare tracking trace exception:", err);
     } finally {
       setSubmittingWelfare(false);
     }
@@ -243,6 +315,13 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             className="bg-emerald-700 hover:bg-emerald-800 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
           >
             💝 Record Welfare
+          </button>
+
+          <button 
+            onClick={() => setGroupModalOpen(true)}
+            className="bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
+          >
+            🏡 Create Group/Zone
           </button>
 
           <button 
@@ -716,40 +795,69 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             </div>
 
             <form onSubmit={handleRegisterWelfare} className="space-y-4">
+ 
+              {/* DROPDOWN 1: MEMBER SELECTION MATRIX */}
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Member Name / Contributor</label>
-                <input 
-                  type="text" 
-                  placeholder="e.g. RICKY NYAWARA" 
-                  required 
-                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase" 
-                  value={welfareMemberName} 
-                  onChange={e => setWelfareMemberName(e.target.value)} 
-                />
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Select Contributor Member</label>
+                <select 
+                  required
+                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase"
+                  value={selectedWelfareMemberId}
+                  onChange={e => setSelectedWelfareMemberId(e.target.value)}
+                >
+                  <option value="">-- CHOOSE ACTIVE CONGREGATION PROFILE --</option>
+                  {membersList.map((m) => (
+                    <option key={m.id} value={m.id}>{m.full_name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* DROPDOWN 2: ZONE / CELL GROUP REGISTER LINK */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Select Discipleship Group / Zone</label>
+                <select 
+                  required
+                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase"
+                  value={selectedWelfareGroupId}
+                  onChange={e => setSelectedWelfareGroupId(e.target.value)}
+                >
+                  <option value="">-- CHOOSE LOCAL CELL ZONE --</option>
+                  {groupsList.map((g) => (
+                    <option key={g.id} value={g.id}>{g.group_name} ({g.leader_name})</option>
+                  ))}
+                </select>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
+                {/* AMOUNT INPUT BLOCK */}
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
                   <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Amount (KES)</label>
                   <input 
                     type="number" 
                     placeholder="0.00" 
                     required 
-                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none" 
+                    min="1"
+                    step="0.01"
+                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none font-mono" 
                     value={welfareAmount} 
                     onChange={e => setWelfareAmount(e.target.value)} 
                   />
                 </div>
+
+                {/* DROPDOWN 3: ENUM PURPOSE INSTANTIATION MATRIX */}
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Sub-Zone / Purpose</label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. WESTLANDS SECTOR" 
-                    required 
-                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase" 
-                    value={welfarePurpose} 
-                    onChange={e => setWelfarePurpose(e.target.value)} 
-                  />
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Fund Target Purpose</label>
+                  <select 
+                    required
+                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase"
+                    value={welfarePurposeEnum}
+                    onChange={e => setWelfarePurposeEnum(e.target.value)}
+                  >
+                    <option value="">-- SELECT PURPOSE --</option>
+                    <option value="WELFARE">WELFARE FUND</option>
+                    <option value="BENEVOLENT">BENEVOLENT FUND</option>
+                    <option value="CLERGY_WELFARE">CLERGY WELFARE</option>
+                  </select>
                 </div>
               </div>
 
@@ -758,7 +866,77 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
                 disabled={submittingWelfare}
                 className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs tracking-widest py-3 rounded-xl uppercase shadow-md transition-colors disabled:bg-slate-300"
               >
-                {submittingWelfare ? 'Logging Entry...' : 'Commit Welfare Log'}
+                {submittingWelfare ? 'Processing Transaction...' : 'Commit Welfare Log'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+
+      {/* 🏡 PHASE 4: DISCIPLESHIP GROUP CONFIGURATION ENTRY MODAL */}
+      {groupModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+            <button 
+              onClick={() => setGroupModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="mb-4">
+              <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-blue-700">
+                🏡 Register New Discipleship Group / Zone
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium">Establish a verified cell checkpoint entity structure</p>
+            </div>
+
+            <form onSubmit={handleRegisterGroup} className="space-y-4">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Group / Zone Name</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. UPPER HILL CELL ZONE" 
+                  required 
+                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase" 
+                  value={newGroupName} 
+                  onChange={e => setNewGroupName(e.target.value)} 
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Leader Name</label>
+                  <input 
+                    type="text" 
+                    placeholder="Enter leader full name" 
+                    required 
+                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase" 
+                    value={newGroupLeader} 
+                    onChange={e => setNewGroupLeader(e.target.value)} 
+                  />
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Classification Type</label>
+                  <select 
+                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none"
+                    value={newGroupType}
+                    onChange={e => setNewGroupType(e.target.value)}
+                  >
+                    <option value="CELL_GROUP">CELL GROUP</option>
+                    <option value="BIBLE_STUDY">BIBLE STUDY</option>
+                    <option value="HOME_FELLOWSHIP">HOME FELLOWSHIP</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submittingGroup}
+                className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black text-xs tracking-widest py-3 rounded-xl uppercase shadow-md transition-colors disabled:bg-slate-300"
+              >
+                {submittingGroup ? 'Registering Group...' : 'Commit Group Profile'}
               </button>
             </form>
           </div>
