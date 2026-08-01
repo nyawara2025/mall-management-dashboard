@@ -104,15 +104,6 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
   const [selectedLeaderMemberId, setSelectedLeaderMemberId] = useState(''); // Stores member primary key ID
   const [submittingGroup, setSubmittingGroup] = useState(false);
 
-  // 💸 MVP Capability No. 5: Monthly Returns & Remittance States
-  const [financeModalOpen, setFinanceModalOpen] = useState(false);
-  const [monthlyTithes, setMonthlyTithes] = useState('');
-  const [monthlyThanksgiving, setMonthlyThanksgiving] = useState('');
-  const [monthlyWelfare, setMonthlyWelfare] = useState('');
-  const [reportingMonthDate, setReportingMonthDate] = useState('2026-07');
-  const [submittingFinanceReturn, setSubmittingFinanceReturn] = useState(false);
-  const [financeReturnsList, setFinanceReturnsList] = useState<any[]>([]);
-
   // 🏗️ MVP No. 6: Corrected Capital Project Tracking State Layers
   const [projectModalOpen, setProjectModalOpen] = useState(false);
   const [projectTitle, setProjectTitle] = useState('');
@@ -390,51 +381,6 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
     }
   };
 
-  // 💸 Phase 2/3: Submit Monthly Finance Ledger Return up to the Parish
-  const handleRegisterMonthlyReturn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const parsedTithes = parseFloat(monthlyTithes) || 0;
-    const parsedThanks = parseFloat(monthlyThanksgiving) || 0;
-    const parsedWelfare = parseFloat(monthlyWelfare) || 0;
-    
-    if (parsedTithes <= 0 && parsedThanks <= 0) {
-      alert("Validation Error: Please input valid collection numbers before submission.");
-      return;
-    }
-
-    setSubmittingFinanceReturn(true);
-    try {
-      const res = await fetch('https://n8n.tenear.com/webhook/ack-submit-monthly-returns', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tenant_id: session.assigned_id,
-          reporting_month: `${reportingMonthDate}-01`, // Force first day of target month calendar mapping
-          total_tithes_kes: parsedTithes,
-          total_thanksgiving_kes: parsedThanks,
-          total_welfare_kes: parsedWelfare,
-          entered_by_user_id: session.assigned_id // Maps user reference ID scope context
-        })
-      });
-
-      if (res.ok) {
-        alert("Monthly financial return successfully transmitted upstream for validation!");
-        setFinanceModalOpen(false);
-        setMonthlyTithes('');
-        setMonthlyThanksgiving('');
-        setMonthlyWelfare('');
-        fetchLocalChurchData(); // Sync list counters
-      } else {
-        alert("Transaction Refused: A return ledger row already exists for this calculation period.");
-      }
-    } catch (err) {
-      console.error("Monthly return transmission exception:", err);
-    } finally {
-      setSubmittingFinanceReturn(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 pb-12">
       {/* 👑 CONGREGATION HUB TOP BAR */}
@@ -499,13 +445,6 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             className="bg-blue-800 hover:bg-blue-900 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
           >
             🏗️  Project
-          </button>
-
-          <button 
-            onClick={() => setFinanceModalOpen(true)}
-            className="bg-emerald-800 hover:bg-emerald-950 text-white font-black text-[9px] tracking-wide px-2.5 py-2 rounded-xl uppercase flex items-center justify-center gap-1 transition-colors shadow-xs active:scale-95"
-          >
-            💰 Monthly Return
           </button>
 
           {/* UTILITY SYSTEMS ROW LOOP CONTAINER */}
@@ -1015,99 +954,6 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             </div>
           </div>
         )}
-        
-        {/* 💰 PHASE 2: MONTHLY FINANCIAL RETURNS DATA ENTRY MODAL PANEL */}
-        {financeModalOpen && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-            <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
-              <button 
-                onClick={() => setFinanceModalOpen(false)}
-                className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="mb-4">
-                <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-emerald-700">
-                  💰 Log Monthly Financial Return
-                </h3>
-                <p className="text-[11px] text-slate-400 font-medium">Broadcast aggregated cash collections and calculate diocesan remittances</p>
-              </div>
-
-              <form onSubmit={handleRegisterMonthlyReturn} className="space-y-3.5">
-        
-                {/* TARGET MONTH PICKER */}
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Target Fiscal Month Period</label>
-                  <input 
-                    type="month" 
-                    required 
-                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none" 
-                    value={reportingMonthDate} 
-                    onChange={e => setReportingMonthDate(e.target.value)} 
-                  />
-                </div>
-
-                {/* TITHES AND THANKSGIVING SPLIT FIELDS */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Total Tithes Pool (KES)</label>
-                    <input 
-                      type="number" 
-                      placeholder="0.00" 
-                      required 
-                      min="0"
-                      className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none font-mono" 
-                      value={monthlyTithes} 
-                      onChange={e => setMonthlyTithes(e.target.value)} 
-                    />
-                  </div>
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Thanksgiving Pool (KES)</label>
-                    <input 
-                      type="number" 
-                      placeholder="0.00" 
-                      required 
-                      min="0"
-                      className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none font-mono" 
-                      value={monthlyThanksgiving} 
-                      onChange={e => setMonthlyThanksgiving(e.target.value)} 
-                    />
-                  </div>
-                </div>
-
-                {/* LOCAL WELFARE RETENTION BLOCK */}
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Total Welfare Collection (KES)</label>
-                  <input 
-                    type="number" 
-                    placeholder="0.00" 
-                    required 
-                    min="0"
-                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none font-mono" 
-                    value={monthlyWelfare} 
-                    onChange={e => setMonthlyWelfare(e.target.value)} 
-                  />
-                </div>
-
-                {/* COMPLIANCE ALERT NOTATION DESIGN ANCHOR */}
-                <div className="p-2.5 border border-amber-100 bg-amber-50/40 rounded-xl text-[10px] text-slate-500 font-medium leading-normal">
-                   ⚠️ <strong>Diocesan Remittance Notice:</strong> Submission automatically calculates the mandatory 20% quota payout due to the Diocesan Treasury.
-                </div>
-
-                {/* SUBMIT EXECUTIVE BUTTON */}
-                <button
-                  type="submit"
-                  disabled={submittingFinanceReturn}
-                  className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-black text-xs tracking-widest py-3 rounded-xl uppercase shadow-md transition-colors disabled:bg-slate-300"
-                >
-                  {submittingFinanceReturn ? 'Calculating Quotas...' : 'Transmit Financial Return'}
-                </button>
-              </form>
-            </div>
-          </div>
-        )}
-
 
         {/* 💝 PHASE 4: WELFARE TRANSACTION ENTRY FORM MODAL */}
       {welfareModalOpen && (
