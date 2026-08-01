@@ -80,8 +80,6 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
   const [newMemberCommunicant, setNewMemberCommunicant] = useState(false);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
-  const [uploadingProjectId, setUploadingProjectId] = useState<number | null>(null);
-
   const [projectsList, setProjectsList] = useState<DevelopmentProjectRow[]>([])
   
   // 🏡 Phase 4: Household Management State Layers
@@ -403,61 +401,6 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
       setSubmittingProject(false);
     }
   };
-
-  // 📸 MVP No. 12: Refactored Zero-Dependency n8n Direct Upload Handler
-  const handleProjectPhotoUpload = async (projectId: number, files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    const file = files[0];
-
-    // Enforce file size restrictions to protect mobile cellular bandwidth channels
-    if (file.size > 3 * 1024 * 1024) {
-      alert("Validation Error: Photograph file size cannot exceed 3MB to optimize mobile network uploads.");
-      return;
-    }
-
-    setUploadingProjectId(projectId);
-
-    // 1. Initialize a clean FileReader module to read the image binary locally
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    
-    reader.onload = async () => {
-      const base64String = reader.result as string; // Raw base64 text stream array data
-
-      try {
-        // 2. Post the text payload data string directly to your n8n API gateway node
-        const res = await fetch('https://n8n.tenear.com/webhook/update-project-photos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            project_id: projectId,
-            tenant_id: session.assigned_id,
-            file_name: file.name,
-            image_base64: base64String // Streamed straight into n8n memory nodes
-          })
-        });
-
-        if (res.ok) {
-          alert("Project photograph evidence committed and pinned to blueprint records successfully!");
-          fetchLocalChurchData(); // Sync live view list arrays
-        } else {
-          alert("Server Error: Your n8n gateway node rejected the image processing payload.");
-        }
-      } catch (err) {
-        console.error("n8n photo upload exception trace:", err);
-        alert("Upload Exception: Unable to establish connection to n8n intake gateways.");
-      } finally {
-        setUploadingProjectId(null);
-      }
-    };
-
-    reader.onerror = (error) => {
-      console.error("FileReader exception trace:", error);
-      setUploadingProjectId(null);
-    };
-  };
-
-
 
   // 💸 Phase 2/3: Submit Monthly Finance Ledger Return up to the Parish
   const handleRegisterMonthlyReturn = async (e: React.FormEvent) => {
@@ -1014,54 +957,14 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
                         KES {Number(project.total_estimated_cost_kes).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
                       <td className="p-3 text-center">
-                        <div className="flex flex-col items-center gap-1.5">
-          
-                          {/* Conditional Rendering: Photo Thumbnail or Upload Button Trigger */}
-                          {project.photograph_evidence_url ? (
-                            <a 
-                              href={project.photograph_evidence_url} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="block w-9 h-9 rounded-xl overflow-hidden border border-slate-200 shadow-xs hover:opacity-80 transition-opacity bg-slate-50 shrink-0"
-                            >
-                              <img 
-                                src={project.photograph_evidence_url} 
-                                alt="Evidence" 
-                                className="w-full h-full object-cover"
-                              />
-                            </a>
-                          ) : (
-                            <div className="relative">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                id={`upload-project-${project.id}`}
-                                className="hidden"
-                                disabled={uploadingProjectId === project.id}
-                                onChange={(e) => handleProjectPhotoUpload(project.id, e.target.files)}
-                              />
-                              <label
-                                htmlFor={`upload-project-${project.id}`}
-                                className={`cursor-pointer bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 font-black text-[8px] tracking-wide px-2 py-1 rounded-lg uppercase inline-block transition-colors select-none ${
-                                  uploadingProjectId === project.id ? 'opacity-50 cursor-not-allowed' : ''
-                                }`}
-                              >
-                                {uploadingProjectId === project.id ? 'Saving...' : '📸 Upload'}
-                              </label>
-                            </div>
-                          )}
-
-                          {/* Progress Bar & Percentage Indicators stacked neatly underneath */}
-                          <div className="flex items-center gap-1.5 mt-0.5">
-                            <div className="w-12 bg-slate-200 rounded-full h-1 overflow-hidden">
-                              <div
-                                className="bg-blue-600 h-1 rounded-full"
-                                style={{ width: `${project.percentage_progress}%` }}
-                              ></div>
-                            </div>
-                            <span className="font-mono text-[9px] font-bold text-slate-500">{project.percentage_progress}%</span>
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-16 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                            <div 
+                              className="bg-blue-600 h-1.5 rounded-full" 
+                              style={{ width: `${project.percentage_progress}%` }}
+                            ></div>
                           </div>
-
+                          <span className="font-mono text-[10px] font-bold text-slate-700">{project.percentage_progress}%</span>
                         </div>
                       </td>
                     </tr>
