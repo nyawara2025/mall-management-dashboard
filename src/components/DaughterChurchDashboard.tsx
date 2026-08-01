@@ -46,6 +46,7 @@ interface DevelopmentProjectRow {
 
 interface DaughterChurchDashboardProps {
   session: {
+    user_id: number;
     name: string;
     role: string;
     assigned_id: number;
@@ -163,7 +164,8 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
           worship_attendance: parseInt(attendance, 10) || 0,
           sacraments_administered: parseInt(sacraments, 10) || 0,
           milestones_completed: 0,
-          finance_reached: 0
+          finance_reached: 0,
+          entered_by_user_id: session.user_id
         })
       });
       if (res.ok) {
@@ -193,6 +195,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
           life_stage: newMemberStage,
           communication_preference: newMemberComm,
           is_communicant: newMemberCommunicant,
+          entered_by_user_id: session.user_id,
           household_id: selectedHouseholdId ? parseInt(selectedHouseholdId, 10) : null
         })
       });
@@ -222,6 +225,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
           parish_id: session.assigned_id, // Maps to your schema's parish_id parameter
           household_name: newHouseholdName,
           primary_contact_phone: newHouseholdPhone, // State field for the contact number
+          entered_by_user_id: session.user_id,
           physical_address: newHouseholdAddress // State field for the address layout
         })
       });
@@ -262,6 +266,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
           group_type: newGroupType,
           group_name: newGroupName.trim().toUpperCase(),
           leader_name: resolvedLeaderName,
+          entered_by_user_id: session.user_id, 
           metadata: {
             leader_member_id: parseInt(selectedLeaderMemberId, 10) // Appends relational schema check tracking
           } 
@@ -316,6 +321,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
           fund_purpose: welfarePurposeEnum, // Sends exact database public.ack_fund_purpose value
           payment_method: 'M-PESA',
           transaction_reference: structuralPseudoRef,
+          entered_by_user_id: session.user_id,
           payment_status: 'COMPLETED',
           // Pass relational primary keys down to your n8n middleware for metadata/join logging
           metadata: {
@@ -366,6 +372,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
           project_title: projectTitle.trim().toUpperCase(),
           project_scope: projectScope.trim(),
           total_estimated_cost_kes: parsedCost,
+          entered_by_user_id: session.user_id,
           identified_risks: identifiedRisks.trim() || null,
           photograph_evidence_url: null // Handled downstream via Supabase Storage buckets
         })
@@ -414,7 +421,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
           total_tithes_kes: parsedTithes,
           total_thanksgiving_kes: parsedThanks,
           total_welfare_kes: parsedWelfare,
-          entered_by_user_id: session.assigned_id // Maps user reference ID scope context
+          entered_by_user_id: session.user_id // Maps user reference ID scope context
         })
       });
 

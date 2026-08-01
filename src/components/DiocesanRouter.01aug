@@ -6,7 +6,6 @@ import { BishopDiocesanRadar } from './BishopDiocesanRadar';
 import { DiocesanAuthNode } from './DiocesanAuthNode';
 
 interface DiocesanUserSession {
-  user_id: number;
   name: string;
   role: string;
   tier_access: 'DAUGHTER_CHURCH' | 'PARISH' | 'ARCHDEACONRY' | 'DIOCESE';
@@ -24,12 +23,8 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
     const cachedName = localStorage.getItem('ack_erp_user_name');
     const cachedRole = localStorage.getItem('ack_erp_user_role');
 
-    // 🧠 INJECT THIS LINE: Extract your user primary account record key index dynamically
-    const cachedUserId = localStorage.getItem('ack_erp_user_id');
-
-    if (cachedTier && cachedId && cachedUserId) {
+    if (cachedTier && cachedId) {
       setSession({
-        user_id: parseInt(cachedUserId, 10),
         name: cachedName || 'Church Official',
         role: cachedRole || 'MEMBER',
         tier_access: cachedTier,

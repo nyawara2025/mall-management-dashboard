@@ -37,9 +37,6 @@ export const DiocesanAuthNode: React.FC<AuthNodeProps> = ({ onAuthSuccess }) => 
         localStorage.setItem('ack_erp_user_role', data.user.user_role);
         localStorage.setItem('ack_erp_phone', phone.trim());
 
-        // 🧠 INJECT THIS LINE: Captures the actual primary key ID (e.g., 42) from the database row payload
-        localStorage.setItem('ack_erp_user_id', String(data.user.id));
-
         onAuthSuccess(); // Fire callback to shift the layout viewport
       } else {
         setErrorMsg(data.message || 'Authentication failed. Please verify credentials.');
