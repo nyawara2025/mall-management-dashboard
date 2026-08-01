@@ -9,6 +9,8 @@ interface LocalMetrics {
   total_welfare_kes: number;
   last_logged_period: string;
   attendance_trend_percentage: number;
+  total_monthly_collections_kes: number; // Sum of Tithes + Thanksgiving
+  pending_diocesan_quota_kes: number;     // Aggregated Calculated Quota Line
 }
 
 interface WelfareContributionRow {
@@ -536,11 +538,12 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
       </header>
 
       {/* 📊 DYNAMICALLY RESIZING LOCAL CONGREGATIONAL METRICS GRID */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 mb-6">
   
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3 sm:block">
+        {/* CARD 1: WORSHIP ATTENDANCE */}
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
           <div className="text-emerald-700 bg-emerald-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 sm:mb-2.5">
-            <Users className="w-4 h-4" />
+            <Users className="w-3.5 h-3.5" />
           </div>
           <div>
             <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wide">Attendance Count</span>
@@ -549,10 +552,11 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             </span>
           </div>
         </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex items-center gap-3 sm:block">
-          <div className="text-red-700 bg-red-50 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 sm:mb-2.5">
-            <Heart className="w-4 h-4" />
+ 
+        {/* CARD 2: LOCAL WELFARE POOL */}
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="text-red-700 bg-red-50 w-7 h-7 rounded-lg flex items-center justify-center mb-2 shrink-0">
+            <Heart className="w-3.5 h-3.5" />
           </div>
           <div>
             <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wide">Local Welfare Pool</span>
@@ -562,9 +566,20 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="text-blue-700 bg-blue-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
-            <Calendar className="w-4 h-4" />
+        {/* CARD 3: INJECTED TOTAL MONTHLY COLLECTIONS (TITHES + THANKSGIVING) */}
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="text-blue-700 bg-blue-50 w-7 h-7 rounded-lg flex items-center justify-center mb-2 shrink-0">
+            <DollarSign className="w-3.5 h-3.5" />
+          </div>
+          <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wide">Monthly Collections</span>
+          <span className="block text-base font-black text-blue-900 tracking-tight mt-0.5 font-mono">
+            {metrics?.total_monthly_collections_kes?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
+          </span>
+        </div>
+
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="text-blue-700 bg-blue-50 w-7 h-7 rounded-lg flex items-center justify-center mb-2 shrink-0">
+            <Calendar className="w-3.5 h-3.5" />
           </div>
           <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Last Logged Period</span>
           <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5 font-mono text-blue-700">
@@ -572,9 +587,9 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="text-amber-700 bg-amber-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
-            <TrendingUp className="w-4 h-4" />
+        <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs">
+          <div className="text-amber-700 bg-amber-50 w-7 h-7 rounded-lg flex items-center justify-center mb-2 shrink-0">
+            <TrendingUp className="w-3.5 h-3.5" />
           </div>
           <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Attendance Momentum</span>
           <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5">
