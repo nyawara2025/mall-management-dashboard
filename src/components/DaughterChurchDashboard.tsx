@@ -124,6 +124,8 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
   const [identifiedRisks, setIdentifiedRisks] = useState('');
   const [submittingProject, setSubmittingProject] = useState(false);
 
+  const [monthlyReturnsList, setMonthlyReturnsList] = useState<any[]>([])
+
   // 🔄 Consolidated Local Data Fetcher Engine
   const fetchLocalChurchData = async () => {
     setRefreshing(true);
@@ -141,6 +143,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
         setHouseholdsList(data.households || []);
         setGroupsList(data.groups || []);
         setProjectsList(data.projects || []);
+        setMonthlyReturnsList(data.monthly_returns || []);
       }
     } catch (err) {
       console.error("Error synchronizing daughter church operational data:", err);
@@ -966,6 +969,64 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+
+        {/* 💰 MVP NO. 5: MONTHLY FINANCIAL RETURNS AUDIT HISTORY TABLE */}
+        <div className="mt-6 space-y-3">
+          <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block border-b border-slate-100 pb-1.5">
+            💰 Historical Monthly Financial Returns & Remittances ({monthlyReturnsList.length})
+          </span>
+          {monthlyReturnsList.length === 0 ? (
+            <div className="text-center text-xs text-slate-400 py-8 italic border border-dashed rounded-xl bg-slate-50/50">
+              No historical monthly financial returns or remittance records submitted under this assembly.
+            </div>
+          ) : (
+            <div className="overflow-x-auto border border-slate-100 rounded-xl bg-slate-50/30">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-[9px] font-black tracking-wider text-ctrl-400 uppercase">
+                    <th className="p-3">Fiscal Month</th>
+                    <th className="p-3 text-right">Tithes + Thanks</th>
+                    <th className="p-3 text-right">Diocesan Quota</th>
+                    <th className="p-3 text-center">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-600">
+                  {monthlyReturnsList.map((record, idx) => {
+                    const combinedPool = Number(record.total_tithes_kes || 0) + Number(record.total_thanksgiving_kes || 0);
+            
+                    // Format date correctly from database DATE string format (YYYY-MM-DD)
+                    const dateObj = record.reporting_month ? new Date(record.reporting_month) : null;
+                    const formattedMonth = dateObj && !isNaN(dateObj.getTime())
+                      ? dateObj.toLocaleString('default', { month: 'short', year: 'numeric' }).toUpperCase()
+                      : 'UNKNOWN';
+
+                    return (
+                       <tr key={idx} className="hover:bg-white transition-colors">
+                        <td className="p-3 font-bold text-slate-900 font-mono">{formattedMonth}</td>
+                        <td className="p-3 text-right font-mono text-slate-600">
+                          KES {combinedPool.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="p-3 text-right font-mono font-bold text-amber-700">
+                          KES {Number(record.calculated_diocesan_remittance_kes || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </td>
+                        <td className="p-3 text-center">
+                          <span className={`text-[9px] font-black tracking-wide px-2 py-0.5 rounded uppercase ${
+                            record.return_status === 'APPROVED_LOCKED' ? 'bg-emerald-50 text-emerald-700' :
+                            record.return_status === 'PENDING_VICAR_REVIEW' ? 'bg-blue-50 text-blue-700' :
+                            'bg-amber-50 text-amber-700'
+                          }`}>
+                            {record.return_status ? record.return_status.replace(/_/g, ' ') : 'DRAFT'}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
