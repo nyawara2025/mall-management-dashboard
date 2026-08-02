@@ -64,8 +64,6 @@ interface MemberData {
   shop_id: number; // Add this line
   org_id: number;
   church_name?: string; // <-- ADD THIS LINE HERE
-  is_region_leader?: boolean;   
-  member_region?: string;
 }
 
 interface ServiceActivity {
@@ -676,16 +674,6 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
     if (isOpen) fetchMeetings();
   }, [isOpen]);
 
-  // 🚀 PLACE THE isLeader FLAG HERE (Right before your API and Event Handlers)
-  const isLeader = 
-    userData?.role?.toLowerCase() === 'canon' ||
-    userData?.role?.toLowerCase() === 'leader' ||
-    userData?.role?.toLowerCase() === 'chairman' ||
-    userData?.role?.toLowerCase() === 'chairperson' ||
-    userData?.is_ministry_leader ||
-    userData?.is_zone_leader ||
-    userData?.is_region_leader; // 👈 Allows Regional Leaders to pass validation checks
-
   const fetchMeetings = async () => {
     setLoading(true);
     try {
@@ -697,9 +685,7 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
           shop_id: userData?.shop_id,
           role: userData?.role,
           zone: userData?.zone_name,
-          ministry: userData?.ministry_name,
-          // 🚀 ALIGNED WITH MEMBERS SCHEMA: Sends the user's explicit member_region text field
-          region: userData?.member_region 
+          ministry: userData?.ministry_name 
         }),
       });
       const data = await response.json();
@@ -723,10 +709,7 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
           shop_id: userData?.shop_id,
           // Dynamic names based on category selection
           target_name: newMeeting.category === 'Zonal' ? userData?.zone_name : 
-                       newMeeting.category === 'Regional' ? userData?.member_region :
-                       newMeeting.category === 'Ministry' ? userData?.ministry_name : 'General',
-        
-          region: newMeeting.category === 'Regional' ? userData?.member_region : null 
+                       newMeeting.category === 'Ministry' ? userData?.ministry_name : 'General'
         }),
       });
       if (response.ok) {
@@ -775,6 +758,15 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
       setUpdating(false);
     }
   };
+
+  // 🚀 FIXED: Simple, flat variable declaration placed right before your open check guard
+  const isLeader = 
+    userData?.role?.toLowerCase() === 'canon' ||
+    userData?.role?.toLowerCase() === 'leader' ||
+    userData?.role?.toLowerCase() === 'chairman' ||
+    userData?.role?.toLowerCase() === 'chairperson' ||
+    userData?.is_ministry_leader ||
+    userData?.is_zone_leader;
 
   // 🟢 VIDEO CONFERENCE ACTIVATION CONTROLLER
   const handleToggleLiveCall = async (meeting: any, action: 'join' | 'start') => {
