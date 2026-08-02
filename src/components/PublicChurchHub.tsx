@@ -667,7 +667,8 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
     date: '',
     time: '',
     category: 'All Church',
-    location: ''
+    location: '',
+    agenda: ''
   });
 
   const categories = ['All Church', 'Zonal', 'Regional', 'Ministry', 'Ad hoc'];
@@ -721,6 +722,7 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
           created_by: userData?.id,
           org_id: userData?.org_id,
           shop_id: userData?.shop_id,
+          venue: newMeeting.location,
           // Dynamic names based on category selection
           target_name: newMeeting.category === 'Zonal' ? userData?.zone_name : 
                        newMeeting.category === 'Regional' ? userData?.member_region :
@@ -731,6 +733,10 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
       });
       if (response.ok) {
         alert("Meeting Scheduled!");
+
+        // Clear out input states cleanly upon successful save
+        setNewMeeting({ title: '', date: '', time: '', category: 'All Church', location: '', agenda: '' });
+
         setIsCreating(false);
         fetchMeetings();
       }
@@ -914,6 +920,21 @@ const MeetingsModal = ({ isOpen, onClose, userData }: MeetingsModalProps) => {
                     <label className="text-[9px] font-black text-gray-400 block mb-1 uppercase tracking-wider">Time</label>
                     <input type="time" value={newMeeting.time} onChange={e => setNewMeeting({...newMeeting, time: e.target.value})} className="w-full p-3 rounded-xl border-none bg-white text-sm font-medium outline-none ring-1 ring-gray-200 focus:ring-2 focus:ring-blue-500" />
                   </div>
+
+                  {/* --- NEW AGENDA INPUT BOX BLOCK --- */}
+                  <div className="space-y-1 mt-4">
+                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider pl-1">
+                      Meeting Agenda Outline
+                    </label>
+                    <textarea
+                      rows={4}
+                      placeholder="e.g.&#10;- Opening prayer&#10;- Introductions&#10;- Agenda items&#10;- AOB"
+                      value={newMeeting.agenda}
+                      onChange={(e) => setNewMeeting({ ...newMeeting, agenda: e.target.value })}
+                      className="w-full p-4 bg-gray-50 text-gray-800 text-sm font-medium rounded-2xl border border-gray-100 focus:ring-2 focus:ring-blue-500 outline-none resize-none placeholder-gray-300 transition-all"
+                    />
+                  </div>
+
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
