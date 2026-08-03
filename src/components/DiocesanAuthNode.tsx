@@ -30,14 +30,18 @@ export const DiocesanAuthNode: React.FC<AuthNodeProps> = ({ onAuthSuccess }) => 
       const data = await response.json();
 
       if (response.ok && data.success && data.user) {
-        // Cache session credentials securely, aligned to our Postgres schema properties
-        localStorage.setItem('ack_erp_tier_access', data.user.tier_access); // 'DAUGHTER_CHURCH' | 'PARISH' etc.
-        localStorage.setItem('ack_erp_assigned_id', String(data.user.tenant_id));
-        localStorage.setItem('ack_erp_user_name', data.user.full_name);
-        localStorage.setItem('ack_erp_user_role', data.user.user_role);
-        localStorage.setItem('ack_erp_phone', phone.trim());
 
-        // 🧠 INJECT THIS LINE: Captures the actual primary key ID (e.g., 42) from the database row payload
+        // 🧠 DEFENSIVE PATTERN: Dynamically intercepts any casing or property key name variation from n8n
+        const dynamicTier = data.user.tier_level || data.user.tier_access || data.user.tier || 'DAUGHTER_CHURCH';
+        const dynamicRole = data.user.user_role || data.user.role || 'MEMBER';
+        const dynamicTenantId = data.user.tenant_id || data.user.assigned_id || data.user.id;
+
+        // Cache session credentials securely, forcing uppercase styling to match DiocesanRouter
+        localStorage.setItem('ack_erp_tier_access', String(dynamicTier).toUpperCase().trim()); 
+        localStorage.setItem('ack_erp_assigned_id', String(dynamicTenantId));
+        localStorage.setItem('ack_erp_user_name', data.user.full_name || 'Church Official');
+        localStorage.setItem('ack_erp_user_role', String(dynamicRole).toUpperCase().trim());
+        localStorage.setItem('ack_erp_phone', phone.trim());
         localStorage.setItem('ack_erp_user_id', String(data.user.id));
 
         onAuthSuccess(); // Fire callback to shift the layout viewport
