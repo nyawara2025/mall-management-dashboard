@@ -60,9 +60,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
   // 📊 Local Operational States
   const [metrics, setMetrics] = useState<LocalMetrics | null>(null);
   const [welfareLogs, setWelfareLogs] = useState<WelfareContributionRow[]>([]);
-  const [churchName, setChurchName] = useState<string>('LOCAL ASSEMBLY HUB'); // 👈 Add this line for dynamic renaming
-
-
+  
   // ⚙️ Component Lifecycle and UI Toggles
   const [refreshing, setRefreshing] = useState(false);
   const [kpiFormOpen, setKpiFormOpen] = useState(false);
@@ -148,13 +146,6 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
         setGroupsList(data.groups || []);
         setProjectsList(data.projects || []);
         setMonthlyReturnsList(data.monthly_returns || []);
-
-        // 👈 Extract and set the real church name from the response object
-        if (data.church_info && data.church_info.name) {
-          setChurchName(data.church_info.name);
-        } else if (data.church_name) {
-          setChurchName(data.church_name);
-        }
       }
     } catch (err) {
       console.error("Error synchronizing daughter church operational data:", err);
@@ -522,7 +513,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             <Church className="w-5 h-5" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-sm font-black text-slate-900 uppercase tracking-tight truncate">{churchName}</h1>
+            <h1 className="text-sm font-black text-slate-900 uppercase tracking-tight truncate">Local Assembly Hub</h1>
             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate mt-0.5">
               {session.name} • <span className="text-emerald-700">{session.role.replace('_', ' ')}</span>
             </p>
