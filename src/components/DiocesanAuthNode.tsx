@@ -31,7 +31,7 @@ export const DiocesanAuthNode: React.FC<AuthNodeProps> = ({ onAuthSuccess }) => 
 
       if (response.ok && data.success && data.user) {
         // Cache session credentials securely, aligned to our Postgres schema properties
-        localStorage.setItem('ack_erp_tier_access', data.user.tier_access); // 'DAUGHTER_CHURCH' | 'PARISH' etc.
+        localStorage.setItem('ack_erp_tier_access', data.user.tier_level); // 'DAUGHTER_CHURCH' | 'PARISH' etc.
         localStorage.setItem('ack_erp_assigned_id', String(data.user.tenant_id));
         localStorage.setItem('ack_erp_user_name', data.user.full_name);
         localStorage.setItem('ack_erp_user_role', data.user.user_role);
