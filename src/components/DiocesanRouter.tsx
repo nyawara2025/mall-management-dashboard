@@ -47,7 +47,7 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
   }
 
   // 🎛️ Render the custom workspace layout based on their assigned structural tier level
-  switch (session.tier_access) {
+  switch (session.tier_access.toUpperCase()) {
     case 'DAUGHTER_CHURCH':
       return (
         <DaughterChurchDashboard 
