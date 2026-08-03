@@ -1339,13 +1339,15 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Select Discipleship Group / Zone</label>
                 <select 
                   required
-                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none uppercase"
+                  className="bg-white w-full text-xs font-bold text-slate-700 focus:outline-none uppercase"
                   value={selectedWelfareGroupId}
                   onChange={e => setSelectedWelfareGroupId(e.target.value)}
                 >
                   <option value="">-- CHOOSE LOCAL CELL ZONE --</option>
-                  {groupsList.map((g: DiscipleshipGroupRow) => (
-                    <option key={g.id} value={g.id}>{g.group_name} ({g.leader_name})</option>
+                  {groupsList && groupsList.map((g: DiscipleshipGroupRow) => (
+                    <option key={g.id} value={g.id}>
+                      {g.group_name} {g.leader_name ? `(${g.leader_name})` : `(${g.group_type.replace('_', ' ')})`}
+                    </option>
                   ))}
                 </select>
               </div>
