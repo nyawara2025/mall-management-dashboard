@@ -63,6 +63,13 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
   const [clerkRole, setClerkRole] = useState('PARISH_DATA_CLERK');
   const [provisioning, setProvisioning] = useState(false);
 
+  // 📝 Expand Attendance Modal Controlled Input Fields to include precise breakdowns
+  const [breakdownMen, setBreakdownMen] = useState('');
+  const [breakdownWomen, setBreakdownWomen] = useState('');
+  const [breakdownYouth, setBreakdownYouth] = useState('');
+  const [breakdownChildren, setBreakdownChildren] = useState('');
+  const [grossCollections, setGrossCollections] = useState('');
+
   // Mock lookup representing daughter churches assigned to this parish structure
   const daughterChurches = [
     { id: '30', name: 'ACK St. Barnabas Daughter Church' },
@@ -123,9 +130,12 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
           reporting_period: period,
           worship_attendance: parseInt(attendanceCount, 10) || 0,
           sacraments_administered: parseInt(sacramentalCount, 10) || 0,
-          milestones_completed: 0,
-          finance_reached: 0,
-          maker_id: session.assigned_id // Bind executing actor to structural workflow row
+          breakdown_men: parseInt(breakdownMen, 10) || 0,
+          breakdown_women: parseInt(breakdownWomen, 10) || 0,
+          breakdown_youth: parseInt(breakdownYouth, 10) || 0,
+          breakdown_children: parseInt(breakdownChildren, 10) || 0,
+          gross_collections: parseFloat(grossCollections) || 0,
+          maker_id: session.assigned_id
         })
       });
       if (res.ok) {

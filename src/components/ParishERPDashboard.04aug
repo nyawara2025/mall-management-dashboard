@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Layers, RefreshCw, LogOut, Users, DollarSign, Calendar, 
-  TrendingUp, ClipboardCheck, FileText, CheckCircle2, X 
+  TrendingUp, ClipboardCheck, FileText, CheckCircle2, AlertTriangle, X 
 } from 'lucide-react';
 
 interface ParishMetrics {
@@ -17,7 +17,7 @@ interface AttendanceLog {
   church_name: string;
   worship_attendance_count: number;
   sacraments_administered_count: number;
-  is_approved: boolean;
+  is_approved: boolean; // Managed dynamically by the database/n8n pipeline
 }
 
 interface MpesaTransaction {
@@ -50,7 +50,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
   const [submitting, setSubmitting] = useState(false);
 
   // 📝 Attendance Modal Controlled Input Fields
-  const [period, setPeriod] = useState('2026-W31'); // Aligned with mid-2026
+  const [period, setPeriod] = useState('2026-W31'); // Aligned with current mid-2026 system timeline
   const [selectedChurchId, setSelectedChurchId] = useState('');
   const [attendanceCount, setAttendanceCount] = useState('');
   const [sacramentalCount, setSacramentalCount] = useState('');
@@ -91,11 +91,6 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
     }
   };
 
-  useEffect(() => {
-    fetchParishData();
-    fetchLocalStaff();
-  }, [session.assigned_id]);
-
   const fetchLocalStaff = async () => {
     try {
       const res = await fetch('https://n8n.tenear.com/webhook/ack-parish-staff-fetch', {
@@ -110,6 +105,12 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
     }
   };
 
+  useEffect(() => {
+    fetchParishData();
+    fetchLocalStaff();
+  }, [session.assigned_id]);
+
+  // 📝 Submit Draft Weekly Entry Workflow (Maker Step)
   const handleSubmitAttendance = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -123,11 +124,12 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
           worship_attendance: parseInt(attendanceCount, 10) || 0,
           sacraments_administered: parseInt(sacramentalCount, 10) || 0,
           milestones_completed: 0,
-          finance_reached: 0
+          finance_reached: 0,
+          maker_id: session.assigned_id // Bind executing actor to structural workflow row
         })
       });
       if (res.ok) {
-        alert("Weekly parish attendance metrics submitted and approved successfully!");
+        alert("Weekly attendance metrics submitted successfully as a pending review draft!");
         setLogFormOpen(false);
         setAttendanceCount('');
         setSacramentalCount('');
@@ -140,6 +142,42 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
     }
   };
 
+  // 👔 Vicar Structural Approval Engine (Checker Step)
+  const handleVicarApprovalDecision = async (logId: string, approve: boolean) => {
+    let internalReasonCode = "Vicar Approval Action Verified";
+    
+    if (!approve) {
+      const feedbackInput = prompt("Provide an official correction reason code for the local data clerk:");
+      if (!feedbackInput || feedbackInput.trim() === "") {
+        alert("A valid correction feedback code is mandatory for return workflows.");
+        return;
+      }
+      internalReasonCode = feedbackInput;
+    }
+
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-vicar-approval', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          log_id: logId,
+          vicar_user_id: session.assigned_id, // Preserves actor ID trace within the audit ledger schema
+          is_approved: approve,
+          reason_code: internalReasonCode
+        })
+      });
+
+      if (res.ok) {
+        alert(approve ? "Record locked and consolidated to upper tier dashboards." : "Record successfully returned to data entry queue.");
+        fetchParishData();
+      } else {
+        alert("Workflow execution failed. Re-verify connectivity constraints.");
+      }
+    } catch (err) {
+      console.error("Vicar response state engine failure:", err);
+    }
+  };
+
   const handleProvisionStaff = async (e: React.FormEvent) => {
     e.preventDefault();
     setProvisioning(true);
@@ -148,7 +186,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          admin_user_id: session.assigned_id, // For the Audit Trail Actor Link
+          admin_user_id: session.assigned_id, 
           tenant_id: session.assigned_id, 
           full_name: clerkName,
           phone_number: clerkPhone,
@@ -226,6 +264,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
             className="bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors"
           >
             <LogOut className="w-3.5 h-3.5" /> Sign Out
+
           </button>
         </div>
       </header>
@@ -274,7 +313,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
       </div>
 
       {/* 🎛️ DUAL PANELS: LOGS & LEDGER CHANNELS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         
         {/* 📋 REGIONAL ATTENDANCE APPROVAL MATRIX */}
         <div className="lg:col-span-1 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
@@ -298,14 +337,45 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                       <span className="block text-xs font-black text-slate-800 uppercase tracking-tight">{log.church_name}</span>
                       <span className="block text-[9px] text-slate-400 font-bold font-mono">Period: {log.reporting_period}</span>
                     </div>
-                    <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded font-black tracking-wide flex items-center gap-0.5 uppercase">
-                      <CheckCircle2 className="w-3 h-3" /> Approved
+                    
+                    <span className={`text-[9px] border px-1.5 py-0.5 rounded font-black tracking-wide flex items-center gap-0.5 uppercase ${
+                      log.is_approved 
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                        : 'bg-amber-50 text-amber-700 border-amber-200'
+                    }`}>
+                      {log.is_approved ? (
+                        <>
+                          <CheckCircle2 className="w-3 h-3" /> Approved
+                        </>
+                      ) : (
+                        <>
+                          <AlertTriangle className="w-3 h-3" /> Pending Review
+                        </>
+                      )}
                     </span>
                   </div>
+                  
                   <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100">
                     <div>👥 Attended: <span className="text-slate-800 font-black">{log.worship_attendance_count}</span></div>
                     <div>🍷 Sacraments: <span className="text-slate-800 font-black">{log.sacraments_administered_count}</span></div>
                   </div>
+
+                  {!log.is_approved && session.role === 'VICAR' && (
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-dashed border-slate-200">
+                      <button
+                        onClick={() => handleVicarApprovalDecision(log.id, false)}
+                        className="bg-white border border-red-200 text-red-600 font-bold text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 hover:bg-red-50 transition-colors"
+                      >
+                        ❌ Return Correction
+                      </button>
+                      <button
+                        onClick={() => handleVicarApprovalDecision(log.id, true)}
+                        className="bg-emerald-600 text-white font-bold text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 hover:bg-emerald-700 transition-colors shadow-xs"
+                      >
+                        <CheckCircle2 className="w-3 h-3" /> Lock & Approve
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -363,67 +433,66 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
       </div>
 
       {/* 👥 LOCAL STAFF DIRECTORY & SYSTEM AUDIT CONTROL CARD */}
-        <div className="lg:col-span-3 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
-          <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <h3 className="text-xs font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-blue-700">
-                👥 Local Operations Staff & Clerk Directory
-              </h3>
-              <p className="text-[10px] text-slate-400 font-medium">Delegated data recording permissions managed under Parish authority</p>
-            </div>
-            
-            {/* 🔒 Secondary safety gate: Only allow management roles to provision new accounts */}
-            {(session.role === 'VICAR' || session.role === 'PARISH_ADMIN') && (
-              <button 
-                onClick={() => setStaffFormOpen(true)}
-                className="bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] tracking-wider px-3 py-1.5 rounded-lg uppercase transition-colors"
-              >
-                ➕ Create Clerk Account
-              </button>
-            )}
+      <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+        <div className="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div>
+            <h3 className="text-xs font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-blue-700">
+              👥 Local Operations Staff & Clerk Directory
+            </h3>
+            <p className="text-[10px] text-slate-400 mt-0.5">Delegated data recording permissions managed under Parish authority</p>
           </div>
-
-          {staffList.length === 0 ? (
-            <div className="text-center text-xs text-slate-400 py-8 italic border border-dashed rounded-xl bg-slate-50/50">
-              No delegated data clerks or local recorders registered for this parish grid.
-            </div>
-          ) : (
-            <div className="overflow-x-auto border border-slate-100 rounded-xl">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100 text-[9px] font-black tracking-wider text-slate-400 uppercase">
-                    <th className="p-2.5">Full Name</th>
-                    <th className="p-2.5">Assigned Phone</th>
-                    <th className="p-2.5">ERP Clearance Role</th>
-                    <th className="p-2.5">Account Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-600">
-                  {staffList.map((staff) => (
-                    <tr key={staff.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="p-2.5 font-bold text-slate-900 uppercase">{staff.full_name}</td>
-                      <td className="p-2.5 font-mono text-[11px] font-semibold">{staff.phone_number}</td>
-                      <td className="p-2.5">
-                        <span className={`text-[9px] font-black tracking-wide px-2 py-0.5 rounded uppercase ${
-                          staff.user_role === 'PARISH_DATA_CLERK' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'
-                        }`}>
-                          {staff.user_role?.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="p-2.5">
-                        <span className={`inline-flex text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                          staff.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
-                        }`}>
-                          {staff.is_active ? 'Active' : 'Suspended'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          
+          {(session.role === 'VICAR' || session.role === 'PARISH_ADMIN') && (
+            <button 
+              onClick={() => setStaffFormOpen(true)}
+              className="bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] tracking-wider px-3 py-1.5 rounded-lg uppercase transition-colors"
+            >
+              ➕ Create Clerk Account
+            </button>
           )}
         </div>
+
+        {staffList.length === 0 ? (
+          <div className="text-center text-xs text-slate-400 py-8 italic border border-dashed rounded-xl bg-slate-50/50">
+            No delegated data clerks or local recorders registered for this parish grid.
+          </div>
+        ) : (
+          <div className="overflow-x-auto border border-slate-100 rounded-xl">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100 text-[9px] font-black tracking-wider text-slate-400 uppercase">
+                  <th className="p-2.5">Full Name</th>
+                  <th className="p-2.5">Assigned Phone</th>
+                  <th className="p-2.5">ERP Clearance Role</th>
+                  <th className="p-2.5">Account Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-600">
+                {staffList.map((staff) => (
+                  <tr key={staff.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="p-2.5 font-bold text-slate-900 uppercase">{staff.full_name}</td>
+                    <td className="p-2.5 font-mono text-[11px] font-semibold">{staff.phone_number}</td>
+                    <td className="p-2.5">
+                      <span className={`text-[9px] font-black tracking-wide px-2 py-0.5 rounded uppercase ${
+                        staff.user_role === 'PARISH_DATA_CLERK' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'
+                      }`}>
+                        {staff.user_role?.replace('_', ' ')}
+                      </span>
+                    </td>
+                    <td className="p-2.5">
+                      <span className={`inline-flex text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        staff.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'
+                      }`}>
+                        {staff.is_active ? 'Active' : 'Suspended'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* 🏛️ OVERLAY FORM MODAL LAYER: PROVISION NEW USER ACCOUNTS */}
       {staffFormOpen && (
@@ -433,7 +502,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
               onClick={() => setStaffFormOpen(false)}
               className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
             >
-              ❌
+              <X className="w-4 h-4" />
             </button>
 
             <div className="mb-4">
@@ -545,7 +614,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                   <input 
                     type="number" 
                     placeholder="0" 
-                    required 
+                    required
                     className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none" 
                     value={attendanceCount} 
                     onChange={e => setAttendanceCount(e.target.value)} 
@@ -569,7 +638,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                 disabled={submitting}
                 className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black text-xs tracking-widest py-3 rounded-xl uppercase shadow-md transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Uploading Data...' : 'Approve & Submit Metrics'}
+                {submitting ? 'Uploading Data...' : 'Submit Draft Log'}
               </button>
             </form>
           </div>
