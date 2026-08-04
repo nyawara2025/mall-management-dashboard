@@ -70,10 +70,6 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
   const [breakdownChildren, setBreakdownChildren] = useState('');
   const [grossCollections, setGrossCollections] = useState('');
 
-  // 🏛️ Dynamic Church Registry Channels
-  const [assignedDaughterChurches, setAssignedDaughterChurches] = useState<any[]>([]);
-  const [loadingChurches, setLoadingChurches] = useState(false);
-
   
 
   // 🔄 Consolidated Parish Data Fetcher Engine
@@ -98,24 +94,6 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
     }
   };
 
-  const fetchAssignedDaughterChurches = async () => {
-    setLoadingChurches(true);
-    try {
-      const res = await fetch('https://n8n.tenear.com/webhook/ack-fetch-daughter-churches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ parent_parish_id: session.assigned_id })
-      });
-      const data = await res.json();
-      if (data && data.churches) {
-        setAssignedDaughterChurches(data.churches);
-      }
-    } catch (err) {
-      console.error("Error retrieving dynamic daughter church structures:", err);
-    } finally {
-      setLoadingChurches(false);
-    }
-  };
 
   const fetchLocalStaff = async () => {
     try {
@@ -134,12 +112,15 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
   useEffect(() => {
     fetchParishData();
     fetchLocalStaff();
-    fetchAssignedDaughterChurches();
   }, [session.assigned_id]);
 
   // 📝 Submit Draft Weekly Entry Workflow (Maker Step)
   const handleSubmitAttendance = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 🎯 SECURE INJECTION POINT: Enforces her logged-in parent context dynamically
+    const targetTenantId = selectedChurchId || session.assigned_id;
+
     setSubmitting(true);
     try {
       const res = await fetch('https://n8n.tenear.com/webhook/ack-submit-kpi', {
@@ -613,22 +594,17 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
             <form onSubmit={handleSubmitAttendance} className="space-y-4">
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
                 <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">
-                  Select Church Entity {loadingChurches && ' (Loading...)'}
+                  Recording Church Entity
                 </label>
-                <select 
-                  required
-                  disabled={loadingChurches}
-                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none"
-                  value={selectedChurchId}
-                  onChange={e => setSelectedChurchId(e.target.value)}
-                >
-                  <option value="">-- Choose Assigned Location --</option>
-                  {assignedDaughterChurches.map((church) => (
-                    <option key={church.id} value={church.id}>
-                      {church.name}
-                    </option>
-                  ))}
-                </select>
+                <input 
+                  type="text"
+                  readOnly
+                  disabled
+                  className="bg-transparent w-full text-xs font-black text-blue-700 focus:outline-none uppercase"
+                  value={`${session.name} (Mother Parish)`} 
+                />
+                {/* Securely pass her hidden assigned_id to the Form state backend query instead of a selection ID */}
+                <input type="hidden" value={session.assigned_id} />
               </div>
 
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
