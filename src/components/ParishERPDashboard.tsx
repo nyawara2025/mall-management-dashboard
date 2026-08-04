@@ -70,11 +70,11 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
   const [breakdownChildren, setBreakdownChildren] = useState('');
   const [grossCollections, setGrossCollections] = useState('');
 
-  // Mock lookup representing daughter churches assigned to this parish structure
-  const daughterChurches = [
-    { id: '30', name: 'ACK St. Barnabas Daughter Church' },
-    { id: '31', name: 'Bethlehem Zone Local Assembly' }
-  ];
+  // 🏛️ Dynamic Church Registry Channels
+  const [assignedDaughterChurches, setAssignedDaughterChurches] = useState<any[]>([]);
+  const [loadingChurches, setLoadingChurches] = useState(false);
+
+  
 
   // 🔄 Consolidated Parish Data Fetcher Engine
   const fetchParishData = async () => {
@@ -98,6 +98,25 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
     }
   };
 
+  const fetchAssignedDaughterChurches = async () => {
+    setLoadingChurches(true);
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-fetch-daughter-churches', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parent_parish_id: session.assigned_id })
+      });
+      const data = await res.json();
+      if (data && data.churches) {
+        setAssignedDaughterChurches(data.churches);
+      }
+    } catch (err) {
+      console.error("Error retrieving dynamic daughter church structures:", err);
+    } finally {
+      setLoadingChurches(false);
+    }
+  };
+
   const fetchLocalStaff = async () => {
     try {
       const res = await fetch('https://n8n.tenear.com/webhook/ack-parish-staff-fetch', {
@@ -115,6 +134,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
   useEffect(() => {
     fetchParishData();
     fetchLocalStaff();
+    fetchAssignedDaughterChurches();
   }, [session.assigned_id]);
 
   // 📝 Submit Draft Weekly Entry Workflow (Maker Step)
@@ -592,16 +612,21 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
 
             <form onSubmit={handleSubmitAttendance} className="space-y-4">
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Select Church Entity</label>
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">
+                  Select Church Entity {loadingChurches && ' (Loading...)'}
+                </label>
                 <select 
                   required
+                  disabled={loadingChurches}
                   className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none"
                   value={selectedChurchId}
                   onChange={e => setSelectedChurchId(e.target.value)}
                 >
                   <option value="">-- Choose Assigned Location --</option>
-                  {daughterChurches.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
+                  {assignedDaughterChurches.map((church) => (
+                    <option key={church.id} value={church.id}>
+                      {church.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -624,7 +649,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                   <input 
                     type="number" 
                     placeholder="0" 
-                    required
+                    required 
                     className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none" 
                     value={attendanceCount} 
                     onChange={e => setAttendanceCount(e.target.value)} 
@@ -654,6 +679,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
           </div>
         </div>
       )}
+
     </div>
   );
 };
