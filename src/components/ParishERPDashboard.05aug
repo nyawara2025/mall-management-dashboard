@@ -34,7 +34,6 @@ interface ParishDashboardProps {
     name: string;
     role: string;
     assigned_id: number;
-    user_id: number;
   };
   onLogout: () => void;
 }
@@ -173,8 +172,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           log_id: logId,
-          vicar_user_id: session.user_id, // Preserves actor ID trace within the audit ledger schema
-          tenant_id: session.assigned_id,
+          vicar_user_id: session.assigned_id, // Preserves actor ID trace within the audit ledger schema
           is_approved: approve,
           reason_code: internalReasonCode
         })
