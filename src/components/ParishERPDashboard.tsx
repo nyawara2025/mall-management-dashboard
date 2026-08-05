@@ -353,9 +353,9 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                   return true;
                 })
                 .map((log: any) => {
-                  const isPending = log.return_status === 'PENDING_REVIEW';
+                  const isPending = log.return_status === 'PENDING_REVIEW' || log.return_status === 'DRAFT';
                   const isReturned = log.return_status === 'RETURNED_FOR_CORRECTION';
-                  const isApproved = log.return_status === 'APPROVED';
+                  const isApproved = log.return_status === 'APPROVED' || log.is_approved === true;
 
                   return (
                     <div 
