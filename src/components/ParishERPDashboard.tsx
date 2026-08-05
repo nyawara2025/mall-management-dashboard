@@ -127,7 +127,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          tenant_id: parseInt(selectedChurchId, 10),
+          tenant_id: targetTenantId,
           reporting_period: period,
           worship_attendance: parseInt(attendanceCount, 10) || 0,
           sacraments_administered: parseInt(sacramentalCount, 10) || 0,
