@@ -343,102 +343,111 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
             </div>
           ) : (
             <div className="space-y-2.5">
-              {attendanceLogs.map((log: any) => {
-                const isPending = log.return_status === 'PENDING_REVIEW';
-                const isReturned = log.return_status === 'RETURNED_FOR_CORRECTION';
-                const isApproved = log.return_status === 'APPROVED';
+              {attendanceLogs
+                .filter((log: any) => {
+                  // 🟢 Role Isolation Filter: Clerks only see their own active church tenant row
+                  if (session.role === 'PARISH_DATA_CLERK') {
+                    return log.tenant_id === session.assigned_id;
+                  }
+                  // Vicars see all rolled-up entries across the parish tier boundary
+                  return true;
+                })
+                .map((log: any) => {
+                  const isPending = log.return_status === 'PENDING_REVIEW';
+                  const isReturned = log.return_status === 'RETURNED_FOR_CORRECTION';
+                  const isApproved = log.return_status === 'APPROVED';
 
-                return (
-                  <div 
-                    key={log.id} 
-                    className={`p-3 border rounded-xl space-y-2 transition-all ${
-                      isReturned 
-                        ? 'border-red-200 bg-red-50/40 shadow-xs' 
-                        : 'border-slate-100 bg-slate-50/50'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <span className="block text-xs font-black text-slate-800 uppercase tracking-tight">{log.church_name}</span>
-                        <span className="block text-[9px] text-slate-400 font-bold font-mono">Period: {log.reporting_period}</span>
+                  return (
+                    <div 
+                      key={log.id} 
+                      className={`p-3 border rounded-xl space-y-2 transition-all ${
+                        isReturned 
+                          ? 'border-red-200 bg-red-50/40 shadow-xs' 
+                          : 'border-slate-100 bg-slate-50/50'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <span className="block text-xs font-black text-slate-800 uppercase tracking-tight">{log.church_name}</span>
+                          <span className="block text-[9px] text-slate-400 font-bold font-mono">Period: {log.reporting_period}</span>
+                        </div>
+
+                        {/* Dynamic Status Badges */}
+                        <span className={`text-[9px] border px-1.5 py-0.5 rounded font-black tracking-wide flex items-center gap-0.5 uppercase ${
+                          isApproved ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          isReturned ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
+                          'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                          {isApproved && (
+                            <>
+                              <CheckCircle2 className="w-3 h-3" /> Approved
+                            </>
+                          )}
+                          {isReturned && (
+                            <>
+                              <AlertTriangle className="w-3 h-3" /> Action Required
+                            </>
+                          )}
+                          {isPending && (
+                            <>
+                              <AlertTriangle className="w-3 h-3" /> Pending Review
+                          </>
+                          )}
+                        </span>
                       </div>
 
-                      {/* Dynamic Status Badges */}
-                      <span className={`text-[9px] border px-1.5 py-0.5 rounded font-black tracking-wide flex items-center gap-0.5 uppercase ${
-                        isApproved ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                        isReturned ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
-                        'bg-amber-50 text-amber-700 border-amber-200'
-                      }`}>
-                        {isApproved && (
-                          <>
-                            <CheckCircle2 className="w-3 h-3" /> Approved
-                          </>
-                        )}
-                        {isReturned && (
-                          <>
-                            <AlertTriangle className="w-3 h-3" /> Action Required
-                          </>
-                        )}
-                        {isPending && (
-                          <>
-                            <AlertTriangle className="w-3 h-3" /> Pending Review
-                          </>
-                        )}
-                      </span>
+                      {/* Vicar Feedback Message Panel */}
+                      {isReturned && log.vicar_feedback_notes && (
+                        <div className="p-2 bg-white border-l-2 border-red-600 rounded-r-md text-[10px] text-slate-700 font-medium">
+                          <p className="font-black text-red-700 uppercase text-[8px] tracking-wider mb-0.5">Vicar's Modification Request:</p>
+                          "{log.vicar_feedback_notes}"
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100">
+                        <div>👥 Attended: <span className="text-slate-800 font-black">{log.worship_attendance_count}</span></div>
+                        <div>🍷 Sacraments: <span className="text-slate-800 font-black">{log.sacraments_administered_count}</span></div>
+                      </div>
+
+                      {/* Action Panel for VICAR: Only show if item is Pending Review */}
+                      {isPending && session.role === 'VICAR' && (
+                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-dashed border-slate-200">
+                          <button
+                            onClick={() => handleVicarApprovalDecision(log.id, false)}
+                            className="bg-white hover:bg-red-50 border border-red-200 text-red-600 font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors"
+                          >
+                            ❌ Return Correction
+                          </button>
+                          <button
+                            onClick={() => handleVicarApprovalDecision(log.id, true)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs"
+                          >
+                            🟢 Lock & Approve
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Action Panel for CLERK: Only show edit helper option if item is Rejected */}
+                      {isReturned && session.role === 'PARISH_DATA_CLERK' && (
+                        <div className="pt-1.5">
+                          <button
+                            onClick={() => {
+                              // Automatically fill form values to make corrections quick and easy
+                              setPeriod(log.reporting_period);
+                              setAttendanceCount(log.worship_attendance_count.toString());
+                              setSacramentalCount(log.sacraments_administered_count.toString());
+                              setLogFormOpen(true);
+                            }}
+                            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs uppercase tracking-wider"
+                          >
+                            ✏️ Reopen & Fix Entry
+                          </button>
+                        </div>
+                      )}
+
                     </div>
-
-                    {/* Vicar Feedback Message Panel */}
-                    {isReturned && log.vicar_feedback_notes && (
-                      <div className="p-2 bg-white border-l-2 border-red-600 rounded-r-md text-[10px] text-slate-700 font-medium">
-                        <p className="font-black text-red-700 uppercase text-[8px] tracking-wider mb-0.5">Vicar's Modification Request:</p>
-                        "{log.vicar_feedback_notes}"
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100">
-                      <div>👥 Attended: <span className="text-slate-800 font-black">{log.worship_attendance_count}</span></div>
-                      <div>🍷 Sacraments: <span className="text-slate-800 font-black">{log.sacraments_administered_count}</span></div>
-                    </div>
-
-                    {/* Action Panel for VICAR: Only show if item is Pending Review */}
-                    {isPending && session.role === 'VICAR' && (
-                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-dashed border-slate-200">
-                        <button
-                          onClick={() => handleVicarApprovalDecision(log.id, false)}
-                          className="bg-white hover:bg-red-50 border border-red-200 text-red-600 font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors"
-                        >
-                          ❌ Return Correction
-                        </button>
-                        <button
-                          onClick={() => handleVicarApprovalDecision(log.id, true)}
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs"
-                        >
-                          🟢 Lock & Approve
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Action Panel for CLERK: Only show edit helper option if item is Rejected */}
-                    {isReturned && session.role === 'PARISH_DATA_CLERK' && (
-                      <div className="pt-1.5">
-                        <button
-                          onClick={() => {
-                            // Automatically fill form values to make corrections quick and easy
-                            setPeriod(log.reporting_period);
-                            setAttendanceCount(log.worship_attendance_count.toString());
-                            setSacramentalCount(log.sacraments_administered_count.toString());
-                            setLogFormOpen(true);
-                          }}
-                          className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs uppercase tracking-wider"
-                        >
-                          ✏️ Reopen & Fix Entry
-                        </button>
-                      </div>
-                    )}
-
-                  </div>
-                );
-              })}
+                  );
+                })}
             </div>
           )}
         </div>
