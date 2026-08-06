@@ -359,10 +359,14 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                   return true;
                 })
                 .map((log: any) => {
-                  const isLocalDraft = log.return_status === 'DRAFT';
-                  const isQueuedForVicar = log.return_status === 'PENDING_REVIEW';
-                  const isReturned = log.return_status === 'RETURNED_FOR_CORRECTION';
-                  const isApproved = log.return_status === 'APPROVED' || log.is_approved === true;
+
+                  // 🎯 Coerces incoming enum strings cleanly to avoid runtime evaluation crashes
+                  const status = String(log.return_status).toUpperCase();
+                
+                  const isLocalDraft = status === 'DRAFT' || !log.return_status;
+                  const isQueuedForVicar = status === 'PENDING_REVIEW' || status === 'PENDING_VICAR_REVIEW';
+                  const isReturned = status === 'RETURNED_FOR_CORRECTION';
+                  const isApproved = status === 'APPROVED' || status === 'SUCCESS' || log.is_approved === true;
 
                   return (
                     <div 
