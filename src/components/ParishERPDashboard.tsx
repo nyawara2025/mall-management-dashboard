@@ -359,7 +359,8 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                   return true;
                 })
                 .map((log: any) => {
-                  const isPending = log.return_status === 'PENDING_REVIEW' || log.return_status === 'DRAFT';
+                  const isLocalDraft = log.return_status === 'DRAFT';
+                  const isQueuedForVicar = log.return_status === 'PENDING_REVIEW';
                   const isReturned = log.return_status === 'RETURNED_FOR_CORRECTION';
                   const isApproved = log.return_status === 'APPROVED' || log.is_approved === true;
 
@@ -367,9 +368,9 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                     <div 
                       key={log.id} 
                       className={`p-3 border rounded-xl space-y-2 transition-all ${
-                        isReturned 
-                          ? 'border-red-200 bg-red-50/40 shadow-xs' 
-                          : 'border-slate-100 bg-slate-50/50'
+                        isReturned ? 'border-red-200 bg-red-50/40 shadow-xs' :
+                        isQueuedForVicar ? 'border-amber-200 bg-amber-50/20' :
+                        'border-slate-100 bg-slate-50/50'
                       }`}
                     >
                       <div className="flex justify-between items-start">
@@ -382,7 +383,8 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                         <span className={`text-[9px] border px-1.5 py-0.5 rounded font-black tracking-wide flex items-center gap-0.5 uppercase ${
                           isApproved ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                           isReturned ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
-                          'bg-amber-50 text-amber-700 border-amber-200'
+                          isQueuedForVicar ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse' :
+                          'bg-slate-100 text-slate-600 border-slate-200'
                         }`}>
                           {isApproved && (
                             <>
@@ -394,10 +396,15 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                               <AlertTriangle className="w-3 h-3" /> Action Required
                             </>
                           )}
-                          {isPending && (
+                          {isQueuedForVicar && (
                             <>
-                              <AlertTriangle className="w-3 h-3" /> Pending Review
-                          </>
+                              <RefreshCw className="w-3 h-3 text-amber-600 animate-spin" /> Queued for Vicar Approval
+                            </>
+                          )}
+                          {isLocalDraft && (
+                            <>
+                              <FileText className="w-3 h-3 text-slate-500" /> Local Draft
+                            </>
                           )}
                         </span>
                       </div>
@@ -416,7 +423,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                       </div>
 
                       {/* Action Panel for VICAR: Only show if item is Pending Review */}
-                      {isPending && session.role === 'VICAR' && (
+                      {isQueuedForVicar && session.role === 'VICAR' && (
                         <div className="grid grid-cols-2 gap-2 pt-2 border-t border-dashed border-slate-200">
                           <button
                             onClick={() => handleVicarApprovalDecision(log.id, false)}
@@ -433,24 +440,53 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                         </div>
                       )}
 
-                      {/* Action Panel for CLERK: Only show edit helper option if item is Rejected */}
+                      {/* Action Panel for CLERK Option A: Submit a fresh draft entry up the chain */}
+                      {isLocalDraft && session.role === 'PARISH_DATA_CLERK' && (
+                        <div className="pt-1.5">
+                          <button
+                            disabled={submitting}
+                            onClick={async () => {
+                              setSubmitting(true);
+                              try {
+                                const res = await fetch('https://n8n.tenear.com/webhook/ack-vicar-adjustments', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    log_id: log.id,
+                                    action_intent: 'SUBMIT_TO_QUEUE',
+                                    clerk_id: session.user_id,
+                                    tenant_id: session.assigned_id
+                                  })
+                                });
+                                if (res.ok) {
+                                  alert("Metrics cleanly handed over to the Vicar's authorization workspace.");
+                                  fetchParishData();
+                                }
+                              } catch (e) { console.error(e); } finally { setSubmitting(false); }
+                            }}
+                            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs uppercase tracking-wider"
+                          >
+                            🚀 Submit for Vicar Review
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Action Panel for CLERK Option B: Reopen a rejected model to fix fields */}
                       {isReturned && session.role === 'PARISH_DATA_CLERK' && (
                         <div className="pt-1.5">
                           <button
                             onClick={() => {
-                              // Automatically fill form values to make corrections quick and easy
                               setPeriod(log.reporting_period);
                               setAttendanceCount(log.worship_attendance_count.toString());
                               setSacramentalCount(log.sacraments_administered_count.toString());
                               setLogFormOpen(true);
                             }}
-                            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs uppercase tracking-wider"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs uppercase tracking-wider"
                           >
-                            ✏️ Reopen & Fix Entry
+                             ✏️ Reopen & Fix Entry
                           </button>
                         </div>
                       )}
-
                     </div>
                   );
                 })}
