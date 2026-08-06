@@ -52,7 +52,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
 
   // 📝 Attendance Modal Controlled Input Fields
   const [period, setPeriod] = useState('2026-W31'); // Aligned with current mid-2026 system timeline
-  const [selectedChurchId, setSelectedChurchId] = useState<string>(session.assigned_id.toString());
+  const [selectedChurchId, setSelectedChurchId] = useState('');
   const [attendanceCount, setAttendanceCount] = useState('');
   const [sacramentalCount, setSacramentalCount] = useState('');
 
@@ -145,13 +145,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
         setLogFormOpen(false);
         setAttendanceCount('');
         setSacramentalCount('');
-        setGrossCollections('');
         fetchParishData();
-
-        // 🟢 FIXED: Resets back to her own tenant ID (20) instead of empty string
-        setSelectedChurchId(session.assigned_id.toString()); 
-        fetchParishData();
-
       }
     } catch (err) {
       console.error("Failed logging weekly metrics:", err);
@@ -650,46 +644,37 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
             </button>
 
             <div className="mb-4">
-              <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight">Log Weekly Attendance Metrics</h3>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ACK Diocese of Nairobi Returns Engine</p>
+              <h3 className="text-sm font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-blue-700">
+                <ClipboardCheck className="w-4 h-4" /> Log Assembly Attendance
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium">Record validated indicators straight to parish database tables</p>
             </div>
 
-            <form onSubmit={handleSubmitAttendance} className="space-y-3.5">
-              
-              {/* 🟢 FIXED: Dynamic Tenant Assignment Selection Dropdown */}
+            <form onSubmit={handleSubmitAttendance} className="space-y-4">
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Target Church Assembly Unit</label>
-                <select
-                  value={selectedChurchId}
-                  onChange={(e) => setSelectedChurchId(e.target.value)}
-                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none"
-                >
-                  {/* Default selection points directly to her true logged-in Parish context */}
-                  <option value={session.assigned_id.toString()}>
-                    {session.name} (Main Parish)
-                  </option>
-                  
-                  {/* Map out any other associated daughter congregation spaces from ledger loops */}
-                  {Array.from(new Set(attendanceLogs.map((item: any) => JSON.stringify({ id: item.tenant_id, name: item.church_name }))))
-                    .map((str: any) => JSON.parse(str))
-                    .filter((church: any) => church.id && church.id !== session.assigned_id)
-                    .map((church: any) => (
-                      <option key={church.id} value={church.id.toString()}>
-                        {church.name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              {/* 📅 Reporting Timeline Code Field */}
-              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Reporting Period Cluster</label>
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">
+                  Recording Church Entity
+                </label>
                 <input 
                   type="text"
-                  required
-                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none font-mono"
-                  value={period}
-                  onChange={(e) => setPeriod(e.target.value)}
+                  readOnly
+                  disabled
+                  className="bg-transparent w-full text-xs font-black text-blue-700 focus:outline-none uppercase"
+                  value={`${session.name} (Mother Parish)`} 
+                />
+                {/* Securely pass her hidden assigned_id to the Form state backend query instead of a selection ID */}
+                <input type="hidden" value={session.assigned_id} />
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Reporting Period</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g., 2026-W31" 
+                  required 
+                  className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none" 
+                  value={period} 
+                  onChange={e => setPeriod(e.target.value.toUpperCase())} 
                 />
               </div>
 
