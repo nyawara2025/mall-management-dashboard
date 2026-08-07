@@ -71,6 +71,9 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
   const [breakdownChildren, setBreakdownChildren] = useState('');
   const [grossCollections, setGrossCollections] = useState('');
 
+  // 🚀 NEW: Granular bookkeeping state controls for accounting accuracy
+  const [titheAmount, setTitheAmount] = useState('');
+  const [thanksgivingAmount, setThanksgivingAmount] = useState('');
   
 
   // 🔄 Consolidated Parish Data Fetcher Engine
@@ -132,26 +135,21 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
           reporting_period: period,
           worship_attendance: parseInt(attendanceCount, 10) || 0,
           sacraments_administered: parseInt(sacramentalCount, 10) || 0,
-          breakdown_men: parseInt(breakdownMen, 10) || 0,
-          breakdown_women: parseInt(breakdownWomen, 10) || 0,
-          breakdown_youth: parseInt(breakdownYouth, 10) || 0,
-          breakdown_children: parseInt(breakdownChildren, 10) || 0,
-          gross_collections: parseFloat(grossCollections) || 0,
-          maker_id: session.assigned_id
+          // 🚀 FIXED: Distinct variables cleanly mapping out financial groupings
+          tithes_collected: parseFloat(titheAmount) || 0,
+          thanksgiving_collected: parseFloat(thanksgivingAmount) || 0,
+          maker_id: session.user_id
         })
       });
+      
       if (res.ok) {
-        alert("Weekly attendance metrics submitted successfully as a pending review draft!");
+        alert("Weekly metrics logged successfully!");
         setLogFormOpen(false);
+        setTitheAmount('');
+        setThanksgivingAmount('');
         setAttendanceCount('');
         setSacramentalCount('');
-        setGrossCollections('');
         fetchParishData();
-
-        // 🟢 FIXED: Resets back to her own tenant ID (20) instead of empty string
-        setSelectedChurchId(session.assigned_id.toString()); 
-        fetchParishData();
-
       }
     } catch (err) {
       console.error("Failed logging weekly metrics:", err);
