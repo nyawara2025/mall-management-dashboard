@@ -136,8 +136,8 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
           worship_attendance: parseInt(attendanceCount, 10) || 0,
           sacraments_administered: parseInt(sacramentalCount, 10) || 0,
           // 🚀 FIXED: Distinct variables cleanly mapping out financial groupings
-          tithes_collected: parseFloat(titheAmount) || 0,
-          thanksgiving_collected: parseFloat(thanksgivingAmount) || 0,
+          tithes_collected: parseFloat(grossCollections) || 0,
+          thanksgiving_collected: parseFloat(breakdownWomen) || 0,
           maker_id: session.user_id
         })
       });
@@ -145,10 +145,10 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
       if (res.ok) {
         alert("Weekly metrics logged successfully!");
         setLogFormOpen(false);
-        setTitheAmount('');
-        setThanksgivingAmount('');
         setAttendanceCount('');
         setSacramentalCount('');
+        setGrossCollections(''); // Clears Tithes input
+        setBreakdownWomen('');   // Clears Thanksgiving input
         fetchParishData();
       }
     } catch (err) {
