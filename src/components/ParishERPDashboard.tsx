@@ -392,17 +392,18 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                   // 🎯 Coerces incoming enum strings cleanly to avoid runtime evaluation crashes
                   const status = String(log.return_status).toUpperCase();
                 
-                  const isLocalDraft = status === 'DRAFT' || !log.return_status;
-                  const isQueuedForVicar = status === 'PENDING_REVIEW' || status === 'PENDING_VICAR_REVIEW';
+                  // 🚀 FIXED: Align variables cleanly with your exact multi-state database strings
+                  const isLocalDraft = status === 'DRAFT' || status === '';
+                  const isPending = status === 'PENDING_REVIEW' || status === 'PENDING_VICAR_REVIEW';
                   const isReturned = status === 'RETURNED_FOR_CORRECTION';
-                  const isApproved = status === 'APPROVED' || status === 'SUCCESS' || log.is_approved === true;
+                  const isApproved = status === 'APPROVED' || log.is_approved === true;
 
                   return (
                     <div 
                       key={log.id} 
                       className={`p-3 border rounded-xl space-y-2 transition-all ${
-                        isReturned ? 'border-red-200 bg-red-50/40 shadow-xs' :
-                        isQueuedForVicar ? 'border-amber-200 bg-amber-50/20' :
+                        isReturned ? 'border-red-200 bg-red-50/40 shadow-xs' : 
+                        isPending ? 'border-amber-200 bg-amber-50/20' :
                         'border-slate-100 bg-slate-50/50'
                       }`}
                     >
@@ -416,37 +417,20 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                         <span className={`text-[9px] border px-1.5 py-0.5 rounded font-black tracking-wide flex items-center gap-0.5 uppercase ${
                           isApproved ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                           isReturned ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
-                          isQueuedForVicar ? 'bg-amber-50 text-amber-700 border-amber-200 animate-pulse' :
-                          'bg-slate-100 text-slate-600 border-slate-200'
+                          'bg-amber-50 text-amber-700 border-amber-200'
                         }`}>
-                          {isApproved && (
-                            <>
-                              <CheckCircle2 className="w-3 h-3" /> Approved
-                            </>
-                          )}
-                          {isReturned && (
-                            <>
-                              <AlertTriangle className="w-3 h-3" /> Action Required
-                            </>
-                          )}
-                          {isQueuedForVicar && (
-                            <>
-                              <RefreshCw className="w-3 h-3 text-amber-600 animate-spin" /> Queued for Vicar Approval
-                            </>
-                          )}
-                          {isLocalDraft && (
-                            <>
-                              <FileText className="w-3 h-3 text-slate-500" /> Local Draft
-                            </>
-                          )}
+                          {isApproved && <><CheckCircle2 className="w-3 h-3" /> Approved</>}
+                          {isReturned && <><AlertTriangle className="w-3 h-3" /> Action Required</>}
+                          {isPending && <><RefreshCw className="w-3 h-3 animate-spin" /> Pending Review</>}
+                          {isLocalDraft && <><FileText className="w-3 h-3" /> Local Draft</>}
                         </span>
                       </div>
 
                       {/* Vicar Feedback Message Panel */}
-                      {isReturned && log.vicar_feedback_notes && (
+                      {isReturned && (log.vicar_feedback_notes || log.notes || log.feedback) && (
                         <div className="p-2 bg-white border-l-2 border-red-600 rounded-r-md text-[10px] text-slate-700 font-medium">
                           <p className="font-black text-red-700 uppercase text-[8px] tracking-wider mb-0.5">Vicar's Modification Request:</p>
-                          "{log.vicar_feedback_notes}"
+                          <p className="italic text-slate-900 font-bold">"{log.vicar_feedback_notes || log.notes || log.feedback}"</p>
                         </div>
                       )}
 
@@ -456,7 +440,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                       </div>
 
                       {/* Action Panel for VICAR: Only show if item is Pending Review */}
-                      {isQueuedForVicar && session.role === 'VICAR' && (
+                      {isPending && session.role === 'VICAR' && (
                         <div className="grid grid-cols-2 gap-2 pt-2 border-t border-dashed border-slate-200">
                           <button
                             onClick={() => handleVicarApprovalDecision(log.id, false)}
