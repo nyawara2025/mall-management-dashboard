@@ -493,26 +493,47 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                         <div className="pt-1.5">
                           <button
                             onClick={() => {
-                              // 🚀 FIXED: Robust state assignment featuring cross-column aggregate fallback safety
                               setPeriod(log.reporting_period);
-                              setAttendanceCount(log.worship_attendance_count ? log.worship_attendance_count.toString() : '0');
-                              setSacramentalCount(log.sacraments_administered_count ? log.sacraments_administered_count.toString() : '0');
-                                
-                              // 🚀 FIXED: If the explicit ledger key is missing, parse the data straight from the target metrics total column
-                              const savedTithes = log.total_tithes_kes || log.financial_target_reached_kes || '0';
-                              const savedThanksgiving = log.total_thanksgiving_kes || '0';
-
-                              setGrossCollections(savedTithes.toString());
-                              setBreakdownWomen(savedThanksgiving.toString());
-                              setLogFormOpen(true);
+                              setAttendanceCount(log.worship_attendance_count.toString());
+                              setSacramentalCount(log.sacraments_administered_count.toString());
+                              setGrossCollections(log.total_tithes_kes ? log.total_tithes_kes.toString() : '0');
+                              setBreakdownWomen(log.total_thanksgiving_kes ? log.total_thanksgiving_kes.toString() : '0');
+                              setLogFormOpen(true); // Opens modal to adjust 4 to 11
                             }}
-                            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs uppercase tracking-wider"
+                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors uppercase tracking-wider"
                           >
+                            ✏️ Reopen & Edit Fields
+                          </button>
 
-                             ✏️ Reopen & Fix Entry
+                          {/* 🚀 NEW STEP: Explicitly moves a corrected record back into the Vicar's review workspace */}
+                          <button
+                            disabled={submitting}
+                            onClick={async () => {
+                              setSubmitting(true);
+                              try {
+                                const res = await fetch('https://n8n.tenear.com/webhook/ack-vicar-adjustments', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    log_id: log.id,
+                                    action_intent: 'SUBMIT_TO_QUEUE',
+                                    clerk_id: session.user_id,
+                                    tenant_id: session.assigned_id
+                                  })
+                                });
+                                if (res.ok) {
+                                  alert("Corrections successfully queued for the Vicar's authorization workspace.");
+                                  fetchParishData();
+                                }
+                              } catch (e) { console.error(e); } finally { setSubmitting(false); }
+                            }}
+                            className="w-full bg-amber-600 hover:bg-amber-700 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors uppercase tracking-wider shadow-xs animate-pulse"
+                          >
+                            🚀 Push Corrections to Vicar
                           </button>
                         </div>
                       )}
+
                     </div>
                   );
                 })}
