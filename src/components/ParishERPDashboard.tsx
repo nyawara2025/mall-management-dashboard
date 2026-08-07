@@ -493,13 +493,22 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                         <div className="pt-1.5">
                           <button
                             onClick={() => {
+                              // 🚀 FIXED: Robust state assignment featuring cross-column aggregate fallback safety
                               setPeriod(log.reporting_period);
-                              setAttendanceCount(log.worship_attendance_count.toString());
-                              setSacramentalCount(log.sacraments_administered_count.toString());
+                              setAttendanceCount(log.worship_attendance_count ? log.worship_attendance_count.toString() : '0');
+                              setSacramentalCount(log.sacraments_administered_count ? log.sacraments_administered_count.toString() : '0');
+                                
+                              // 🚀 FIXED: If the explicit ledger key is missing, parse the data straight from the target metrics total column
+                              const savedTithes = log.total_tithes_kes || log.financial_target_reached_kes || '0';
+                              const savedThanksgiving = log.total_thanksgiving_kes || '0';
+
+                              setGrossCollections(savedTithes.toString());
+                              setBreakdownWomen(savedThanksgiving.toString());
                               setLogFormOpen(true);
                             }}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs uppercase tracking-wider"
+                            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs uppercase tracking-wider"
                           >
+
                              ✏️ Reopen & Fix Entry
                           </button>
                         </div>
