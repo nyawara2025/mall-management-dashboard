@@ -9,8 +9,6 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-import { ContractDetailsModal } from './ContractDetailsModal';
-
 // 🚀 Fix default leaflet icon paths so they load accurately inside your build structure
 const DefaultIcon = L.icon({
   iconUrl: 'https://unpkg.com',
@@ -27,9 +25,6 @@ interface Opportunity {
   destination_city: string;
   cargo_type: string;
   offered_rate: number;
-  opening_date?: string;
-  closing_date?: string;
-  supporting_documents?: Array<{ title: string; url: string }>;
 }
 
 export const PublicLogisticsHub: React.FC = () => {
@@ -111,10 +106,6 @@ export const PublicLogisticsHub: React.FC = () => {
   const [payAmount, setPayAmount] = useState('');
   const [payPurpose, setPayPurpose] = useState('Freight Clearance');
   const [submittingPayment, setSubmittingPayment] = useState(false);
-
-  // Contract Details Modal Management
-  const [selectedOpportunity, setSelectedOpportunity] = useState<Opportunity | null>(null);
-  const [isContractModalOpen, setIsContractModalOpen] = useState<boolean>(false);
 
   // State variables for the Trip Manifest system
   const [manifests, setManifests] = useState<any[]>([]);
@@ -746,60 +737,6 @@ export const PublicLogisticsHub: React.FC = () => {
     }
   };
 
-  const handleContractBidSubmission = async (opportunityId: string, formPayload: any) => {
-    // 1. Resolve tenant identity context matching your system's design language
-    const activeShopId = shopId || localStorage.getItem('remembered_logistics_shop_id');
-    const savedPhone = localStorage.getItem('remembered_logistics_phone') || phone || '';
-    const companyName = localStorage.getItem('remembered_logistics_company') || 'Fleet Operator';
-
-    if (!activeShopId) {
-      alert("Workspace context lost. Re-authentication required.");
-      throw new Error("Missing valid shop_id context token");
-    }
-
-    try {
-      // 2. Initialize native FormData to support binary uploads to n8n
-      const formDataBody = new FormData();
-      
-      // 🔒 Tenant Context & Audit Trail Metadata
-      formDataBody.append('shop_id', String(parseInt(activeShopId, 10)));
-      formDataBody.append('user_id_phone', savedPhone.replace(/\D/g, '').replace(/^0/, '254'));
-      formDataBody.append('company_name', companyName);
-      formDataBody.append('opportunity_id', opportunityId);
-      formDataBody.append('submitted_at', new Date().toISOString());
-      
-      // 💼 Commercial Proposal Form Input Metrics
-      formDataBody.append('bid_amount', formPayload.bidAmount);
-      formDataBody.append('estimated_days', formPayload.estimatedDays);
-      formDataBody.append('proposal_text', formPayload.proposalText);
-      
-      // 📂 Attach Staged Multi-Part Document Array
-      formPayload.attachments.forEach((file: File) => {
-        formDataBody.append('attachments', file);
-      });
-
-      // 🚀 Dispatch POST data streaming straight to your dedicated n8n pipeline node
-      const response = await fetch('https://n8n.tenear.com/webhook/logistics-main-bid', {
-        method: 'POST',
-        body: formDataBody,
-        // Content-Type is omitted so the browser compiles standard multi-part payload boundaries natively
-      });
-
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        alert("Your logistics proposal and compliance dossier were successfully submitted!");
-        setIntelOpen(false);                // Close sidebar panel view
-        fetchAppliedHistory(activeShopId);  // Refresh historical transaction log ledger
-      } else {
-        alert(data.message || "Middleware validation conflict error.");
-      }
-    } catch (err) {
-      console.error("Critical submission execution error:", err);
-      alert("Network gateway connection dropped.");
-      throw err; // Bubbles error back to child modal layout to preserve UI loading transitions
-    }
-  };
 
   const fetchLiveFleetTracking = async (targetShopId?: string) => {
     const activeShopId = targetShopId || resolveCurrentShopId();
@@ -1202,13 +1139,11 @@ export const PublicLogisticsHub: React.FC = () => {
                     {/* B2B Multi-Role Action Gatekeeper */}
                     {['owner', 'manager'].includes(userSession?.role || '') ? (
                       <button 
-                        onClick={() => {
-                          setSelectedOpportunity(job);
-                          setIsContractModalOpen(true);
-                        }}
+                        onClick={() => handleCompanyBid(job)}
+                        disabled={loading}
                         className="w-full mt-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[10px] tracking-wider py-1.5 rounded-lg flex items-center justify-center gap-1 uppercase transition-colors disabled:opacity-50"
                       >
-                        Submit Contract Bid <ChevronRight className="w-3 h-3" />
+                        {loading ? 'Submitting Bid...' : 'Submit Contract Bid'} <ChevronRight className="w-3 h-3" />
                       </button>
                     ) : (
                       <div className="mt-3 text-center text-[10px] bg-slate-100 text-slate-500 py-1 rounded-md font-bold uppercase tracking-wider">
@@ -1852,14 +1787,6 @@ export const PublicLogisticsHub: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Structural Modal Layer for Dynamic Bids Handling */}
-      <ContractDetailsModal 
-        isOpen={isContractModalOpen}
-        opportunity={selectedOpportunity}
-        onClose={() => setIsContractModalOpen(false)}
-        onSubmitBid={handleContractBidSubmission}
-      />
 
     </div>
   );

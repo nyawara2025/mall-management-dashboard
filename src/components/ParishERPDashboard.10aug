@@ -4,8 +4,6 @@ import {
   TrendingUp, ClipboardCheck, FileText, CheckCircle2, AlertTriangle, X 
 } from 'lucide-react';
 
-import { useAudit } from '../contexts/AuditContext';
-
 interface ParishMetrics {
   total_attendance: number;
   total_collections_kes: number;
@@ -43,7 +41,6 @@ interface ParishDashboardProps {
 
 export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, onLogout }) => {
   // 📊 Local Operational State Management
-  const { auditAction } = useAudit();
   const [metrics, setMetrics] = useState<ParishMetrics | null>(null);
   const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>([]);
   const [ledger, setLedger] = useState<MpesaTransaction[]>([]);
