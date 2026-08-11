@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TeNEAR Logistics Workspace</string>
+    <string name="title_activity_main">TeNEAR Logistics Workspace</string>
+    <string name="package_name">com.tenear.logistics</string>
+    <string name="custom_url_scheme">com.tenear.logistics</string>
+</resources>
