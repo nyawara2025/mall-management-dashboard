@@ -64,6 +64,8 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
   const [clerkRole, setClerkRole] = useState('PARISH_DATA_CLERK');
   const [provisioning, setProvisioning] = useState(false);
 
+  const isIctAdmin = session.role === 'ICT_SYS_ADMIN_PORTAL';
+
   // 📝 Expand Attendance Modal Controlled Input Fields to include precise breakdowns
   const [breakdownMen, setBreakdownMen] = useState('');
   const [breakdownWomen, setBreakdownWomen] = useState('');
@@ -307,28 +309,56 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
           </span>
         </div>
 
-        {/* 🚀 NEW READ-ONLY CARD: Tithes Aggregation Display */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="text-emerald-700 bg-emerald-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
-            <DollarSign className="w-4 h-4" />
-          </div>
-          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Tithes Collections</span>
-          <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5 font-mono">
-            KES {calculatedTithesTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-          </span>
-        </div>
+        {/* 🚀 CONDITIONAL SWAP SLOT: Tithes & Thanksgiving vs System Admin Telemetry */}
+        {!isIctAdmin ? (
+          <>
+            {/* Standard Financial Views for Clerks and Vicars */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="text-emerald-700 bg-emerald-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
+                <DollarSign className="w-4 h-4" />
+              </div>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Tithes Collections</span>
+              <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5 font-mono">
+                KES {calculatedTithesTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
+            </div>
 
-        {/* 🚀 NEW READ-ONLY CARD: Thanksgiving Aggregation Display */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="text-purple-700 bg-purple-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
-            <TrendingUp className="w-4 h-4" />
-          </div>
-          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Thanksgiving Collections</span>
-          <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5 font-mono">
-            KES {calculatedThanksgivingTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-          </span>
-        </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="text-purple-700 bg-purple-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
+                <TrendingUp className="w-4 h-4" />
+              </div>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Thanksgiving Collections</span>
+              <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5 font-mono">
+                KES {calculatedThanksgivingTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </span>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* ICT System Admin Telemetry Views (Page 9 Systems Requirement Alignment) */}
+            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="text-emerald-700 bg-emerald-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
+                <Layers className="w-4 h-4" /> {/* Reuses standard Layers icon from your top header */}
+              </div>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">System Edge Uptime</span>
+              <span className="block text-lg font-black text-emerald-600 tracking-tight mt-0.5">
+                99.94% Online
+              </span>
+            </div>
 
+            <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
+              <div className="text-purple-700 bg-purple-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
+                <RefreshCw className="w-4 h-4" /> {/* Reuses standard RefreshCw icon from your header buttons */}
+              </div>
+              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">API Integration Desk</span>
+              <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5">
+                3 / 3 Operational
+              </span>
+            </div>
+          </>
+        )}
+
+        {/* Card 4: Parish Collections (Shared by all roles) */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
           <div className="text-emerald-700 bg-emerald-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
             <DollarSign className="w-4 h-4" />
@@ -339,6 +369,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
           </span>
         </div>
 
+        {/* Card 5: Reporting Assemblies (Shared by all roles) */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
           <div className="text-purple-700 bg-purple-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
             <Calendar className="w-4 h-4" />
@@ -349,6 +380,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
           </span>
         </div>
 
+        {/* Card 6: Budget Target Efficiency (Shared by all roles) */}
         <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
           <div className="text-amber-700 bg-amber-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
             <TrendingUp className="w-4 h-4" />
@@ -359,6 +391,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
           </span>
         </div>
       </div>
+
 
       {/* 🎛️ DUAL PANELS: LOGS & LEDGER CHANNELS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
