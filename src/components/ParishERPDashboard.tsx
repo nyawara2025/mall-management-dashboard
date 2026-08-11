@@ -64,7 +64,12 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
   const [clerkRole, setClerkRole] = useState('PARISH_DATA_CLERK');
   const [provisioning, setProvisioning] = useState(false);
 
-  const isIctAdmin = session.role === 'ICT_SYS_ADMIN_PORTAL';
+  // 🚀 COMPLETE ROLE PARSING BLOCK: Aligns perfectly with all system roles
+  const isIctAdmin = session.role === 'ICT_SYS_ADMIN';
+  const isVicar = session.role === 'VICAR';
+  const isClerk = session.role === 'PARISH_DATA_CLERK';
+  const isCongregationAdmin = session.role === 'CONGREGATION_ADMIN';
+  const isCongregationRecorder = session.role === 'CONGREGATION_RECORDER';
 
   // 📝 Expand Attendance Modal Controlled Input Fields to include precise breakdowns
   const [breakdownMen, setBreakdownMen] = useState('');
