@@ -31,3 +31,9 @@ Thumbs.db
 *.backup
 *.nov*
 *.mck
+
+# Clean Gradle Build Exclusions
+.gradle_build_temp/
+.gradle_logistics_cache/
+.gradle/
+build/
