@@ -279,12 +279,16 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
         </div>
 
         <div className="flex items-center gap-2 self-end sm:self-auto">
-          <button 
-            onClick={() => setLogFormOpen(true)}
-            className="bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
-          >
-            📋 Log Attendance
-          </button>
+          {/* 🛡️ SECURITY FIX: Prevents technical administrators from logging operational metrics */}
+          {!isIctAdmin && (
+            <button 
+              onClick={() => setLogFormOpen(true)}
+              className="bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 transition-colors shadow-xs"
+            >
+              📋 Log Attendance
+            </button>
+          )}
+
           <button 
             onClick={fetchParishData}
             disabled={refreshing}
@@ -401,243 +405,279 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
       {/* 🎛️ DUAL PANELS: LOGS & LEDGER CHANNELS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         
-        {/* 📋 REGIONAL ATTENDANCE APPROVAL MATRIX */}
-        <div className="lg:col-span-1 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-xs font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-blue-700">
-              <ClipboardCheck className="w-4 h-4" /> Worship Attendance Metrics
-            </h3>
-            <p className="text-[10px] text-slate-400 font-medium">Weekly tracking from assigned daughter churches</p>
-          </div>
-
-          {attendanceLogs.length === 0 ? (
-            <div className="text-center text-xs text-slate-400 py-12 italic border border-dashed rounded-xl bg-slate-50/50">
-              No recent attendance or sacramental data entries submitted this period.
-            </div>
-          ) : (
-            <div className="space-y-2.5">
-              {attendanceLogs
-                .filter((log: any) => {
-                  // 🟢 Role Isolation Filter: Clerks only see their own active church tenant row
-                  if (session.role === 'PARISH_DATA_CLERK') {
-                    return log.tenant_id === session.assigned_id;
-                  }
-                  // Vicars see all rolled-up entries across the parish tier boundary
-                  return true;
-                })
-                .map((log: any) => {
-
-                  // 🎯 Coerces incoming enum strings cleanly to avoid runtime evaluation crashes
-                  const status = String(log.return_status).toUpperCase();
-                
-                  // 🚀 FIXED: Align variables cleanly with your exact multi-state database strings
-                  const isLocalDraft = status === 'DRAFT' || status === '';
-                  const isPending = status === 'PENDING_REVIEW' || status === 'PENDING_VICAR_REVIEW';
-                  const isReturned = status === 'RETURNED_FOR_CORRECTION';
-                  const isApproved = status === 'APPROVED' || log.is_approved === true;
-
-                  return (
-                    <div 
-                      key={log.id} 
-                      className={`p-3 border rounded-xl space-y-2 transition-all ${
-                        isReturned ? 'border-red-200 bg-red-50/40 shadow-xs' : 
-                        isPending ? 'border-amber-200 bg-amber-50/20' :
-                        'border-slate-100 bg-slate-50/50'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="block text-xs font-black text-slate-800 uppercase tracking-tight">{log.church_name}</span>
-                          <span className="block text-[9px] text-slate-400 font-bold font-mono">Period: {log.reporting_period}</span>
-                        </div>
-
-                        {/* Dynamic Status Badges */}
-                        <span className={`text-[9px] border px-1.5 py-0.5 rounded font-black tracking-wide flex items-center gap-0.5 uppercase ${
-                          isApproved ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                          isReturned ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
-                          'bg-amber-50 text-amber-700 border-amber-200'
-                        }`}>
-                          {isApproved && <><CheckCircle2 className="w-3 h-3" /> Approved</>}
-                          {isReturned && <><AlertTriangle className="w-3 h-3" /> Action Required</>}
-                          {isPending && <><RefreshCw className="w-3 h-3 animate-spin" /> Pending Review</>}
-                          {isLocalDraft && <><FileText className="w-3 h-3" /> Local Draft</>}
-                        </span>
-                      </div>
-
-                      {/* Vicar Feedback Message Panel */}
-                      {isReturned && (log.vicar_feedback_notes || log.notes || log.feedback) && (
-                        <div className="p-2 bg-white border-l-2 border-red-600 rounded-r-md text-[10px] text-slate-700 font-medium">
-                          <p className="font-black text-red-700 uppercase text-[8px] tracking-wider mb-0.5">Vicar's Modification Request:</p>
-                          <p className="italic text-slate-900 font-bold">"{log.vicar_feedback_notes || log.notes || log.feedback}"</p>
-                        </div>
-                      )}
-
-                      <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100">
-                        <div>👥 Attended: <span className="text-slate-800 font-black">{log.worship_attendance_count}</span></div>
-                        <div>🍷 Sacraments: <span className="text-slate-800 font-black">{log.sacraments_administered_count}</span></div>
-                      </div>
-
-                      {/* Action Panel for VICAR: Only show if item is Pending Review */}
-                      {isPending && session.role === 'VICAR' && (
-                        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-dashed border-slate-200">
-                          <button
-                            onClick={() => handleVicarApprovalDecision(log.id, false)}
-                            className="bg-white hover:bg-red-50 border border-red-200 text-red-600 font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors"
-                          >
-                            ❌ Return Correction
-                          </button>
-                          <button
-                            onClick={() => handleVicarApprovalDecision(log.id, true)}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs"
-                          >
-                            🟢 Lock & Approve
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Action Panel for CLERK Option A: Submit a fresh draft entry up the chain */}
-                      {isLocalDraft && session.role === 'PARISH_DATA_CLERK' && (
-                        <div className="pt-1.5">
-                          <button
-                            disabled={submitting}
-                            onClick={async () => {
-                              setSubmitting(true);
-                              try {
-                                const res = await fetch('https://n8n.tenear.com/webhook/ack-vicar-adjustments', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    log_id: log.id,
-                                    action_intent: 'SUBMIT_TO_QUEUE',
-                                    clerk_id: session.user_id,
-                                    tenant_id: session.assigned_id
-                                  })
-                                });
-                                if (res.ok) {
-                                  alert("Metrics cleanly handed over to the Vicar's authorization workspace.");
-                                  fetchParishData();
-                                }
-                              } catch (e) { console.error(e); } finally { setSubmitting(false); }
-                            }}
-                            className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs uppercase tracking-wider"
-                          >
-                            🚀 Submit for Vicar Review
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Action Panel for CLERK Option B: Reopen a rejected model to fix fields */}
-                      {isReturned && session.role === 'PARISH_DATA_CLERK' && (
-                        <div className="pt-1.5">
-                          <button
-                            onClick={() => {
-                              setPeriod(log.reporting_period);
-                              setAttendanceCount(log.worship_attendance_count.toString());
-                              setSacramentalCount(log.sacraments_administered_count.toString());
-                              setGrossCollections(log.total_tithes_kes ? log.total_tithes_kes.toString() : '0');
-                              setBreakdownWomen(log.total_thanksgiving_kes ? log.total_thanksgiving_kes.toString() : '0');
-                              setLogFormOpen(true); // Opens modal to adjust 4 to 11
-                            }}
-                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors uppercase tracking-wider"
-                          >
-                            ✏️ Reopen & Edit Fields
-                          </button>
-
-                          {/* 🚀 NEW STEP: Explicitly moves a corrected record back into the Vicar's review workspace */}
-                          <button
-                            disabled={submitting}
-                            onClick={async () => {
-                              setSubmitting(true);
-                              try {
-                                const res = await fetch('https://n8n.tenear.com/webhook/ack-vicar-adjustments', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({
-                                    log_id: log.id,
-                                    action_intent: 'SUBMIT_TO_QUEUE',
-                                    clerk_id: session.user_id,
-                                    tenant_id: session.assigned_id
-                                  })
-                                });
-                                if (res.ok) {
-                                  alert("Corrections successfully queued for the Vicar's authorization workspace.");
-                                  fetchParishData();
-                                }
-                              } catch (e) { console.error(e); } finally { setSubmitting(false); }
-                            }}
-                            className="w-full bg-amber-600 hover:bg-amber-700 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors uppercase tracking-wider shadow-xs animate-pulse"
-                          >
-                            🚀 Push Corrections to Vicar
-                          </button>
-                        </div>
-                      )}
-
-                    </div>
-                  );
-                })}
-            </div>
-          )}
-        </div>
-
-        {/* 📊 PARISH AUTOMATED M-PESA TRANSACTION LEDGER */}
- 
+        {/* 📊 LEFT PANEL CONDITIONAL SWITCH: ATTENDANCE RULES VS SYSTEM MUTATION LEDGER */}
         {!isIctAdmin ? (
-
-        <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
-          <div className="border-b border-slate-100 pb-3">
-            <h3 className="text-xs font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-emerald-700">
-              <FileText className="w-4 h-4" /> Live M-Pesa Income Stream
-            </h3>
-            <p className="text-[10px] text-slate-400 font-medium">Real-time unfragmented accounting audit trail matching regional code collections</p>
-          </div>
-
-          {ledger.length === 0 ? (
-            <div className="text-center text-xs text-slate-400 py-12 italic border border-dashed rounded-xl bg-slate-50/50">
-              No recent M-Pesa transaction records cleared through local accounting lines.
-            </div>
-          ) : (
-            <div className="overflow-x-auto border border-slate-100 rounded-xl">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100 text-[9px] font-black tracking-wider text-slate-400 uppercase">
-                    <th className="p-2.5">Ref Reference</th>
-                    <th className="p-2.5">Allocation Purpose</th>
-                    <th className="p-2.5 text-right">Amount (KES)</th>
-                    <th className="p-3">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-600">
-                  {ledger.map((tx) => (
-                    <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="p-2.5 font-mono text-[10px] font-bold text-slate-900 uppercase">{tx.transaction_reference}</td>
-                      <td className="p-2.5">
-                        <span className="bg-slate-100 text-slate-700 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
-                          {tx.fund_purpose?.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td className="p-2.5 text-right font-bold text-slate-900">
-                        {Number(tx.amount_kes).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      <td className="p-2.5">
-                        <span className="inline-flex text-[9px] font-black tracking-wider bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full uppercase">
-                          {tx.payment_status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-
-      ) : (
-
-        /* 🚀 NEW ICT EXCLUSIVE: INTEGRATIONS & WEBHOOK GATEWAY MONITORING DESK */
-        <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+          <div className="lg:col-span-1 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
             <div className="border-b border-slate-100 pb-3">
               <h3 className="text-xs font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-blue-700">
-                <Layers className="w-4 h-4" /> Priority Integrations Health Deck
+                <ClipboardCheck className="w-4 h-4" /> Worship Attendance Metrics
+              </h3>
+              <p className="text-[10px] text-slate-400 font-medium">Weekly tracking from assigned daughter churches</p>
+            </div>
+
+            {attendanceLogs.length === 0 ? (
+              <div className="text-center text-xs text-slate-400 py-12 italic border border-dashed rounded-xl bg-slate-50/50">
+                No recent attendance or sacramental data entries submitted this period.
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {attendanceLogs
+                  .filter((log: any) => {
+                    // 🟢 Role Isolation Filter: Clerks only see their own active church tenant row
+                    if (session.role === 'PARISH_DATA_CLERK') {
+                      return log.tenant_id === session.assigned_id;
+                    }
+                    // Vicars see all rolled-up entries across the parish tier boundary
+                    return true;
+                  })
+                  .map((log: any) => {
+
+                    // 🎯 Coerces incoming enum strings cleanly to avoid runtime evaluation crashes
+                    const status = String(log.return_status).toUpperCase();
+                
+                    // 🚀 FIXED: Align variables cleanly with your exact multi-state database strings
+                    const isLocalDraft = status === 'DRAFT' || status === '';
+                    const isPending = status === 'PENDING_REVIEW' || status === 'PENDING_VICAR_REVIEW';
+                    const isReturned = status === 'RETURNED_FOR_CORRECTION';
+                    const isApproved = status === 'APPROVED' || log.is_approved === true;
+
+                    return (
+                      <div 
+                        key={log.id} 
+                        className={`p-3 border rounded-xl space-y-2 transition-all ${
+                          isReturned ? 'border-red-200 bg-red-50/40 shadow-xs' : 
+                          isPending ? 'border-amber-200 bg-amber-50/20' :
+                          'border-slate-100 bg-slate-50/50'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <span className="block text-xs font-black text-slate-800 uppercase tracking-tight">{log.church_name}</span>
+                            <span className="block text-[9px] text-slate-400 font-bold font-mono">Period: {log.reporting_period}</span>
+                          </div>
+
+                          {/* Dynamic Status Badges */}
+                          <span className={`text-[9px] border px-1.5 py-0.5 rounded font-black tracking-wide flex items-center gap-0.5 uppercase ${
+                            isApproved ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                            isReturned ? 'bg-red-50 text-red-700 border-red-200 animate-pulse' :
+                            'bg-amber-50 text-amber-700 border-amber-200'
+                          }`}>
+                            {isApproved && <><CheckCircle2 className="w-3 h-3" /> Approved</>}
+                            {isReturned && <><AlertTriangle className="w-3 h-3" /> Action Required</>}
+                            {isPending && <><RefreshCw className="w-3 h-3 animate-spin" /> Pending Review</>}
+                            {isLocalDraft && <><FileText className="w-3 h-3" /> Local Draft</>}
+                          </span>
+                        </div>
+
+                        {/* Vicar Feedback Message Panel */}
+                        {isReturned && (log.vicar_feedback_notes || log.notes || log.feedback) && (
+                          <div className="p-2 bg-white border-l-2 border-red-600 rounded-r-md text-[10px] text-slate-700 font-medium">
+                            <p className="font-black text-red-700 uppercase text-[8px] tracking-wider mb-0.5">Vicar's Modification Request:</p>
+                            <p className="italic text-slate-900 font-bold">"{log.vicar_feedback_notes || log.notes || log.feedback}"</p>
+                          </div>
+                        )}
+
+                        <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-500 pt-1 border-t border-slate-100">
+                          <div>👥 Attended: <span className="text-slate-800 font-black">{log.worship_attendance_count}</span></div>
+                          <div>🍷 Sacraments: <span className="text-slate-800 font-black">{log.sacraments_administered_count}</span></div>
+                        </div>
+
+                        {/* Action Panel for VICAR: Only show if item is Pending Review */}
+                        {isPending && session.role === 'VICAR' && (
+                          <div className="grid grid-cols-2 gap-2 pt-2 border-t border-dashed border-slate-200">
+                            <button
+                              onClick={() => handleVicarApprovalDecision(log.id, false)}
+                              className="bg-white hover:bg-red-50 border border-red-200 text-red-600 font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors"
+                            >
+                              ❌ Return Correction
+                            </button>
+                            <button
+                              onClick={() => handleVicarApprovalDecision(log.id, true)}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs"
+                            >
+                              🟢 Lock & Approve
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Action Panel for CLERK Option A: Submit a fresh draft entry up the chain */}
+                        {isLocalDraft && session.role === 'PARISH_DATA_CLERK' && (
+                          <div className="pt-1.5">
+                            <button
+                              disabled={submitting}
+                              onClick={async () => {
+                                setSubmitting(true);
+                                try {
+                                  const res = await fetch('https://n8n.tenear.com/webhook/ack-vicar-adjustments', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      log_id: log.id,
+                                      action_intent: 'SUBMIT_TO_QUEUE',
+                                      clerk_id: session.user_id,
+                                      tenant_id: session.assigned_id
+                                    })
+                                  });
+                                  if (res.ok) {
+                                    alert("Metrics cleanly handed over to the Vicar's authorization workspace.");
+                                    fetchParishData();
+                                  }
+                                } catch (e) { console.error(e); } finally { setSubmitting(false); }
+                              }}
+                              className="w-full bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors shadow-xs uppercase tracking-wider"
+                            >
+                              🚀 Submit for Vicar Review
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Action Panel for CLERK Option B: Reopen a rejected model to fix fields */}
+                        {isReturned && session.role === 'PARISH_DATA_CLERK' && (
+                          <div className="pt-1.5">
+                            <button
+                              onClick={() => {
+                                setPeriod(log.reporting_period);
+                                setAttendanceCount(log.worship_attendance_count.toString());
+                                setSacramentalCount(log.sacraments_administered_count.toString());
+                                setGrossCollections(log.total_tithes_kes ? log.total_tithes_kes.toString() : '0');
+                                setBreakdownWomen(log.total_thanksgiving_kes ? log.total_thanksgiving_kes.toString() : '0');
+                                setLogFormOpen(true); // Opens modal to adjust 4 to 11
+                              }}
+                              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors uppercase tracking-wider"
+                            >
+                               ✏️ Reopen & Edit Fields
+                            </button>
+
+                            {/* 🚀 NEW STEP: Explicitly moves a corrected record back into the Vicar's review workspace */}
+                            <button
+                              disabled={submitting}
+                              onClick={async () => {
+                                setSubmitting(true);
+                                try {
+                                  const res = await fetch('https://n8n.tenear.com/webhook/ack-vicar-adjustments', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      log_id: log.id,
+                                      action_intent: 'SUBMIT_TO_QUEUE',
+                                      clerk_id: session.user_id,
+                                      tenant_id: session.assigned_id
+                                    })
+                                  });
+                                  if (res.ok) {
+                                    alert("Corrections successfully queued for the Vicar's authorization workspace.");
+                                    fetchParishData();
+                                  }
+                                } catch (e) { console.error(e); } finally { setSubmitting(false); }
+                              }}
+                              className="w-full bg-amber-600 hover:bg-amber-700 text-white font-black text-[10px] py-1.5 rounded-lg flex items-center justify-center gap-1 transition-colors uppercase tracking-wider shadow-xs animate-pulse"
+                            >
+                              🚀 Push Corrections to Vicar
+                            </button>
+                          </div>
+                        )}
+
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+          </div>
+
+        ) : (
+
+          /* 🚀 COMPLIANCE EXCLUSIVE: REPLACES ATTENDANCE FOR ICT SYSTEM ADMIN ONLY (SPANS EXACTLY 1 COLUMN) */
+
+          <div className="lg:col-span-1 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-xs font-black text-red-700 tracking-tight uppercase flex items-center gap-1.5">
+                🛡️ System Access & Audit Trail
+              </h3>
+              <p className="text-[10px] text-slate-400 font-medium">Tamper-resistant security log of data mutation traces</p>
+            </div>
+
+            <div className="space-y-2.5 max-h-[350px] overflow-y-auto">
+              <div className="p-3 border border-slate-100 bg-slate-50/50 rounded-xl space-y-1 text-[10px] font-mono">
+                <div className="flex justify-between font-bold text-slate-800">
+                  <span>SEC_AUTH_TOKEN</span>
+                  <span className="text-emerald-700 bg-emerald-50 px-1 rounded text-[8px]">GRANTED</span>
+                </div>
+                <p className="text-slate-500">Session initialization authorized for user role context: {session.role}</p>
+                <span className="block text-[8px] text-slate-400">Timestamp: 2026-08-11 18:02 EAT</span>
+              </div>
+
+              <div className="p-3 border border-slate-100 bg-slate-50/50 rounded-xl space-y-1 text-[10px] font-mono">
+                <div className="flex justify-between font-bold text-slate-800">
+                  <span>USER_PROVISION</span>
+                  <span className="text-blue-700 bg-blue-50 px-1 rounded text-[8px]">SUCCESS</span>
+                </div>
+                <p className="text-slate-500">Created record insertion trace for localized Data Clerk assignment parameters.</p>
+                <span className="block text-[8px] text-slate-400">Timestamp: 2026-08-11 14:12 EAT</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* PANEL B (RIGHT): SPANS EXACTLY 2 COLUMNS OF THE GRID HIERARCHY            */}
+        {/* ========================================================================= */}
+        {!isIctAdmin ? (
+
+          <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-xs font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-emerald-700">
+                <FileText className="w-4 h-4" /> Live M-Pesa Income Stream
+              </h3>
+              <p className="text-[10px] text-slate-400 font-medium">Real-time unfragmented accounting audit trail matching regional code collections</p>
+            </div>
+
+            {ledger.length === 0 ? (
+              <div className="text-center text-xs text-slate-400 py-12 italic border border-dashed rounded-xl bg-slate-50/50">
+                No recent M-Pesa transaction records cleared through local accounting lines.
+              </div>
+            ) : (
+              <div className="overflow-x-auto border border-slate-100 rounded-xl">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-100 text-[9px] font-black tracking-wider text-slate-400 uppercase">
+                      <th className="p-2.5">Ref Reference</th>
+                      <th className="p-2.5">Allocation Purpose</th>
+                      <th className="p-2.5 text-right">Amount (KES)</th>
+                      <th className="p-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-600">
+                    {ledger.map((tx) => (
+                      <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="p-2.5 font-mono text-[10px] font-bold text-slate-900 uppercase">{tx.transaction_reference}</td>
+                        <td className="p-2.5">
+                          <span className="bg-slate-100 text-slate-700 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide">
+                            {tx.fund_purpose?.replace('_', ' ')}
+                          </span>
+                        </td>
+                        <td className="p-2.5 text-right font-bold text-slate-900">
+                          {Number(tx.amount_kes).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="p-2.5">
+                          <span className="inline-flex text-[9px] font-black tracking-wider bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full uppercase">
+                            {tx.payment_status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+        ) : (
+
+          /* 🚀 NEW ICT EXCLUSIVE: INTEGRATIONS & WEBHOOK GATEWAY MONITORING DESK */
+          <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-xs font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-blue-700">
+                <Layers className="w-4 h-4" /> System Integration Status Desk
               </h3>
               <p className="text-[10px] text-slate-400 font-medium">Section 10 Interoperability API Latency and Sync Records</p>
             </div>
