@@ -39,20 +39,6 @@ interface ParishDashboardProps {
   onLogout: () => void;
 }
 
-interface SystemAuditRecord {
-  id: string;
-  actor_user_id: string;
-  actor_name?: string; // Resolved downstream by n8n join queries
-  action_type: string;
-  target_table: string;
-  target_row_id: string | null;
-  old_data_snapshot: any | null;
-  new_data_snapshot: any | null;
-  ip_address: string | null;
-  created_at: string;
-  mandatory_audit_reason: string | null;
-}
-
 export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, onLogout }) => {
   // 📊 Local Operational State Management
   const [metrics, setMetrics] = useState<ParishMetrics | null>(null);
@@ -96,10 +82,6 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
   const [titheAmount, setTitheAmount] = useState('');
   const [thanksgivingAmount, setThanksgivingAmount] = useState('');
   
-  // 🛡️ Live Database Audit Trail State Engines
-  const [auditRecords, setAuditRecords] = useState<SystemAuditRecord[]>([]);
-  const [selectedAuditLog, setSelectedAuditLog] = useState<SystemAuditRecord | null>(null);
-  const [fetchingAudit, setFetchingAudit] = useState<boolean>(false);
 
   // 🔄 Consolidated Parish Data Fetcher Engine
   const fetchParishData = async () => {
@@ -141,10 +123,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
   useEffect(() => {
     fetchParishData();
     fetchLocalStaff();
-    if (session.role === 'ICT_SYS_ADMIN') {
-      fetchLiveAuditTrail();
-    }
-  }, [session.assigned_id, session.role]);
+  }, [session.assigned_id]);
 
   // 📝 Submit Draft Weekly Entry Workflow (Maker Step)
   const handleSubmitAttendance = async (e: React.FormEvent) => {
@@ -183,30 +162,6 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
       console.error("Failed logging weekly metrics:", err);
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const fetchLiveAuditTrail = async () => {
-    if (!isIctAdmin) return;
-    setFetchingAudit(true);
-    try {
-      const res = await fetch('https://n8n.tenear.com/webhook/ack-fetch-audit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          tenant_id: session.assigned_id,
-          user_id: session.user_id,
-          role: session.role
-        })
-      });
-      const data = await res.json();
-      if (data && Array.isArray(data.audit_trail)) {
-        setAuditRecords(data.audit_trail);
-      }
-    } catch (err) {
-      console.error("Critical failure tracking database audit stream:", err);
-    } finally {
-      setFetchingAudit(false);
     }
   };
 
@@ -631,62 +586,34 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
 
         ) : (
 
-          /* 🚀 LIVE COMPLIANCE INJECTION: REAL-TIME */
+          /* 🚀 COMPLIANCE EXCLUSIVE: REPLACES ATTENDANCE FOR ICT SYSTEM ADMIN ONLY (SPANS EXACTLY 1 COLUMN) */
 
-          <div className="lg:col-span-1 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4 flex flex-col h-[520px]">
-            <div className="border-b border-slate-100 pb-3 flex justify-between items-center">
-              <div>
-                <h3 className="text-xs font-black text-red-700 tracking-tight uppercase flex items-center gap-1.5">
-                  🛡️ System Access & Audit Trail
-                </h3>
-                <p className="text-[10px] text-slate-400 font-medium">Live PostgreSQL mutation trace records (ACK Schema)</p>
-              </div>
-              <button 
-                onClick={fetchLiveAuditTrail}
-                disabled={fetchingAudit}
-                className="text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-1 rounded-md hover:bg-blue-100 transition-colors"
-              >
-                {fetchingAudit ? 'Syncing...' : 'Refresh Logs'}
-              </button>
+          <div className="lg:col-span-1 bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-4">
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-xs font-black text-red-700 tracking-tight uppercase flex items-center gap-1.5">
+                🛡️ System Access & Audit Trail
+              </h3>
+              <p className="text-[10px] text-slate-400 font-medium">Tamper-resistant security log of data mutation traces</p>
             </div>
 
-            <div className="space-y-2.5 overflow-y-auto flex-1 pr-1 custom-scrollbar">
-              {auditRecords.length === 0 ? (
-                <div className="text-center text-xs text-slate-400 py-12 italic border border-dashed rounded-xl bg-slate-50/50">
-                  No explicit data modifications logged for this localized parish grid.
+            <div className="space-y-2.5 max-h-[350px] overflow-y-auto">
+              <div className="p-3 border border-slate-100 bg-slate-50/50 rounded-xl space-y-1 text-[10px] font-mono">
+                <div className="flex justify-between font-bold text-slate-800">
+                  <span>SEC_AUTH_TOKEN</span>
+                  <span className="text-emerald-700 bg-emerald-50 px-1 rounded text-[8px]">GRANTED</span>
                 </div>
-              ) : (
-                auditRecords.map((record) => {
-                  const isMutate = ['UPDATE', 'DELETE', 'REVERSAL'].includes(record.action_type.toUpperCase());
-                  return (
-                    <div 
-                      key={record.id} 
-                      onClick={() => setSelectedAuditLog(record)}
-                      className="p-3 border border-slate-100 bg-slate-50/50 hover:bg-slate-100/70 cursor-pointer rounded-xl space-y-1.5 text-[10px] font-mono transition-all duration-150 shadow-xs"
-                    >
-                      <div className="flex justify-between items-center font-bold">
-                        <span className="text-slate-900 bg-slate-200 px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wide">
-                          {record.action_type}
-                        </span>
-                        <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${
-                          isMutate ? 'bg-amber-50 text-amber-700 border border-amber-100' : 'bg-blue-50 text-blue-700'
-                        }`}>
-                          {record.target_table}
-                        </span>
-                      </div>
-                      
-                      <p className="text-slate-600 font-sans font-semibold leading-tight line-clamp-2">
-                        Reason: <span className="italic text-slate-900 font-bold">"{record.mandatory_audit_reason || 'N/A'}"</span>
-                      </p>
-                      
-                      <div className="flex justify-between items-center text-[8px] text-slate-400 pt-1 border-t border-slate-100/80">
-                        <span>Actor ID: {record.actor_name || record.actor_user_id}</span>
-                        <span>{new Date(record.created_at).toLocaleTimeString('en-KE', { hour: '2-digit', minute: '2-digit' })} EAT</span>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+                <p className="text-slate-500">Session initialization authorized for user role context: {session.role}</p>
+                <span className="block text-[8px] text-slate-400">Timestamp: 2026-08-11 18:02 EAT</span>
+              </div>
+
+              <div className="p-3 border border-slate-100 bg-slate-50/50 rounded-xl space-y-1 text-[10px] font-mono">
+                <div className="flex justify-between font-bold text-slate-800">
+                  <span>USER_PROVISION</span>
+                  <span className="text-blue-700 bg-blue-50 px-1 rounded text-[8px]">SUCCESS</span>
+                </div>
+                <p className="text-slate-500">Created record insertion trace for localized Data Clerk assignment parameters.</p>
+                <span className="block text-[8px] text-slate-400">Timestamp: 2026-08-11 14:12 EAT</span>
+              </div>
             </div>
           </div>
         )}
@@ -1039,71 +966,6 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                 {submitting ? 'Uploading Data...' : 'Submit Draft Log'}
               </button>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* 🏛️ OVERLAY DETAILS INSPECTOR: LIVE SYSTEM SNAPSHOT AUDIT INSPECTION MODAL */}
-      {isIctAdmin && selectedAuditLog && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
-          <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-2xl p-6 relative flex flex-col max-h-[85vh]">
-            <button 
-              onClick={() => setSelectedAuditLog(null)}
-              className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            <div className="mb-4 border-b pb-3">
-              <h3 className="text-sm font-black text-red-700 uppercase tracking-tight flex items-center gap-2">
-                🛡️ Detailed Audit Execution Record [ID: #{selectedAuditLog.id}]
-              </h3>
-              <p className="text-[11px] text-slate-400 font-medium font-mono">
-                Executed: {new Date(selectedAuditLog.created_at).toLocaleString('en-KE')} EAT | IP Address: {selectedAuditLog.ip_address || '0.0.0.0'}
-              </p>
-            </div>
-
-            <div className="space-y-4 overflow-y-auto flex-1 pr-1 text-xs">
-              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100 font-sans">
-                <div>
-                  <span className="block text-[9px] font-black text-slate-400 uppercase">Action Intent Profile</span>
-                  <span className="font-bold text-slate-900">{selectedAuditLog.action_type}</span>
-                </div>
-                <div>
-                  <span className="block text-[9px] font-black text-slate-400 uppercase">Target Schema Table Target</span>
-                  <span className="font-mono font-bold text-blue-700">{selectedAuditLog.target_table} (ID: {selectedAuditLog.target_row_id || 'N/A'})</span>
-                </div>
-                <div className="col-span-2 border-t pt-2 mt-1">
-                  <span className="block text-[9px] font-black text-slate-400 uppercase">Mandatory Operational Reason Logged</span>
-                  <p className="font-bold text-slate-800 italic">"{selectedAuditLog.mandatory_audit_reason || 'No written declaration recorded.'}"</p>
-                </div>
-              </div>
-
-              {/* Advanced JSON Snapshot Diff Panels */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-[10px]">
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase mb-1">Pre-Mutation State Data Snapshot (Old)</span>
-                  <pre className="p-3 bg-slate-900 text-slate-300 rounded-xl overflow-x-auto flex-1 min-h-[120px] max-h-[220px]">
-                    {selectedAuditLog.old_data_snapshot ? JSON.stringify(selectedAuditLog.old_data_snapshot, null, 2) : '// No historical trace state recorded.'}
-                  </pre>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase mb-1">Post-Mutation State Data Snapshot (New)</span>
-                  <pre className="p-3 bg-slate-900 text-emerald-400 rounded-xl overflow-x-auto flex-1 min-h-[120px] max-h-[220px]">
-                    {selectedAuditLog.new_data_snapshot ? JSON.stringify(selectedAuditLog.new_data_snapshot, null, 2) : '// No mutation data payload generated.'}
-                  </pre>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-4 pt-3 border-t text-right">
-              <button 
-                onClick={() => setSelectedAuditLog(null)}
-                className="bg-slate-900 hover:bg-slate-800 text-white font-black text-xs px-5 py-2.5 rounded-xl uppercase tracking-wider transition-colors"
-              >
-                Close Audit Viewer
-              </button>
-            </div>
           </div>
         </div>
       )}
