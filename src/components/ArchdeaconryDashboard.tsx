@@ -207,18 +207,20 @@ export const ArchdeaconryDashboard: React.FC<ArchdeaconryDashboardProps> = ({ se
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100 text-[9px] font-black tracking-wider text-slate-400 uppercase">
                     <th className="p-3">Parish Name</th>
+                    <th className="p-3 font-mono">Period</th>
                     <th className="p-3 text-right">Attendance Roll</th>
-                    <th className="p-3 text-right">Total Finance (KES)</th>
-                    <th className="p-3 text-center">Last Submission</th>
+                    <th className="p-3 text-right">Funds (KES)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-xs font-semibold text-slate-700">
-                  {parishPerformances.map((parish) => (
-                    <tr key={parish.parish_id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="p-3 font-bold text-slate-900 uppercase text-[11px]">{parish.parish_name}</td>
-                      <td className="p-3 text-right font-mono font-bold text-blue-700">{parish.total_attendance_rollup?.toLocaleString()}</td>
-                      <td className="p-3 text-right font-mono font-bold text-emerald-700">{parish.total_funds_kes?.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                      <td className="p-3 text-center font-mono text-[10px] text-slate-400">{parish.last_submission_period}</td>
+                <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-600">
+                  {parishPerformances.map((row) => (
+                    <tr key={row.parish_id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="p-3 font-bold text-slate-900 uppercase">{row.parish_name}</td>
+                      <td className="p-3"><span className="bg-slate-100 px-2 py-0.5 rounded font-mono font-bold text-[10px] text-slate-700">{row.last_submission_period}</span></td>
+                      <td className="p-3 text-right font-black text-slate-800">{row.total_attendance_rollup?.toLocaleString() || '0'}</td>
+                      <td className="p-3 text-right font-mono font-bold text-slate-900">
+                        {Number(row.total_funds_kes).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -234,6 +236,18 @@ export const ArchdeaconryDashboard: React.FC<ArchdeaconryDashboardProps> = ({ se
               <ShieldCheck className="w-4 h-4" /> Regional Compliance Checklist
             </h3>
             <p className="text-[10px] text-slate-400 font-medium">Strategic inspection targets managed by the Archdeacon</p>
+          </div>
+
+          <div className="p-4 rounded-xl border border-slate-100 bg-slate-50/50 space-y-3">
+            <div className="flex justify-between items-center text-xs font-bold">
+              <span className="text-slate-500">M&E Target Lock Status</span>
+              <span className="bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wide">
+                ACTIVE MONITORING
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 leading-normal">
+              Archdeacons monitor sub-tier tracking entries and issue formal modification notifications directly back into the Parish review workspace queues when discrepancies appear.
+            </p>
           </div>
 
           <ul className="space-y-3 text-[11px] text-slate-600 font-semibold">
