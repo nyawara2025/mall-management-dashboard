@@ -17,8 +17,6 @@ interface ParishPerformanceRow {
   total_attendance_rollup: number;
   total_funds_kes: number;
   last_submission_period: string;
-  verification_status: string; // 🚀 ADDED: Tracks 'APPROVED_LOCKED', 'PENDING_VICAR_REVIEW', etc.
-  metrics_log_id?: string;
 }
 
 interface ArchdeaconryDashboardProps {
@@ -26,7 +24,6 @@ interface ArchdeaconryDashboardProps {
     name: string;
     role: string;
     assigned_id: number;
-    user_id: number;
   };
   onLogout: () => void;
 }
@@ -37,12 +34,6 @@ export const ArchdeaconryDashboard: React.FC<ArchdeaconryDashboardProps> = ({ se
   const [parishPerformances, setParishPerformances] = useState<ParishPerformanceRow[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  // 🎛️ NEW: Timeline and Action Management Controls
-  const [selectedPeriod, setSelectedPeriod] = useState<string>('2026-W31'); // Mid-2026 System Anchor
-  const [selectedParishLog, setSelectedParishLog] = useState<ParishPerformanceRow | null>(null);
-  const [correctionReason, setCorrectionReason] = useState<string>('');
-  const [submittingCorrection, setSubmittingCorrection] = useState<boolean>(false);
-
   // 🔄 Consolidated Archdeaconry Data Fetcher Engine
   const fetchArchdeaconryData = async () => {
     setRefreshing(true);
@@ -50,10 +41,7 @@ export const ArchdeaconryDashboard: React.FC<ArchdeaconryDashboardProps> = ({ se
       const res = await fetch('https://n8n.tenear.com/webhook/ack-archdeaconry-fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          tenant_id: session.assigned_id,
-          reporting_period: selectedPeriod
-        })
+        body: JSON.stringify({ tenant_id: session.assigned_id })
       });
       const data = await res.json();
       if (data) {
@@ -69,43 +57,7 @@ export const ArchdeaconryDashboard: React.FC<ArchdeaconryDashboardProps> = ({ se
 
   useEffect(() => {
     fetchArchdeaconryData();
-  }, [session.assigned_id, selectedPeriod]);
-
-
-  // 👔 Archdeaconry Regional Remanding Workspace (Section 8 Control)
-  const handleRequestModification = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedParishLog || !correctionReason.trim()) return;
-
-    setSubmittingCorrection(true);
-    try {
-      const res = await fetch('https://n8n.tenear.com/webhook/ack-archdeacon-modify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          metrics_log_id: selectedParishLog.metrics_log_id,
-          archdeacon_user_id: session.user_id,
-          tenant_id: session.assigned_id,
-          parish_id: selectedParishLog.parish_id,
-          feedback_notes: correctionReason,
-          action_intent: 'CORRECTION_REQUESTED'
-        })
-      });
-
-      if (res.ok) {
-        alert(`Correction request successfully dispatched to ${selectedParishLog.parish_name} workspace.`);
-        setSelectedParishLog(null);
-        setCorrectionReason('');
-        fetchArchdeaconryData(); // Refreshes state table changes
-      } else {
-        alert("Workflow exception encountered. Verify middleware connection parameters.");
-      }
-    } catch (err) {
-      console.error("Critical failure executing regional oversight rollback:", err);
-    } finally {
-      setSubmittingCorrection(false);
-    }
-  };
+  }, [session.assigned_id]);
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 sm:p-6 pb-12">
