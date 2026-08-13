@@ -14,8 +14,31 @@ interface AuditLog {
   action_type: string;
   actor_name: string;
   change_justification: string;
+  reason_provided: string; // Added from updated SQL
+  ip_address: string;
   created_at: string;
 }
+
+// ⏱️ Idea 3 Utility: Converts timestamps seamlessly into humanized relative time strings
+const formatRelativeTime = (timestampString: string): string => {
+  try {
+    const logDate = new Date(timestampString);
+    if (isNaN(logDate.getTime())) return timestampString; // Fallback to raw string if invalid
+
+    const now = new Date();
+    const diffMs = now.getTime() - logDate.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 6000);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  } catch (e) {
+    return timestampString;
+  }
+};
 
 export const DiocesanIctAdminDashboard: React.FC<DiocesanIctAdminProps> = ({ session, onLogout }) => {
   const [activeModal, setActiveModal] = useState<'NONE' | 'ARCHDEACONRY' | 'PARISH' | 'USER'>('NONE');
@@ -204,20 +227,37 @@ transition-colors">
             </div>
           ) : (
             <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1 font-mono text-[11px]">
-              {auditLogs.map((log) => (
-                <div key={log.id} className="p-2.5 border border-slate-800/60 rounded-lg bg-slate-950/60 flex items-start justify-between gap-3 hover:bg-slate-950 transition-colors">
-                  <div className="space-y-0.5">
-                    <span className="text-blue-400 font-bold uppercase text-[10px] bg-blue-950/50 border border-blue-900/30 px-1.5 py-0.5 rounded mr-1.5">
-                      {log.action_type}
+              {auditLogs.map((log) => {
+                // 🚀 Idea 1: Compute custom, semantic tailwind layout rules based on target database actions
+                let badgeStyles = 'text-blue-400 bg-blue-950/50 border-blue-900/40';
+                if (log.action_type === 'INSERT') badgeStyles = 'text-emerald-400 bg-emerald-950/50 border-emerald-900/40';
+                if (log.action_type === 'UPDATE') badgeStyles = 'text-amber-500 bg-amber-950/50 border-amber-900/40';
+                if (log.action_type === 'DELETE') badgeStyles = 'text-rose-400 bg-rose-950/50 border-rose-900/40';
+
+                return (
+                  <div key={log.id} className="p-2.5 border border-slate-800/60 rounded-lg bg-slate-950/60 flex items-start justify-between gap-3 hover:bg-slate-950 transition-colors">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={`font-bold uppercase text-[9px] border px-1.5 py-0.5 rounded tracking-wide ${badgeStyles}`}>
+                          {log.action_type}
+                        </span>
+                        <span className="text-slate-300 font-semibold">{log.change_justification}</span>
+                      </div>
+                      
+                      {/* 🚀 Idea 2: Surface complete, statutory audit contexts beneath the event tracking path */}
+                      <div className="text-[9px] text-slate-500 space-y-0.5 pt-0.5">
+                        <p>Authorized Actor Context: <span className="text-slate-400">{log.actor_name}</span> <span className="text-slate-600">|</span> Node IP: <span className="text-slate-400">{log.ip_address}</span></p>
+                        <p className="italic text-slate-500">Reason: <span className="text-slate-400/90 font-sans">{log.reason_provided}</span></p>
+                      </div>
+                    </div>
+
+                    {/* 🚀 Idea 3: Swap raw string timestamps with your structural time utility formatter */}
+                    <span className="text-[9px] text-slate-500 font-bold whitespace-nowrap bg-slate-900/60 border border-slate-800/40 px-1.5 py-0.5 rounded">
+                      {formatRelativeTime(log.created_at)}
                     </span>
-                    <span className="text-slate-300 font-semibold">{log.change_justification}</span>
-                    <p className="text-[9px] text-slate-500 mt-1">Authorized Actor Context: <span className="text-slate-400">{log.actor_name}</span></p>
                   </div>
-                  <span className="text-[9px] text-slate-600 font-bold whitespace-nowrap">
-                    {new Date(log.created_at).toLocaleTimeString()}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
