@@ -45,7 +45,7 @@ export const DiocesanIctAdminDashboard: React.FC<DiocesanIctAdminProps> = ({ ses
       : { type, name: parishName, parent_tenant_id: parseInt(parentArchdeaconryId, 10), diocese_id: session.assigned_id };
 
     try {
-      const res = await fetch('https://tenear.com', {
+      const res = await fetch('https://n8n.tenear.com/webhook/diocese-ict-create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
