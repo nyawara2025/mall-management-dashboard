@@ -87,7 +87,12 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
 
       // 🛡️ ROLE COMPLIANCE GUARD: Divert the Central IT System Administrator to their Data Hub Portal
       if (session.role.toUpperCase().includes('DIOCESAN_OFFICIAL')) {
-        return <DiocesanIctAdminDashboard session={session} />;
+        return (
+          <DiocesanIctAdminDashboard 
+            session={session} 
+            onLogout={onLogout}
+          />
+        );
       }
 
       // 👑 DEFAULT PATHWAY: Route the Bishop to the Read-Only Strategic Monitoring View Canvas

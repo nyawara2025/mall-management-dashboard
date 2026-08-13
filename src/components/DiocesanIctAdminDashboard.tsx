@@ -3,9 +3,10 @@ import { Shield, Layers, PlusCircle, RefreshCw, Server, CheckCircle, Database, U
 
 interface DiocesanIctAdminProps {
   session: { assigned_id: number; name: string; role: string };
+  onLogout: () => void;
 }
 
-export const DiocesanIctAdminDashboard: React.FC<DiocesanIctAdminProps> = ({ session }) => {
+export const DiocesanIctAdminDashboard: React.FC<DiocesanIctAdminProps> = ({ session, onLogout }) => {
   const [activeModal, setActiveModal] = useState<'NONE' | 'ARCHDEACONRY' | 'PARISH' | 'USER'>('NONE');
   const [syncing, setSyncing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -144,6 +145,16 @@ border-slate-600">
           <button onClick={fetchHierarchyStats} disabled={syncing} className="p-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-300 hover:bg-slate-600">
             <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
           </button>
+
+          {/* 🔒 SECURITY HANDOVER COMPLIANCE: Centralized Session Wipe Utility */}
+          <button 
+            onClick={onLogout}
+            className="bg-red-950/40 hover:bg-red-900/60 border border-red-900/50 text-red-400 font-black text-[10px] tracking-wider px-3 py-2 rounded-lg uppercase flex items-center gap-1.5 transition-colors 
+shadow-xs"
+          >
+            Sign Out
+          </button>
+
         </div>
       </header>
 
