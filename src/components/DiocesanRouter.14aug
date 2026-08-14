@@ -5,7 +5,7 @@ import { ArchdeaconryDashboard } from './ArchdeaconryDashboard';
 import { BishopDiocesanRadar } from './BishopDiocesanRadar';
 import { DiocesanAuthNode } from './DiocesanAuthNode';
 import { DiocesanIctAdminDashboard } from './DiocesanIctAdminDashboard';
-import { ParishIctAdminDashboard } from './ParishIctAdminDashboard';
+
 
 interface DiocesanUserSession {
   user_id: number;
@@ -73,21 +73,6 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
         />
       );
     case 'ARCHDEACONRY':
-
-      // 🛡️ ROLE COMPLIANCE GUARD: Divert the local IT Admin away from operational data panels
-      if (session.role.toUpperCase() === 'ICT_SYS_ADMIN') {
-        return (
-          <ParishIctAdminDashboard 
-            session={session} 
-            onLogout={() => {
-              localStorage.clear();
-              onLogout();
-              window.location.href = 'https://acknairobidiocese.pages.dev';
-            }} 
-          />
-        );
-      }
-
       return (
         <ArchdeaconryDashboard 
           session={session} 
