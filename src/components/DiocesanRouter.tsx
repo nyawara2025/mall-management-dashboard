@@ -101,7 +101,7 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
     case 'DIOCESE':
 
       // 🛡️ ROLE COMPLIANCE GUARD: Divert the Central IT System Administrator to their Data Hub Portal
-      if (session.role.toUpperCase().includes('DIOCESAN_OFFICIAL')) {
+      if (session.role.toUpperCase().includes('ICT_SYS_ADMIN')) {
         return (
           <DiocesanIctAdminDashboard 
             session={session} 
