@@ -62,6 +62,17 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
         />
       );
     case 'PARISH':
+
+      // 🛡️ ROLE COMPLIANCE GUARD: Flexible string inclusion check matching the Diocese logic
+      if (session.role.toUpperCase().includes('ICT_SYS_ADMIN')) {
+        return (
+          <ParishIctAdminDashboard 
+            session={session} 
+            onLogout={onLogout} 
+          />
+        );
+      }
+
       return (
         <ParishERPDashboard 
           session={session} 
@@ -73,21 +84,6 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
         />
       );
     case 'ARCHDEACONRY':
-
-      // 🛡️ ROLE COMPLIANCE GUARD: Divert the local IT Admin away from operational data panels
-      if (session.role.toUpperCase() === 'ICT_SYS_ADMIN') {
-        return (
-          <ParishIctAdminDashboard 
-            session={session} 
-            onLogout={() => {
-              localStorage.clear();
-              onLogout();
-              window.location.href = 'https://acknairobidiocese.pages.dev';
-            }} 
-          />
-        );
-      }
-
       return (
         <ArchdeaconryDashboard 
           session={session} 
