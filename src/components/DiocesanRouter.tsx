@@ -68,7 +68,11 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
         return (
           <ParishIctAdminDashboard 
             session={session} 
-            onLogout={onLogout} 
+            onLogout={() => {
+              localStorage.clear(); // 🚀 Wipes out all old sessions instantly
+              onLogout();
+              window.location.href = 'https://acknairobidiocese.pages.dev';
+            }}
           />
         );
       }
@@ -101,7 +105,11 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
         return (
           <DiocesanIctAdminDashboard 
             session={session} 
-            onLogout={onLogout}
+            onLogout={() => {
+              localStorage.clear();
+              onLogout();
+              window.location.href = 'https://acknairobidiocese.pages.dev';
+            }}
           />
         );
       }
