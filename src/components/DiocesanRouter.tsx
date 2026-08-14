@@ -6,6 +6,8 @@ import { BishopDiocesanRadar } from './BishopDiocesanRadar';
 import { DiocesanAuthNode } from './DiocesanAuthNode';
 import { DiocesanIctAdminDashboard } from './DiocesanIctAdminDashboard';
 import { ParishIctAdminDashboard } from './ParishIctAdminDashboard';
+import { ParishTreasurerPortal } from './ParishTreasurerPortal';
+
 
 interface DiocesanUserSession {
   user_id: number;
@@ -70,6 +72,20 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
             session={session} 
             onLogout={() => {
               localStorage.clear(); // 🚀 Wipes out all old sessions instantly
+              onLogout();
+              window.location.href = 'https://acknairobidiocese.pages.dev';
+            }}
+          />
+        );
+      }
+
+      // 💰 TREASURER PORTAL GUARD: Isolate the specialized Financial Return Workspace
+      if (session.role.toUpperCase().includes('TREASURER') || session.role.toUpperCase().includes('FINANCE')) {
+        return (
+          <ParishTreasurerPortal 
+            session={session} 
+            onLogout={() => {
+              localStorage.clear();
               onLogout();
               window.location.href = 'https://acknairobidiocese.pages.dev';
             }}
