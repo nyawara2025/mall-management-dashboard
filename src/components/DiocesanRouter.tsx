@@ -8,6 +8,8 @@ import { DiocesanIctAdminDashboard } from './DiocesanIctAdminDashboard';
 import { ParishIctAdminDashboard } from './ParishIctAdminDashboard';
 import { ParishTreasurerPortal } from './ParishTreasurerPortal';
 import { ParishPccDashboard } from './ParishPccDashboard';
+import { MinistryLeaderDashboard } from './MinistryLeaderDashboard';
+
 
 interface DiocesanUserSession {
   user_id: number;
@@ -83,6 +85,19 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
       if (session.role.toUpperCase().includes('TREASURER') || session.role.toUpperCase().includes('FINANCE')) {
         return (
           <ParishTreasurerPortal 
+            session={session} 
+            onLogout={() => {
+              localStorage.clear();
+              onLogout();
+              window.location.href = 'https://acknairobidiocese.pages.dev';
+            }}
+          />
+        );
+      }
+
+      if (session.role.toUpperCase().includes('MINISTRY') || session.role.toUpperCase().includes('LEADER')) {
+        return (
+          <MinistryLeaderDashboard 
             session={session} 
             onLogout={() => {
               localStorage.clear();
