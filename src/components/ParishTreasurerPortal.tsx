@@ -190,9 +190,6 @@ export const ParishTreasurerPortal: React.FC<PortalProps> = ({ session, onLogout
           </div>
         </div>
         <div className="flex items-center gap-2 self-end sm:self-auto">
-          <button onClick={() => setLogFormOpen(true)} className="bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5 shadow-xs">
-            📋 Log Statutory Return
-          </button>
           <button onClick={synchronizeFinancials} disabled={refreshing} className="p-2 border border-slate-200 rounded-xl bg-slate-50 text-slate-600"><RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} /></button>
           <button onClick={onLogout} className="bg-red-50 hover:bg-red-100 border border-red-200 text-red-600 font-black text-[10px] tracking-wider px-3 py-2 rounded-xl uppercase flex items-center gap-1.5"><LogOut className="w-3.5 h-3.5" /> Sign Out</button>
         </div>
