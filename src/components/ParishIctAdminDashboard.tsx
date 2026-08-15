@@ -64,6 +64,9 @@ export const ParishIctAdminDashboard: React.FC<ParishIctAdminProps> = ({ session
   const [serviceRecurrenceDay, setServiceRecurrenceDay] = useState('Sunday');
   const [serviceStartTime, setServiceStartTime] = useState('08:00');
 
+  // 1. Append a new array state to house the fetched local users list
+  const [parishUsersList, setParishUsersList] = useState<{ id: string; full_name: string; user_role: string }[]>([]);
+
   const fetchParishTelemetry = async () => {
     setSyncing(true);
     try {
@@ -88,7 +91,28 @@ export const ParishIctAdminDashboard: React.FC<ParishIctAdminProps> = ({ session
     }
   };
 
-  useEffect(() => { fetchParishTelemetry(); }, []);
+  useEffect(() => { 
+    fetchParishTelemetry(); 
+    fetchParishUsers();
+  }, []);
+
+
+  // 2. Add an auxiliary data hydration method to fetch users on lifecycle initialization or modal trigger
+  const fetchParishUsers = async () => {
+    try {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-fetch-parish-users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tenant_id: session.assigned_id })
+      });
+      const data = await res.json();
+      if (res.ok && data.users) {
+        setParishUsersList(data.users);
+      }
+    } catch (err) {
+      console.error("Failed fetching active church user registry profiles:", err);
+    }
+  };
 
   const handleProvisionLocalUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -407,8 +431,19 @@ export const ParishIctAdminDashboard: React.FC<ParishIctAdminProps> = ({ session
               </div>
               <div>
                 <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Assigned Lay Leader / Chairperson</label>
-                <input type="text" placeholder="e.g., Elder Samuel Otieno" required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none" value={ministryLeaderName} onChange={e => 
-setMinistryLeaderName(e.target.value)} />
+                <select 
+                  required 
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none" 
+                  value={ministryLeaderName} 
+                  onChange={e => setMinistryLeaderName(e.target.value)}
+                >
+                  <option value="">-- Select Active Congregation Leader --</option>
+                  {parishUsersList.map((user) => (
+                    <option key={user.id} value={user.full_name}>
+                      {user.full_name} ({user.user_role.replace('_', ' ')})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex gap-2 justify-end pt-2">
