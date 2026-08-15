@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Shield, UserPlus, RefreshCw, Server, CheckCircle, 
-  Database, X, Terminal, ShieldAlert, Wifi, Activity, Key, Plus, Users, Calendar
+  Database, X, Terminal, ShieldAlert, Wifi, Activity, Key
 } from 'lucide-react';
 
 interface ParishIctAdminProps {
@@ -38,8 +38,7 @@ const formatRelativeTime = (timestampString: string): string => {
 };
 
 export const ParishIctAdminDashboard: React.FC<ParishIctAdminProps> = ({ session, onLogout }) => {
-  // 🔄 Unified Modal State Machine extended to prevent structural overlap
-  const [activeModal, setActiveModal] = useState<'NONE' | 'USER' | 'MINISTRY' | 'SERVICE'>('NONE');
+  const [activeModal, setActiveModal] = useState<'NONE' | 'USER'>('NONE');
   const [syncing, setSyncing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
@@ -52,17 +51,6 @@ export const ParishIctAdminDashboard: React.FC<ParishIctAdminProps> = ({ session
   const [userPhoneNumber, setUserPhoneNumber] = useState('');
   const [userRole, setUserRole] = useState('');
   const [generatedCredentials, setGeneratedCredentials] = useState<{ name: string; phone: string; pass: string } | null>(null);
-
-  // 🧱 Diocese Core MVP State additions for Ministries
-  const [ministryName, setMinistryName] = useState('');
-  const [ministryClassification, setMinistryClassification] = useState('CUSTOM'); // MU, KAMA, NDYM, SUNDAY_SCHOOL, CHOIR, CUSTOM
-  const [ministryLeaderName, setMinistryLeaderName] = useState('');
-
-  // 🧱 Diocese Core MVP State additions for Liturgical Services
-  const [serviceName, setServiceName] = useState('');
-  const [serviceLiturgicalMode, setServiceLiturgicalMode] = useState('HOLY_COMMUNION'); // HOLY_COMMUNION, MORNING_PRAYER, YOUTH_SERVICE, MID_WEEK
-  const [serviceRecurrenceDay, setServiceRecurrenceDay] = useState('Sunday');
-  const [serviceStartTime, setServiceStartTime] = useState('08:00');
 
   const fetchParishTelemetry = async () => {
     setSyncing(true);
@@ -128,75 +116,6 @@ export const ParishIctAdminDashboard: React.FC<ParishIctAdminProps> = ({ session
     }
   };
 
-  // 🧩 Handler for structural creation of canonical groups
-  const handleCreateMinistry = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-
-    const payload = {
-      parish_id: session.assigned_id,
-      name: ministryName.trim(),
-      classification: ministryClassification,
-      leader_name: ministryLeaderName.trim()
-    };
-
-    try {
-      const res = await fetch('https://n8n.tenear.com/webhook/ack-create-ministry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        alert("Ministry group mapping committed successfully.");
-        setMinistryName(''); setMinistryLeaderName('');
-        setActiveModal('NONE');
-        fetchParishTelemetry();
-      } else {
-        alert(data.message || "Failed creating parish ministry mapping.");
-      }
-    } catch (err) {
-      console.error("Ministry configuration initialization failure:", err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // 🧩 Handler for setting up structural liturgical configurations
-  const handleCreateService = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-
-    const payload = {
-      parish_id: session.assigned_id,
-      name: serviceName.trim(),
-      liturgical_mode: serviceLiturgicalMode,
-      recurrence_day: serviceRecurrenceDay,
-      start_time: serviceStartTime
-    };
-
-    try {
-      const res = await fetch('https://n8n.tenear.com/webhook/ack-create-service', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        alert("Liturgical schedule configuration saved.");
-        setServiceName('');
-        setActiveModal('NONE');
-        fetchParishTelemetry();
-      } else {
-        alert(data.message || "Failed saving liturgical system parameters.");
-      }
-    } catch (err) {
-      console.error("Service schedule modification failure:", err);
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 font-sans">
       {/* 👑 PARISH CONTROL TOP BAR */}
@@ -208,19 +127,11 @@ export const ParishIctAdminDashboard: React.FC<ParishIctAdminProps> = ({ session
             <p className="text-[11px] font-bold text-slate-500 uppercase">Tier 4 Local Node System Administrator Workspace</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <button onClick={() => { setGeneratedCredentials(null); setActiveModal('USER'); }} className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all shadow-md">
+        <div className="flex items-center gap-2">
+          <button onClick={() => { setGeneratedCredentials(null); setActiveModal('USER'); }} className="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-lg flex items-center gap-1.5 
+transition-all shadow-md">
             <UserPlus className="w-3.5 h-3.5" /> + Provision Staff
           </button>
-          
-          {/* Added target entry buttons to drive new features */}
-          <button onClick={() => setActiveModal('MINISTRY')} className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all shadow-md">
-            <Users className="w-3.5 h-3.5" /> + New Ministry
-          </button>
-          <button onClick={() => setActiveModal('SERVICE')} className="bg-violet-600 hover:bg-violet-700 text-white text-[10px] font-black uppercase tracking-wider px-3 py-2 rounded-lg flex items-center gap-1.5 transition-all shadow-md">
-            <Calendar className="w-3.5 h-3.5" /> + Setup Service
-          </button>
-
           <button onClick={fetchParishTelemetry} disabled={syncing} className="p-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-300 hover:bg-slate-700">
             <RefreshCw className={`w-3.5 h-3.5 ${syncing ? 'animate-spin' : ''}`} />
           </button>
@@ -338,11 +249,13 @@ export const ParishIctAdminDashboard: React.FC<ParishIctAdminProps> = ({ session
               <form onSubmit={handleProvisionLocalUser} className="space-y-4">
                 <div>
                   <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Full Identity Name</label>
-                  <input type="text" placeholder="e.g., Jane Wanjiku" required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none" value={userFullName} onChange={e => setUserFullName(e.target.value)} />
+                  <input type="text" placeholder="e.g., Jane Wanjiku" required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none" value={userFullName} onChange={e => 
+setUserFullName(e.target.value)} />
                 </div>
                 <div>
                   <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Mobile Contact Phone</label>
-                  <input type="text" placeholder="e.g., 0712345678" required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none" value={userPhoneNumber} onChange={e => setUserPhoneNumber(e.target.value)} />
+                  <input type="text" placeholder="e.g., 0712345678" required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none" value={userPhoneNumber} onChange={e => 
+setUserPhoneNumber(e.target.value)} />
                 </div>
                 <div>
                   <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Assigned Local Role</label>
@@ -378,94 +291,6 @@ export const ParishIctAdminDashboard: React.FC<ParishIctAdminProps> = ({ session
                 </button>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* 🟢 MODAL REGISTRATION FOR DIOCESAN MINISTRIES */}
-      {activeModal === 'MINISTRY' && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 w-full max-w-md shadow-2xl relative">
-            <button onClick={() => setActiveModal('NONE')} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X className="w-4 h-4" /></button>
-            <h3 className="text-xs font-black text-emerald-400 uppercase tracking-wider mb-4 flex items-center gap-1.5"><Users className="w-4 h-4" /> Form Parish Ministry / Group</h3>
-            
-            <form onSubmit={handleCreateMinistry} className="space-y-4">
-              <div>
-                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Ministry Form Classification</label>
-                <select required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none" value={ministryClassification} onChange={e => setMinistryClassification(e.target.value)}>
-                  <option value="MU">Mothers' Union (MU)</option>
-                  <option value="KAMA">Kenya Anglican Men's Association (KAMA)</option>
-                  <option value="NDYM">Nairobi Diocesan Youth Ministry (NDYM)</option>
-                  <option value="SUNDAY_SCHOOL">Sunday School & Children Ministry</option>
-                  <option value="CHOIR">Praise & Worship / Choir</option>
-                  <option value="CUSTOM">Localized Special Action Committee</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Custom Display Title</label>
-                <input type="text" placeholder="e.g., St. Mark's KAMA Choir" required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none" value={ministryName} onChange={e => setMinistryName(e.target.value)} />
-              </div>
-              <div>
-                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Assigned Lay Leader / Chairperson</label>
-                <input type="text" placeholder="e.g., Elder Samuel Otieno" required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none" value={ministryLeaderName} onChange={e => 
-setMinistryLeaderName(e.target.value)} />
-              </div>
-
-              <div className="flex gap-2 justify-end pt-2">
-                <button type="button" onClick={() => setActiveModal('NONE')} className="px-4 py-2 border border-slate-700 rounded-lg text-slate-500 text-xs font-bold hover:bg-slate-800">Cancel</button>
-                <button type="submit" disabled={submitting} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-white text-xs font-black uppercase tracking-wider">
-                  {submitting ? 'Saving...' : 'Initialize Ministry'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 🟣 MODAL CONFIGURATION FOR LITURGICAL SERVICES */}
-      {activeModal === 'SERVICE' && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 w-full max-w-md shadow-2xl relative">
-            <button onClick={() => setActiveModal('NONE')} className="absolute top-4 right-4 text-slate-500 hover:text-white"><X className="w-4 h-4" /></button>
-            <h3 className="text-xs font-black text-violet-400 uppercase tracking-wider mb-4 flex items-center gap-1.5"><Calendar className="w-4 h-4" /> Setup Liturgical Service Schedule</h3>
-            
-            <form onSubmit={handleCreateService} className="space-y-4">
-              <div>
-                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Liturgical Service Mode</label>
-                <select required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none" value={serviceLiturgicalMode} onChange={e => setServiceLiturgicalMode(e.target.value)}>
-                  <option value="HOLY_COMMUNION">Holy Communion Service</option>
-                  <option value="MORNING_PRAYER">Morning Prayer Service</option>
-                  <option value="YOUTH_SERVICE">Teens & Youth Specialized Service</option>
-                  <option value="MID_WEEK">Mid-Week Congregational Fellowship</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Service Label Description</label>
-                <input type="text" placeholder="e.g., First English Service" required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none" value={serviceName} onChange={e => setServiceName(e.target.value)} />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Recurrence Day</label>
-                  <select required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none" value={serviceRecurrenceDay} onChange={e => setServiceRecurrenceDay(e.target.value)}>
-                    <option value="Sunday">Sunday</option>
-                    <option value="Wednesday">Wednesday</option>
-                    <option value="Friday">Friday</option>
-                    <option value="Saturday">Saturday</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Start Time</label>
-                  <input type="time" required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none font-mono" value={serviceStartTime} onChange={e => setServiceStartTime(e.target.value)} />
-                </div>
-              </div>
-
-              <div className="flex gap-2 justify-end pt-2">
-                <button type="button" onClick={() => setActiveModal('NONE')} className="px-4 py-2 border border-slate-700 rounded-lg text-slate-500 text-xs font-bold hover:bg-slate-800">Cancel</button>
-                <button type="submit" disabled={submitting} className="px-4 py-2 bg-violet-600 hover:bg-violet-700 rounded-lg text-white text-xs font-black uppercase tracking-wider">
-                  {submitting ? 'Saving...' : 'Commit Schedule'}
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}
