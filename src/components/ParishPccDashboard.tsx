@@ -22,7 +22,7 @@ export const ParishPccDashboard: React.FC<GovernanceProps> = ({ session, onLogou
   const syncGovernanceReviewData = async () => {
     setRefreshing(true);
     try {
-      const res = await fetch('https://n8n.tenear.com/webhook/ack-pcc-fetch', {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-sync-financials', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tenant_id: session.assigned_id })
