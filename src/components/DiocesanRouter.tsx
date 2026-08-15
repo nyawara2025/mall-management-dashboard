@@ -9,7 +9,7 @@ import { ParishIctAdminDashboard } from './ParishIctAdminDashboard';
 import { ParishTreasurerPortal } from './ParishTreasurerPortal';
 import { ParishPccDashboard } from './ParishPccDashboard';
 import { MinistryLeaderDashboard } from './MinistryLeaderDashboard';
-
+import { DiocesanDepartmentDashboard } from './DiocesanDepartmentDashboard';
 
 interface DiocesanUserSession {
   user_id: number;
@@ -159,12 +159,25 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
         );
       }
 
-      // 👑 DEFAULT PATHWAY: Route the Bishop to the Read-Only Strategic Monitoring View Canvas
+      // 👑 EXECUTIVE OFFICE GATEWAY: Route the Bishop to the Read-Only Strategic Monitoring Radar Canvas
+      if (session.role.toUpperCase() === 'BISHOP') {
+        return (
+          <BishopDiocesanRadar 
+            session={session} 
+            isBishop={true}
+            onLogout={() => {
+              localStorage.clear();
+              onLogout();
+              window.location.href = 'https://acknairobidiocese.pages.dev';
+            }} 
+          />
+        );
+      }
 
+      // 🏢 CENTRAL MANAGEMENT OFFICE GATEWAY: Route all other Diocese Officials (Finance, Secretaries, Dept Heads)
       return (
-        <BishopDiocesanRadar 
+        <DiocesanDepartmentDashboard 
           session={session} 
-          isBishop={session.role === 'BISHOP'}
           onLogout={() => {
             localStorage.clear();
             onLogout();
@@ -172,6 +185,7 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
           }} 
         />
       );
+
     default:
       return <div className="p-6 text-red-600 font-bold">Unauthorized System Access Profile Level Exception.</div>;
   }
