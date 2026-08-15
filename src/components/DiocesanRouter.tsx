@@ -7,7 +7,7 @@ import { DiocesanAuthNode } from './DiocesanAuthNode';
 import { DiocesanIctAdminDashboard } from './DiocesanIctAdminDashboard';
 import { ParishIctAdminDashboard } from './ParishIctAdminDashboard';
 import { ParishTreasurerPortal } from './ParishTreasurerPortal';
-
+import { ParishPccDashboard } from './ParishPccDashboard';
 
 interface DiocesanUserSession {
   user_id: number;
@@ -83,6 +83,20 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
       if (session.role.toUpperCase().includes('TREASURER') || session.role.toUpperCase().includes('FINANCE')) {
         return (
           <ParishTreasurerPortal 
+            session={session} 
+            onLogout={() => {
+              localStorage.clear();
+              onLogout();
+              window.location.href = 'https://acknairobidiocese.pages.dev';
+            }}
+          />
+        );
+      }
+
+      // ⚖️ GOVERNANCE COUNCIL GUARD: Isolate Read-Only Strategic Reviews
+      if (session.role.toUpperCase().includes('PCC_MEMBER') || session.role.toUpperCase().includes('COUNCIL')) {
+        return (
+          <ParishPccDashboard 
             session={session} 
             onLogout={() => {
               localStorage.clear();

@@ -262,8 +262,10 @@ setUserPhoneNumber(e.target.value)} />
                   <select required className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-white focus:outline-none" value={userRole} onChange={e => setUserRole(e.target.value)}>
                     <option value="">-- Select Functional Role --</option>
                     <option value="VICAR">VICAR (Local Node Approver)</option>
-                    <option value="TREASURER">PARISH_TREASURER (Financials Data Clerk)</option>
+                    <option value="PARISH TREASURER">PARISH_TREASURER (Financials Officer)</option>
                     <option value="PARISH_ADMIN">PARISH_ADMIN (General Operations Clerk)</option>
+                    <option value="MINISTRY_LEADER">MINISTRY_LEADER (Department Head)</option>
+                    <option value="PCC_MEMBER">PCC_MEMBER (Read-Only Council Member)</option>
                   </select>
                 </div>
                 
