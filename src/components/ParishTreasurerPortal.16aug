@@ -45,7 +45,6 @@ interface PortalProps {
     role: string;
     assigned_id: number;
     user_id: number;
-    organization_name: string;
   };
   onLogout: () => void;
 }
@@ -61,7 +60,7 @@ export const ParishTreasurerPortal: React.FC<PortalProps> = ({ session, onLogout
 
   // Mandatory High-Compliance Entry Fields
   const [period, setPeriod] = useState('2026-W31');
-  const [selectedChurchName, setSelectedChurchName] = useState(session.organization_name?.toUpperCase() || '');
+  const [selectedChurchName, setSelectedChurchName] = useState('ACK ST. BARNABAS, OTIENDE PARISH COUNCIL OFFICE');
   const [attChildren, setAttChildren] = useState('');
   const [attYouth, setAttYouth] = useState('');
   const [attAdults, setAttAdults] = useState('');
@@ -186,12 +185,8 @@ export const ParishTreasurerPortal: React.FC<PortalProps> = ({ session, onLogout
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-blue-700 rounded-xl flex items-center justify-center text-white shadow-md"><Layers className="w-5 h-5" /></div>
           <div>
-            <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">
-              {session.organization_name ? `${session.organization_name} ERP` : 'Parish Consolidated ERP'}
-            </h1>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-              {session.name.toUpperCase()} • <span className="text-blue-700">{session.role.replace('_', ' ')} PORTAL</span>
-            </p>
+            <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">Parish Consolidated ERP</h1>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{session.name} • <span className="text-blue-700">{session.role} Portal</span></p>
           </div>
         </div>
         <div className="flex items-center gap-2 self-end sm:self-auto">

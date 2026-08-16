@@ -17,7 +17,6 @@ interface DiocesanUserSession {
   role: string;
   tier_access: 'DAUGHTER_CHURCH' | 'PARISH' | 'ARCHDEACONRY' | 'DIOCESE';
   assigned_id: number;
-  organization_name?: string;
 }
 
 export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ onLogout }) => {
@@ -86,16 +85,12 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
       if (session.role.toUpperCase().includes('TREASURER') || session.role.toUpperCase().includes('FINANCE')) {
         return (
           <ParishTreasurerPortal 
-            session={{
-              ...session,
-              // Filled Gap: Ensures organization_name is defined for the compiler, defaulting smoothly
-              organization_name: session.organization_name || "ACK St. Barnabas, Otiende Parish"
-            }}
+            session={session} 
             onLogout={() => {
               localStorage.clear();
               onLogout();
               window.location.href = 'https://acknairobidiocese.pages.dev';
-            }}   
+            }}
           />
         );
       }
