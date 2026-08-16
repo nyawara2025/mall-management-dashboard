@@ -43,6 +43,7 @@ export const DiocesanAuthNode: React.FC<AuthNodeProps> = ({ onAuthSuccess }) => 
         localStorage.setItem('ack_erp_user_role', String(dynamicRole).toUpperCase().trim());
         localStorage.setItem('ack_erp_phone', phone.trim());
         localStorage.setItem('ack_erp_user_id', String(data.user.id));
+        localStorage.setItem('ack_erp_organization_name', String(data.user.organization_name));
 
         onAuthSuccess(); // Fire callback to shift the layout viewport
       } else {
