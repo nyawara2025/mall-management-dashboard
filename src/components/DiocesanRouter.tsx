@@ -34,13 +34,18 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
     // 🧠 INJECT THIS LINE: Extract your user primary account record key index dynamically
     const cachedUserId = localStorage.getItem('ack_erp_user_id');
 
+    // 🌟 ADDED LINE 1: Pull the institution/church name profile saved during auth
+    const cachedOrgName = localStorage.getItem('ack_erp_organization_name');
+
     if (cachedTier && cachedId && cachedUserId) {
       setSession({
         user_id: parseInt(cachedUserId, 10),
         name: cachedName || 'Church Official',
         role: cachedRole || 'MEMBER',
         tier_access: cachedTier,
-        assigned_id: parseInt(cachedId, 10)
+        assigned_id: parseInt(cachedId, 10),
+        // 🌟 ADDED LINE 2: Inject the property cleanly into your component session state array
+        organization_name: cachedOrgName || undefined
       });
     }
     setLoading(false);
