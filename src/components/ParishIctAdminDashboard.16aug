@@ -5,12 +5,7 @@ import {
 } from 'lucide-react';
 
 interface ParishIctAdminProps {
-  session: { 
-    assigned_id: number; 
-    name: string; 
-    role: string;
-    organization_name: string; // 👈 ADD THIS LINE HERE
-  };
+  session: { assigned_id: number; name: string; role: string };
   onLogout: () => void;
 }
 
@@ -233,12 +228,8 @@ export const ParishIctAdminDashboard: React.FC<ParishIctAdminProps> = ({ session
         <div className="flex items-center gap-3">
           <div className="bg-blue-600 p-2.5 rounded-xl shadow-inner"><Shield className="w-5 h-5 text-white" /></div>
           <div>
-            <h1 className="text-sm font-black tracking-wider uppercase text-blue-400">
-              {session.organization_name ? session.organization_name.toUpperCase() : `ACK ${session.name.toUpperCase()} HUB`}
-            </h1>
-            <p className="text-[11px] font-bold text-slate-500 uppercase mt-0.5">
-              {session.name.toUpperCase()} • TIER 4 LOCAL NODE SYSTEM ADMINISTRATOR WORKSPACE
-            </p>
+            <h1 className="text-sm font-black tracking-wider uppercase text-blue-400">ACK {session.name} Hub</h1>
+            <p className="text-[11px] font-bold text-slate-500 uppercase">Tier 4 Local Node System Administrator Workspace</p>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">

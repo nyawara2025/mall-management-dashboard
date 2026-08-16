@@ -72,7 +72,10 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
       if (session.role.toUpperCase().includes('ICT_SYS_ADMIN')) {
         return (
           <ParishIctAdminDashboard 
-            session={session} 
+            session={{
+              ...session,
+              organization_name: session.organization_name || "ACK Parish Hub Workspace"
+            }} 
             onLogout={() => {
               localStorage.clear(); // 🚀 Wipes out all old sessions instantly
               onLogout();
