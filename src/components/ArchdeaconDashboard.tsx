@@ -23,16 +23,12 @@ export const ArchdeaconDashboard: React.FC<ArchdeaconProps> = ({ session, onLogo
   const [selectedParishId, setSelectedParishId] = useState<string | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
   
-  const [parishRanks, setParishRanks] = useState<ParishRank[]>([
-    { id: 'p-01', name: "ACK St. Matthews, Hardy", attendance: 468, collections: 2239002, remittance_paid: 335850.3, compliance_status: 'COMPLIANT' },
-    { id: 'p-02', name: "ACK All Saints, Karen", attendance: 310, collections: 1150000, remittance_paid: 172500.0, compliance_status: 'FLAGGED' },
-    { id: 'p-03', name: "ACK St. Barnabas, Otiende", attendance: 0, collections: 0, remittance_paid: 0, compliance_status: 'OVERDUE' }
-  ]);
+  const [parishRanks, setParishRanks] = useState<ParishRank[]>([]);
 
   const fetchRegionalMetrics = async () => {
     setSyncing(true);
     try {
-      const res = await fetch('https://tenear.com', {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-archdeaconry-fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ archdeaconry_id: session.assigned_id, user_id: session.user_id })
@@ -48,6 +44,10 @@ export const ArchdeaconDashboard: React.FC<ArchdeaconProps> = ({ session, onLogo
     }
   };
 
+  useEffect(() => {
+    fetchRegionalMetrics();
+  }, [session.assigned_id]);
+
   const handleTriggerCorrection = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedParishId || !rejectionReason.trim()) {
@@ -55,7 +55,7 @@ export const ArchdeaconDashboard: React.FC<ArchdeaconProps> = ({ session, onLogo
       return;
     }
     try {
-      const res = await fetch('https://tenear.com', {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-archdeacon-modify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ parish_id: selectedParishId, reason: rejectionReason, auditor_id: session.user_id })
