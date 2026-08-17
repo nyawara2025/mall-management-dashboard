@@ -162,7 +162,10 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
       if (session.role.toUpperCase().includes('ICT_SYS_ADMIN')) {
         return (
           <DiocesanIctAdminDashboard 
-            session={session} 
+            session={{
+              ...session,
+              organization_name: session.organization_name || localStorage.getItem('ack_erp_organization_name') || "ACK Central Registry Hub"
+            }} 
             onLogout={() => {
               localStorage.clear();
               onLogout();
