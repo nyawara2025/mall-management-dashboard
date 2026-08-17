@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Terminal, RefreshCw, LogOut, Cpu, Wifi, Activity, ShieldAlert } from 'lucide-react';
+import { Terminal, RefreshCw, LogOut, Cpu, Wifi, Activity, ShieldAlert, X } from 'lucide-react';
 
 interface IctAdminProps {
   session: { 
@@ -26,6 +26,14 @@ export const ArchdeaconryIctDashboard: React.FC<IctAdminProps> = ({ session, onL
   const [syncing, setSyncing] = useState(false);
   const [pinging, setPinging] = useState(false);
   
+  // 🌟 ADD THESE LINES IMMEDIATELY BELOW THEM:
+  const [submitting, setSubmitting] = useState(false);
+  const [activeModal, setActiveModal] = useState<'NONE' | 'USER'>('NONE');
+  const [userFullName, setUserFullName] = useState('');
+  const [userPhoneNumber, setUserPhoneNumber] = useState('');
+  const [userRole, setUserRole] = useState('');
+  const [generatedCredentials, setGeneratedCredentials] = useState<{ name: string; phone: string; pass: string } | null>(null);
+
   // Infrastructure Telemetry States (Initialised to completely blank/neutral objects)
   const [telemetry, setTelemetry] = useState({
     clusterStatus: 'INITIALIZING...',
@@ -89,6 +97,41 @@ export const ArchdeaconryIctDashboard: React.FC<IctAdminProps> = ({ session, onL
   useEffect(() => { 
     fetchRegionalNetworkTelemetry(); 
   }, [session.assigned_id]);
+
+  const handleProvisionLocalUser = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setSubmitting(true);
+  setGeneratedCredentials(null);
+  try {
+    const res = await fetch('https://n8n.tenear.com/webhook/ack-provision-archdeaconry-user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tenant_id: session.assigned_id,
+        phone_number: userPhoneNumber.trim(),
+        full_name: userFullName.trim(),
+        user_role: userRole,
+        maker_id: session.user_id
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      setGeneratedCredentials({
+        name: userFullName.trim(),
+        phone: userPhoneNumber.trim(),
+        pass: data.generated_password || "ACK-TEMP-PASS"
+      });
+      setUserFullName(''); setUserPhoneNumber(''); setUserRole('');
+      fetchRegionalNetworkTelemetry();
+    } else {
+      alert(`Provisioning Failed: ${data.error || 'System transaction exception.'}`);
+    }
+  } catch (err) {
+    console.error("Account registration sequence error:", err);
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-6 font-mono selection:bg-blue-600 selection:text-white antialiased">
@@ -162,16 +205,31 @@ export const ArchdeaconryIctDashboard: React.FC<IctAdminProps> = ({ session, onL
         
         {/* LEFT COLUMN: LIVE SECURITY REGIONAL AUDIT TELEMETRY LOGS */}
         <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl shadow-2xl lg:col-span-2 flex flex-col">
+
+
           <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
             <span className="text-[10px] font-black tracking-widest text-blue-400 uppercase">Live Regional Audit Logs [system_audit_logs]</span>
-            <button 
-              onClick={handleTriggerNodeDiagnostics}
-              disabled={pinging}
-              className="text-[8px] bg-slate-950 hover:bg-blue-900/30 text-slate-400 hover:text-blue-400 px-2 py-1 rounded border border-slate-800 font-black uppercase transition-all tracking-wider"
-            >
-              {pinging ? 'RUNNING PROBE...' : 'EXE DIAGNOSTIC PING'}
-            </button>
+  
+            <div className="flex items-center gap-2"> {/* 🌟 Bundles actions together */}
+              <button 
+                type="button"
+                onClick={() => { setGeneratedCredentials(null); setActiveModal('USER'); }} // 🌟 Opens the modal
+                className="text-[8px] bg-blue-950/40 hover:bg-blue-900/40 border border-blue-800/50 text-blue-400 font-black uppercase px-2 py-1 rounded transition-all tracking-wider"
+              >
+                + EXE PROVISION PROBE
+              </button>
+
+              <button 
+                type="button"
+                onClick={handleTriggerNodeDiagnostics}
+                disabled={pinging}
+                className="text-[8px] bg-slate-950 hover:bg-blue-900/30 text-slate-400 hover:text-blue-400 px-2 py-1 rounded border border-slate-800 font-black uppercase transition-all tracking-wider"
+              >
+                {pinging ? 'RUNNING PROBE...' : 'EXE DIAGNOSTIC PING'}
+              </button>
+            </div>
           </div>
+
 
           <div className="space-y-3 flex-1 overflow-y-auto max-h-[340px] pr-1 scrollbar-thin scrollbar-thumb-slate-800">
             {auditLogs.length === 0 ? (
@@ -209,6 +267,79 @@ export const ArchdeaconryIctDashboard: React.FC<IctAdminProps> = ({ session, onL
         </div>
 
       </section>
+
+      {/* 🔐 STAFF PROVISIONING COMPLIANCE FORM OVERLAY MODAL */}
+      {activeModal === 'USER' && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 relative shadow-2xl">
+            <button 
+              onClick={() => { setActiveModal('NONE'); setGeneratedCredentials(null); }}
+              className="absolute top-4 right-4 text-slate-500 hover:text-slate-300"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <h3 className="text-xs font-black tracking-widest text-blue-400 uppercase mb-1">
+              Provision Regional Staff Node
+            </h3>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wide mb-4">
+              Onboard internal compliance auditors or strategy officers.
+            </p>
+
+            {!generatedCredentials ? (
+              <form onSubmit={handleProvisionLocalUser} className="space-y-4">
+                <div>
+                  <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Full Legal Name</label>
+                  <input 
+                    type="text" required value={userFullName} onChange={(e) => setUserFullName(e.target.value)}
+                    placeholder="e.g. Jane Doe"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-600 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Safaricom Mobile Number (For Webhook Verification)</label>
+                  <input 
+                    type="tel" required value={userPhoneNumber} onChange={(e) => setUserPhoneNumber(e.target.value)}
+                    placeholder="e.g. +2547XXXXXXXX"
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-600 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Assigned Operational Role Profile</label>
+                  <select 
+                    required value={userRole} onChange={(e) => setUserRole(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-400 focus:outline-none focus:border-blue-600 font-mono"
+                  >
+                    <option value="">Select Role Contract...</option>
+                    {/* Strict compliance rules: Only regional roles are visible here */}
+                    <option value="ARCHDEACONRY_FINANCE_AUDITOR">Regional Finance Auditor</option>
+                    <option value="ARCHDEACONRY_ME_OFFICER">Regional M&E / Strategy Officer</option>
+                    <option value="ARCHDEACONRY_SECRETARY">Regional Office Secretariat</option>
+                  </select>
+                </div>
+
+                <button 
+                  type="submit" disabled={submitting}
+                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white font-black text-[10px] tracking-widest uppercase p-3 rounded-xl transition-all shadow-md"
+                >
+                  {submitting ? 'EXECUTING TRANSACTION...' : 'COMMIT USER PROVISION'}
+                </button>
+              </form>
+            ) : (
+              /* Temporary Credential Clearance Receipt View */
+              <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3 font-mono text-[10px] text-slate-400">
+                <p className="text-emerald-400 font-black">// ACCOUNT SUCCESSFULLY PROVISIONED INTO DATABASE</p>
+                <p><span className="text-slate-600">NAME:</span> {generatedCredentials.name}</p>
+                <p><span className="text-slate-600">PHONE:</span> {generatedCredentials.phone}</p>
+                <p><span className="text-slate-600">TEMP PASS:</span> <span className="text-white font-black bg-slate-800 px-1.5 py-0.5 rounded">{generatedCredentials.pass}</span></p>
+                <p className="text-[9px] text-slate-500 border-t border-slate-800 pt-2 italic">Transmit these login vectors securely. User is forced to configure structural MFA upon initial entry path verification window.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   );
