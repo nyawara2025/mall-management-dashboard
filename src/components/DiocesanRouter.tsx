@@ -21,7 +21,18 @@ interface DiocesanUserSession {
   tier_access: 'DAUGHTER_CHURCH' | 'PARISH' | 'ARCHDEACONRY' | 'DIOCESE';
   assigned_id: number;
   organization_name?: string;
+  reporting_period?: string;
 }
+
+// ⏱️ Dynamic ISO-8601 Week Code Generator (No Hardcoding)
+export const getActiveReportingPeriodCode = (): string => {
+  const currentTarget = new Date();
+  const dateNumber = currentTarget.getDate();
+  currentTarget.setDate(dateNumber + 4 - (currentTarget.getDay() || 7));
+  const yearStart = new Date(currentTarget.getFullYear(), 0, 1);
+  const weekNumber = Math.ceil((((currentTarget.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return `${currentTarget.getFullYear()}-W${weekNumber.toString().padStart(2, '0')}`;
+};
 
 export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ onLogout }) => {
   const [session, setSession] = useState<DiocesanUserSession | null>(null);
@@ -149,17 +160,28 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
         />
       );
     case 'ARCHDEACONRY':
+
+      // Programmatically derive the compliance period for the active multi-tenant layer
+      const activePeriodCode = getActiveReportingPeriodCode();
+
       // Unpack the correct target session object with dynamic fallback values guaranteed
       const archdeaconrySession = {
         ...session,
-        organization_name: session.organization_name || localStorage.getItem('ack_erp_organization_name') || "ACK Regional Archdeaconry Office"
+        organization_name: session.organization_name || localStorage.getItem('ack_erp_organization_name') || "ACK Regional Archdeaconry Office",
+
+        reporting_period: session.reporting_period || activePeriodCode
+
       };
       
       // 🛡️ ROLE GUARD 1: Route the Archdeacon to the executive dashboard
       if (session.role.toUpperCase() === 'ARCHDEACON') {
         return (
           <ArchdeaconDashboard // 👈 CHANGED FROM ArchdeaconryDashboard
-            session={archdeaconrySession}
+            session={{
+              ...archdeaconrySession,
+              // 🌟 DOUBLE INSURANCE: Enforce strict string casting for the child prop interface layout contract
+              reporting_period: archdeaconrySession.reporting_period || activePeriodCode
+            }}
             onLogout={() => {
               localStorage.clear();
               onLogout();

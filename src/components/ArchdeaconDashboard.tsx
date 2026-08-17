@@ -5,7 +5,14 @@ import {
 } from 'lucide-react';
 
 interface ArchdeaconProps {
-  session: { user_id: number; name: string; role: string; assigned_id: number; organization_name: string };
+  session: { 
+    user_id: number; 
+    name: string; 
+    role: string; 
+    assigned_id: number; 
+    organization_name: string;
+    reporting_period: string;
+  };
   onLogout: () => void;
 }
 
@@ -31,7 +38,11 @@ export const ArchdeaconDashboard: React.FC<ArchdeaconProps> = ({ session, onLogo
       const res = await fetch('https://n8n.tenear.com/webhook/ack-archdeaconry-fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ archdeaconry_id: session.assigned_id, user_id: session.user_id })
+        body: JSON.stringify({ 
+          archdeaconry_id: session.assigned_id, 
+          user_id: session.user_id,
+          reporting_period: session.reporting_period
+        })
       });
       const data = await res.json();
       if (res.ok && data.success) {
@@ -104,21 +115,30 @@ export const ArchdeaconDashboard: React.FC<ArchdeaconProps> = ({ session, onLogo
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-xs">
-                {parishRanks.map(parish => (
-                  <tr key={parish.id} className="hover:bg-slate-50/50">
-                    <td className="py-3 font-bold text-slate-800">{parish.name}</td>
-                    <td className="font-mono">{parish.attendance.toLocaleString()}</td>
-                    <td className="font-mono">KES {parish.collections.toLocaleString()}</td>
-                    <td className="font-mono text-emerald-600 font-semibold">KES {parish.remittance_paid.toLocaleString()}</td>
-                    <td>
-                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
-                        parish.compliance_status === 'COMPLIANT' ? 'bg-emerald-50 text-emerald-700' :
-                        parish.compliance_status === 'FLAGGED' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'
-                      }`}>{parish.compliance_status}</span>
+                {parishRanks.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-slate-400 font-semibold uppercase tracking-wider text-[10px]">
+                      {syncing ? "Synchronizing Regional Registries..." : "No active parish return streams identified for this cluster."}
                     </td>
                   </tr>
-                ))}
-              </tbody>
+                ) : (
+
+                  parishRanks.map(parish => (
+                     <tr key={parish.id} className="hover:bg-slate-50/50">
+                       <td className="py-3 font-bold text-slate-800">{parish.name}</td>
+                       <td className="font-mono">{parish.attendance.toLocaleString()}</td>
+                       <td className="font-mono">KES {parish.collections.toLocaleString()}</td>
+                       <td className="font-mono text-emerald-600 font-semibold">KES {parish.remittance_paid.toLocaleString()}</td>
+                       <td>
+                         <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                           parish.compliance_status === 'COMPLIANT' ? 'bg-emerald-50 text-emerald-700' :
+                           parish.compliance_status === 'FLAGGED' ? 'bg-amber-50 text-amber-700' : 'bg-rose-50 text-rose-700'
+                         }`}>{parish.compliance_status}</span>
+                       </td>
+                     </tr>
+                   ))
+                 )}
+               </tbody>
             </table>
           </div>
         </div>
