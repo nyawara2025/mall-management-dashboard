@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DaughterChurchDashboard } from './DaughterChurchDashboard';
 import { ParishERPDashboard } from './ParishERPDashboard';
-import { ArchdeaconDashboard } from './ArchdeaconDashboard';
+import { ArchdeaconryDashboard } from './ArchdeaconryDashboard';
 import { BishopDiocesanRadar } from './BishopDiocesanRadar';
 import { DiocesanAuthNode } from './DiocesanAuthNode';
 import { DiocesanIctAdminDashboard } from './DiocesanIctAdminDashboard';
@@ -149,86 +149,16 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
         />
       );
     case 'ARCHDEACONRY':
-      // Unpack the correct target session object with dynamic fallback values guaranteed
-      const archdeaconrySession = {
-        ...session,
-        organization_name: session.organization_name || localStorage.getItem('ack_erp_organization_name') || "ACK Regional Archdeaconry Office"
-      };
-      
-      // 🛡️ ROLE GUARD 1: Route the Archdeacon to the executive dashboard
-      if (session.role.toUpperCase() === 'ARCHDEACON') {
-        return (
-          <ArchdeaconDashboard // 👈 CHANGED FROM ArchdeaconryDashboard
-            session={archdeaconrySession}
-            onLogout={() => {
-              localStorage.clear();
-              onLogout();
-              window.location.href = 'https://acknairobidiocese.pages.dev'; // 👈 Screen Reset Clear
-            }}
-          />
-        );
-      }
-     
-      // 🛡️ ROLE GUARD 2: M&E OFFICER / SECRETARIAT (Strategic Pillars Target Monitor)
-      if (session.role.toUpperCase().includes('ME_OFFICER') || session.role.toUpperCase().includes('STRATEGY') || session.role.toUpperCase().includes('SECRETARY')) {
-        return (
-          <ArchdeaconryMeDashboard
-            session={archdeaconrySession}
-            onLogout={() => {
-              localStorage.clear();
-              onLogout();
-              window.location.href = 'https://acknairobidiocese.pages.dev';
-            }}
-          />
-        );
-      }
-
-      // 🛡️ ROLE GUARD 3: REGIONAL FINANCIAL AUDITOR (15% Remittance Desk)
-      if (session.role.toUpperCase().includes('FINANCE') || session.role.toUpperCase().includes('AUDITOR') || session.role.toUpperCase().includes('TREASURER')) {
-        return (
-          <ArchdeaconryFinanceAuditor
-            session={archdeaconrySession}
-            onLogout={() => {
-              localStorage.clear();
-              onLogout();
-              window.location.href = 'https://acknairobidiocese.pages.dev';
-            }}
-          />
-        );
-      }
-
-      // 🛡️ ROLE GUARD 4: REGIONAL ICT ADMIN (Technical Node Control Console)
-      if (session.role.toUpperCase().includes('ADMIN') || session.role.toUpperCase().includes('ICT')) {
-        return (
-          <ArchdeaconryIctDashboard
-            session={archdeaconrySession}
-            onLogout={() => {
-              localStorage.clear();
-              onLogout();
-              window.location.href = 'https://acknairobidiocese.pages.dev';
-            }}
-          />
-        );
-      }
-
-      // Default safe fallback if an archdeaconry user has a completely unmapped role string
       return (
-        <div className="p-8 text-center bg-white rounded-xl border border-slate-200 max-w-md mx-auto mt-12 shadow-sm">
-          <h2 className="text-sm font-black text-rose-600 uppercase">Role Isolation Exception</h2>
-          <p className="text-xs text-slate-500 font-medium mt-1">Your profile points to Tier 3, but your assigned role has no active workspace view.</p>
-          <button 
-            onClick={() => {
-              localStorage.clear();
-              onLogout();
-              window.location.href = 'https://acknairobidiocese.pages.dev';
-            }} 
-            className="mt-4 bg-slate-900 text-white text-[10px] font-bold uppercase tracking-wider px-3 py-2 rounded-xl"
-          >
-            Sign Out Safely
-          </button>
-        </div>
+        <ArchdeaconryDashboard 
+          session={session} 
+          onLogout={() => {
+            localStorage.clear();
+            onLogout();
+            window.location.href = 'https://acknairobidiocese.pages.dev';
+          }} 
+        />
       );
-
     case 'DIOCESE':
 
       // 🛡️ ROLE COMPLIANCE GUARD: Divert the Central IT System Administrator to their Data Hub Portal
