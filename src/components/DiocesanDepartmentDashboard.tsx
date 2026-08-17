@@ -5,7 +5,13 @@ import {
 } from 'lucide-react';
 
 interface DepartmentDashboardProps {
-  session: { user_id: number; name: string; role: string; assigned_id: number };
+  session: { 
+    user_id: number; 
+    name: string; 
+    role: string; 
+    assigned_id: number 
+    organization_name: string;
+  };
   onLogout: () => void;
 }
 
@@ -86,9 +92,11 @@ export const DiocesanDepartmentDashboard: React.FC<DepartmentDashboardProps> = (
             <Building className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-sm font-black tracking-wider uppercase text-blue-400">ACK Diocesan Secretariat</h1>
-            <p className="text-[11px] font-bold text-slate-500 uppercase">
-              Operational Workspace • Role: {session.role.replace('_', ' ')} • Tier 2 central execution management
+            <h1 className="text-base font-black text-slate-900 uppercase tracking-tight">
+              {session.organization_name ? `${session.organization_name.toUpperCase()}` : 'DIOCESAN DEPARTMENTAL ERP'}
+            </h1>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+              {session.name.toUpperCase()} • <span className="text-blue-700">{session.role.replace('_', ' ')} PORTAL</span>
             </p>
           </div>
         </div>

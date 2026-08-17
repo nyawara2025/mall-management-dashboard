@@ -193,7 +193,10 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
       // 🏢 CENTRAL MANAGEMENT OFFICE GATEWAY: Route all other Diocese Officials (Finance, Secretaries, Dept Heads)
       return (
         <DiocesanDepartmentDashboard 
-          session={session} 
+          session={{
+            ...session,
+            organization_name: session.organization_name || localStorage.getItem('ack_erp_organization_name') || "ACK Diocese of Nairobi Central Office"
+          }} 
           onLogout={() => {
             localStorage.clear();
             onLogout();
