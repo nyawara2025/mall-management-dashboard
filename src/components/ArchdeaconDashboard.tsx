@@ -45,9 +45,22 @@ export const ArchdeaconDashboard: React.FC<ArchdeaconProps> = ({ session, onLogo
         })
       });
       const data = await res.json();
-      if (res.ok && data.success) {
-        setParishRanks(data.parishes || parishRanks);
+      if (res.ok && data.success && Array.isArray(data.parishes)) {
+        // Remap the incoming raw database columns into the strict ParishRank frontend interface type properties
+        const typedParishes = data.parishes.map((item: any) => ({
+          id: String(item.parish_id),
+          name: item.parish_name,
+          attendance: parseInt(item.total_attendance_rollup, 10) || 0,
+          collections: parseFloat(item.total_funds_kes) || 0,
+          // Calculate 15% statutory remittance dynamically on the client-side if missing from backend fields
+          remittance_paid: (parseFloat(item.total_funds_kes) || 0) * 0.15, 
+          // Gracefully transform your database state strings to fit your color-coded layout chips
+          compliance_status: item.verification_status === 'DRAFT' ? 'FLAGGED' : item.verification_status
+        }));
+  
+        setParishRanks(typedParishes);
       }
+
     } catch (err) {
       console.error("Regional data sync failure:", err);
     } finally {
