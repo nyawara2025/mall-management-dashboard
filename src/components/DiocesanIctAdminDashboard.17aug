@@ -354,7 +354,6 @@ onChange={e => setUserPhoneNumber(e.target.value)} />
                         <option value="BISHOP">BISHOP (Tier 1)</option>
                         <option value="DIOCESAN_OFFICIAL">DIOCESAN_OFFICIAL (Tier 2)</option>
                         <option value="ARCHDEACON">ARCHDEACON (Tier 3)</option>
-                        <option value="ARCHDEACONRY_ICT_ADMIN">ARCHDEACONRY_ICT_ADMIN (Tier 3 IT)</option>
                         <option value="VICAR">VICAR (Tier 4 Overlord)</option>
                       </select>
                     </div>
