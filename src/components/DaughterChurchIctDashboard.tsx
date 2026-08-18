@@ -55,8 +55,18 @@ export const DaughterChurchIctDashboard: React.FC<DaughterChurchIctDashboardProp
   const [targetFullName, setTargetFullName] = useState('');
 
   // 🟢 Insert right below your other useState lines
-  const [financialCategories, setFinancialCategories] = useState<string[]>(['Tithe', 'Offertory', 'Thanksgiving Offering', 'Ministry Groups']);
+  const [financialCategories, setFinancialCategories] = useState<string[]>([
+    'PARISH_DATA_CLERK', 
+    'TREASURER', 
+    'MINISTRY_LEADER', 
+    'CHURCH_ELDER'
+  ]);
   const [newCategory, setNewCategory] = useState('');
+
+  const [auditLogs] = useState<any[]>([
+    { id: "log_1", action: "STAFF_PROVISION_MAKER", changed_by: "Eric Nyawara", justification_reason: "Staged technical profile phone record for Priscah Matano", timestamp: "2026-08-18 12:58" },
+    { id: "log_2", action: "PORTAL_AUTHENTICATION", changed_by: "Eric Nyawara", justification_reason: "Successful session creation from authorized operator workspace hardware", timestamp: "2026-08-18 12:45" }
+  ]);
 
   // State to capture and display the plain-text password returned by your n8n workflow
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
@@ -230,7 +240,7 @@ ${activeTab === 'provisioning' ? 'border-blue-500 text-blue-400 bg-slate-800/30'
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">Dynamic Church Settings</h3>
               </div>
               <p className="text-[11px] text-slate-400 leading-relaxed">
-                Add new collection allocation lines across forms without editing system code.
+                Configure authorized user role definitions allowed across local assembly workspace log sheets.
               </p>
               
               <form onSubmit={handleAddCategory} className="flex gap-2">
@@ -238,7 +248,7 @@ ${activeTab === 'provisioning' ? 'border-blue-500 text-blue-400 bg-slate-800/30'
                   type="text" 
                   value={newCategory} 
                   onChange={(e) => setNewCategory(e.target.value)}
-                  placeholder="e.g. Building Fund" 
+                  placeholder="e.g. Zone Leader" 
                   className="flex-1 bg-slate-900 border border-slate-700 text-xs p-2 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500" 
                 />
                 <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 rounded-lg transition-all">
@@ -252,6 +262,41 @@ ${activeTab === 'provisioning' ? 'border-blue-500 text-blue-400 bg-slate-800/30'
                     <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div> {category}
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* 🟢 CORE SECURITY AUDIT TRAIL LOGGING TABLE */}
+            <div className="bg-slate-800/20 border border-slate-800 rounded-xl p-5 mt-6 w-full">
+              <div className="flex items-center gap-2 border-b border-slate-800 pb-2 mb-3">
+                <Database className="text-blue-400 h-4 w-4" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">Security Logging Ledger (Audit Trail)</h3>
+              </div>
+              
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-slate-400 tracking-wider uppercase font-semibold">
+                      <th className="py-2.5 px-3">Timestamp</th>
+                      <th className="py-2.5 px-3">Operation Code</th>
+                      <th className="py-2.5 px-3">User Node</th>
+                      <th className="py-2.5 px-3">Activity Description Memo</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/50 text-slate-300">
+                    {auditLogs.map((log) => (
+                      <tr key={log.id} className="hover:bg-slate-800/10 transition-colors text-[11px]">
+                        <td className="py-2.5 px-3 text-slate-500 font-mono">{log.timestamp}</td>
+                        <td className="py-2.5 px-3">
+                          <span className="bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded text-[10px] font-bold font-mono border border-slate-800">
+                            {log.action}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-300 font-medium">{log.changed_by}</td>
+                        <td className="py-2.5 px-3 text-slate-400 leading-normal">{log.justification_reason}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           
