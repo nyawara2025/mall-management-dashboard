@@ -50,34 +50,44 @@ export const DaughterChurchIctDashboard: React.FC<DaughterChurchIctDashboardProp
   ]);
 
   // 📝 User Entry Configuration Fields (Maker Phase)
-  const [targetEmail, setTargetEmail] = useState('');
   const [targetRole, setTargetRole] = useState('PARISH_DATA_CLERK');
   const [submittingUser, setSubmittingUser] = useState(false);
+
+  const [targetPhone, setTargetPhone] = useState('');
+  const [targetFullName, setTargetFullName] = useState('');
+
+  // State to capture and display the plain-text password returned by your n8n workflow
+  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
 
   // 🚀 ACTION: Stage User Structural Row Node via n8n Endpoint
   const handleStageUserShell = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!targetEmail.trim()) return;
+    if (!targetPhone.trim() || !targetFullName.trim()) return;
 
     setSubmittingUser(true);
+    setGeneratedPassword(null); // Clear any previous password credentials
+
     try {
       const response = await fetch('https://n8n.tenear.com/ack-provision-archdeaconry-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           admin_user_id: session.user_id,
-          target_email: targetEmail.trim(),
-          assigned_role: targetRole,
-          org_unit_id: session.assigned_id, // Hard-pinned to current multi-tenant assembly node
-          notes: "Account created via local assembly ICT desk portal"
+          phone_number: targetPhone.trim(),
+          full_name: targetFullName.trim(),
+          user_role: targetRole,
+          tenant_id: session.assigned_id, // Hard-pinned to current multi-tenant assembly node
         })
       });
 
       if (response.ok) {
-        alert(`Success: Account shell for ${targetEmail} has been staged. It is currently locked until the Vicar confirms activation parameters.`);
-        setTargetEmail('');
+        const data = await response.json();
+        // Expecting n8n to return: { success: true, temp_password: "ACK-XXXX-2026" }
+        setGeneratedPassword(data.temp_password);
+        setTargetPhone('');
+        setTargetFullName('');
       } else {
-        alert("Server validation failure: Verify administrative configuration arguments.");
+        alert("Server Validation Error: Database constraint conflict or invalid arguments.");
       }
     } catch (err) {
       console.error("Failed to propagate system account shell row", err);
@@ -128,21 +138,51 @@ ${activeTab === 'provisioning' ? 'border-blue-500 text-blue-400 bg-slate-800/30'
         {/* TAB WORKSPACE AREA 2: USER PRE-PROVISIONING SYSTEM */}
         {activeTab === 'provisioning' && (
           <div className="space-y-6">
+
+            {/* 🔑 DYNAMIC SUCCESS MODAL: Displays the temporary credentials */}
+            {generatedPassword && (
+              <div className="bg-blue-950 border border-blue-700 p-5 rounded-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4 animate-fade-in">
+                <div>
+                  <h4 className="text-sm font-bold text-blue-400 uppercase tracking-wide">Temporary Password Generated Successfully</h4>
+                  <p className="text-xs text-slate-300 mt-1">Copy and share these login credentials securely with the church worker. This password will not be shown again.</p>
+                  <div className="mt-3 inline-flex items-center gap-2 bg-slate-900 border border-slate-800 px-4 py-2 rounded-lg font-mono text-sm text-emerald-400 select-all font-bold">
+                    {generatedPassword}
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setGeneratedPassword(null)} 
+                  className="bg-blue-900/60 hover:bg-blue-800 text-blue-200 text-xs px-3 py-1.5 rounded-lg font-medium transition-all"
+                >
+                  Clear Display
+                </button>
+              </div>
+            )}
+
             {/* The Account Entry Form — REWRITTEN FOR ORDINARY USERS */}
-            <form onSubmit={handleStageUserShell} className="bg-slate-800/40 border border-slate-800 p-5 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-              <div className="md:col-span-3 border-b border-slate-800 pb-2">
+            <form onSubmit={handleStageUserShell} className="bg-slate-800/40 border border-slate-800 p-5 rounded-xl grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+              <div className="md:col-span-4 border-b border-slate-800 pb-2">
                 <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wide">Setup Profile for Vicar Approval</h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">Enter the new worker's official church email and role. Profiles are saved securely and will remain locked until 
-the Vicar confirms and activates them.</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Enter the worker's details. The account is created in a pending state until approved by the Vicar.</p>
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">Church Email Address</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">Full Name</label>
                 <input 
-                  type="email" 
+                  type="text" 
                   required 
-                  value={targetEmail} 
-                  onChange={(e) => setTargetEmail(e.target.value)}
-                  placeholder="e.g. administrator@ack.or.ke" 
+                  value={targetFullName} 
+                  onChange={(e) => setTargetFullName(e.target.value)}
+                  placeholder="e.g. Eric Nyawara" 
+                  className="w-full bg-slate-900 border border-slate-700 text-xs p-2.5 rounded-lg text-slate-100 focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">Phone Number</label>
+                <input 
+                  type="text" 
+                  required 
+                  value={targetPhone} 
+                  onChange={(e) => setTargetPhone(e.target.value)}
+                  placeholder="e.g. 0712345678" 
                   className="w-full bg-slate-900 border border-slate-700 text-xs p-2.5 rounded-lg text-slate-100 focus:outline-none focus:border-blue-500"
                 />
               </div>
@@ -160,8 +200,8 @@ the Vicar confirms and activates them.</p>
                 </select>
               </div>
               <div>
-                <button type="submit" disabled={submittingUser} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-800 text-white font-bold text-xs p-2.5 rounded-lg 
-flex items-center justify-center gap-1.5 transition-all">
+                <button type="submit" disabled={submittingUser} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-800 text-white font-bold text-xs p-2.5 rounded-lg flex items-center justify-center gap-1.5 
+transition-all">
                   <UserPlus className="h-4 w-4" /> {submittingUser ? "Saving profile..." : "Save Staff Profile"}
                 </button>
               </div>
