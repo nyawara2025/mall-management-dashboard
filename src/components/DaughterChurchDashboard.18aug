@@ -52,7 +52,6 @@ interface DaughterChurchDashboardProps {
     name: string;
     role: string;
     assigned_id: number;
-    reporting_period?: string;
   };
   onLogout: () => void;
 }
@@ -70,23 +69,9 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
   const [submitting, setSubmitting] = useState(false);
 
   // 📝 KPI Metric Modal Inputs
-  const [period, setPeriod] = useState(session.reporting_period || '2026-W31');
+  const [period, setPeriod] = useState('2026-W31');
   const [attendance, setAttendance] = useState('');
   const [sacraments, setSacraments] = useState('');
-
-  // 🟢 State variables for granular tracking
-  const [attMale, setAttMale] = useState<number>(0);
-  const [attFemale, setAttFemale] = useState<number>(0);
-  const [attYouth, setAttYouth] = useState<number>(0);
-  const [attChildren, setAttChildren] = useState<number>(0);
-  const [visitorsCount, setVisitorsCount] = useState<number>(0);
-  const [communicantsCount, setCommunicantsCount] = useState<number>(0);
-
-  // Granular Collection Inputs for Remittance Quota calculations
-  const [titheCollection, setTitheCollection] = useState<string>('0');
-  const [offertoryCollection, setOffertoryCollection] = useState<string>('0');
-  const [thanksgivingCollection, setThanksgivingCollection] = useState<string>('0');
-  const [ministryGroupCollection, setMinistryGroupCollection] = useState<string>('0');
 
   // 👥 Phase 4: Member & Household State Layers
   const [membersList, setMembersList] = useState<any[]>([]);
@@ -788,81 +773,31 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
                 />
               </div>
 
-
-              {/* 👥 GRANULAR DEMOGRAPHIC COHORTS (Section 7, Module 3) */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Adult Men</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    required
-                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none"
-                    value={attMale || ''}
-                    onChange={e => setAttMale(parseInt(e.target.value) || 0)}
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Total Worshipers</label>
+                  <input 
+                    type="number" 
+                    placeholder="0" 
+                    required 
+                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none" 
+                    value={attendance} 
+                    onChange={e => setAttendance(e.target.value)} 
                   />
                 </div>
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Adult Women</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    required
-                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none"
-                    value={attFemale || ''}
-                    onChange={e => setAttFemale(parseInt(e.target.value) || 0)}
-                  />
-                </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Youth Members</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    required
-                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none"
-                    value={attYouth || ''}
-                    onChange={e => setAttYouth(parseInt(e.target.value) || 0)}
-                  />
-                </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Sunday School Children</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    required
-                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none"
-                    value={attChildren || ''}
-                    onChange={e => setAttChildren(parseInt(e.target.value) || 0)}
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Sacraments Run</label>
+                  <input 
+                    type="number" 
+                    placeholder="0" 
+                    required 
+                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none" 
+                    value={sacraments} 
+                    onChange={e => setSacraments(e.target.value)} 
                   />
                 </div>
               </div>
 
-              {/* 📋 WORSHIP ANALYSIS LINES (Communicants & Visitors Split) */}
-              <div className="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Communicants</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    required
-                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none"
-                    value={communicantsCount || ''}
-                    onChange={e => setCommunicantsCount(parseInt(e.target.value) || 0)}
-                  />
-                </div>
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Visitors</label>
-                  <input
-                    type="number"
-                    placeholder="0"
-                    required
-                    className="bg-transparent w-full text-xs font-bold text-slate-700 focus:outline-none"
-                    value={visitorsCount || ''}
-                    onChange={e => setVisitorsCount(parseInt(e.target.value) || 0)}
-                  />
-                </div>
-              </div>  
-               
               <button
                 type="submit"
                 disabled={submitting}
