@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Server, ShieldAlert, Key, UserPlus, Sliders, Database, 
-  Settings, RefreshCw, LogOut, CheckCircle2, AlertCircle, FileText 
+  Settings, RefreshCw, LogOut, CheckCircle2, AlertCircle, FileText,
+  Users, Activity, Lock, Signal
 } from 'lucide-react';
 
 interface SystemHealthLog {
@@ -11,12 +12,13 @@ interface SystemHealthLog {
   last_snapshot_time: string;
 }
 
-interface StagedUserRecord {
+interface ChurchUserRecord {
   id: string;
-  email: string;
-  role: string;
-  staged_at: string;
-  status: 'PENDING_VICAR_APPROVAL' | 'ACTIVE' | 'REVOKED';
+  full_name: string;
+  phone_number: string;
+  user_role: string;
+  created_at: string;
+  is_active: boolean;
 }
 
 interface DaughterChurchIctDashboardProps {
@@ -34,6 +36,7 @@ interface DaughterChurchIctDashboardProps {
 export const DaughterChurchIctDashboard: React.FC<DaughterChurchIctDashboardProps> = ({ session, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'infrastructure' | 'provisioning' | 'constants'>('infrastructure');
   const [refreshing, setRefreshing] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(false);
 
   // ⚙️ Infrastructure Monitor Metrics Cache
   const [systemState, setSystemState] = useState<SystemHealthLog>({
@@ -43,11 +46,6 @@ export const DaughterChurchIctDashboard: React.FC<DaughterChurchIctDashboardProp
     last_snapshot_time: '06:00:00 EAT'
   });
 
-  // 👥 Staged Local User Account Buffers
-  const [stagedUsers, setStagedUsers] = useState<StagedUserRecord[]>([
-    { id: "usr_9021", email: "clerk.kufuga@ack.or.ke", role: "PARISH_DATA_CLERK", staged_at: "2026-08-17", status: "PENDING_VICAR_APPROVAL" },
-    { id: "usr_4432", email: "leader.youth@ack.or.ke", role: "MINISTRY_LEADER", staged_at: "2026-08-15", status: "ACTIVE" }
-  ]);
 
   // 📝 User Entry Configuration Fields (Maker Phase)
   const [targetRole, setTargetRole] = useState('PARISH_DATA_CLERK');
@@ -58,6 +56,41 @@ export const DaughterChurchIctDashboard: React.FC<DaughterChurchIctDashboardProp
 
   // State to capture and display the plain-text password returned by your n8n workflow
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+
+  // 👥 Dynamic Live Church Users Array (Replaces all hardcoded mock records)
+  const [stagedUsers, setStagedUsers] = useState<ChurchUserRecord[]>([]);
+
+  // 🔄 CORRECTED: Routes reading through your preferred n8n POST Webhook structure
+  const fetchLiveChurchUsers = async () => {
+    setLoadingUsers(true);
+    try {
+      const response = await fetch('https://n8n.tenear.com/webhook/fetch-ict-hierarchy', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          admin_user_id: session.user_id,
+          tenant_id: session.assigned_id, // Safely isolates lookups down to this specific church assembly
+          action: "FETCH_TENANT_STAFF_REGISTRY"
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Grabs the clean resulting array returned back from the n8n data processor node
+        setStagedUsers(Array.isArray(data) ? data : data.users || []);
+      }
+    } catch (err) {
+      console.error("n8n lookup execution failed while loading user registry", err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveChurchUsers();
+  }, [session.assigned_id]);
 
   // 🚀 ACTION: Stage User Structural Row Node via n8n Endpoint
   const handleStageUserShell = async (e: React.FormEvent) => {
@@ -134,6 +167,48 @@ ${activeTab === 'provisioning' ? 'border-blue-500 text-blue-400 bg-slate-800/30'
             <UserPlus className="h-4 w-4" /> Add Church Staff
           </button>
         </div>
+
+        {/* 🟢 FIX 2: POPULATES THE EMPTY SPACE INSIDE THE "SYSTEM DASHBOARD" TAB VIEW */}
+        {activeTab === 'infrastructure' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
+                <div className="flex justify-between items-start">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Database Channel</p>
+                  <Database className="h-4 w-4 text-blue-400" />
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <CheckCircle2 className="text-emerald-400 h-4 w-4" />
+                  <span className="text-sm font-semibold tracking-wide">{systemState.supabase_pool_status}</span>
+                </div>
+              </div>
+              <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
+                <div className="flex justify-between items-start">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">M-Pesa Gateway</p>
+                  <Signal className="h-4 w-4 text-blue-400" />
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <CheckCircle2 className="text-emerald-400 h-4 w-4" />
+                  <span className="text-sm font-semibold tracking-wide">{systemState.mpesa_gateway_sync}</span>
+                </div>
+              </div>
+              <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
+                <div className="flex justify-between items-start">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Edge API Latency</p>
+                  <Activity className="h-4 w-4 text-blue-400" />
+                </div>
+                <p className="text-lg font-bold mt-1 text-blue-400">{systemState.ping_latency_ms} ms</p>
+              </div>
+              <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
+                <div className="flex justify-between items-start">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Staff Count</p>
+                  <Users className="h-4 w-4 text-blue-400" />
+                </div>
+                <p className="text-lg font-bold mt-1 text-slate-100">{stagedUsers.length} Logged</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* TAB WORKSPACE AREA 2: USER PRE-PROVISIONING SYSTEM */}
         {activeTab === 'provisioning' && (
@@ -224,28 +299,34 @@ transition-all">
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                    {stagedUsers.map((user) => (
-                      <tr key={user.id} className="hover:bg-slate-800/10 transition-colors">
-                        <td className="py-3 px-3 font-medium text-slate-200">{user.email}</td>
-                        <td className="py-3 px-3">
-                          <span className="bg-slate-900 border border-slate-700 text-slate-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide">
-                            {user.role}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 text-slate-400">{user.staged_at}</td>
-                        <td className="py-3 px-3 text-right">
-                          {user.status === 'PENDING_VICAR_APPROVAL' ? (
-                            <span className="text-amber-400 font-medium inline-flex items-center gap-1">
-                              <AlertCircle className="h-3 w-3" /> AWAITING VICAR APPROVAL
-                            </span>
-                          ) : (
-                            <span className="text-emerald-400 font-medium inline-flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" /> ACTIVE & APPROVED
-                            </span>
-                          )}
-                        </td>
+                    {stagedUsers.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-8 text-center text-slate-500 font-medium">No church staff accounts mapped to this assembly registry.</td>
                       </tr>
-                    ))}
+                    ) : (
+                      stagedUsers.map((user) => (
+                        <tr key={user.id} className="hover:bg-slate-800/10 transition-colors">
+                          <td className="py-3 px-3 font-medium text-slate-200">{user.full_name}</td>
+                          <td className="py-3 px-3 font-mono text-slate-400">{user.phone_number}</td>
+                          <td className="py-3 px-3">
+                            <span className="bg-slate-900 border border-slate-700 text-slate-400 px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wide">
+                              {user.user_role}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-right">
+                            {!user.is_active ? (
+                              <span className="text-amber-400 font-medium inline-flex items-center gap-1">
+                                <AlertCircle className="h-3 w-3" /> AWAITING VICAR APPROVAL
+                              </span>
+                            ) : (
+                              <span className="text-emerald-400 font-medium inline-flex items-center gap-1">
+                                <CheckCircle2 className="h-3 w-3" /> ACTIVE & APPROVED
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
