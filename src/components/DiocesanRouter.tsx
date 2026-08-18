@@ -13,6 +13,7 @@ import { DiocesanDepartmentDashboard } from './DiocesanDepartmentDashboard';
 import { ArchdeaconryFinanceAuditor } from './ArchdeaconryFinanceAuditor';
 import { ArchdeaconryIctDashboard } from './ArchdeaconryIctDashboard';
 import { ArchdeaconryMeDashboard } from './ArchdeaconryMeDashboard';
+import { DaughterChurchIctDashboard } from './DaughterChurchIctDashboard';
 
 interface DiocesanUserSession {
   user_id: number;
@@ -75,6 +76,24 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
   // 🎛️ Render the custom workspace layout based on their assigned structural tier level
   switch (session.tier_access.toUpperCase()) {
     case 'DAUGHTER_CHURCH':
+
+      // 🛡️ ROLE COMPLIANCE GUARD: Intercept and route the Local Technical Operator
+      if (session.role.toUpperCase().includes('ICT_SYS_ADMIN')) {
+        return (
+          <DaughterChurchIctDashboard
+            session={{
+              ...session,
+              organization_name: session.organization_name || "ACK Daughter Church Infrastructure Desk"
+            }}
+            onLogout={() => {
+              localStorage.clear(); // 🚀 Wipes out all cached tokens instantly
+              onLogout();
+              window.location.href = 'https://acknairobidiocese.pages.dev';
+            }}
+          />
+        );
+      }
+
       return (
         <DaughterChurchDashboard 
           session={session} 
