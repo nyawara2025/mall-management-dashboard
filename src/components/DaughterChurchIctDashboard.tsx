@@ -112,73 +112,31 @@ transition-all">
         </div>
       </header>
 
-      {/* 2. Content Tabs Selector */}
       <main className="max-w-7xl mx-auto p-6">
+        {/* 2. Content Tabs Selector */}
         <div className="flex gap-1 border-b border-slate-800 mb-6 pb-px">
-          <button onClick={() => setActiveTab('infrastructure')} className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all 
-${activeTab === 'infrastructure' ? 'border-blue-500 text-blue-400 bg-slate-800/30' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
-            <Sliders className="h-4 w-4" /> Gateway Operations
+          <button onClick={() => setActiveTab('infrastructure')} className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 
+transition-all ${activeTab === 'infrastructure' ? 'border-blue-500 text-blue-400 bg-slate-800/30' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
+            <Sliders className="h-4 w-4" /> System Dashboard
           </button>
           <button onClick={() => setActiveTab('provisioning')} className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all 
 ${activeTab === 'provisioning' ? 'border-blue-500 text-blue-400 bg-slate-800/30' : 'border-transparent text-slate-400 hover:text-slate-200'}`}>
-            <UserPlus className="h-4 w-4" /> Tenant Provisioning
+            <UserPlus className="h-4 w-4" /> Add Church Staff
           </button>
         </div>
-
-        {/* TAB WORKSPACE AREA 1: GATEWAY METRICS */}
-        {activeTab === 'infrastructure' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Supabase Channel</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <CheckCircle2 className="text-emerald-400 h-4 w-4" />
-                  <span className="text-sm font-semibold tracking-wide">{systemState.supabase_pool_status}</span>
-                </div>
-              </div>
-              <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">M-Pesa API Callbacks</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <CheckCircle2 className="text-emerald-400 h-4 w-4" />
-                  <span className="text-sm font-semibold tracking-wide">{systemState.mpesa_gateway_sync}</span>
-                </div>
-              </div>
-              <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Edge Edge Network Ping</p>
-                <p className="text-lg font-bold mt-1 text-blue-400">{systemState.ping_latency_ms} ms</p>
-              </div>
-              <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Automated DB Backup</p>
-                <p className="text-xs font-semibold mt-2 text-slate-300">{systemState.last_snapshot_time}</p>
-              </div>
-            </div>
-
-            {/* Compliance Message Boundary Warning box */}
-            <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex gap-3 items-start">
-              <ShieldAlert className="text-blue-400 h-5 w-5 mt-0.5 flex-shrink-0" />
-              <div>
-                <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wide">Data Isolation Notice</h4>
-                <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
-                  In compliance with the Kenya Data Protection Act 2019, your system profile limits you to system metric reviews and structural user creation. Financial figures, 
-collection metrics, registers, and attendance sheets are isolated from this workspace.
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* TAB WORKSPACE AREA 2: USER PRE-PROVISIONING SYSTEM */}
         {activeTab === 'provisioning' && (
           <div className="space-y-6">
-            {/* The Account Entry Form */}
+            {/* The Account Entry Form — REWRITTEN FOR ORDINARY USERS */}
             <form onSubmit={handleStageUserShell} className="bg-slate-800/40 border border-slate-800 p-5 rounded-xl grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
               <div className="md:col-span-3 border-b border-slate-800 pb-2">
-                <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wide">Stage System Profile Shell (Maker Input)</h3>
-                <p className="text-[11px] text-slate-400 mt-0.5">Input the corporate email and access level properties. Profiles are generated in a pending state until approved by the 
-Vicar.</p>
+                <h3 className="text-xs font-bold text-blue-400 uppercase tracking-wide">Setup Profile for Vicar Approval</h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">Enter the new worker's official church email and role. Profiles are saved securely and will remain locked until 
+the Vicar confirms and activates them.</p>
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">User Account Email</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">Church Email Address</label>
                 <input 
                   type="email" 
                   required 
@@ -189,7 +147,7 @@ Vicar.</p>
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">Functional Database Role</label>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1 tracking-wider">Assigned Church Role</label>
                 <select 
                   value={targetRole} 
                   onChange={(e) => setTargetRole(e.target.value)}
@@ -202,27 +160,27 @@ Vicar.</p>
                 </select>
               </div>
               <div>
-                <button type="submit" disabled={submittingUser} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-800 text-white font-bold text-xs p-2.5 rounded-lg flex items-center 
-justify-center gap-1.5 transition-all">
-                  <UserPlus className="h-4 w-4" /> {submittingUser ? "Staging Account..." : "Stage Staff Profile"}
+                <button type="submit" disabled={submittingUser} className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-800 text-white font-bold text-xs p-2.5 rounded-lg 
+flex items-center justify-center gap-1.5 transition-all">
+                  <UserPlus className="h-4 w-4" /> {submittingUser ? "Saving profile..." : "Save Staff Profile"}
                 </button>
               </div>
             </form>
 
-            {/* System Access Monitoring Logs Table */}
+            {/* System Access Monitoring Logs Table — REWRITTEN FOR ORDINARY USERS */}
             <div className="bg-slate-800/20 border border-slate-800 rounded-xl p-5">
               <div className="flex items-center gap-2 mb-3">
                 <FileText className="text-slate-400 h-4 w-4" />
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">Local Assembly Access Matrix Registry</h4>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">Staff Account List</h4>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold">
-                      <th className="py-2.5 px-3">Identity Profile</th>
-                      <th className="py-2.5 px-3">Assigned Database Role Enum</th>
-                      <th className="py-2.5 px-3">Staging Date</th>
-                      <th className="py-2.5 px-3 text-right">Maker-Checker Validation Code</th>
+                      <th className="py-2.5 px-3">Staff Email Address</th>
+                      <th className="py-2.5 px-3">Assigned Role</th>
+                      <th className="py-2.5 px-3">Date Added</th>
+                      <th className="py-2.5 px-3 text-right">Approval Status</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 text-slate-300">
@@ -238,11 +196,11 @@ justify-center gap-1.5 transition-all">
                         <td className="py-3 px-3 text-right">
                           {user.status === 'PENDING_VICAR_APPROVAL' ? (
                             <span className="text-amber-400 font-medium inline-flex items-center gap-1">
-                              <AlertCircle className="h-3 w-3" /> PENDING VICAR OVERVIEW
+                              <AlertCircle className="h-3 w-3" /> AWAITING VICAR APPROVAL
                             </span>
                           ) : (
                             <span className="text-emerald-400 font-medium inline-flex items-center gap-1">
-                              <CheckCircle2 className="h-3 w-3" /> SIGNED & ACTIVE
+                              <CheckCircle2 className="h-3 w-3" /> ACTIVE & APPROVED
                             </span>
                           )}
                         </td>
@@ -254,6 +212,7 @@ justify-center gap-1.5 transition-all">
             </div>
           </div>
         )}
+        {/* 👆 This closes the activeTab === 'provisioning' condition block cleanly */}
       </main>
     </div>
   );
