@@ -54,6 +54,10 @@ export const DaughterChurchIctDashboard: React.FC<DaughterChurchIctDashboardProp
   const [targetPhone, setTargetPhone] = useState('');
   const [targetFullName, setTargetFullName] = useState('');
 
+  // 🟢 Insert right below your other useState lines
+  const [financialCategories, setFinancialCategories] = useState<string[]>(['Tithe', 'Offertory', 'Thanksgiving Offering', 'Ministry Groups']);
+  const [newCategory, setNewCategory] = useState('');
+
   // State to capture and display the plain-text password returned by your n8n workflow
   const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
 
@@ -129,6 +133,14 @@ export const DaughterChurchIctDashboard: React.FC<DaughterChurchIctDashboardProp
     }
   };
 
+  // 🟢 Insert below your other form action handlers
+  const handleAddCategory = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCategory.trim()) return;
+    setFinancialCategories([...financialCategories, newCategory.trim()]);
+    setNewCategory('');
+  };
+
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 font-sans antialiased">
       {/* 1. Global Infrastructure Bar */}
@@ -170,44 +182,80 @@ ${activeTab === 'provisioning' ? 'border-blue-500 text-blue-400 bg-slate-800/30'
 
         {/* 🟢 FIX 2: POPULATES THE EMPTY SPACE INSIDE THE "SYSTEM DASHBOARD" TAB VIEW */}
         {activeTab === 'infrastructure' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
-                <div className="flex justify-between items-start">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Database Channel</p>
-                  <Database className="h-4 w-4 text-blue-400" />
+
+          <>
+
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
+                  <div className="flex justify-between items-start">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Database Channel</p>
+                    <Database className="h-4 w-4 text-blue-400" />
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <CheckCircle2 className="text-emerald-400 h-4 w-4" />
+                    <span className="text-sm font-semibold tracking-wide">{systemState.supabase_pool_status}</span>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <CheckCircle2 className="text-emerald-400 h-4 w-4" />
-                  <span className="text-sm font-semibold tracking-wide">{systemState.supabase_pool_status}</span>
+                <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
+                  <div className="flex justify-between items-start">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">M-Pesa Gateway</p>
+                    <Signal className="h-4 w-4 text-blue-400" />
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <CheckCircle2 className="text-emerald-400 h-4 w-4" />
+                    <span className="text-sm font-semibold tracking-wide">{systemState.mpesa_gateway_sync}</span>
+                  </div>
                 </div>
-              </div>
-              <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
-                <div className="flex justify-between items-start">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">M-Pesa Gateway</p>
-                  <Signal className="h-4 w-4 text-blue-400" />
+                <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
+                  <div className="flex justify-between items-start">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Edge API Latency</p>
+                    <Activity className="h-4 w-4 text-blue-400" />
+                  </div>
+                  <p className="text-lg font-bold mt-1 text-blue-400">{systemState.ping_latency_ms} ms</p>
                 </div>
-                <div className="flex items-center gap-2 mt-2">
-                  <CheckCircle2 className="text-emerald-400 h-4 w-4" />
-                  <span className="text-sm font-semibold tracking-wide">{systemState.mpesa_gateway_sync}</span>
+                <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
+                  <div className="flex justify-between items-start">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Staff Count</p>
+                    <Users className="h-4 w-4 text-blue-400" />
+                  </div>
+                  <p className="text-lg font-bold mt-1 text-slate-100">{stagedUsers.length} Logged</p>
                 </div>
-              </div>
-              <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
-                <div className="flex justify-between items-start">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Edge API Latency</p>
-                  <Activity className="h-4 w-4 text-blue-400" />
-                </div>
-                <p className="text-lg font-bold mt-1 text-blue-400">{systemState.ping_latency_ms} ms</p>
-              </div>
-              <div className="bg-slate-800/50 border border-slate-800 rounded-xl p-5 shadow-sm">
-                <div className="flex justify-between items-start">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Staff Count</p>
-                  <Users className="h-4 w-4 text-blue-400" />
-                </div>
-                <p className="text-lg font-bold mt-1 text-slate-100">{stagedUsers.length} Logged</p>
               </div>
             </div>
-          </div>
+
+            <div className="bg-slate-800/30 border border-slate-800/80 rounded-xl p-5 space-y-4 max-w-md mt-6">
+              <div className="flex items-center gap-2 border-b border-slate-800 pb-2">
+                <Database className="text-blue-400 h-4 w-4" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">Dynamic Church Settings</h3>
+              </div>
+              <p className="text-[11px] text-slate-400 leading-relaxed">
+                Add new collection allocation lines across forms without editing system code.
+              </p>
+              
+              <form onSubmit={handleAddCategory} className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={newCategory} 
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  placeholder="e.g. Building Fund" 
+                  className="flex-1 bg-slate-900 border border-slate-700 text-xs p-2 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500" 
+                />
+                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3 rounded-lg transition-all">
+                  Add
+                </button>
+              </form>
+
+              <div className="flex flex-wrap gap-2 mt-2">
+                {financialCategories.map((category, index) => (
+                  <div key={index} className="bg-slate-900 border border-slate-800 px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                    <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div> {category}
+                  </div>
+                ))}
+              </div>
+            </div>
+          
+          </>
         )}
 
         {/* TAB WORKSPACE AREA 2: USER PRE-PROVISIONING SYSTEM */}
