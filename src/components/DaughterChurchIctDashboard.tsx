@@ -68,7 +68,7 @@ export const DaughterChurchIctDashboard: React.FC<DaughterChurchIctDashboardProp
     setGeneratedPassword(null); // Clear any previous password credentials
 
     try {
-      const response = await fetch('https://n8n.tenear.com/ack-provision-archdeaconry-user', {
+      const response = await fetch('https://n8n.tenear.com/webhook/ack-provision-archdeaconry-user', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
