@@ -754,7 +754,7 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             onClick={async () => {
               setSubmitting(true);
               try {
-                const res = await fetch('https://tenear.com', {
+                const res = await fetch('https://n8n.tenear.com/webhook/ack-vicar-adjustments', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
