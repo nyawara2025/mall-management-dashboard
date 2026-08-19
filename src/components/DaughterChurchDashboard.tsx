@@ -730,7 +730,12 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-3 mb-6 animate-fade-in">
+      {/* 🚀 METRICS DISPATCH CONTROL PANEL WITH BACKEND REJECTION BINDING */}
+      <div className={`bg-white rounded-2xl p-5 border shadow-xs space-y-3 mb-6 transition-all duration-200 ${
+        monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'RETURNED_FOR_CORRECTION'
+          ? 'border-red-200 bg-red-50/20'
+          : 'border-slate-200/80'
+      }`}>
         <div className="border-b border-slate-100 pb-2.5">
           <h3 className="text-xs font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-blue-700">
             🚀 Metrics Dispatch Control
@@ -738,13 +743,24 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
           <p className="text-[10px] text-slate-400 font-medium">Transmit weekly congregation stats upstream to the mother parish treasury review pool</p>
         </div>
 
-        <div className="p-3.5 border border-slate-100 bg-slate-50/60 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="p-3.5 border border-slate-100 bg-white rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
           <div>
-            <span className="inline-flex text-[9px] font-black tracking-wide bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded uppercase mb-1">
-              LOCAL DRAFT STATUS
+            <span className={`inline-flex text-[9px] font-black tracking-wide border px-2 py-0.5 rounded uppercase mb-1.5 ${
+              monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'RETURNED_FOR_CORRECTION'
+                ? 'bg-red-50 text-red-700 border-red-200 animate-pulse'
+                : monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'PENDING_VICAR_REVIEW'
+                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                : 'bg-blue-50 text-blue-700 border-blue-200'
+            }`}>
+              {monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'RETURNED_FOR_CORRECTION'
+                ? '⚠️ CORRECTION REQUESTED BY VICAR'
+                : monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'PENDING_VICAR_REVIEW'
+                ? '⏳ PENDING VICAR REVIEW'
+                : 'LOCAL DRAFT STATUS'}
             </span>
+            
             <p className="text-xs font-bold text-slate-800 uppercase tracking-tight">Active Week Period: {period}</p>
-            <p className="text-[10px] text-slate-400 font-semibold font-mono">
+            <p className="text-[10px] text-slate-400 font-semibold font-mono mt-0.5">
               Current Metrics: {metrics?.total_attendance || '0'} Attended • KES {metrics?.total_monthly_collections_kes?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'} Pool
             </p>
           </div>
@@ -779,12 +795,32 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
                 setSubmitting(false);
               }
             }}
-            className="bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] tracking-widest px-4 py-2.5 rounded-xl uppercase transition-colors shadow-md flex items-center justify-center gap-1.5 disabled:bg-slate-300"
+            className={`text-white font-black text-[10px] tracking-widest px-4 py-2.5 rounded-xl uppercase transition-colors shadow-md flex items-center justify-center gap-1.5 ${
+              monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'PENDING_VICAR_REVIEW'
+                ? 'bg-slate-300 cursor-not-allowed'
+                : 'bg-blue-700 hover:bg-blue-800'
+            }`}
           >
-            🚀 Submit for Vicar Review
+            {monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'PENDING_VICAR_REVIEW'
+              ? '⏳ Waiting for Review'
+              : monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'RETURNED_FOR_CORRECTION'
+              ? '🚀 Re-Submit Corrections'
+              : '🚀 Submit for Vicar Review'}
           </button>
         </div>
+        {/* REJECTION NOTES CONTAINER CONTAINER */}
+        {monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'RETURNED_FOR_CORRECTION' && monthlyReturnsList[0].vicar_feedback_notes && (
+          <div className="p-3 bg-red-50 border-l-4 border-red-600 rounded-r-xl text-xs shadow-inner mt-2 animate-fade-in">
+            <span className="block font-black text-red-700 uppercase text-[9px] tracking-wider mb-1">
+              Vicar's Correction Instruction Note:
+            </span>
+            <p className="italic text-slate-900 font-bold font-sans">
+              "{monthlyReturnsList[0].vicar_feedback_notes}"
+            </p>
+          </div>
+        )}
       </div>
+
 
       {/* 🎛️ MAIN OPERATIONAL TRACKING VIEWPORT PANEL */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
