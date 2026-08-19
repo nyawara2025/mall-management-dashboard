@@ -730,6 +730,62 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
         </div>
       </div>
 
+      <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs space-y-3 mb-6 animate-fade-in">
+        <div className="border-b border-slate-100 pb-2.5">
+          <h3 className="text-xs font-black text-slate-900 tracking-tight uppercase flex items-center gap-1.5 text-blue-700">
+            🚀 Metrics Dispatch Control
+          </h3>
+          <p className="text-[10px] text-slate-400 font-medium">Transmit weekly congregation stats upstream to the mother parish treasury review pool</p>
+        </div>
+
+        <div className="p-3.5 border border-slate-100 bg-slate-50/60 rounded-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <span className="inline-flex text-[9px] font-black tracking-wide bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded uppercase mb-1">
+              LOCAL DRAFT STATUS
+            </span>
+            <p className="text-xs font-bold text-slate-800 uppercase tracking-tight">Active Week Period: {period}</p>
+            <p className="text-[10px] text-slate-400 font-semibold font-mono">
+              Current Metrics: {metrics?.total_attendance || '0'} Attended • KES {metrics?.total_monthly_collections_kes?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'} Pool
+            </p>
+          </div>
+
+          <button
+            disabled={submitting}
+            onClick={async () => {
+              setSubmitting(true);
+              try {
+                const res = await fetch('https://tenear.com', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    reporting_period: period,
+                    action_intent: 'SUBMIT_TO_QUEUE',
+                    clerk_id: session.user_id,
+                    tenant_id: session.assigned_id,
+                    target_status: 'PENDING_VICAR_REVIEW'
+                  })
+                });
+
+                if (res.ok) {
+                  alert("Daughter church metrics successfully forwarded to the Mother Parish / Vicar review workspace!");
+                  fetchLocalChurchData();
+                } else {
+                  alert("Transmission Error: Your n8n workflow pipeline rejected the queue assignment request.");
+                }
+              } catch (err) {
+                console.error("Failed executing upstream dispatch workflow:", err);
+                alert("Network Timeout: Unable to establish connection to n8n intake gateways.");
+              } finally {
+                setSubmitting(false);
+              }
+            }}
+            className="bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] tracking-widest px-4 py-2.5 rounded-xl uppercase transition-colors shadow-md flex items-center justify-center gap-1.5 disabled:bg-slate-300"
+          >
+            🚀 Submit for Vicar Review
+          </button>
+        </div>
+      </div>
+
       {/* 🎛️ MAIN OPERATIONAL TRACKING VIEWPORT PANEL */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
