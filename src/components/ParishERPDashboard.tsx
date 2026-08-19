@@ -96,6 +96,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
   const [titheAmount, setTitheAmount] = useState('');
   const [thanksgivingAmount, setThanksgivingAmount] = useState('');
   
+
   // 🛡️ Live Database Audit Trail State Engines
   const [auditRecords, setAuditRecords] = useState<SystemAuditRecord[]>([]);
   const [selectedAuditLog, setSelectedAuditLog] = useState<SystemAuditRecord | null>(null);
@@ -220,7 +221,7 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
         alert("A valid correction feedback code is mandatory for return workflows.");
         return;
       }
-      internalReasonCode = feedbackInput;
+      internalReasonCode = feedbackInput.trim();
     }
 
     try {
@@ -232,6 +233,10 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
           vicar_user_id: session.user_id, // Preserves actor ID trace within the audit ledger schema
           tenant_id: session.assigned_id,
           is_approved: approve,
+
+          // 🎯 Maps explicitly to your database enum status strings
+          target_status: approve ? 'APPROVED_LOCKED' : 'CORRECTION_REQUESTED',
+
           reason_code: internalReasonCode
         })
       });
@@ -482,9 +487,9 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                 
                     // 🚀 FIXED: Align variables cleanly with your exact multi-state database strings
                     const isLocalDraft = status === 'DRAFT' || status === '';
-                    const isPending = status === 'PENDING_REVIEW' || status === 'PENDING_VICAR_REVIEW';
-                    const isReturned = status === 'RETURNED_FOR_CORRECTION';
-                    const isApproved = status === 'APPROVED' || log.is_approved === true;
+                    const isPending = status === 'PENDING_VICAR_REVIEW';
+                    const isReturned = status === 'CORRECTION_REQUESTED' || status === 'RETURNED_FOR_CORRECTION';
+                    const isApproved = status === 'APPROVED_LOCKED' || log.is_approved === true;
 
                     return (
                       <div 
