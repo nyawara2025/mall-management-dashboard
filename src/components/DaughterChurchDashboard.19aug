@@ -185,80 +185,32 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
   const handleSubmitKPI = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
-
-    // 1. Pack variables into an audit-ready, structured payload
-    const payload = {
-      tenant_id: session.assigned_id,
-      reporting_period: period, // e.g., "2026-W31"
-    
-      // Granular Demographic Breakdown (Section 7, Module 3)
-      demographics: {
-        adult_male: attMale,
-        adult_female: attFemale,
-        youth: attYouth,
-        children: attChildren
-      },
-    
-      // Worship Split Metrics
-      sacraments_administered: parseInt(sacraments, 10) || 0,
-      communicants_count: communicantsCount,
-      visitors_count: visitorsCount,
-    
-      // Dynamic dynamic cross-cohort calculation for aggregate historical totals
-      worship_attendance: attMale + attFemale + attYouth + attChildren,
-
-      // Core Collections Mapping for Remittance Quota calculations
-      collections: {
-        tithe: parseFloat(titheCollection) || 0,
-        offertory: parseFloat(offertoryCollection) || 0,
-        thanksgiving: parseFloat(thanksgivingCollection) || 0,
-        ministry_group: parseFloat(ministryGroupCollection) || 0
-      },
-
-      // Tier 5 Setup: Submits as an unverified draft to the Mother Parish (Section 4 Rule)
-      workflow_status: "draft", 
-      entered_by_user_id: session.user_id,
-      submitted_at: new Date().toISOString()
-    };
-
     try {
       const res = await fetch('https://n8n.tenear.com/webhook/ack-submit-kpi', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'x-audit-reason': 'Granular weekly congregational metrics submission' // Audit trail hook 
-        },
-        body: JSON.stringify(payload)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenant_id: session.assigned_id,
+          reporting_period: period,
+          worship_attendance: parseInt(attendance, 10) || 0,
+          sacraments_administered: parseInt(sacraments, 10) || 0,
+          milestones_completed: 0,
+          finance_reached: 0,
+          entered_by_user_id: session.user_id
+        })
       });
-
       if (res.ok) {
         alert("Weekly congregational stats logged up to the parish successfully!");
         setKpiFormOpen(false);
-        resetKPIFormFields(); // Step 3 clean-up hook
+        setAttendance('');
+        setSacraments('');
         fetchLocalChurchData();
-      } else {
-        alert("Server Error: Your n8n gateway node rejected the registration payload.");
       }
     } catch (err) {
       console.error("Failed uploading weekly stats:", err);
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const resetKPIFormFields = () => {
-    setAttendance('');
-    setSacraments('');
-    setAttMale(0);
-    setAttFemale(0);
-    setAttYouth(0);
-    setAttChildren(0);
-    setVisitorsCount(0);
-    setCommunicantsCount(0);
-    setTitheCollection('0');
-    setOffertoryCollection('0');
-    setThanksgivingCollection('0');
-    setMinistryGroupCollection('0');
   };
 
   const handleRegisterMember = async (e: React.FormEvent) => {
