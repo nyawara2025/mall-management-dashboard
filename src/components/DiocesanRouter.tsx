@@ -60,7 +60,11 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
         tier_access: cachedTier,
         assigned_id: parseInt(cachedId, 10),
         // 🌟 ADDED LINE 2: Inject the property cleanly into your component session state array
-        organization_name: cachedOrgName || undefined
+        organization_name: cachedOrgName || undefined,
+
+        // 🔄 DYNAMIC INJECTION: Invoke your built-in ISO week generator cleanly here!
+        reporting_period: getActiveReportingPeriodCode()
+
       });
     }
     setLoading(false);
