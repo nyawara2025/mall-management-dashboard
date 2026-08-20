@@ -730,12 +730,10 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
         </div>
       </div>
 
-      {/* 🚀 METRICS DISPATCH CONTROL PANEL WITH BACKEND REJECTION & APPROVAL BINDING */}
+      {/* 🚀 METRICS DISPATCH CONTROL PANEL WITH BACKEND REJECTION BINDING */}
       <div className={`bg-white rounded-2xl p-5 border shadow-xs space-y-3 mb-6 transition-all duration-200 ${
         monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'RETURNED_FOR_CORRECTION'
           ? 'border-red-200 bg-red-50/20'
-          : monthlyReturnsList && monthlyReturnsList.length > 0 && (monthlyReturnsList[0].return_status === 'APPROVED' || monthlyReturnsList[0].return_status === 'APPROVED_LOCKED')
-          ? 'border-green-200 bg-green-50/10' // 🟢 Subtle green glow layout styling when locked down
           : 'border-slate-200/80'
       }`}>
         <div className="border-b border-slate-100 pb-2.5">
@@ -752,16 +750,12 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
                 ? 'bg-red-50 text-red-700 border-red-200 animate-pulse'
                 : monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'PENDING_VICAR_REVIEW'
                 ? 'bg-amber-50 text-amber-700 border-amber-200'
-                : monthlyReturnsList && monthlyReturnsList.length > 0 && (monthlyReturnsList[0].return_status === 'APPROVED' || monthlyReturnsList[0].return_status === 'APPROVED_LOCKED')
-                ? 'bg-green-50 text-green-700 border-green-200' // 🟢 Render explicit verification UI badge status
                 : 'bg-blue-50 text-blue-700 border-blue-200'
             }`}>
               {monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'RETURNED_FOR_CORRECTION'
                 ? '⚠️ CORRECTION REQUESTED BY VICAR'
                 : monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'PENDING_VICAR_REVIEW'
                 ? '⏳ PENDING VICAR REVIEW'
-                : monthlyReturnsList && monthlyReturnsList.length > 0 && (monthlyReturnsList[0].return_status === 'APPROVED' || monthlyReturnsList[0].return_status === 'APPROVED_LOCKED')
-                ? '✅ APPROVED & RECORDS LOCKED' // 🟢 Catch-all text resolution
                 : 'LOCAL DRAFT STATUS'}
             </span>
             
@@ -771,29 +765,25 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             </p>
           </div>
 
-          {/* 📋 Control Actions side-by-side */}
+
+          {/* 🟢 UPDATED: Flex container to hold both Edit and Re-submit controls side-by-side */}
           <div className="flex items-center gap-2">
             {monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'RETURNED_FOR_CORRECTION' && (
               <button
                 onClick={() => {
-                  setAttMale(metrics?.total_attendance ? Math.floor(metrics.total_attendance * 0.25) : 0);
+                  // 🧠 Pre-populates her form state layers with the current data fields to allow changes
+                  setAttMale(metrics?.total_attendance ? Math.floor(metrics.total_attendance * 0.25) : 0); // Temporary baseline breakdown mapping
                   setAttFemale(metrics?.total_attendance ? Math.floor(metrics.total_attendance * 0.5) : 0);
-                  setKpiFormOpen(true);
+                  setKpiFormOpen(true); // Opens up her weekly data logging modal form
                 }}
                 className="bg-slate-800 hover:bg-slate-900 text-white font-black text-[10px] tracking-widest px-4 py-2.5 rounded-xl uppercase transition-colors shadow-md flex items-center justify-center gap-1.5"
               >
                 ✏️ Edit Figures
               </button>
             )}
-  
+
             <button
-              disabled={
-                submitting || 
-                (monthlyReturnsList && monthlyReturnsList.length > 0 && 
-                  (monthlyReturnsList[0].return_status === 'PENDING_VICAR_REVIEW' || 
-                   monthlyReturnsList[0].return_status === 'APPROVED' || 
-                   monthlyReturnsList[0].return_status === 'APPROVED_LOCKED'))
-              }
+              disabled={submitting}
               onClick={async () => {
                 setSubmitting(true);
                 try {
@@ -825,21 +815,16 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
               className={`text-white font-black text-[10px] tracking-widest px-4 py-2.5 rounded-xl uppercase transition-colors shadow-md flex items-center justify-center gap-1.5 ${
                 monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'PENDING_VICAR_REVIEW'
                   ? 'bg-slate-300 cursor-not-allowed'
-                  : monthlyReturnsList && monthlyReturnsList.length > 0 && (monthlyReturnsList[0].return_status === 'APPROVED' || monthlyReturnsList[0].return_status === 'APPROVED_LOCKED')
-                  ? 'bg-green-600 text-white cursor-not-allowed opacity-80' // 🟢 Style update once records lock down
                   : 'bg-blue-700 hover:bg-blue-800'
               }`}
             >
               {monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'PENDING_VICAR_REVIEW'
                 ? '⏳ Waiting for Review'
-                : monthlyReturnsList && monthlyReturnsList.length > 0 && (monthlyReturnsList[0].return_status === 'APPROVED' || monthlyReturnsList[0].return_status === 'APPROVED_LOCKED')
-                ? '🔒 Locked & Synced' // 🟢 Text update for compliance closure
                 : '🚀 Re-Submit to Vicar'}
             </button>
           </div>
         </div>
-
-        {/* REJECTION NOTES CONTAINER */}
+        {/* REJECTION NOTES CONTAINER CONTAINER */}
         {monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'RETURNED_FOR_CORRECTION' && monthlyReturnsList[0].vicar_feedback_notes && (
           <div className="p-3 bg-red-50 border-l-4 border-red-600 rounded-r-xl text-xs shadow-inner mt-2 animate-fade-in">
             <span className="block font-black text-red-700 uppercase text-[9px] tracking-wider mb-1">
