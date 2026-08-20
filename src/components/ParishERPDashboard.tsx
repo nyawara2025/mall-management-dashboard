@@ -105,6 +105,13 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
   const [selectedAuditLog, setSelectedAuditLog] = useState<SystemAuditRecord | null>(null);
   const [fetchingAudit, setFetchingAudit] = useState<boolean>(false);
 
+  // 🔄 React State Synchronization Trigger
+  useEffect(() => {
+    if (session.reporting_period) {
+      setPeriod(session.reporting_period);
+    }
+  }, [session.reporting_period]);
+
   // 🔄 Consolidated Parish Data Fetcher Engine
   const fetchParishData = async () => {
     setRefreshing(true);
@@ -1142,34 +1149,6 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                   <span className="text-xs font-black text-blue-400">
                     KES {((parseFloat(titheAmount) || 0) + (parseFloat(thanksgivingAmount) || 0) + (parseFloat(grossCollections) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </span>
-                </div>
-              </div>
-
-              {/* 💰 GRANULAR CHURCH FINANCES ENTRY BLOCKS */}
-              <div className="grid grid-cols-2 gap-3">
-                {/* 🚀 NEW FIELDS: Captures discrete Tithe and Thanksgiving pools directly */}
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Total Tithes (KES)</label>
-                  <input 
-                    type="number"
-                    required
-                    placeholder="0.00"
-                    className="bg-transparent w-full text-xs font-black text-emerald-700 focus:outline-none font-mono font-bold"
-                    value={grossCollections} // Reuses her structural variable mapping for backward compatibility
-                    onChange={(e) => setGrossCollections(e.target.value)}
-                  />
-                </div>
-
-                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Thanksgiving Collections (KES)</label>
-                  <input 
-                    type="number"
-                    required
-                    placeholder="0.00"
-                    className="bg-transparent w-full text-xs font-black text-purple-700 focus:outline-none font-mono font-bold"
-                    value={breakdownWomen} // Safely repurposes secondary scratch space variable for Phase 2 breakdown
-                    onChange={(e) => setBreakdownWomen(e.target.value)}
-                  />
                 </div>
               </div>
 
