@@ -765,48 +765,64 @@ export const DaughterChurchDashboard: React.FC<DaughterChurchDashboardProps> = (
             </p>
           </div>
 
-          <button
-            disabled={submitting}
-            onClick={async () => {
-              setSubmitting(true);
-              try {
-                const res = await fetch('https://n8n.tenear.com/webhook/ack-vicar-adjustments', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    reporting_period: period,
-                    action_intent: 'SUBMIT_TO_QUEUE',
-                    clerk_id: session.user_id,
-                    tenant_id: session.assigned_id,
-                    target_status: 'PENDING_VICAR_REVIEW'
-                  })
-                });
 
-                if (res.ok) {
-                  alert("Daughter church metrics successfully forwarded to the Mother Parish / Vicar review workspace!");
-                  fetchLocalChurchData();
-                } else {
-                  alert("Transmission Error: Your n8n workflow pipeline rejected the queue assignment request.");
+          {/* 🟢 UPDATED: Flex container to hold both Edit and Re-submit controls side-by-side */}
+          <div className="flex items-center gap-2">
+            {monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'RETURNED_FOR_CORRECTION' && (
+              <button
+                onClick={() => {
+                  // 🧠 Pre-populates her form state layers with the current data fields to allow changes
+                  setAttMale(metrics?.total_attendance ? Math.floor(metrics.total_attendance * 0.25) : 0); // Temporary baseline breakdown mapping
+                  setAttFemale(metrics?.total_attendance ? Math.floor(metrics.total_attendance * 0.5) : 0);
+                  setKpiFormOpen(true); // Opens up her weekly data logging modal form
+                }}
+                className="bg-slate-800 hover:bg-slate-900 text-white font-black text-[10px] tracking-widest px-4 py-2.5 rounded-xl uppercase transition-colors shadow-md flex items-center justify-center gap-1.5"
+              >
+                ✏️ Edit Figures
+              </button>
+            )}
+
+            <button
+              disabled={submitting}
+              onClick={async () => {
+                setSubmitting(true);
+                try {
+                  const res = await fetch('https://n8n.tenear.com/webhook/ack-vicar-adjustments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      reporting_period: period,
+                      action_intent: 'SUBMIT_TO_QUEUE',
+                      clerk_id: session.user_id,
+                      tenant_id: session.assigned_id,
+                      target_status: 'PENDING_VICAR_REVIEW'
+                    })
+                  });
+
+                  if (res.ok) {
+                    alert("Daughter church metrics successfully forwarded to the Mother Parish / Vicar review workspace!");
+                    fetchLocalChurchData();
+                  } else {
+                    alert("Transmission Error: Your n8n workflow pipeline rejected the queue assignment request.");
+                  }
+                } catch (err) {
+                  console.error("Failed executing upstream dispatch workflow:", err);
+                  alert("Network Timeout: Unable to establish connection to n8n intake gateways.");
+                } finally {
+                  setSubmitting(false);
                 }
-              } catch (err) {
-                console.error("Failed executing upstream dispatch workflow:", err);
-                alert("Network Timeout: Unable to establish connection to n8n intake gateways.");
-              } finally {
-                setSubmitting(false);
-              }
-            }}
-            className={`text-white font-black text-[10px] tracking-widest px-4 py-2.5 rounded-xl uppercase transition-colors shadow-md flex items-center justify-center gap-1.5 ${
-              monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'PENDING_VICAR_REVIEW'
-                ? 'bg-slate-300 cursor-not-allowed'
-                : 'bg-blue-700 hover:bg-blue-800'
-            }`}
-          >
-            {monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'PENDING_VICAR_REVIEW'
-              ? '⏳ Waiting for Review'
-              : monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'RETURNED_FOR_CORRECTION'
-              ? '🚀 Re-Submit Corrections'
-              : '🚀 Submit for Vicar Review'}
-          </button>
+              }}
+              className={`text-white font-black text-[10px] tracking-widest px-4 py-2.5 rounded-xl uppercase transition-colors shadow-md flex items-center justify-center gap-1.5 ${
+                monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'PENDING_VICAR_REVIEW'
+                  ? 'bg-slate-300 cursor-not-allowed'
+                  : 'bg-blue-700 hover:bg-blue-800'
+              }`}
+            >
+              {monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'PENDING_VICAR_REVIEW'
+                ? '⏳ Waiting for Review'
+                : '🚀 Re-Submit to Vicar'}
+            </button>
+          </div>
         </div>
         {/* REJECTION NOTES CONTAINER CONTAINER */}
         {monthlyReturnsList && monthlyReturnsList.length > 0 && monthlyReturnsList[0].return_status === 'RETURNED_FOR_CORRECTION' && monthlyReturnsList[0].vicar_feedback_notes && (
