@@ -608,10 +608,11 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
-                                      log_id: log.id,
+                                      reporting_period: period,
                                       action_intent: 'SUBMIT_TO_QUEUE',
                                       clerk_id: session.user_id,
-                                      tenant_id: session.assigned_id
+                                      tenant_id: session.assigned_id,
+                                      target_status: 'PENDING_VICAR_REVIEW'
                                     })
                                   });
                                   if (res.ok) {
@@ -654,10 +655,11 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
-                                      log_id: log.id,
+                                      reporting_period: period,
                                       action_intent: 'SUBMIT_TO_QUEUE',
                                       clerk_id: session.user_id,
-                                      tenant_id: session.assigned_id
+                                      tenant_id: session.assigned_id,
+                                      target_status: 'PENDING_VICAR_REVIEW'
                                     })
                                   });
                                   if (res.ok) {
