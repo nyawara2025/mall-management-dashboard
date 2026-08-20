@@ -35,6 +35,7 @@ interface ParishDashboardProps {
     role: string;
     assigned_id: number;
     user_id: number;
+    reporting_period?: string;
   };
   onLogout: () => void;
 }
@@ -65,7 +66,9 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
   const [submitting, setSubmitting] = useState(false);
 
   // 📝 Attendance Modal Controlled Input Fields
-  const [period, setPeriod] = useState('2026-W31'); // Aligned with current mid-2026 system timeline
+  const [period, setPeriod] = useState<string>(
+    session.reporting_period || '2026-W30'
+  );
   const [selectedChurchId, setSelectedChurchId] = useState<string>(session.assigned_id.toString());
   const [attendanceCount, setAttendanceCount] = useState('');
   const [sacramentalCount, setSacramentalCount] = useState('');
@@ -154,6 +157,21 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
     // 🎯 SECURE INJECTION POINT: Enforces her logged-in parent context dynamically
     const targetTenantId = selectedChurchId || session.assigned_id;
 
+    // 📊 Demographics parsing matching layout states
+    const adultMale = parseInt(breakdownMen, 10) || 0;
+    const adultFemale = parseInt(breakdownWomen, 10) || 0;
+    const youth = parseInt(breakdownYouth, 10) || 0;
+    const children = parseInt(breakdownChildren, 10) || 0;
+    
+    // Total aggregated baseline calculations
+    const combinedWorshipTotal = adultMale + adultFemale + youth + children;
+
+    // Financial parsing matching accounting states
+    const tithe = parseFloat(titheAmount) || 0;
+    const thanksgiving = parseFloat(thanksgivingAmount) || 0;
+    const offertory = parseFloat(grossCollections) || 0;
+    const ministryGroup = 0;
+
     setSubmitting(true);
     try {
       const res = await fetch('https://n8n.tenear.com/webhook/ack-submit-kpi', {
@@ -162,12 +180,26 @@ export const ParishERPDashboard: React.FC<ParishDashboardProps> = ({ session, on
         body: JSON.stringify({
           tenant_id: targetTenantId,
           reporting_period: period,
-          worship_attendance: parseInt(attendanceCount, 10) || 0,
+          maker_id: session.user_id,
+
+          worship_attendance: combinedWorshipTotal,
           sacraments_administered: parseInt(sacramentalCount, 10) || 0,
-          // 🚀 FIXED: Distinct variables cleanly mapping out financial groupings
-          tithes_collected: parseFloat(grossCollections) || 0,
-          thanksgiving_collected: parseFloat(breakdownWomen) || 0,
-          maker_id: session.user_id
+          communicants_count: parseInt(sacramentalCount, 10) || 0,
+          visitors_count: 0,
+          
+          // 📦 NESTED OBJECT STRUCTURING INJECTED HERE
+          demographics: {
+            adult_male: adultMale,
+            adult_female: adultFemale,
+            youth: youth,
+            children: children
+          },
+          collections: {
+            tithe: tithe,
+            thanksgiving: thanksgiving,
+            offertory: offertory,
+            ministry_group: ministryGroup
+          }
         })
       });
       
