@@ -73,6 +73,10 @@ export const ParishAdminClerkDashboard: React.FC<ClerkDashboardProps> = ({ sessi
   const [memberPhone, setMemberPhone] = useState('');
   const [memberGender, setMemberGender] = useState('MALE');
 
+  const [isCommunicant, setIsCommunicant] = useState(false);
+  const [communicationPreference, setCommunicationPreference] = useState('SMS');
+  const [lifeStage, setLifeStage] = useState('ADULT');
+
   // Network Connectivity Triggers
   useEffect(() => {
     const goOnline = () => { setIsOnline(true); checkAndSyncOfflineQueue(); };
@@ -521,11 +525,14 @@ Record</button>
                   household_id: parseInt(selectedHouseholdId, 10),
                   full_name: memberName,
                   contact_phone: memberPhone,
-                  gender: memberGender
+                  is_communicant: isCommunicant,
+                  gender: memberGender,
+                  communication_preference: communicationPreference,
+                  life_stage: lifeStage
                 };
 
                 try {
-                  const res = await fetch('https://n8n.tenear.com/webhook/ack-register-member', {
+                  const res = await fetch('https://n8n.tenear.com/webhook/ack-register-parish-member1', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(memberPayload)
@@ -602,6 +609,21 @@ Record</button>
                   </select>
                 </div>
               </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Congregation Life Stage Category</label>
+                  <select 
+                    className="bg-transparent w-full font-bold text-slate-700 focus:outline-none cursor-pointer"
+                    value={lifeStage}
+                    onChange={(e) => setLifeStage(e.target.value)}
+                  >
+                    <option value="INFANT">Infant (0-4 Years)</option>
+                    <option value="CHILD">Child Sunday School</option>
+                    <option value="YOUTH">Youth Member</option>
+                    <option value="ADULT">Adult Congregation</option>
+                    <option value="SENIOR">Senior Citizen / Elder</option>
+                  </select>
+                </div>
 
               <button
                 type="submit"
