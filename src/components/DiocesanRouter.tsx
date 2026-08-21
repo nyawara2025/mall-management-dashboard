@@ -14,6 +14,7 @@ import { ArchdeaconryFinanceAuditor } from './ArchdeaconryFinanceAuditor';
 import { ArchdeaconryIctDashboard } from './ArchdeaconryIctDashboard';
 import { ArchdeaconryMeDashboard } from './ArchdeaconryMeDashboard';
 import { DaughterChurchIctDashboard } from './DaughterChurchIctDashboard';
+import { ParishAdminClerkDashboard } from './ParishAdminClerkDashboard';
 
 interface DiocesanUserSession {
   user_id: number;
@@ -172,6 +173,20 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
         );
       }
 
+      // 📝 DATA ENTRY CLERK GUARD: Isolate the new dedicated metrics submission workspace
+      if (session.role.toUpperCase().includes('CLERK') || session.role.toUpperCase().includes('RECORDER')) {
+        return (
+          <ParishAdminClerkDashboard
+            session={session}
+            onLogout={() => {
+              localStorage.clear(); // 🚀 Wipes out cached session tokens cleanly
+              onLogout();
+              window.location.href = 'https://acknairobidiocese.pages.dev';
+            }}
+          />
+        );
+      }
+
       return (
         <ParishERPDashboard 
           session={session} 
@@ -182,6 +197,10 @@ export const DiocesanRouter: React.FC<{ user: any; onLogout: () => void }> = ({ 
           }} 
         />
       );
+
+      
+
+
     case 'ARCHDEACONRY':
 
       // Programmatically derive the compliance period for the active multi-tenant layer
