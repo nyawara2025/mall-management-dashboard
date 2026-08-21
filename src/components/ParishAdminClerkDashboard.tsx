@@ -494,12 +494,124 @@ Record</button>
       {memberFormOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
-            <button onClick={() => setMemberFormOpen(false)} className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400"><X className="w-4 h-4" 
-/></button>
-            <h3 className="text-sm font-black text-slate-900 uppercase mb-4">Enroll New Congregation Member</h3>
-            {/* Form components mapping name, telephone number, demographic category tags */}
-            <p className="text-slate-400 py-4 italic">Roster registration fields linked to Supabase profile indexes...</p>
-            <button onClick={() => setMemberFormOpen(false)} className="w-full bg-blue-600 text-white font-black py-2 rounded-xl uppercase">Close Portal Registry</button>
+            <button 
+              onClick={() => setMemberFormOpen(false)} 
+              className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            
+            <div className="mb-4">
+              <h3 className="text-sm font-black text-slate-900 uppercase">Enroll New Congregation Member</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ACK Nairobi Roster Database Engine</p>
+            </div>
+
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!selectedHouseholdId) {
+                  alert("Please assign this member to a valid parish household unit first.");
+                  return;
+                }
+                setSubmitting(true);
+
+                const memberPayload = {
+                  action_intent: 'CREATE_ACK_MEMBER',
+                  parish_id: session.assigned_id,
+                  household_id: parseInt(selectedHouseholdId, 10),
+                  full_name: memberName,
+                  contact_phone: memberPhone,
+                  gender: memberGender
+                };
+
+                try {
+                  const res = await fetch('https://n8n.tenear.com/webhook/ack-register-member', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(memberPayload)
+                  });
+                  
+                  if (res.ok) {
+                    alert("Member successfully registered and linked to their household!");
+                    setMemberName('');
+                    setMemberPhone('');
+                    setMemberFormOpen(false);
+                  } else {
+                    alert("Failed to write member record. Check n8n middleware channel states.");
+                  }
+                } catch (err) {
+                  console.error("Database connection failure:", err);
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+              className="space-y-3.5 text-xs"
+            >
+              {/* 🏠 Relational Dropdown Selection Menu */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Assigned Household Unit Dropdown</label>
+                <select 
+                  required
+                  className="bg-transparent w-full font-bold text-slate-700 focus:outline-none cursor-pointer"
+                  value={selectedHouseholdId}
+                  onChange={(e) => setSelectedHouseholdId(e.target.value)}
+                >
+                  {householdsList.length === 0 ? (
+                    <option value="" disabled>No Households Registered In Current Parish</option>
+                  ) : (
+                    householdsList.map((h) => (
+                      <option key={h.id} value={h.id}>{h.household_name}</option>
+                    ))
+                  )}
+                </select>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Full Legal Name</label>
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="e.g. John Kamau Juma"
+                  className="bg-transparent w-full font-bold text-slate-700 focus:outline-none" 
+                  value={memberName} 
+                  onChange={(e) => setMemberName(e.target.value)} 
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Contact Phone Number</label>
+                  <input 
+                    type="tel" 
+                    required 
+                    placeholder="e.g. +254 711..."
+                    className="bg-transparent w-full font-bold text-slate-700 focus:outline-none font-mono" 
+                    value={memberPhone} 
+                    onChange={(e) => setMemberPhone(e.target.value)} 
+                  />
+                </div>
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Demographic Gender Group</label>
+                  <select 
+                    className="bg-transparent w-full font-bold text-slate-700 focus:outline-none cursor-pointer"
+                    value={memberGender}
+                    onChange={(e) => setMemberGender(e.target.value)}
+                  >
+                    <option value="MALE">Male</option>
+                    <option value="FEMALE">Female</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting || householdsList.length === 0}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-black py-3 rounded-xl uppercase tracking-widest shadow-md 
+transition-all mt-2"
+              >
+                {submitting ? 'Enrolling Member...' : 'Commit Member Roster Record'}
+              </button>
+            </form>
           </div>
         </div>
       )}
