@@ -61,6 +61,11 @@ export const ParishAdminClerkDashboard: React.FC<ClerkDashboardProps> = ({ sessi
   const [projectFormOpen, setProjectFormOpen] = useState(false);
   const [monthlyReturnOpen, setMonthlyReturnOpen] = useState(false);
 
+  // 🏠 Controlled State Mappings for Household Registry
+  const [householdName, setHouseholdName] = useState('');
+  const [primaryPhone, setPrimaryPhone] = useState('');
+  const [physicalAddress, setPhysicalAddress] = useState('');
+
   // Network Connectivity Triggers
   useEffect(() => {
     const goOnline = () => { setIsOnline(true); checkAndSyncOfflineQueue(); };
@@ -481,6 +486,106 @@ Record</button>
             >
               Compile & Disseminate Monthly Sheet
             </button>
+          </div>
+        </div>
+      )}
+
+      {householdFormOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+            <button 
+              onClick={() => setHouseholdFormOpen(false)} 
+              className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            
+            <div className="mb-4">
+              <h3 className="text-sm font-black text-slate-900 uppercase">Register Parish Household Unit</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ACK Nairobi Multi-Tenant Registry</p>
+            </div>
+
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setSubmitting(true);
+
+                const householdPayload = {
+                  action_intent: 'CREATE_ACK_HOUSEHOLD',
+                  parish_id: session.assigned_id, // Links to ack_church_tenants(id)
+                  household_name: householdName,
+                  primary_contact_phone: primaryPhone,
+                  physical_address: physicalAddress
+                };
+
+                try {
+                  const res = await fetch('https://n8n.tenear.com/ack-register-household', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(householdPayload)
+                  });
+                  
+                  if (res.ok) {
+                    alert("Household ledger item registered successfully!");
+                    setHouseholdName('');
+                    setPrimaryPhone('');
+                    setPhysicalAddress('');
+                    setHouseholdFormOpen(false);
+                  } else {
+                    alert("Failed to record household entry. Verify network channels.");
+                  }
+                } catch (err) {
+                  console.error("Database connection fault:", err);
+                } finally {
+                  setSubmitting(false);
+                }
+              }} 
+              className="space-y-3.5 text-xs"
+            >
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Household Identifier Name</label>
+                <input 
+                  type="text" 
+                  required 
+                  placeholder="e.g. The Juma Family Household"
+                  className="bg-transparent w-full font-bold text-slate-700 focus:outline-none" 
+                  value={householdName} 
+                  onChange={(e) => setHouseholdName(e.target.value)} 
+                />
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Primary Contact Phone Number</label>
+                <input 
+                  type="tel" 
+                  required 
+                  placeholder="e.g. +254 700 000000"
+                  className="bg-transparent w-full font-bold text-slate-700 focus:outline-none font-mono" 
+                  value={primaryPhone} 
+                  onChange={(e) => setPrimaryPhone(e.target.value)} 
+                />
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Physical Address / Landmark Description</label>
+                <textarea 
+                  rows={3}
+                  placeholder="Street name, estate block number, or village landmark coordinates..."
+                  className="bg-transparent w-full font-medium text-slate-700 focus:outline-none resize-none" 
+                  value={physicalAddress} 
+                  onChange={(e) => setPhysicalAddress(e.target.value)} 
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-black py-3 rounded-xl uppercase tracking-widest shadow-md 
+transition-all mt-2"
+              >
+                {submitting ? 'Writing to Ledger...' : 'Commit Household Record'}
+              </button>
+            </form>
           </div>
         </div>
       )}
