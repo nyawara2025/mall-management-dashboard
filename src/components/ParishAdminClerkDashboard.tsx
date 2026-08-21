@@ -65,6 +65,13 @@ export const ParishAdminClerkDashboard: React.FC<ClerkDashboardProps> = ({ sessi
   const [householdName, setHouseholdName] = useState('');
   const [primaryPhone, setPrimaryPhone] = useState('');
   const [physicalAddress, setPhysicalAddress] = useState('');
+  
+  // 👥 Controlled State Mappings for Membership Enrollment
+  const [householdsList, setHouseholdsList] = useState<{ id: string; household_name: string }[]>([]);
+  const [selectedHouseholdId, setSelectedHouseholdId] = useState('');
+  const [memberName, setMemberName] = useState('');
+  const [memberPhone, setMemberPhone] = useState('');
+  const [memberGender, setMemberGender] = useState('MALE');
 
   // Network Connectivity Triggers
   useEffect(() => {
@@ -108,6 +115,33 @@ export const ParishAdminClerkDashboard: React.FC<ClerkDashboardProps> = ({ sessi
   useEffect(() => {
     fetchClerkData();
   }, [session.assigned_id]);
+
+  // Fetch available relational household options whenever the member portal opens
+  useEffect(() => {
+    const fetchParishHouseholds = async () => {
+      if (!memberFormOpen) return;
+      try {
+        const res = await fetch('https://n8n.tenear.com/webhook/ack-fetch-parish-family', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            action_intent: 'FETCH_PARISH_HOUSEHOLDS', 
+            parish_id: session.assigned_id 
+          })
+        });
+        const data = await res.json();
+        if (data && data.households) {
+          setHouseholdsList(data.households);
+          if (data.households.length > 0) {
+            setSelectedHouseholdId(data.households[0].id);
+          }
+        }
+      } catch (err) {
+        console.error("Failed pulling relational household options payload:", err);
+      }
+    };
+    fetchParishHouseholds();
+  }, [memberFormOpen, session.assigned_id]);
 
   const checkAndSyncOfflineQueue = async () => {
     const queueItem = localStorage.getItem('ack_parish_clerk_offline_cache');
