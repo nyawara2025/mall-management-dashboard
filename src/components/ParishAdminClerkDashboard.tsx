@@ -519,7 +519,7 @@ Record</button>
                 };
 
                 try {
-                  const res = await fetch('https://n8n.tenear.com/ack-register-household', {
+                  const res = await fetch('https://n8n.tenear.com/webhook/ack-register-household', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(householdPayload)
