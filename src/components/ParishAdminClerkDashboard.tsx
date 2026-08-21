@@ -625,6 +625,34 @@ Record</button>
                   </select>
                 </div>
 
+                <div className="grid grid-cols-2 gap-3 mt-3">
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Communication Mode Channel</label>
+                  <select 
+                    className="bg-transparent w-full font-bold text-slate-700 focus:outline-none cursor-pointer"
+                    value={communicationPreference}
+                    onChange={(e) => setCommunicationPreference(e.target.value)}
+                  >
+                    <option value="SMS">Bulk SMS</option>
+                    <option value="WHATSAPP">WhatsApp Business</option>
+                    <option value="EMAIL">Direct Email</option>
+                  </select>
+                </div>
+
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 flex items-center justify-between">
+                  <div>
+                    <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Sacramental Status</label>
+                    <span className="text-[10px] font-bold text-slate-500">Is Communicant?</span>
+                  </div>
+                  <input 
+                    type="checkbox"
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                    checked={isCommunicant}
+                    onChange={(e) => setIsCommunicant(e.target.checked)}
+                  />
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={submitting || householdsList.length === 0}
