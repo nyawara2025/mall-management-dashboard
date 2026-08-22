@@ -635,17 +635,6 @@ totalSpentFunds).toLocaleString()}</span>
         </div>
       )}
 
-      {/* FLOATING ACTION TRIGGER */}
-      <div className="mt-6 flex justify-end">
-        <button 
-          onClick={() => setLogFormOpen(true)} 
-          className="bg-blue-700 hover:bg-blue-800 text-white font-black uppercase text-xs tracking-wider px-5 py-3 rounded-xl shadow-md 
-transition-all"
-        >
-          ➕ Initialize Weekly Return Sheet
-        </button>
-      </div>
-
     </div>
   );
 };
