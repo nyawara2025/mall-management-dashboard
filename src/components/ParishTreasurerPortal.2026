@@ -107,11 +107,6 @@ export const ParishTreasurerPortal: React.FC<PortalProps> = ({ session, onLogout
   const [grossMpesa, setGrossMpesa] = useState(1650000);
   const [grossCash, setGrossCash] = useState(589002);
 
-  const maskSensitiveString = (inputName: string): string => {
-    if (!inputName) return '';
-    return inputName.split(' ').map(p => p.length <= 1 ? p : p + '*'.repeat(p.length - 1)).join(' ');
-  };
-
   const synchronizeFinancials = async () => {
     setRefreshing(true);
     try {
@@ -400,19 +395,22 @@ h-4" /> Return Packets State History</h3>
           </div>
 
           {returnHistory.length === 0 ? (
-            <div className="text-center text-xs text-slate-400 py-12 italic border border-dashed rounded-xl bg-slate-50/50">No data returns registered.</div>
+            <div className="text-center text-xs text-slate-400 py-12 italic border border-dashed rounded-xl bg-slate-50/50">No data returns 
+registered.</div>
           ) : (
             <div className="space-y-2.5">
               {returnHistory.map((log) => {
                 const isRejected = log.return_status === 'REJECTED_FOR_CORRECTION';
                 return (
-                  <div key={log.id} className={`p-3 border rounded-xl space-y-3 transition-all ${isRejected ? 'border-red-200 bg-red-50/40' : 'border-slate-100 bg-slate-50/50'}`}>
+                  <div key={log.id} className={`p-3 border rounded-xl space-y-3 transition-all ${isRejected ? 'border-red-200 bg-red-50/40' : 
+'border-slate-100 bg-slate-50/50'}`}>
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="block text-xs font-black text-slate-800 uppercase tracking-tight">{log.church_name}</span>
                         <span className="block text-[9px] text-slate-400 font-bold font-mono">Period: {log.reporting_period}</span>
                       </div>
-                      <span className={`text-[9px] border px-1.5 py-0.5 rounded font-black uppercase ${isRejected ? 'bg-red-50 text-red-700 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
+                      <span className={`text-[9px] border px-1.5 py-0.5 rounded font-black uppercase ${isRejected ? 'bg-red-50 text-red-700 
+border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>
                         {log.return_status.replace('_', ' ')}
                       </span>
                     </div>
@@ -577,7 +575,8 @@ text-slate-400"><X className="w-4 h-4" /></button>
             <form onSubmit={handleVoucherIssuance} className="space-y-4">
               <div>
                 <label className="block text-[9px] font-black text-slate-400 uppercase mb-1">Line Item Classification</label>
-                <select className="w-full p-2 border border-slate-200 rounded text-xs font-bold bg-slate-50" value={budgetCategory} onChange={e => setBudgetCategory(e.target.value)}>
+                <select className="w-full p-2 border border-slate-200 rounded text-xs font-bold bg-slate-50" value={budgetCategory} onChange={e 
+=> setBudgetCategory(e.target.value)}>
                   <option value="OPERATIONS">OPERATIONS & RUNNING COSTS</option>
                   <option value="WELFARE">WELFARE & PASTORAL SUPPORT</option>
                   <option value="PROJECTS">MISSION DEVELOPMENT & BUILDING</option>

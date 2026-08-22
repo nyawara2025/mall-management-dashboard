@@ -86,6 +86,13 @@ export const ParishTreasurerPortal: React.FC<PortalProps> = ({ session, onLogout
   const [supplierName, setSupplierName] = useState('');
   const [voucherReference, setVoucherReference] = useState('');
 
+  // Split collections metrics vectors
+  const [titheMpesa, setTitheMpesa] = useState(870000);
+  const [titheCash, setTitheCash] = useState(290000);
+
+  const [grossMpesa, setGrossMpesa] = useState(1650000);
+  const [grossCash, setGrossCash] = useState(589002);
+
   const synchronizeFinancials = async () => {
     setRefreshing(true);
     try {
@@ -221,32 +228,28 @@ export const ParishTreasurerPortal: React.FC<PortalProps> = ({ session, onLogout
           <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5">{(metrics?.total_attendance || 0).toLocaleString()}</span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="text-emerald-700 bg-emerald-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5"><DollarSign className="w-4 h-4" /></div>
-          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Tithes Collections</span>
-          <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5 font-mono">KES {(metrics?.collection_tithe || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+        {/* Tithes Collection Summary Card */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2">
+          <div>
+            <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Tithes Collections</p>
+            <h3 className="text-base font-black text-slate-900 mt-0.5">KES 1,160,000.00</h3>
+          </div>
+          <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500 font-medium font-mono">
+            <span>📱 M-Pesa: KES {titheMpesa.toLocaleString()}</span>
+            <span>🏦 Bank/Cash: KES {titheCash.toLocaleString()}</span>
+          </div>
         </div>
 
-        {/* Card 3: Thanksgiving Collections */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="text-purple-700 bg-purple-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
-            <TrendingUp className="w-4 h-4" />
+        {/* Gross Collections Summary Card */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-2">
+          <div>
+            <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Gross Parish Collections</p>
+            <h3 className="text-base font-black text-blue-700 mt-0.5">KES 2,239,002.00</h3>
           </div>
-          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Thanksgiving Collections</span>
-          <span className="block text-lg font-black text-slate-800 tracking-tight mt-0.5 font-mono">
-            KES {(metrics?.collection_thanksgiving || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
-        </div>
-        
-        {/* Card 4: Gross Parish Collections */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs">
-          <div className="text-blue-700 bg-blue-50 w-8 h-8 rounded-lg flex items-center justify-center mb-2.5">
-            <DollarSign className="w-4 h-4" />
+          <div className="pt-1.5 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-500 font-medium font-mono">
+            <span className="text-emerald-600 font-bold">📱 M-Pesa: KES {grossMpesa.toLocaleString()}</span>
+            <span>🏦 Bank/Cash: KES {grossCash.toLocaleString()}</span>
           </div>
-          <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wide">Gross Parish Collections</span>
-          <span className="block text-lg font-black text-blue-700 tracking-tight mt-0.5 font-mono">
-            KES {totalCollections.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </span>
         </div>
       
         {/* Card 5: Reporting Assemblies */}
