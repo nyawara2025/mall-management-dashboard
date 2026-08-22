@@ -648,6 +648,34 @@ export const ParishTreasurerPortal: React.FC<PortalProps> = ({ session, onLogout
                 />
               </div>
 
+              {/* Amount Entry Input */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Disbursal Amount (KES)</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  step="0.01"
+                  placeholder="0.00"
+                  className="bg-transparent w-full font-bold text-slate-700 focus:outline-none font-mono"
+                  value={voucherAmount} 
+                  onChange={(e) => setVoucherAmount(e.target.value)} 
+                />
+              </div>
+                  
+              {/* Text Description Textarea */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Voucher Line Allocation Justification</label>
+                <textarea
+                  rows={3}
+                  required
+                  placeholder="Provide precise description details regarding this cash output voucher..."
+                  className="bg-transparent w-full font-medium text-slate-700 focus:outline-none resize-none font-sans"
+                  value={voucherDescription}
+                  onChange={(e) => setVoucherDescription(e.target.value)}
+                />
+              </div>
+
               <button
                 type="submit"
                 className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-3 rounded-xl uppercase tracking-widest shadow-md transition-all mt-2"
