@@ -73,6 +73,16 @@ export const ParishTreasurerPortal: React.FC<PortalProps> = ({ session, onLogout
   const [evidenceUrl, setEvidenceUrl] = useState('');
   const [attendanceCount, setAttendanceCount] = useState('');
 
+  // 💸 Expenditure Voucher & Budget Control States
+  const [voucherModalOpen, setVoucherModalOpen] = useState(false);
+  const [voucherDescription, setVoucherDescription] = useState('');
+  const [voucherAmount, setVoucherAmount] = useState('');
+  const [budgetCategory, setBudgetCategory] = useState('OPERATIONS');
+  
+  // Annual targets vs active spending values (typically hydrated from Supabase table)
+  const [allocatedBudget, setAllocatedBudget] = useState(3000000); // 3M KES Base
+  const [totalSpentFunds, setTotalSpentFunds] = useState(1245000); // 1.245M KES Spent
+
   const synchronizeFinancials = async () => {
     setRefreshing(true);
     try {
@@ -268,6 +278,54 @@ export const ParishTreasurerPortal: React.FC<PortalProps> = ({ session, onLogout
         <span className="text-base font-black text-purple-700 bg-purple-50 border border-purple-100 px-3 py-1 rounded-xl font-mono">
           KES {automaticDiocesanRemittance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </span>
+      </div>
+
+      {/* 🧾 BUDGET VARIANCE & FISCAL CONTROLS MONITOR */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-xs">
+        
+        {/* Card 1: Approved Annual Threshold */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+          <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider">PCC Approved Budget Cap</p>
+          <h3 className="text-base font-black text-slate-900 mt-1">
+            KES {allocatedBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </h3>
+          <span className="text-[10px] text-slate-400 font-bold uppercase block mt-1">Active 2026 Fiscal Threshold</span>
+        </div>
+
+        {/* Card 2: Cumulative Outward Vouchers */}
+        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex items-center justify-between">
+          <div>
+            <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Total Disbursed Expenditures</p>
+            <h3 className="text-base font-black text-red-600 mt-1">
+              KES {totalSpentFunds.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            </h3>
+            <span className="text-[10px] text-slate-500 font-bold block mt-1">
+              {((totalSpentFunds / allocatedBudget) * 100).toFixed(1)}% Bound Consumption
+            </span>
+          </div>
+          <button 
+            onClick={() => setVoucherModalOpen(true)}
+            className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-black uppercase text-[9px] tracking-wider px-2.5 py-1.5 rounded-xl transition-colors"
+          >
+            ➕ Draw Voucher
+          </button>
+        </div>
+
+        {/* Card 3: Dynamic Remaining Liquidity / Variance Tracker */}
+        <div className={`p-4 rounded-2xl border shadow-xs ${
+          (allocatedBudget - totalSpentFunds) < 200000 ? 'bg-red-50/40 border-red-200' : 'bg-green-50/30 border-green-200'
+        }`}>
+          <p className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Remaining Liquidity Variance</p>
+          <h3 className={`text-base font-black mt-1 ${
+            (allocatedBudget - totalSpentFunds) < 200000 ? 'text-red-700 animate-pulse' : 'text-green-700'
+          }`}>
+            KES {(allocatedBudget - totalSpentFunds).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </h3>
+          <span className="text-[10px] text-slate-500 font-bold block mt-1 uppercase tracking-tight">
+            {(allocatedBudget - totalSpentFunds) < 200000 ? '⚠️ High Budget Variance Risk!' : '✓ Spending Within Safe Bounds'}
+          </span>
+        </div>
+
       </div>
 
       {/* 🎛️ DUAL DASHBOARD VIEW PANELS */}
@@ -493,6 +551,112 @@ export const ParishTreasurerPortal: React.FC<PortalProps> = ({ session, onLogout
           </div>
         </div>
       )}
+
+      {/* 📝 EXPENDITURE VOUCHER ISSUANCE SYSTEM */}
+      {voucherModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 text-xs">
+          <div className="bg-white border border-slate-200 rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
+            <button 
+              onClick={() => setVoucherModalOpen(false)} 
+              className="absolute top-4 right-4 p-1.5 hover:bg-slate-100 rounded-full text-slate-400"
+            >
+              <span className="font-sans font-bold">✕</span>
+            </button>
+            
+            <div className="mb-4">
+              <h3 className="text-sm font-black text-slate-900 uppercase">Issue Expenditure Voucher</h3>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ACK Multi-Tenant Fiscal Control Engine</p>
+            </div>
+
+            <form 
+              onSubmit={async (e) => {
+                e.preventDefault();
+                
+                const voucherPayload = {
+                  action_intent: 'PROCESS_EXPENDITURE_VOUCHER',
+                  parish_id: session.assigned_id,
+                  issuer_id: session.user_id,
+                  category: budgetCategory,
+                  amount: parseFloat(voucherAmount),
+                  description: voucherDescription
+                };
+
+                try {
+                  const res = await fetch('https://tenear.com', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(voucherPayload)
+                  });
+                  
+                  if (res.ok) {
+                    alert("Expenditure request committed and ledger balances recalculated!");
+                    setTotalSpentFunds(prev => prev + parseFloat(voucherAmount));
+                    setVoucherDescription('');
+                    setVoucherAmount('');
+                    setVoucherModalOpen(false);
+                  } else {
+                    alert("Voucher rejection triggered. Check threshold constraints.");
+                  }
+                } catch (err) {
+                  console.error("Ledger communication failure:", err);
+                }
+              }}
+              className="space-y-3.5"
+            >
+              {/* Category Allocation Menu */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Target Budget Ledger Group</label>
+                <select 
+                  className="bg-transparent w-full font-bold text-slate-700 focus:outline-none cursor-pointer"
+                  value={budgetCategory}
+                  onChange={(e) => setBudgetCategory(e.target.value)}
+                >
+                  <option value="OPERATIONS">Parish Operations & Utilities</option>
+                  <option value="CLERGY_WELFARE">Clergy Compensation & Welfare</option>
+                  <option value="MISSION_EVANGELISM">Mission & Outreach Development</option>
+                  <option value="ASSET_MAINTENANCE">Property & Infrastructure Maintenance</option>
+                </select>
+              </div>
+
+              {/* Amount Entry Input */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Disbursal Amount (KES)</label>
+                <input 
+                  type="number" 
+                  required 
+                  min="1"
+                  step="0.01"
+                  placeholder="0.00"
+                  className="bg-transparent w-full font-bold text-slate-700 focus:outline-none font-mono" 
+                  value={voucherAmount} 
+                  onChange={(e) => setVoucherAmount(e.target.value)} 
+                />
+              </div>
+
+              {/* Text Description Textarea */}
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 space-y-1">
+                <label className="block text-[9px] font-black text-slate-400 uppercase tracking-wide">Voucher Line Allocation Justification</label>
+                <textarea 
+                  rows={3}
+                  required
+                  placeholder="Provide precise description details regarding this cash output voucher..."
+                  className="bg-transparent w-full font-medium text-slate-700 focus:outline-none resize-none font-sans" 
+                  value={voucherDescription} 
+                  onChange={(e) => setVoucherDescription(e.target.value)} 
+                />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-3 rounded-xl uppercase tracking-widest shadow-md transition-all mt-2"
+              >
+                Authorize Cash Disbursal Voucher
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
