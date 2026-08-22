@@ -241,7 +241,7 @@ export const ParishTreasurerPortal: React.FC<PortalProps> = ({ session, onLogout
     setSubmitting(true);
     try {
       const systemVoucherCode = `ACK-VOUCH-${period}-${Date.now().toString().slice(-4)}`;
-      const res = await fetch('https://tenear.com', {
+      const res = await fetch('https://n8n.tenear.com/webhook/ack-parish-voucher-issuance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
