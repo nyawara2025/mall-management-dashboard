@@ -45,10 +45,30 @@ export const TreasurerWelfareModal = ({ isOpen, onClose, userData }: TreasurerWe
 
       if (!response.ok) throw new Error('Failed to fetch from middleware');
       
-      const data = await response.json();
-      setStatements(data || []);
+      const result = await response.json();
+      
+      // 1. Ensure result is an array even if wrapped by n8n
+      let rawArray: any[] = [];
+      if (Array.isArray(result)) {
+        rawArray = result;
+      } else if (result && typeof result === 'object') {
+        rawArray = result.data || result.statements || result.rows || [result];
+      }
+
+      // 2. Cleanly format properties to prevent render crashes
+      const cleanArray = rawArray.map((item: any) => ({
+        id: String(item.id || Math.random()),
+        member_name: String(item.member_name || item.memberName || 'Unknown Member'),
+        description: String(item.description || 'Welfare Record'),
+        transaction_type: String(item.transaction_type || 'credit').toLowerCase() === 'debit' ? 'debit' : 'credit',
+        amount: parseFloat(item.amount || 0),
+        payment_date: item.payment_date || item.paymentDate || new Date().toISOString()
+      }));
+
+      setStatements(cleanArray);
     } catch (err: any) {
       console.error('Error fetching global statements:', err);
+      setStatements([]); // Keeping it an array avoids rendering crashes
       setFeedback({
         type: 'error',
         text: 'Failed to synchronize account ledger logs.'
@@ -67,7 +87,7 @@ export const TreasurerWelfareModal = ({ isOpen, onClose, userData }: TreasurerWe
 
     try {
       // Fire payload directly to your self-hosted n8n webhook middleware
-      const response = await fetch('https://your-n8n-webhook-url/welfare/bereavement', {
+      const response = await fetch('https://n8n.tenear.com/webhook/welfare-bereavement', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -177,7 +197,11 @@ export const TreasurerWelfareModal = ({ isOpen, onClose, userData }: TreasurerWe
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {statements.length === 0 ? (
-                        <tr><td colSpan={5} className="p-6 text-center text-slate-400">No logs discovered within this ledger partition.</td></tr>
+                        <tr>
+                          <td colSpan={5} className="p-6 text-center text-slate-400">
+                            No logs discovered within this ledger partition.
+                          </td>
+                        </tr>
                       ) : (
                         statements.map((stmt) => (
                           <tr key={stmt.id} className="hover:bg-slate-50/60 transition">
@@ -191,9 +215,11 @@ export const TreasurerWelfareModal = ({ isOpen, onClose, userData }: TreasurerWe
                               </span>
                             </td>
                             <td className={`p-3 font-bold ${stmt.transaction_type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
-                              KES {parseFloat(stmt.amount).toLocaleString()}/-
+                              KES {stmt.amount.toLocaleString()}/-
                             </td>
-                            <td className="p-3 text-slate-400">{new Date(stmt.payment_date).toLocaleDateString()}</td>
+                            <td className="p-3 text-slate-400">
+                              {new Date(stmt.payment_date).toLocaleDateString()}
+                            </td>
                           </tr>
                         ))
                       )}
