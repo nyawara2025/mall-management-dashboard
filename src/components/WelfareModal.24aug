@@ -25,9 +25,6 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
   const [subModalHistory, setSubModalHistory] = useState<any[]>([]);
   const [subModalLoadingHistory, setSubModalLoadingHistory] = useState(false);
 
-  const [personalHistory, setPersonalHistory] = useState<any[]>([]);
-  const [loadingHistory, setLoadingHistory] = useState<boolean>(false);
-
   const [filter, setFilter] = useState<'All' | 'Ministry' | 'Zone' | 'Regional' | 'Welfare' | 'Ad hoc'>('All');
 
   // 2. DATA WORKERS & PARSERS
@@ -44,33 +41,7 @@ export const WelfareModal = ({ isOpen, onClose, userData }: WelfareModalProps) =
     { id: 'adhoc', type: 'Ad hoc', name: 'Special Needs' }
   ];
 
-  useEffect(() => {
-    if (isOpen && selectedKittyId === 'social-welfare' && userData?.id) {
-      fetchPersonalStatementHistory();
-    }
-  }, [isOpen, selectedKittyId]);
-
-  const fetchPersonalStatementHistory = async () => {
-    setLoadingHistory(true);
-    try {
-      const res = await fetch('https://n8n.tenear.com/webhook/church-welfare-statement', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          shop_id: userData.shop_id,
-          member_id: userData.id
-        })
-      });
-      if (res.ok) {
-        const result = await res.json();
-        setPersonalHistory(Array.isArray(result) ? result : []);
-      }
-    } catch (err) {
-      console.error("Error loading personal ledger timeline logs:", err);
-    } finally {
-      setLoadingHistory(false);
-    }
-  };
+  
 
   const filteredHistory = filter === 'All' 
     ? history 

@@ -236,57 +236,69 @@ export const TreasurerWelfareModal = ({ isOpen, onClose, userData, onSwitchToPer
             <>
               {/* STATUS ACTION BLOCK 1: LEDGER */}
               {activeTab === 'statements' && (
-                <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
-                        <th className="p-3">Audit Target Entity</th>
-                        <th className="p-3">Incident Log/Description Ledger Case Context</th>
-                        <th className="p-3">Type</th>
-                        <th className="p-3">Amount Charged</th>
-                        <th className="p-3">Timestamp</th>
-                      </tr>
-                    </thead>
-
-                    <tbody className="divide-y divide-slate-100">
-                      {statements.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="p-8 text-center text-slate-400">
-                            No account ledger transactions verified inside database indexes.
-                          </td>
-                        </tr>
-                      ) : (
-                        statements.map((stmt) => (
-                          <tr key={stmt.id} className="hover:bg-slate-50/50 transition">
-                            <td className="p-3 font-bold text-slate-800 tracking-wide">
-                              {stmt.member_name}
-                            </td>
-                            <td className="p-3 text-slate-600 leading-relaxed font-medium">
-                              {stmt.description}
-                            </td>
-                            <td className="p-3">
-                              {stmt.transaction_type === 'credit' ? (
-                                <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-green-100 text-green-700">
-                                  CREDIT
-                                </span>
-                              ) : (
-                                <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-red-100 text-red-700">
-                                  DEBIT
-                                </span>
-                              )}
-                            </td>
-                            <td className={stmt.transaction_type === 'credit' ? "p-3 font-extrabold text-sm text-green-600" : "p-3 font-extrabold text-sm text-red-600"}>
+                <div className="w-full overflow-hidden">
+                  {/* Mobile Card Grid Layout (Visible on Small Screens Only) */}
+                  <div className="block sm:hidden space-y-3">
+                    {statements.length === 0 ? (
+                      <p className="p-6 text-center text-xs text-slate-400">No account ledger records found.</p>
+                    ) : (
+                      statements.map((stmt) => (
+                        <div key={stmt.id} className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-2 text-xs">
+                          <div className="flex justify-between items-start gap-2">
+                            <span className="font-black text-slate-800 break-words max-w-[70%]">{stmt.member_name}</span>
+                            {stmt.transaction_type === 'credit' ? (
+                              <span className="px-2 py-0.5 rounded text-[9px] font-black bg-green-100 text-green-700 tracking-wider">CREDIT</span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded text-[9px] font-black bg-red-100 text-red-700 tracking-wider">DEBIT</span>
+                            )}
+                          </div>
+                          <p className="text-slate-600 font-medium leading-relaxed break-words">{stmt.description}</p>
+                          <div className="flex justify-between items-center pt-2 border-t border-slate-200/60 font-semibold text-[11px]">
+                            <span className="text-slate-400">{new Date(stmt.payment_date).toLocaleDateString()}</span>
+                            <span className={stmt.transaction_type === 'credit' ? "text-green-600 font-black" : "text-red-600 font-black"}>
                               KES {parseFloat(stmt.amount || '0').toLocaleString()}/-
-                            </td>
-                            <td className="p-3 text-slate-400 font-medium">
-                              {new Date(stmt.payment_date).toLocaleDateString()}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
 
-                  </table>
+                  {/* Desktop Classic Responsive Window (Visible on Tablets & Desktops Only) */}
+                  <div className="hidden sm:block border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                    <div className="overflow-x-auto w-full">
+                      <table className="w-full text-left border-collapse text-xs whitespace-normal">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
+                            <th className="p-3 w-1/4">Audit Target Entity</th>
+                            <th className="p-3 w-2/5">Incident Log/Description Ledger Case Context</th>
+                            <th className="p-3">Type</th>
+                            <th className="p-3">Amount Charged</th>
+                            <th className="p-3">Timestamp</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {statements.map((stmt) => (
+                            <tr key={stmt.id} className="hover:bg-slate-50/50 transition">
+                              <td className="p-3 font-bold text-slate-800 tracking-wide break-words max-w-[150px]">{stmt.member_name}</td>
+                              <td className="p-3 text-slate-600 leading-relaxed font-medium break-words max-w-[250px]">{stmt.description}</td>
+                              <td className="p-3">
+                                {stmt.transaction_type === 'credit' ? (
+                                  <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-green-100 text-green-700">CREDIT</span>
+                                ) : (
+                                  <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-red-100 text-red-700">DEBIT</span>
+                                )}
+                              </td>
+                              <td className={stmt.transaction_type === 'credit' ? "p-3 font-extrabold text-sm text-green-600" : "p-3 font-extrabold text-sm text-red-600"}>
+                                KES {parseFloat(stmt.amount || '0').toLocaleString()}/-
+                              </td>
+                              <td className="p-3 text-slate-400 font-medium">{new Date(stmt.payment_date).toLocaleDateString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
                 </div>
               )}
 
