@@ -2453,6 +2453,11 @@ justify-center text-center group"
             first_name: userData.first_name,
             last_name: userData.last_name
           }}
+          // PASS THE PROP CALLBACK TO SHIFT VIEWS DYNAMICALLY
+          onSwitchToPersonalContributions={() => {
+            setIsTreasurerModalOpen(false); // Closes the admin workspace view
+            setIsWelfareModalOpen(true);
+          }}
         />
       )}
 

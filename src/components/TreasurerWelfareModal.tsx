@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Users, History, AlertTriangle, Send, Loader2, RefreshCw } from 'lucide-react';
+import { X, Users, History, AlertTriangle, Loader2, RefreshCw, ShieldAlert, FileSpreadsheet, Layers } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface TreasurerWelfareModalProps {
@@ -11,111 +11,69 @@ interface TreasurerWelfareModalProps {
     first_name: string;
     last_name: string;
   };
+  onSwitchToPersonalContributions: () => void;
 }
 
-export const TreasurerWelfareModal = ({ isOpen, onClose, userData }: TreasurerWelfareModalProps) => {
-  const [activeTab, setActiveTab] = useState<'statements' | 'bereavement'>('statements');
+type TabType = 'statements' | 'defaulters' | 'bereavement';
+
+export const TreasurerWelfareModal = ({ isOpen, onClose, userData, onSwitchToPersonalContributions }: TreasurerWelfareModalProps) => {
+  const [activeTab, setActiveTab] = useState<TabType>('statements');
   const [statements, setStatements] = useState<any[]>([]);
-  const [loadingStatements, setLoadingStatements] = useState(false);
+  const [membersList, setMembersList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
   
-  // Bereavement Form State
-  const [deceasedName, setDeceasedName] = useState('');
+  // Bereavement Submission Form States
   const [affectedMemberId, setAffectedMemberId] = useState('');
+  const [deceasedName, setDeceasedName] = useState('');
+  const [customDeceasedName, setCustomDeceasedName] = useState('');
+  const [relationship, setRelationship] = useState('');
   const [processingDeduction, setProcessingDeduction] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const [membersList, setMembersList] = useState<any[]>([]);
-  const [relationship, setRelationship] = useState<string>('');
-  const [customDeceasedName, setCustomDeceasedName] = useState<string>('');
-
   useEffect(() => {
     if (isOpen && userData?.shop_id) {
-      fetchGlobalStatements();
+      fetchMasterWelfareData();
     }
-  }, [isOpen, activeTab, userData]);
+  }, [isOpen, userData]);
 
-  const fetchGlobalStatements = async () => {
-    setLoadingStatements(true);
+  const fetchMasterWelfareData = async () => {
+    setLoading(true);
+    setFeedback(null);
     try {
-      // Direct POST payload to fetch records through your n8n middleware
-      const response = await fetch('https://n8n.tenear.com/webhook/church-welafare-statement', {
+      // 1. Fetch Global Ledger Statement Records
+      const stmtRes = await fetch('https://n8n.tenear.com/webhook/church-master-welfare-data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          shop_id: userData.shop_id
-        })
+        body: JSON.stringify({ shop_id: userData.shop_id })
       });
-
-      if (!response.ok) throw new Error('Failed to fetch from middleware');
-      
-      const result = await response.json();
-      
-      // 1. Ensure result is an array even if wrapped by n8n
-      let rawArray: any[] = [];
-      if (Array.isArray(result)) {
-        rawArray = result;
-      } else if (result && typeof result === 'object') {
-        rawArray = result.data || result.statements || result.rows || [result];
+      if (stmtRes.ok) {
+        const stmtData = await stmtRes.json();
+        setStatements(Array.isArray(stmtData) ? stmtData : []);
       }
 
-      // 2. Cleanly format properties to prevent render crashes
-      const cleanArray = rawArray.map((item: any) => ({
-        id: String(item.id || Math.random()),
-        member_name: String(item.member_name || item.memberName || 'Unknown Member'),
-        description: String(item.description || 'Welfare Record'),
-        transaction_type: String(item.transaction_type || 'credit').toLowerCase() === 'debit' ? 'debit' : 'credit',
-        amount: parseFloat(item.amount || 0),
-        payment_date: item.payment_date || item.paymentDate || new Date().toISOString()
-      }));
-
-      setStatements(cleanArray);
-    } catch (err: any) {
-      console.error('Error fetching global statements:', err);
-      setStatements([]); // Keeping it an array avoids rendering crashes
-      setFeedback({
-        type: 'error',
-        text: 'Failed to synchronize account ledger logs.'
+      // 2. Fetch Deep Member Analytics Listing (Active balances and standing categorization classes)
+      const memRes = await fetch('https://n8n.tenear.com/webhook/church-deep-member-analytics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ shop_id: userData.shop_id })
       });
+      if (memRes.ok) {
+        const memData = await memRes.json();
+        setMembersList(memData && memData.members ? memData.members : []);
+      }
+    } catch (err) {
+      console.error('Error synchronizing multi-tenant treasury folder partitions:', err);
     } finally {
-      setLoadingStatements(false);
+      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    const fetchCongregationDirectory = async () => {
-      if (!isOpen || !userData?.shop_id) return;
-      try {
-        const response = await fetch('https://n8n.tenear.com/webhook/welfare-get-congregation', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ shop_id: userData.shop_id })
-        });
-        if (response.ok) {
-          const data = await response.json();
-          
-          // Maps cleanly to the exact object layout exported by the new n8n Code node block
-          if (data && data.members && Array.isArray(data.members)) {
-            setMembersList(data.members);
-          } else if (Array.isArray(data)) {
-            setMembersList(data); // Retrofitted safety fallback hook option mapping
-          }
-        }
-      } catch (err) {
-        console.error('Error compiling searchable listing folder directory:', err);
-      }
-    };
-
-    fetchCongregationDirectory();
-  }, [isOpen, userData?.shop_id]);
 
   const handleTriggerDeduction = async () => {
     setProcessingDeduction(true);
     setFeedback(null);
     setShowConfirm(false);
-
     try {
-      // Fire payload directly to your self-hosted n8n webhook middleware
       const response = await fetch('https://n8n.tenear.com/webhook/welfare-bereavement', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -130,286 +88,322 @@ export const TreasurerWelfareModal = ({ isOpen, onClose, userData }: TreasurerWe
         })
       });
 
-      if (!response.ok) throw new Error('Middleware failed to execute batch jobs');
+      if (!response.ok) throw new Error('Transaction execution failure');
 
-      setFeedback({
-        type: 'success',
-        text: 'Bereavement executed! KES 300 deducted from members and WhatsApp alerts dispatched via Evolution API.'
-      });
-      setDeceasedName('');
+      setFeedback({ type: 'success', text: 'Universal welfare deduction processed. WhatsApp notification alerts queued via Evolution API.' });
+      setCustomDeceasedName('');
+      setRelationship('');
       setAffectedMemberId('');
       setActiveTab('statements');
-    } catch (err: any) {
-      setFeedback({
-        type: 'error',
-        text: 'Failed to process welfare event. Verify network routes and try again.'
-      });
+      fetchMasterWelfareData();
+    } catch (err) {
+      setFeedback({ type: 'error', text: 'Deduction routine aborted. Verify infrastructure connection configurations.' });
     } finally {
       setProcessingDeduction(false);
     }
+  };
+
+  // Dynamic Metrics Aggregators
+  const totalDeductedEvents = statements.filter(s => s.transaction_type === 'debit').length;
+  const standardActiveCount = membersList.filter(m => m.status !== 'default_category').length;
+  const defaultedCategoryCount = membersList.filter(m => m.dynamic_balance <= -2000 || m.status === 'default_category').length;
+  const sortedDefaultersList = membersList.filter(m => m.dynamic_balance <= -2000 || m.status === 'default_category');
+
+  // Simple Clean CSV File String Exporter Logic
+  const handleExportCSVReport = (reportType: 'ledger' | 'defaulters') => {
+    let headers = '';
+    let rows = [];
+    if (reportType === 'ledger') {
+      headers = 'ID,Member context reference,Type,Amount,Date Summary\n';
+      rows = statements.map(s => `"${s.id}","${s.member_name} - ${s.description}","${s.transaction_type.toUpperCase()}",${s.amount},"${s.payment_date}"`);
+    } else {
+      headers = 'Member Sequence Identifier,Congregation Full Name,Phone String,Wallet Running Balance,Current Standing Flag\n';
+      rows = sortedDefaultersList.map(m => `${m.id},"${m.full_name}","${m.phone_number}",${m.dynamic_balance},"${m.status || 'default_category'}"`);
+    }
+    const blob = new Blob([headers + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `welfare_${reportType}_shop_${userData.shop_id}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 border border-slate-100">
         
-        {/* Main Header */}
+        {/* Header Ribbon Layout */}
         <div className="bg-slate-900 px-6 py-4 flex items-center justify-between text-white">
           <div className="flex items-center gap-2">
             <Users className="w-5 h-5 text-blue-400" />
             <div>
-              <h3 className="text-base font-bold">Welfare Administration Dashboard</h3>
-              <p className="text-[11px] text-slate-400">Shop/Tenant Space Key: {userData.shop_id}</p>
+              <h3 className="text-base font-black tracking-wide">Welfare Central Operations</h3>
+              <p className="text-[11px] text-slate-400">Multi-tenant Managed Church Environment Workspace Key: #{userData.shop_id}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-800 transition text-slate-400 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button" onClick={onSwitchToPersonalContributions}
+              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 font-extrabold text-[11px] rounded-lg transition tracking-wider uppercase text-white"
+            >
+              Personal Contributions View 💳
+            </button>
+            <button onClick={onClose} className="p-1 rounded-full hover:bg-slate-800 text-slate-400 hover:text-white transition">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex border-b border-slate-200 bg-slate-50 px-4">
-          <button
-            onClick={() => { setActiveTab('statements'); setFeedback(null); }}
-            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold transition border-b-2 -mb-px ${
-              activeTab === 'statements' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <History className="w-4 h-4" /> Global Accounts Statement
-          </button>
-          <button
-            onClick={() => { setActiveTab('bereavement'); setFeedback(null); }}
-            className={`flex items-center gap-2 px-4 py-3 text-xs font-bold transition border-b-2 -mb-px ${
-              activeTab === 'bereavement' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            <AlertTriangle className="w-4 h-4" /> Log Bereavement Case
-          </button>
+        {/* Real-time Status Analytics Summary Strip */}
+        <div className="bg-slate-50 border-b border-slate-200 px-6 py-3.5 grid grid-cols-3 gap-4">
+          <div className="bg-white p-3 rounded-xl border border-slate-200 flex justify-between items-center shadow-sm">
+            <div><span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block">Members Active OK</span>
+            <span className="text-base font-black text-green-600">{standardActiveCount} users</span></div>
+            <Layers className="w-5 h-5 text-green-500 bg-green-50 p-1 rounded-lg" />
+          </div>
+          <div className="bg-white p-3 rounded-xl border border-slate-200 flex justify-between items-center shadow-sm">
+            <div><span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block">Welfare Defaulters</span>
+            <span className="text-base font-black text-red-600">{defaultedCategoryCount} accounts</span></div>
+            <ShieldAlert className="w-5 h-5 text-red-500 bg-red-50 p-1 rounded-lg" />
+          </div>
+          <div className="bg-white p-3 rounded-xl border border-slate-200 flex justify-between items-center shadow-sm">
+            <div><span className="text-[10px] text-slate-400 uppercase font-black tracking-wider block">Bereavement Events Logged</span>
+            <span className="text-base font-black text-slate-800">{totalDeductedEvents} cases</span></div>
+            <History className="w-5 h-5 text-slate-500 bg-slate-100 p-1 rounded-lg" />
+          </div>
         </div>
 
-        {/* Global Feedback Banners */}
+        {/* Tab Switching Navigation Track */}
+        <div className="flex justify-between items-center bg-slate-100 border-b border-slate-200 px-4">
+          <div className="flex">
+            <button
+              onClick={() => setActiveTab('statements')}
+              className={`px-4 py-3 text-xs font-bold border-b-2 transition ${activeTab === 'statements' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+            >
+              📜 Account Ledger Statements
+            </button>
+            <button
+              onClick={() => setActiveTab('defaulters')}
+              className={`px-4 py-3 text-xs font-bold border-b-2 transition ${activeTab === 'defaulters' ? 'border-red-600 text-red-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+            >
+              ⚠️ Defaulters Tracking Checklist ({defaultedCategoryCount})
+            </button>
+            <button
+              onClick={() => setActiveTab('bereavement')}
+              className={`px-4 py-3 text-xs font-bold border-b-2 transition ${activeTab === 'bereavement' ? 'border-amber-600 text-amber-600' : 'border-transparent text-slate-500 hover:text-slate-800'}`}
+            >
+              📢 Execute Bereavement Support
+            </button>
+          </div>
+          <div className="flex gap-2 pr-2">
+            {activeTab === 'statements' && statements.length > 0 && (
+              <button 
+                onClick={() => handleExportCSVReport('ledger')}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition shadow-sm"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" /> Export Ledger Log
+              </button>
+            )}
+            {activeTab === 'defaulters' && sortedDefaultersList.length > 0 && (
+              <button 
+                onClick={() => handleExportCSVReport('defaulters')}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition shadow-sm"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5" /> Export Defaulters Roll
+              </button>
+            )}
+            <button onClick={fetchMasterWelfareData} disabled={loading} className="p-1 text-slate-500 hover:text-blue-600 transition">
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Global Action System Feedback Alerts */}
         {feedback && (
-          <div className={`m-6 p-4 rounded-xl text-xs font-semibold ${
-            feedback.type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'
-          }`}>
+          <div className={`mx-6 mt-4 p-3.5 rounded-xl text-xs font-bold border ${feedback.type === 'success' ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'}`}>
             {feedback.text}
           </div>
         )}
 
-        <div className="p-6 max-h-[60vh] overflow-y-auto">
-          
-          {/* TAB 1: MASTER TRANSACTIONS LIST */}
-          {activeTab === 'statements' && (
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <p className="text-xs text-slate-500">Showing historical audit records compiled for this church tenant space.</p>
-                <button 
-                  onClick={fetchGlobalStatements} disabled={loadingStatements}
-                  className="p-1 text-slate-500 hover:text-blue-600 disabled:opacity-40 transition"
-                >
-                  <RefreshCw className={`w-4 h-4 ${loadingStatements ? 'animate-spin' : ''}`} />
-                </button>
-              </div>
-
-              {loadingStatements ? (
-                <div className="flex justify-center items-center py-12"><Loader2 className="w-8 h-8 text-blue-600 animate-spin" /></div>
-              ) : (
-                <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
+        {/* Primary Content Render Display Node Canvas Window */}
+        <div className="p-6 max-h-[50vh] overflow-y-auto bg-white">
+          {loading ? (
+            <div className="flex justify-center items-center py-16"><Loader2 className="w-8 h-8 text-blue-600 animate-spin" /></div>
+          ) : (
+            <>
+              {/* STATUS ACTION BLOCK 1: LEDGER */}
+              {activeTab === 'statements' && (
+                <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
-                        <th className="p-3">Member Name</th>
-                        <th className="p-3">Description</th>
+                        <th className="p-3">Audit Target Entity</th>
+                        <th className="p-3">Incident Log/Description Ledger Case Context</th>
                         <th className="p-3">Type</th>
-                        <th className="p-3">Amount</th>
-                        <th className="p-3">Date</th>
+                        <th className="p-3">Amount Charged</th>
+                        <th className="p-3">Timestamp</th>
                       </tr>
                     </thead>
+
                     <tbody className="divide-y divide-slate-100">
                       {statements.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="p-6 text-center text-slate-400">
-                            No logs discovered within this ledger partition.
+                          <td colSpan={5} className="p-8 text-center text-slate-400">
+                            No account ledger transactions verified inside database indexes.
                           </td>
                         </tr>
                       ) : (
                         statements.map((stmt) => (
-                          <tr key={stmt.id} className="hover:bg-slate-50/60 transition">
-                            <td className="p-3 font-semibold text-slate-800">{stmt.member_name}</td>
-                            <td className="p-3 text-slate-600">{stmt.description}</td>
+                          <tr key={stmt.id} className="hover:bg-slate-50/50 transition">
+                            <td className="p-3 font-bold text-slate-800 tracking-wide">
+                              {stmt.member_name}
+                            </td>
+                            <td className="p-3 text-slate-600 leading-relaxed font-medium">
+                              {stmt.description}
+                            </td>
                             <td className="p-3">
-                              <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                                stmt.transaction_type === 'credit' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                              }`}>
-                                {stmt.transaction_type}
-                              </span>
+                              {stmt.transaction_type === 'credit' ? (
+                                <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-green-100 text-green-700">
+                                  CREDIT
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-red-100 text-red-700">
+                                  DEBIT
+                                </span>
+                              )}
                             </td>
-                            <td className={`p-3 font-bold ${stmt.transaction_type === 'credit' ? 'text-green-600' : 'text-red-600'}`}>
-                              KES {stmt.amount.toLocaleString()}/-
+                            <td className={stmt.transaction_type === 'credit' ? "p-3 font-extrabold text-sm text-green-600" : "p-3 font-extrabold text-sm text-red-600"}>
+                              KES {parseFloat(stmt.amount || '0').toLocaleString()}/-
                             </td>
-                            <td className="p-3 text-slate-400">
+                            <td className="p-3 text-slate-400 font-medium">
                               {new Date(stmt.payment_date).toLocaleDateString()}
                             </td>
                           </tr>
                         ))
                       )}
                     </tbody>
+
                   </table>
                 </div>
               )}
-            </div>
-          )}
 
-          {/* TAB 2: TRIGGER BEREAVEMENT CASE */}
-          {activeTab === 'bereavement' && (
-            <div className="max-w-xl mx-auto bg-slate-50 p-6 rounded-2xl border border-slate-200/60">
-              {!showConfirm ? (
-                <form 
-                  onSubmit={(e) => { 
-                    e.preventDefault(); 
-                    if (!affectedMemberId) return alert('Please select a church member.');
-                    if (!relationship) return alert('Please select a valid relationship type.');
-                    if (!customDeceasedName.trim()) return alert("Please type the deceased relative's name.");
-                    setShowConfirm(true); 
-                  }} 
-                  className="space-y-4"
-                >
-                  {/* 1. Member Selection Registry Dropdown */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-                      1. Select Active Church Member Affected
-                    </label>
-                    <div className="relative">
-                      <select
-                        required
-                        value={affectedMemberId}
-                        onChange={(e) => {
-                          const selectedId = e.target.value;
-                          setAffectedMemberId(selectedId);
-                          const match = membersList.find(m => String(m.id) === selectedId);
-                          setDeceasedName(match ? match.full_name : '');
-                        }}
-                        className="w-full bg-white border border-slate-200 rounded-xl py-3 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition font-medium 
-text-slate-800 appearance-none shadow-sm"
-                      >
-                        <option value="">-- Choose Church Member From Register --</option>
-                        {membersList.map((member) => (
-                          <option key={member.id} value={member.id}>
-                            {member.full_name} ({member.phone_number || 'No Phone'})
-                          </option>
-                        ))}
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">▼</div>
-                    </div>
-                  </div>
-
-                  {/* 2. Actual Deceased Relative Name Input Field */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-                      2. Name of Deceased Relative
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={customDeceasedName}
-                      onChange={(e) => setCustomDeceasedName(e.target.value)}
-                      placeholder="e.g. Late Mary Wanjiku Nyawara"
-                      className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition font-medium 
-text-slate-800 shadow-sm"
-                    />
-                  </div>
-
-                  {/* 3. Restricted Relationship Selection Dropdown */}
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
-                      3. Relationship to Selected Member
-                    </label>
-                    <div className="relative">
-                      <select
-                        required
-                        value={relationship}
-                        onChange={(e) => setRelationship(e.target.value)}
-                        className="w-full bg-white border border-slate-200 rounded-xl py-3 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition font-medium 
-text-slate-800 appearance-none shadow-sm"
-                      >
-                        <option value="">-- Choose Approved Relation Category --</option>
-                        <option value="Mother/Father">Mother / Father</option>
-                        <option value="Spouse">Spouse</option>
-                        <option value="Son/Daughter">Son / Daughter</option>
-                        <option value="Grandmother/Grandfather">Grandmother / Grandfather</option>
-                        <option value="Mother-in-Law/Father-in-law">Mother-in-Law / Father-in-law</option>
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">▼</div>
-                    </div>
-                    <p className="text-[10px] text-slate-400 mt-1 font-medium italic">
-                      * Policy rule: Welfare deductions are strictly restricted to the immediate relation boundaries defined above.
-                    </p>
-                  </div>
-
-                  {/* 4. Combined Transaction Context Summary (Auto-Populated for audit logging) */}
-                  <div>
-                    <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">
-                      System Audit Generated Description Log
-                    </label>
-                    <div className="p-3 bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 leading-relaxed select-none">
-                      {deceasedName && customDeceasedName && relationship ? (
-                        `Bereavement support for ${deceasedName} following the loss of their ${relationship} (${customDeceasedName})`
-                      ) : (
-                        "Awaiting parameter definition values..."
-                      )}
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={!affectedMemberId || !relationship || !customDeceasedName.trim()}
-                    className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition text-xs tracking-wide shadow-lg shadow-red-600/10"
-                  >
-                    Review System-Wide Deduction
-                  </button>
-                </form>
-              ) : (
-                <div className="space-y-4 text-center py-2 animate-in fade-in zoom-in-95">
-                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-600">
-                    <AlertTriangle className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-black text-slate-900 text-sm">Critical Confirmation Screen</h4>
-                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto leading-relaxed">
-                      Executing this will immediately deduct <strong>KES 300/-</strong> from all active members belonging to this tenant space. It will also queue individual WhatsApp messages via your Evolution API gateway.
-                    </p>
-                  </div>
-                  <div className="bg-white border border-slate-200 p-4 rounded-xl text-left text-xs space-y-1">
-                    <p className="text-slate-600">Affected Member: <span className="font-bold text-slate-900">{deceasedName}</span></p>
-                    <p className="text-slate-600">Deceased Person: <span className="font-bold text-slate-900">{customDeceasedName}</span></p>
-                    <p className="text-slate-600">Relation Bracket: <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-extrabold text-[10px] rounded border border-blue-200 uppercase">{relationship}</span></p>
-                  </div>
-                  <div className="flex gap-3">
-                    <button
-                      type="button" disabled={processingDeduction} onClick={() => setShowConfirm(false)}
-                      className="flex-1 py-2.5 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold text-xs text-slate-700 transition"
-                    >
-                      Cancel & Go Back
-                    </button>
-                    <button
-                      type="button" disabled={processingDeduction} 
-                      onClick={handleTriggerDeduction}
-                      className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-md"
-                    >
-                      {processingDeduction ? (
-                        <>
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" /> Batch Processing...
-                        </>
-                      ) : 'Confirm and Execute'}
-                    </button>
+              {/* STATUS ACTION BLOCK 2: DEFAULTERS CONTROL */}
+              {activeTab === 'defaulters' && (
+                <div className="space-y-3">
+                  <p className="text-xs text-slate-500 font-medium italic">
+                    * Showing congregation member accounts whose wallet standing has dropped down to or below the mandatory <strong>KES -2,000/-</strong> line floor limit boundary.
+                  </p>
+                  <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                    <table className="w-full text-left border-collapse text-xs">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase tracking-wider text-[10px]">
+                          <th className="p-3">Sequence ID</th>
+                          <th className="p-3">Congregation Member Name</th>
+                          <th className="p-3">Contact Phone Number</th>
+                          <th className="p-3 text-right">Deficit Wallet Balance</th>
+                          <th className="p-3 text-center">Status Flag Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {sortedDefaultersList.length === 0 ? (
+                          <tr><td colSpan={5} className="p-8 text-center text-green-600 font-bold bg-green-50/40">Clean Slate! No profile balance defaults discovered within this tenant space registry 
+partition bounds.</td></tr>
+                        ) : (
+                          sortedDefaultersList.map((m) => (
+                            <tr key={m.id} className="hover:bg-red-50/20 transition animate-in fade-in duration-100">
+                              <td className="p-3 font-bold text-slate-400">#{m.id}</td>
+                              <td className="p-3 font-bold text-slate-800">{m.full_name}</td>
+                              <td className="p-3 text-slate-600 font-semibold tracking-wider">📞 {m.phone_number}</td>
+                              <td className="p-3 text-right font-black text-red-600 text-sm">KES {parseFloat(m.dynamic_balance || 0).toLocaleString()}/-</td>
+                              <td className="p-3 text-center">
+                                <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-red-100 text-red-700 tracking-wider">
+                                  Default Category Locked
+                                </span>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               )}
-            </div>
-          )}
 
+              {/* STATUS ACTION BLOCK 3: LOG CASE SUBMISSION */}
+              {activeTab === 'bereavement' && (
+                <div className="max-w-xl mx-auto bg-slate-50 p-6 rounded-2xl border border-slate-200/60 shadow-sm">
+                  {!showConfirm ? (
+                    <form onSubmit={(e) => { e.preventDefault(); if(affectedMemberId && relationship && customDeceasedName.trim()) setShowConfirm(true); }} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">1. Select Active Church Member Affected</label>
+                        <div className="relative">
+                          <select required value={affectedMemberId} onChange={(e) => { const id = e.target.value; setAffectedMemberId(id); const m = membersList.find(x => String(x.id) === id); 
+setDeceasedName(m ? m.full_name : ''); }} className="w-full bg-white border border-slate-200 rounded-xl py-3 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 font-medium text-slate-800 
+appearance-none shadow-sm">
+                            <option value="">-- Choose Church Member From Register --</option>
+                            {membersList.map(m => <option key={m.id} value={m.id}>{m.full_name} ({m.phone_number})</option>)}
+                          </select>
+                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">▼</div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">2. Name of Deceased Relative</label>
+                        <input type="text" required value={customDeceasedName} onChange={(e) => setCustomDeceasedName(e.target.value)} placeholder="e.g. Late Mary Wanjiku Nyawara" className="w-full 
+bg-white border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 font-medium text-slate-800 shadow-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">3. Relationship to Selected Member</label>
+                        <div className="relative">
+                          <select required value={relationship} onChange={(e) => setRelationship(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-3 px-3.5 text-sm 
+focus:outline-none focus:ring-2 focus:ring-red-500 font-medium text-slate-800 appearance-none shadow-sm">
+                            <option value="">-- Choose Approved Relation Category --</option>
+                            <option value="Mother/Father">Mother / Father</option>
+                            <option value="Spouse">Spouse</option>
+                            <option value="Son/Daughter">Son / Daughter</option>
+                            <option value="Grandmother/Grandfather">Grandmother / Grandfather</option>
+                            <option value="Mother-in-Law/Father-in-law">Mother-in-Law / Father-in-law</option>
+                          </select>
+                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">▼</div>
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">System Audit Generated Description Log</label>
+                        <div className="p-3 bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 leading-relaxed select-none">
+                          {deceasedName && customDeceasedName && relationship ? `Bereavement support for ${deceasedName} following the loss of their ${relationship} (${customDeceasedName.trim()})` : 
+"Awaiting parameter definition values..."}
+                        </div>
+                      </div>
+                      <button type="submit" disabled={!affectedMemberId || !relationship || !customDeceasedName.trim()} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl text-xs tracking-wide shadow-lg shadow-red-600/10 transition disabled:opacity-50">Review System-Wide Deduction</button>
+                    </form>    
+                  ) : (
+                    <div className="space-y-4 text-center py-2 animate-in fade-in zoom-in-95">
+                      <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto text-red-600"><AlertTriangle className="w-6 h-6" /></div>
+                      <div>
+                        <h4 className="font-black text-slate-900 text-sm">Critical Confirmation Screen</h4>
+                        <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto leading-relaxed">Executing this will immediately deduct KES 300/- from all active members belonging to this tenant space. 
+It will also queue individual WhatsApp messages via your Evolution API gateway.</p>
+                      </div>
+                      <div className="bg-white border border-slate-200 p-4 rounded-xl text-left text-xs space-y-1.5 shadow-sm">
+                        <p className="text-slate-600">Affected Member: <span className="font-bold text-slate-900">{deceasedName}</span></p>
+                        <p className="text-slate-600">Deceased Person: <span className="font-bold text-slate-900">{customDeceasedName}</span></p>
+                        <p className="text-slate-600">Relation Bracket: <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-extrabold text-[10px] rounded border border-blue-200 
+uppercase">{relationship}</span></p>
+                      </div>
+                      <div className="flex gap-3">
+                        <button type="button" disabled={processingDeduction} onClick={() => setShowConfirm(false)} className="flex-1 py-2.5 bg-slate-200 hover:bg-slate-300 rounded-xl font-bold text-xs 
+text-slate-700 transition">Cancel & Go Back</button>
+                        <button type="button" disabled={processingDeduction} onClick={handleTriggerDeduction} className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-xs 
+transition flex items-center justify-center gap-1.5 shadow-md">{processingDeduction ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Batch Processing...</> : 'Confirm and Execute'}</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>
