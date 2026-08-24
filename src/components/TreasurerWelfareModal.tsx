@@ -42,7 +42,7 @@ export const TreasurerWelfareModal = ({ isOpen, onClose, userData, onSwitchToPer
     setFeedback(null);
     try {
       // 1. Fetch Global Ledger Statement Records
-      const stmtRes = await fetch('https://n8n.tenear.com/webhook/church-master-welfare-data', {
+      const stmtRes = await fetch('https://n8n.tenear.com/webhook/church-welfare-statement', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shop_id: userData.shop_id })
@@ -53,7 +53,7 @@ export const TreasurerWelfareModal = ({ isOpen, onClose, userData, onSwitchToPer
       }
 
       // 2. Fetch Deep Member Analytics Listing (Active balances and standing categorization classes)
-      const memRes = await fetch('https://n8n.tenear.com/webhook/church-deep-member-analytics', {
+      const memRes = await fetch('https://n8n.tenear.com/webhook/church-get-congregation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ shop_id: userData.shop_id })
