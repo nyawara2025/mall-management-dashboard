@@ -93,7 +93,13 @@ export const TreasurerWelfareModal = ({ isOpen, onClose, userData }: TreasurerWe
         });
         if (response.ok) {
           const data = await response.json();
-          setMembersList(Array.isArray(data) ? data : []);
+          
+          // Maps cleanly to the exact object layout exported by the new n8n Code node block
+          if (data && data.members && Array.isArray(data.members)) {
+            setMembersList(data.members);
+          } else if (Array.isArray(data)) {
+            setMembersList(data); // Retrofitted safety fallback hook option mapping
+          }
         }
       } catch (err) {
         console.error('Error compiling searchable listing folder directory:', err);
