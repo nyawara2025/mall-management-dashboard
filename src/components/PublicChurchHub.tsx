@@ -39,6 +39,7 @@ import { AppDownloadWidget } from './AppDownloadWidget';
 import YouthAffairsModal from './YouthAffairsModal';
 import { IntegratedVideoConference } from './IntegratedVideoConference'; 
 import { ConsentSection } from './ConsentSection';
+import { TreasurerWelfareModal } from './TreasurerWelfareModal';
 
 // --- TYPES ---
 interface PaymentRecord {
@@ -1386,6 +1387,8 @@ export const PublicChurchHub = ({ shopId }: { shopId: number }) => {
 
   const [isYouthModalOpen, setIsYouthModalOpen] = useState(false);
 
+  const [isTreasurerModalOpen, setIsTreasurerModalOpen] = useState<boolean>(false);
+
   // 1. Force extract tracking variables from the active browser address bar
   const urlParams = new URLSearchParams(window.location.search);
   const isPublicChurchView = urlParams.get('view') === 'public_church';
@@ -1960,13 +1963,22 @@ if (isPublicChurchView) {
               </div>
 
               <button 
-                onClick={() => setIsWelfareModalOpen(true)}
-                className="bg-blue-400 p-8 rounded-[2.5rem] border border-blue-100 shadow-sm hover:shadow-md transition-all flex flex-col items-center justify-center text-center group"
+                onClick={() => {
+                  if (userData?.role === 'treasurer') {
+                    setIsTreasurerModalOpen(true);
+                  } else {
+                    setIsWelfareModalOpen(true);
+                  }
+                }}
+                className="bg-blue-400 p-8 rounded-[2.5rem] border border-blue-100 shadow-sm hover:shadow-md transition-all flex flex-col items-center 
+justify-center text-center group"
               >
                 <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-blue-50 transition-colors">
                   <Wallet className="text-blue-400 group-hover:text-blue-600" />
                 </div>
-                <span className="text-[10px] font-black text-white uppercase tracking-widest">Welfare Contributions</span>
+                <span className="text-[10px] font-black text-white uppercase tracking-widest">
+                  {userData?.role === 'treasurer' ? 'Treasurer Operations' : 'Welfare Contributions'}
+                </span>
               </button>
 
               <button
@@ -2429,6 +2441,20 @@ if (isPublicChurchView) {
         onClose={() => setIsWelfareModalOpen(false)} 
         userData={userData} 
       />
+
+      {/* ADDED TREASURER CENTRAL CONTROL COMPONENT HERE */}
+      {userData?.role === 'treasurer' && (
+        <TreasurerWelfareModal
+          isOpen={isTreasurerModalOpen}
+          onClose={() => setIsTreasurerModalOpen(false)}
+          userData={{
+            id: userData.id,
+            shop_id: userData.shop_id,
+            first_name: userData.first_name,
+            last_name: userData.last_name
+          }}
+        />
+      )}
 
       <FinancialsAndProjectsModal 
         isOpen={isFinancialsOpen} 
