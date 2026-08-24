@@ -25,6 +25,10 @@ export const TreasurerWelfareModal = ({ isOpen, onClose, userData }: TreasurerWe
   const [showConfirm, setShowConfirm] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  const [membersList, setMembersList] = useState<any[]>([]);
+  const [relationship, setRelationship] = useState<string>('');
+  const [customDeceasedName, setCustomDeceasedName] = useState<string>('');
+
   useEffect(() => {
     if (isOpen && userData?.shop_id) {
       fetchGlobalStatements();
@@ -78,7 +82,26 @@ export const TreasurerWelfareModal = ({ isOpen, onClose, userData }: TreasurerWe
     }
   };
 
-    
+  useEffect(() => {
+    const fetchCongregationDirectory = async () => {
+      if (!isOpen || !userData?.shop_id) return;
+      try {
+        const response = await fetch('https://n8n.tenear.com/webhook/welfare-get-congregation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shop_id: userData.shop_id })
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setMembersList(Array.isArray(data) ? data : []);
+        }
+      } catch (err) {
+        console.error('Error compiling searchable listing folder directory:', err);
+      }
+    };
+
+    fetchCongregationDirectory();
+  }, [isOpen, userData?.shop_id]);
 
   const handleTriggerDeduction = async () => {
     setProcessingDeduction(true);
@@ -92,8 +115,11 @@ export const TreasurerWelfareModal = ({ isOpen, onClose, userData }: TreasurerWe
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           shop_id: userData.shop_id,
-          deceased_name: deceasedName,
           affected_member_id: parseInt(affectedMemberId),
+          member_name: deceasedName,
+          deceased_relative_name: customDeceasedName.trim(),
+          relationship_type: relationship,
+          description_log: `Bereavement support for ${deceasedName} following the loss of their ${relationship} (${customDeceasedName.trim()})`,
           logged_by_name: `${userData.first_name} ${userData.last_name}`
         })
       });
@@ -234,30 +260,106 @@ export const TreasurerWelfareModal = ({ isOpen, onClose, userData }: TreasurerWe
           {activeTab === 'bereavement' && (
             <div className="max-w-xl mx-auto bg-slate-50 p-6 rounded-2xl border border-slate-200/60">
               {!showConfirm ? (
-                <form onSubmit={(e) => { e.preventDefault(); setShowConfirm(true); }} className="space-y-4">
+                <form 
+                  onSubmit={(e) => { 
+                    e.preventDefault(); 
+                    if (!affectedMemberId) return alert('Please select a church member.');
+                    if (!relationship) return alert('Please select a valid relationship type.');
+                    if (!customDeceasedName.trim()) return alert("Please type the deceased relative's name.");
+                    setShowConfirm(true); 
+                  }} 
+                  className="space-y-4"
+                >
+                  {/* 1. Member Selection Registry Dropdown */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Deceased Individual / Relative's Name</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                      1. Select Active Church Member Affected
+                    </label>
+                    <div className="relative">
+                      <select
+                        required
+                        value={affectedMemberId}
+                        onChange={(e) => {
+                          const selectedId = e.target.value;
+                          setAffectedMemberId(selectedId);
+                          const match = membersList.find(m => String(m.id) === selectedId);
+                          setDeceasedName(match ? match.full_name : '');
+                        }}
+                        className="w-full bg-white border border-slate-200 rounded-xl py-3 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition font-medium 
+text-slate-800 appearance-none shadow-sm"
+                      >
+                        <option value="">-- Choose Church Member From Register --</option>
+                        {membersList.map((member) => (
+                          <option key={member.id} value={member.id}>
+                            {member.full_name} ({member.phone_number || 'No Phone'})
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">▼</div>
+                    </div>
+                  </div>
+
+                  {/* 2. Actual Deceased Relative Name Input Field */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                      2. Name of Deceased Relative
+                    </label>
                     <input
-                      type="text" required value={deceasedName} onChange={(e) => setDeceasedName(e.target.value)}
-                      placeholder="e.g. Late Elder Samson Cheruiyot"
-                      className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 
-transition"
+                      type="text"
+                      required
+                      value={customDeceasedName}
+                      onChange={(e) => setCustomDeceasedName(e.target.value)}
+                      placeholder="e.g. Late Mary Wanjiku Nyawara"
+                      className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition font-medium 
+text-slate-800 shadow-sm"
                     />
                   </div>
+
+                  {/* 3. Restricted Relationship Selection Dropdown */}
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Affected Congregation Member (Database sequence 
-ID)</label>
-                    <input
-                      type="number" required value={affectedMemberId} onChange={(e) => setAffectedMemberId(e.target.value)}
-                      placeholder="Enter unique database serial index ID"
-                      className="w-full bg-white border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 
-transition"
-                    />
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">
+                      3. Relationship to Selected Member
+                    </label>
+                    <div className="relative">
+                      <select
+                        required
+                        value={relationship}
+                        onChange={(e) => setRelationship(e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-xl py-3 px-3.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 transition font-medium 
+text-slate-800 appearance-none shadow-sm"
+                      >
+                        <option value="">-- Choose Approved Relation Category --</option>
+                        <option value="Mother/Father">Mother / Father</option>
+                        <option value="Spouse">Spouse</option>
+                        <option value="Son/Daughter">Son / Daughter</option>
+                        <option value="Grandmother/Grandfather">Grandmother / Grandfather</option>
+                        <option value="Mother-in-Law/Father-in-law">Mother-in-Law / Father-in-law</option>
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">▼</div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1 font-medium italic">
+                      * Policy rule: Welfare deductions are strictly restricted to the immediate relation boundaries defined above.
+                    </p>
                   </div>
+
+                  {/* 4. Combined Transaction Context Summary (Auto-Populated for audit logging) */}
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">
+                      System Audit Generated Description Log
+                    </label>
+                    <div className="p-3 bg-slate-100 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 leading-relaxed select-none">
+                      {deceasedName && customDeceasedName && relationship ? (
+                        `Bereavement support for ${deceasedName} following the loss of their ${relationship} (${customDeceasedName})`
+                      ) : (
+                        "Awaiting parameter definition values..."
+                      )}
+                    </div>
+                  </div>
+
                   <button
                     type="submit"
-                    className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition text-xs tracking-wide shadow-lg 
-shadow-red-600/10"
+                    disabled={!affectedMemberId || !relationship || !customDeceasedName.trim()}
+                    className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition text-xs tracking-wide shadow-lg shadow-red-600/10"
                   >
                     Review System-Wide Deduction
                   </button>
@@ -270,13 +372,13 @@ shadow-red-600/10"
                   <div>
                     <h4 className="font-black text-slate-900 text-sm">Critical Confirmation Screen</h4>
                     <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto leading-relaxed">
-                      Executing this will immediately deduct <strong>KES 300/-</strong> from all active members belonging to this tenant space. It will also 
-queue individual WhatsApp messages via your Evolution API gateway.
+                      Executing this will immediately deduct <strong>KES 300/-</strong> from all active members belonging to this tenant space. It will also queue individual WhatsApp messages via your Evolution API gateway.
                     </p>
                   </div>
                   <div className="bg-white border border-slate-200 p-4 rounded-xl text-left text-xs space-y-1">
-                    <p className="text-slate-500">Target Event Description: <span className="font-bold text-slate-800">Bereavement of {deceasedName}</span></p>
-                    <p className="text-slate-500">Affected Member Serial Key: <span className="font-bold text-slate-800">#{affectedMemberId}</span></p>
+                    <p className="text-slate-600">Affected Member: <span className="font-bold text-slate-900">{deceasedName}</span></p>
+                    <p className="text-slate-600">Deceased Person: <span className="font-bold text-slate-900">{customDeceasedName}</span></p>
+                    <p className="text-slate-600">Relation Bracket: <span className="px-2 py-0.5 bg-blue-50 text-blue-700 font-extrabold text-[10px] rounded border border-blue-200 uppercase">{relationship}</span></p>
                   </div>
                   <div className="flex gap-3">
                     <button
@@ -286,9 +388,9 @@ queue individual WhatsApp messages via your Evolution API gateway.
                       Cancel & Go Back
                     </button>
                     <button
-                      type="button" disabled={processingDeduction} onClick={handleTriggerDeduction}
-                      className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl font-bold text-xs transition flex 
-items-center justify-center gap-1.5 shadow-md"
+                      type="button" disabled={processingDeduction} 
+                      onClick={handleTriggerDeduction}
+                      className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-xl font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-md"
                     >
                       {processingDeduction ? (
                         <>
