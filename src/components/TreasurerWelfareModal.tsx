@@ -200,10 +200,12 @@ export const TreasurerWelfareModal = ({ isOpen, onClose, userData, onSwitchToPer
               📢 Execute Bereavement Support
             </button>
           </div>
-          <div className="flex gap-2 pr-2">
-            {activeTab === 'statements' && statements.length > 0 && (
-              <div className="flex gap-2">
-                {/* INTERACTIVE MOBILE FRIENDLY MPESA EXCEL INGESTION BRIDGE */}
+
+          {/* ACTION BUTTONS: Now fully optimized for layout scaling constraints */}
+          <div className="flex items-center gap-2 pb-1 sm:pb-0 sm:pr-2 self-end sm:self-auto">
+            {activeTab === 'statements' && (
+              <div className="flex item-center gap-2">
+                {/* AUTOMATED BANK RECONCILIATION FILE SELECTOR SCRIPT INGESTION BRIDGE */}
                 <label className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg transition shadow-sm cursor-pointer ${uploadingFile ? 'opacity-40 pointer-events-none' : ''}`}>
                   <input
                     type="file"
@@ -239,12 +241,15 @@ export const TreasurerWelfareModal = ({ isOpen, onClose, userData, onSwitchToPer
                   <span>{uploadingFile ? '⚙️ Reconciling File...' : '📊 Upload Bank Statement'}</span>
                 </label>
 
-                <button 
-                  onClick={() => handleExportCSVReport('ledger')}
-                  className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition shadow-sm"
-                >
-                  <FileSpreadsheet className="w-3.5 h-3.5" /> Export Ledger Log
-                </button>
+
+                {statements.length > 0 && (
+                  <button 
+                    onClick={() => handleExportCSVReport('ledger')}
+                    className="flex items-center gap-1.5 px-2.5 py-1 text-[11px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition shadow-sm"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" /> Export Ledger Log
+                  </button>
+                )}
               </div>
             )}
             {activeTab === 'defaulters' && sortedDefaultersList.length > 0 && (            
