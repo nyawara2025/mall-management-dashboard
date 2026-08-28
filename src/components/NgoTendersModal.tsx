@@ -39,7 +39,7 @@ export const NgoTendersModal: React.FC<NgoTendersModalProps> = ({
   const fetchTenders = async () => {
     setLoading(true);
     try {
-      const res = await fetch('https://n8n.tenear.com/fetch-tenders', {
+      const res = await fetch('https://n8n.tenear.com/webhook/fetch-tenders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
