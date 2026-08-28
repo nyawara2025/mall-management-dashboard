@@ -10,7 +10,6 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
 import { ContractDetailsModal } from './ContractDetailsModal';
-import { NgoTendersModal } from './NgoTendersModal';
 
 // 🚀 Fix default leaflet icon paths so they load accurately inside your build structure
 const DefaultIcon = L.icon({
@@ -124,8 +123,6 @@ export const PublicLogisticsHub: React.FC = () => {
   // Waybill & Cargo Status State Layer
   const [waybills, setWaybills] = useState<any[]>([]);
   const [waybillsOpen, setWaybillsOpen] = useState(false);
-
-  const [ngoModalOpen, setNgoModalOpen] = useState<boolean>(false);
 
   // Waybill Form Generation State Layer
   const [wbFormOpen, setWbFormOpen] = useState(false);
@@ -892,8 +889,7 @@ export const PublicLogisticsHub: React.FC = () => {
     { id: 'weighbridge_clearance', label: 'WEIGHBRIDGE & PORT DOCS', icon: <UserCheck className="w-5 h-5" />, color: 'bg-blue-600', allowedRoles: ['driver', 'manager', 'owner', 'supervisor'] },
     { id: 'payments_invoicing', label: 'M-PESA / FREIGHT PAYMENTS', icon: <DollarSign className="w-5 h-5" />, color: 'bg-blue-600', allowedRoles: ['manager', 'owner'] }, // 🔒 Hidden from Drivers
     { id: 'market_intel', label: 'MARKET OPPORTUNITIES', icon: <Briefcase className="w-5 h-5" />, color: 'bg-emerald-600', allowedRoles: ['manager', 'owner'] }, // 🔒 Hidden from Drivers
-    { id: 'breakdown_alert', label: 'EMERGENCY & BREAKDOWN', icon: <ShieldAlert className="w-5 h-5" />, color: 'bg-red-600', allowedRoles: ['driver', 'manager', 'owner', 'supervisor'] },
-    { id: 'other_ngos', label: 'OTHER NGOs / ASSISTANCE', icon: <Briefcase className="w-5 h-5" />, color: 'bg-emerald-600', allowedRoles: ['manager', 'owner'] }
+    { id: 'breakdown_alert', label: 'EMERGENCY & BREAKDOWN', icon: <ShieldAlert className="w-5 h-5" />, color: 'bg-red-600', allowedRoles: ['driver', 'manager', 'owner', 'supervisor'] }
   ];
 
   // =========================================================================
@@ -1030,7 +1026,6 @@ export const PublicLogisticsHub: React.FC = () => {
                     if (action.id === 'market_intel') setIntelOpen(true);
                     else if (action.id === 'trip_manifest') setManifestsOpen(true); // Activated!
                     else if (action.id === 'cargo_tracking') setWaybillsOpen(true);
-                    else if (action.id === 'other_ngos') setNgoModalOpen(true);
                     else if (action.id === 'fuel_allocation') setVouchersOpen(true);
                     else if (action.id === 'payments_invoicing') setPaymentsOpen(true);
                     else if (action.id === 'weighbridge_clearance') setPortDocsOpen(true);
@@ -1864,14 +1859,6 @@ export const PublicLogisticsHub: React.FC = () => {
         opportunity={selectedOpportunity}
         onClose={() => setIsContractModalOpen(false)}
         onSubmitBid={handleContractBidSubmission}
-      />
-
-      {/* 🌍 New Multi-NGO Standalone Procurement Tracker Module Component */}
-      <NgoTendersModal 
-        isOpen={ngoModalOpen} 
-        onClose={() => setNgoModalOpen(false)} 
-        shopId={shopId || localStorage.getItem('remembered_logistics_shop_id')}
-        ngoId="IFRC" // You can easily change this parameter context dynamically
       />
 
     </div>
