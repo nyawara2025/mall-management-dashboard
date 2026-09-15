@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
-import { Globe, Camera, Save, Loader2, X, Plus, Bot, PieChart, UserPlus } from 'lucide-react';
+import { Globe, Camera, Save, Loader2, X, Plus, Bot, PieChart } from 'lucide-react';
 import { HeatmapLayer } from './HeatmapLayer'; 
 
-import { OnboardStaffModal } from './OnboardStaffModal';
 import { AgentIncidentTracker } from './AgentIncidentTracker';
 import { ParallelVoteTally } from './ParallelVoteTally';
 
@@ -41,7 +40,6 @@ function ProjectModal({ isOpen, onClose, shopId }: { isOpen: boolean, onClose: (
   const [isUploading, setIsUploading] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [project, setProject] = useState({ title: '', description: '', type: 'planned', location: '' });
-
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -229,9 +227,6 @@ function Analytics({ webhookUrl, businessCategory, shopId }: { webhookUrl: strin
 export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
   const { user } = useAuth();
   const shopId = user?.shop_id; 
-
-  const [isOnboardStaffOpen, setIsOnboardStaffOpen] = useState(false);
-  const isIctAdmin = user?.role === 'super_admin';
   
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -438,21 +433,14 @@ export function PoliticalDashboard({ onViewChange }: PoliticalDashboardProps) {
     <div className="p-6 max-w-7xl mx-auto space-y-8">
       {/* 1. Header Section */}
       <div 
-        className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-4 
-rounded-xl shadow-sm border-l-4 gap-4" 
+        className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-4 rounded-xl shadow-sm border-l-4 gap-4" 
         style={{ borderLeftColor: profile.primary_color }}
       >
         <div className="flex items-center gap-4">
           {profile.photo_url ? (
-            <img 
-              src={profile.photo_url} 
-              alt="Profile" 
-              className="w-16 h-16 rounded-full object-cover border-2 shadow-sm" 
-              style={{ borderColor: profile.primary_color }} 
-            />
+            <img src={profile.photo_url} alt="Profile" className="w-16 h-16 rounded-full object-cover border-2 shadow-sm" style={{ borderColor: profile.primary_color }} />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-gray-200 flex-shrink-0 flex items-center 
-justify-center text-gray-400">
+            <div className="w-16 h-16 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center text-gray-400">
               <UserCircle size={40} />
             </div>
           )}
@@ -463,30 +451,13 @@ justify-center text-gray-400">
             <p className="text-sm text-gray-500">Real-time mobilization for 2027.</p>
           </div>
         </div>
-
-        {/* Action Button Container holding both launch and management modules */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-          {isIctAdmin && (
-            <button 
-              onClick={() => setIsOnboardStaffOpen(true)}
-              className="w-full sm:w-auto bg-gray-900 text-white px-5 py-2 rounded-lg 
-hover:bg-gray-800 transition-colors shadow-md font-medium text-center flex items-center 
-justify-center gap-2 text-sm"
-            >
-              <UserPlus size={16} />
-              Onboard Staff
-            </button>
-          )}
-          
-          <button 
-            style={{ backgroundColor: profile.primary_color }}
-            onClick={() => onViewChange('campaigns')}
-            className="w-full sm:w-auto text-white px-6 py-2 rounded-lg hover:opacity-90 
-transition-opacity shadow-md font-medium text-center text-sm"
-          >
-            Launch New Ad
-          </button>
-        </div>
+        <button 
+          style={{ backgroundColor: profile.primary_color }}
+          onClick={() => onViewChange('campaigns')}
+          className="w-full sm:w-auto text-white px-6 py-2 rounded-lg hover:opacity-90 transition-opacity shadow-md font-medium text-center"
+        >
+          Launch New Ad
+        </button>
       </div>
 
       {/* 2. Key Metrics */}
@@ -845,12 +816,6 @@ transition-opacity shadow-md font-medium text-center text-sm"
         <AgentIncidentTracker shopId={String(user?.shop_id || shopId || '65')} />
         <ParallelVoteTally shopId={String(user?.shop_id || shopId || '65')} />
       </div>
-
-      <OnboardStaffModal 
-        isOpen={isOnboardStaffOpen} 
-        onClose={() => setIsOnboardStaffOpen(false)} 
-        shopId={String(shopId || user?.shop_id || '65')} 
-      />
 
     </div> // This closes the main dashboard container
   ); // This ends the return statement

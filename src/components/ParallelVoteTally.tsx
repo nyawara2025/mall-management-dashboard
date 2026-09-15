@@ -1,88 +1,128 @@
-import React, { useState, useEffect } from 'react';
-import { BarChart3, Layers, CheckCircle2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { BarChart3, Loader2, PieChart } from 'lucide-react';
 
-interface Tally {
-  constituency_name: string;
-  forms_received: number;
-  total_stations: number;
-  candidate_votes: number;
-  competitor_votes: number;
+interface Competitor {
+  candidate_id: string;
+  candidate_name: string;
+  party_affiliation: string;
+  vote_count: number;
+  is_main_rival: boolean;
 }
 
-export const ParallelVoteTally = ({ shopId }: { shopId: string }) => {
-  const [tallies, setTallies] = useState<Tally[]>([]);
+interface ParallelVoteTallyProps {
+  shopId: string;
+}
+
+export const ParallelVoteTally: React.FC<ParallelVoteTallyProps> = ({ shopId }) => {
+  const [loading, setLoading] = useState(true);
+  const [candidateData, setCandidateData] = useState({ name: 'Hon. Candidate', votes: 0 });
+  const [opponents, setOpponents] = useState<Competitor[]>([]);
 
   useEffect(() => {
-    if (shopId) {
-      fetch('https://n8n.tenear.com/webhook/parallel-vote-tally', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'fetch_pvt_summary',
-          shop_id: shopId
-        })
-      })
-      .then(res => res.json())
-      .then(data => setTallies(Array.isArray(data) ? data : []))
-      .catch(err => console.error("PVT fetch error:", err));
-    }
+    const streamTallyResults = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('https://n8n.tenear.com/webhook/stream-tallying-results', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ shop_id: shopId })
+        });
+        const data = await response.json();
+        
+        setCandidateData({
+          name: data.candidate_name || "Hon. Aspirant",
+          votes: Number(data.candidate_votes || 0)
+        });
+        setOpponents(data.opponents || []);
+      } catch (err) {
+        console.error("Parallel vote stream failure:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (shopId) streamTallyResults();
   }, [shopId]);
 
-  const aggregateCandidate = tallies.reduce((acc, curr) => acc + curr.candidate_votes, 0);
-  const aggregateCompetitor = tallies.reduce((acc, curr) => acc + curr.competitor_votes, 0);
+  const aggregateVoterPool = candidateData.votes + opponents.reduce((acc, curr) => acc + Number(curr.vote_count || 0), 
+0);
+
+  if (loading) {
+    return (
+      <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col items-center 
+justify-center min-h-[300px]">
+        <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-2" />
+        <p className="text-xs text-gray-500 italic">Streaming live parallel constituency returns...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm mt-6">
-      <div className="flex items-center gap-3 border-b border-gray-100 pb-4 mb-4">
-        <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl"><BarChart3 size={20} /></div>
-        <div>
-          <h3 className="text-lg font-black text-gray-900">Parallel Vote Tallying (PVT)</h3>
-          <p className="text-xs text-gray-400 font-bold uppercase">Form 34A Independent Verification</p>
+    <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm flex flex-col space-y-4">
+      <div className="flex items-center justify-between border-b border-gray-50 pb-3">
+        <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-900">
+          <PieChart className="w-5 h-5 text-blue-600" /> Parallel Vote Standings
+        </h3>
+        <span className="text-xs font-bold text-gray-400 bg-gray-50 px-2 py-1 rounded-md">
+          Total Cast: {aggregateVoterPool.toLocaleString()}
+        </span>
+      </div>
+
+      {/* Main Candidate Card Progress Bar */}
+      <div className="bg-blue-50/70 border border-blue-100/60 rounded-xl p-4 space-y-2">
+        <div className="flex justify-between items-center text-sm">
+          <span className="font-extrabold text-blue-900">{candidateData.name} <span className="font-normal text-xs 
+text-blue-600">(Our Candidate)</span></span>
+          <span className="font-black text-blue-700">
+            {candidateData.votes.toLocaleString()} ({aggregateVoterPool > 0 ? ((candidateData.votes / 
+aggregateVoterPool) * 100).toFixed(1) : 0}%)
+          </span>
+        </div>
+        <div className="w-full bg-blue-200/60 h-3 rounded-full overflow-hidden">
+          <div 
+            className="bg-blue-600 h-full rounded-full transition-all duration-1000"
+            style={{ width: `${aggregateVoterPool > 0 ? (candidateData.votes / aggregateVoterPool) * 100 : 0}%` }}
+          />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-        <div className="bg-blue-50/50 border border-blue-100 rounded-2xl p-4">
-          <span className="text-xs font-black text-blue-600 uppercase tracking-wider">Your Total Count</span>
-          <h2 className="text-2xl font-black text-blue-900 mt-1">{aggregateCandidate.toLocaleString()}</h2>
-        </div>
-        <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4">
-          <span className="text-xs font-black text-gray-400 uppercase tracking-wider">Closest Competitor</span>
-          <h2 className="text-2xl font-black text-gray-800 mt-1">{aggregateCompetitor.toLocaleString()}</h2>
-        </div>
-      </div>
-
-      <div className="overflow-x-auto text-xs">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b font-black text-gray-400 uppercase tracking-wider">
-              <th className="py-2">Constituency</th>
-              <th className="py-2">Form Stream Progress</th>
-              <th className="py-2 text-right">Your Count</th>
-              <th className="py-2 text-right">Competitor</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y font-bold text-gray-700">
-            {tallies.map((row, idx) => {
-              const pct = row.total_stations > 0 ? Math.round((row.forms_received / row.total_stations) * 100) : 0;
-              return (
-                <tr key={idx} className="hover:bg-gray-50/50">
-                  <td className="py-3 font-black text-gray-900 uppercase">{row.constituency_name}</td>
-                  <td className="py-3">
-                    <div className="flex items-center gap-2 max-w-[130px]">
-                      <div className="w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                        <div className="bg-emerald-500 h-full" style={{ width: `${pct}%` }}></div>
-                      </div>
-                      <span className="text-[10px] text-gray-400 font-black whitespace-nowrap">{row.forms_received}/{row.total_stations}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 text-right text-blue-600 font-black">{row.candidate_votes.toLocaleString()}</td>
-                  <td className="py-3 text-right text-gray-500">{row.competitor_votes.toLocaleString()}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      {/* Complete Dynamic Scroll-List Iterating Over Every Opponent */}
+      <div className="space-y-3 max-h-[240px] overflow-y-auto pr-1">
+        {opponents.length > 0 ? (
+          opponents.map((opp) => {
+            const oppPct = aggregateVoterPool > 0 ? (Number(opp.vote_count || 0) / aggregateVoterPool) * 100 : 0;
+            return (
+              <div key={opp.candidate_id} className={`border rounded-xl p-3 space-y-1.5 ${opp.is_main_rival ? 
+'bg-amber-50/40 border-amber-100' : 'bg-gray-50/40 border-gray-100'}`}>
+                <div className="flex justify-between items-center text-xs">
+                  <div>
+                    <span className="font-bold text-gray-800">{opp.candidate_name}</span>
+                    <span className="ml-2 font-semibold text-[9px] text-gray-400 bg-gray-200/60 px-1.5 py-0.5 rounded 
+uppercase tracking-wider">{opp.party_affiliation}</span>
+                    {opp.is_main_rival && <span className="ml-1.5 text-[9px] text-amber-700 font-bold bg-amber-100 
+px-1 rounded">Closest Rival</span>}
+                  </div>
+                  <span className="font-bold text-gray-600">
+                    {Number(opp.vote_count || 0).toLocaleString()} ({oppPct.toFixed(1)}%)
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-1000 ${opp.is_main_rival ? 'bg-amber-500' 
+: 'bg-gray-400'}`}
+                    style={{ width: `${oppPct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div className="text-center py-6 text-gray-400 flex flex-col items-center justify-center border 
+border-dashed rounded-xl border-gray-200">
+            <BarChart3 className="w-8 h-8 opacity-20 mb-1" />
+            <p className="text-xs italic">No opponents tracked inside this region pool.</p>
+          </div>
+        )}
       </div>
     </div>
   );
