@@ -720,9 +720,7 @@ export const CropsHub: React.FC<CropsHubProps> = ({
           <div className="flex justify-between items-center">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Crop Cultivation Cycles</h3>
             <button 
-              onClick={() => {
-                setIsCropsModalOpen(true); 
-              }}
+              onClick={() => setCropsView('production')}
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[10px] tracking-wide py-1 px-2.5 rounded-lg transition-all"
             >
               + ADD CROPS
@@ -776,6 +774,45 @@ export const CropsHub: React.FC<CropsHubProps> = ({
       </div>
     );
   }
+
+  // ====================================================================
+  // 🥬 INSERTED FIX: Standalone Crop Allocation Subview
+  // ====================================================================
+  if (cropsView === 'production') {
+    return (
+      <div className="space-y-4 animate-fadeIn text-left font-sans">
+        <button 
+          onClick={() => setCropsView('menu')} 
+          className="text-[11px] text-emerald-600 hover:text-emerald-700 font-black tracking-wide uppercase"
+        >
+          ← Cancel & Back to Crops Menu
+        </button>
+
+        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-xs">
+          <CropsModal
+            isOpen={true} 
+            onClose={() => setCropsView('menu')}
+            shopId={shopId}
+            farmName={farmName}
+            userSession={userSession}
+            cropClass={cropClass}
+            cropVariety={cropVariety}
+            acreage={acreage}
+            cropStartDate={cropStartDate}
+            harvestDate={harvestDate}
+            setCropClass={setCropClass}
+            setCropVariety={setCropVariety}
+            setAcreage={setAcreage}
+            setCropStartDate={setCropStartDate}
+            activePlotsList={activePlotsList}
+            selectedPlotName={selectedPlotName}
+            setSelectedPlotName={setSelectedPlotName}
+          />
+        </div>
+      </div>
+    );
+  }
+
 
   // Input Tracking Input Management Form Component Layout
   if (cropsView === 'inputs') {
