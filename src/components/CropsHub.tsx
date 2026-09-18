@@ -720,10 +720,12 @@ export const CropsHub: React.FC<CropsHubProps> = ({
           <div className="flex justify-between items-center">
             <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Crop Cultivation Cycles</h3>
             <button 
-              onClick={handleAddNewPlotRouting}
+              onClick={() => {
+                setIsCropsModalOpen(true); 
+              }}
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-[10px] tracking-wide py-1 px-2.5 rounded-lg transition-all"
             >
-              + NEW PLOT
+              + ADD CROPS
             </button>
           </div>
 
