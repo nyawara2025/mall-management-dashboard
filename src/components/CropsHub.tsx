@@ -1335,6 +1335,7 @@ export const CropsHub: React.FC<CropsHubProps> = ({
           userSession={userSession}
           onPlotSaved={() => {
             fetchActivePlots();
+            setIsPlotModalOpen(false);
           }}
         />
 
