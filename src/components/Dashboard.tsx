@@ -734,7 +734,8 @@ export function Dashboard({ onViewChange }: DashboardProps) {
                 </h1>
  
                <p className="text-text-secondary mt-1">
-                  Welcome back, {user.full_name || 'User'} | <span className="font-semibold text-primary-600">Shop: {malls?.[0]?.shops?.[0]?.name || 'Retail Shop'}</span>
+                  Welcome back, {user.full_name || 'User'} | <span className="font-semibold text-primary-600">Shop: {user.shop_name || 'Retail Shop'}</span>
+
 
                 </p>
               </div>
