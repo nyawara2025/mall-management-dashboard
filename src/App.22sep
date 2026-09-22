@@ -566,7 +566,7 @@ function AppContent() {
             </div>
           )}
 
-          {currentView === 'customer-inquiries' && (
+          {currentView === 'inquiries' && (
             <div className="min-h-screen">
               <Header onBack={() => setCurrentView('dashboard')} title="Customer Inquiries" user={user} onLogout={logout} showUserMenu={showUserMenu} setShowUserMenu={setShowUserMenu} />
               <div className="pt-16"><CustomerInquiries /></div>
@@ -627,7 +627,7 @@ function AppContent() {
           )}
 
           {/* ADD THIS AT THE END */}
-          {!['campaigns', 'pos', 'templates', 'qr-generation', 'analytics', 'visitor-engagement', 'products', 'payments', 'payment-reception', 'messaging', 'customer-inquiries', 'manifestos', 'diaspora-hub', 'settings', 'dashboard'].includes(currentView) && (
+          {!['campaigns', 'pos', 'templates', 'qr-generation', 'analytics', 'visitor-engagement', 'products', 'payments', 'payment-reception', 'messaging', 'inquiries', 'manifestos', 'diaspora-hub', 'settings', 'dashboard'].includes(currentView) && (
             <div className="pt-20 text-center">
               <p>View "{currentView}" not found. Returning to dashboard...</p>
               <button onClick={() => setCurrentView('dashboard')} className="text-blue-600 underline">
