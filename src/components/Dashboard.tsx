@@ -93,6 +93,8 @@ export function Dashboard({ onViewChange }: DashboardProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [newOrderStatus, setNewOrderStatus] = useState<string>('');
 
+  console.log('🔒 CURRENT ACTIVE USER SESSION OBJECT:', JSON.stringify(user, null, 2));
+
   const fetchMalls = async () => {
     setIsLoading(true);
     setError(null);
