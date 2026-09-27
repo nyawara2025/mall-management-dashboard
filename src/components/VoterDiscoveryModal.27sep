@@ -300,14 +300,12 @@ export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onC
                     <img 
                       src={c.photo_url || 'https://placeholder.com'} 
                       className="w-14 h-14 rounded-full object-cover border-2 border-gray-50" 
-                      alt={c.name || 'Candidate'}
+                      alt={c.full_name}
                     />
                     <div>
-                      <p className="font-black text-gray-900 group-hover:text-blue-600 transition">
-                        {c.name || 'Candidate'}
-                      </p>
+                      <p className="font-black text-gray-900 group-hover:text-blue-600 transition">{c.full_name}</p>
                       <p className="text-xs font-bold text-gray-400 uppercase">
-                        {c.post_vying_for || filters.level || 'Candidate'} {filters.county ? `• ${filters.county}` : ''}
+                        {c.post_vying_for || 'Candidate'} {c.county_name ? `• ${c.county_name}` : ''}
                       </p>
                     </div>
                     <ChevronRight className="ml-auto text-gray-300" />
