@@ -307,7 +307,7 @@ export const VoterDiscoveryModal: React.FC<DiscoveryModalProps> = ({ isOpen, onC
                         {c.name || 'Candidate'}
                       </p>
                       <p className="text-xs font-bold text-gray-400 uppercase">
-                        {c.post_vying_for || filters.level || 'Candidate'} • {c.constituency || filters.constituency || c.county || filters.county}
+                        {c.post_vying_for || filters.level || 'Candidate'} {filters.county ? `• ${filters.county}` : ''}
                       </p>
                     </div>
                     <ChevronRight className="ml-auto text-gray-300" />
